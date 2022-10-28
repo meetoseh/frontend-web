@@ -1,10 +1,10 @@
-name: lint
+name: lint and test
 
 on: push
 
 jobs:
-  eslint:
-    name: eslint
+  lint_and_test:
+    name: lint and test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -15,3 +15,4 @@ jobs:
     - run: npx prettier --check **/*.tsx
     - run: npx prettier --check **/*.css
     - run: npx prettier --check **/*.ts
+    - run: npm test
