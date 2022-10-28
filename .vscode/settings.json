@@ -1,0 +1,5 @@
+{
+    "javascript.format.semicolons": "insert",
+    "javascript.preferences.importModuleSpecifier": "shortest",
+    "javascript.preferences.importModuleSpecifierEnding": "auto"
+}
