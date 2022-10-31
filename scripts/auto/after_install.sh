@@ -67,6 +67,7 @@ update_website_code() {
     python -m pip install -U pip
     pip install -r requirements.txt
     nvm use node
+    npm install
     npm run build
     deactivate
     rsync -avu --delete build/ /var/www
