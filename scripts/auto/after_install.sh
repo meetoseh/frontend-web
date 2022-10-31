@@ -30,6 +30,7 @@ activate_nvm() {
 }
 
 install_nvm() {
+    yum -y install build-essential libssl-dev
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
 }
 
