@@ -30,7 +30,7 @@ install_nvm() {
 }
 
 install_node() {
-    nvm install node
+    nvm install node --lts
 }
 
 install_node_if_necessary() {
