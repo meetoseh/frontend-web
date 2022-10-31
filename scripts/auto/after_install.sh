@@ -24,25 +24,31 @@ install_nginx_if_necessary() {
     fi
 }
 
+activate_nvm() {
+    source /root/.bashrc
+    source /root/.nvm/nvm.sh
+}
+
 install_nvm() {
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
-    source /root/.bashrc
 }
 
 install_node() {
     nvm install 18
 }
 
-install_node_if_necessary() {
-    source /root/.bashrc
+activate_node_installing_if_necessary() {
+    activate_nvm
     if ! command -v nvm > /dev/null 2>&1
     then
         install_nvm
+        activate_nvm
     fi
 
     if ! command -v npm > /dev/null 2>&1
     then
         install_node
+        activate_nvm
     fi
 }
 
@@ -67,6 +73,6 @@ update_website_code() {
 
 install_basic_dependencies
 install_nginx_if_necessary
-install_node_if_necessary
+activate_node_installing_if_necessary
 update_nginx_config
 update_website_code
