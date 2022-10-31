@@ -24,6 +24,18 @@ install_nginx_if_necessary() {
     fi
 }
 
+install_node() {
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+    nvm install node
+}
+
+install_node_if_necessary() {
+    if ! command -v nvm > /dev/null 2>&1
+    then
+        install_node
+    fi
+}
+
 update_nginx_config() {
     cp scripts/nginx.conf /etc/nginx/nginx.conf
 }
@@ -37,6 +49,7 @@ update_website_code() {
     . /home/ec2-user/config.sh
     python -m pip install -U pip
     pip install -r requirements.txt
+    nvm use node
     npm build
     deactivate
     rsync -avu --delete build/ /var/www
@@ -44,5 +57,6 @@ update_website_code() {
 
 install_basic_dependencies
 install_nginx_if_necessary
+install_node_if_necessary
 update_nginx_config
 update_website_code
