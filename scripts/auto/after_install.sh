@@ -24,15 +24,23 @@ install_nginx_if_necessary() {
     fi
 }
 
-install_node() {
+install_nvm() {
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
     source /root/.bashrc
+}
+
+install_node() {
     nvm install node
 }
 
 install_node_if_necessary() {
     source /root/.bashrc
     if ! command -v nvm > /dev/null 2>&1
+    then
+        install_nvm
+    fi
+
+    if ! command -v npm > /dev/null 2>&1
     then
         install_node
     fi
