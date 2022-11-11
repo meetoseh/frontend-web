@@ -1,0 +1,9 @@
+.TestLogin label,
+.TestLogin button {
+  display: block;
+  margin-top: 20px;
+}
+
+.TestLogin {
+  padding: 24px;
+}

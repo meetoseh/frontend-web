@@ -10,17 +10,19 @@
     "@types/node": "^16.18.2",
     "@types/react": "^18.0.24",
     "@types/react-dom": "^18.0.8",
+    "buffer": "^6.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.4.3",
     "react-scripts": "5.0.1",
     "typescript": "^4.8.4",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "cross-env REACT_APP_LOGIN_URL=$LOGIN_URL REACT_APP_ROOT_BACKEND_URL=$ROOT_BACKEND_URL REACT_APP_ROOT_WEBSOCKET_URL=$ROOT_WEBSOCKET_URL react-scripts start",
+    "build": "cross-env REACT_APP_LOGIN_URL=$LOGIN_URL REACT_APP_ROOT_BACKEND_URL=$ROOT_BACKEND_URL REACT_APP_ROOT_WEBSOCKET_URL=$ROOT_WEBSOCKET_URL react-scripts build",
+    "test": "cross-env REACT_APP_LOGIN_URL=$LOGIN_URL REACT_APP_ROOT_BACKEND_URL=$ROOT_BACKEND_URL REACT_APP_ROOT_WEBSOCKET_URL=$ROOT_WEBSOCKET_URL react-scripts test",
+    "eject": "cross-env REACT_APP_LOGIN_URL=$LOGIN_URL REACT_APP_ROOT_BACKEND_URL=$ROOT_BACKEND_URL REACT_APP_ROOT_WEBSOCKET_URL=$ROOT_WEBSOCKET_URL react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -39,5 +41,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
   }
 }

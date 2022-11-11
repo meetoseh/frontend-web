@@ -1,5 +1,10 @@
 {
-    "javascript.format.semicolons": "insert",
-    "javascript.preferences.importModuleSpecifier": "shortest",
-    "javascript.preferences.importModuleSpecifierEnding": "auto"
+  "javascript.format.semicolons": "insert",
+  "javascript.preferences.importModuleSpecifier": "relative",
+  "javascript.preferences.importModuleSpecifierEnding": "minimal",
+  "typescript.format.semicolons": "insert",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.importModuleSpecifierEnding": "minimal",
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2
 }
