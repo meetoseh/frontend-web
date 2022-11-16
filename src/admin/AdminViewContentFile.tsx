@@ -19,6 +19,8 @@ export const AdminViewContentFile = (): ReactElement => {
   const [uid, setUid] = useState<string>('');
   const [contentRef, setContentRef] = useState<ContentFileRef | null>(null);
   const [webExport, setWebExport] = useState<ContentFileWebExport | null>(null);
+  const [androidPlaylist, setAndroidPlaylist] = useState<string | null>(null);
+  const [androidVod, setAndroidVod] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -28,6 +30,8 @@ export const AdminViewContentFile = (): ReactElement => {
     };
 
     async function fetchContentRef() {
+      setContentRef(null);
+
       if (uid === '') {
         return;
       }
@@ -67,6 +71,8 @@ export const AdminViewContentFile = (): ReactElement => {
     };
 
     async function fetchWebExport() {
+      setWebExport(null);
+
       if (!contentRef) {
         return;
       }
@@ -105,6 +111,84 @@ export const AdminViewContentFile = (): ReactElement => {
     }
   }, [contentRef]);
 
+  useEffect(() => {
+    let active = true;
+    fetchAndroidPlaylist();
+    return () => {
+      active = false;
+    };
+
+    async function fetchAndroidPlaylist() {
+      setAndroidPlaylist(null);
+
+      if (!contentRef) {
+        return;
+      }
+
+      const response = await fetch(
+        `${HTTP_API_URL}/api/1/content_files/${contentRef.uid}/android.m3u8?presign=1`,
+        {
+          headers: {
+            Authorization: `bearer ${contentRef.jwt}`,
+          },
+        }
+      );
+      if (!active) {
+        return;
+      }
+      const text = await response.text();
+      if (!active) {
+        return;
+      }
+      if (!response.ok) {
+        console.error("Couldn't fetch android playlist", response, text);
+        return;
+      }
+
+      setAndroidPlaylist(text);
+    }
+  }, [contentRef]);
+
+  useEffect(() => {
+    let active = true;
+    fetchAndroidVod();
+    return () => {
+      active = false;
+    };
+
+    async function fetchAndroidVod() {
+      setAndroidVod(null);
+
+      if (!androidPlaylist) {
+        return;
+      }
+
+      const firstVodUrl = androidPlaylist
+        .split('\n')
+        .find((line) => line.length > 0 && !line.startsWith('#'));
+      if (!firstVodUrl) {
+        console.error('failed to find an android vod url');
+        return;
+      }
+
+      const response = await fetch(firstVodUrl);
+      if (!active) {
+        return;
+      }
+
+      const text = await response.text();
+      if (!active) {
+        return;
+      }
+      if (!response.ok) {
+        console.error("Couldn't fetch android vod", response, text);
+        return;
+      }
+
+      setAndroidVod(text);
+    }
+  }, [androidPlaylist]);
+
   return (
     <div style={STYLES.form}>
       <div style={STYLES.formGroup}>
@@ -115,6 +199,18 @@ export const AdminViewContentFile = (): ReactElement => {
         <audio controls>
           <source src={webExport.url} type="audio/mp4" />
         </audio>
+      )}
+      {androidPlaylist !== null && (
+        <div style={STYLES.formGroup}>
+          <label>Android Playlist (~{androidPlaylist.length.toLocaleString()} bytes):</label>
+          <pre style={{ overflowX: 'auto' }}>{androidPlaylist}</pre>
+        </div>
+      )}
+      {androidVod !== null && (
+        <div style={STYLES.formGroup}>
+          <label>Android Vod (~{androidVod.length.toLocaleString()} bytes):</label>
+          <pre style={{ overflowX: 'auto' }}>{androidVod}</pre>
+        </div>
       )}
     </div>
   );
