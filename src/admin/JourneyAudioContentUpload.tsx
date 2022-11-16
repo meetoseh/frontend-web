@@ -4,12 +4,12 @@ import { LoginContext } from '../shared/LoginContext';
 import { FileUploadHandler, parseUploadInfoFromResponse } from '../shared/upload/FileUploadHandler';
 
 /**
- * Shows a file selector. When they select a file, it starts a journey background
- * image upload, then uploads the file there.
+ * Shows a file selector. When they select a file, it starts a journey audio
+ * content upload, then uploads the file there.
  *
  * Requires a login context
  */
-export const JourneyBackgroundImageUpload = (): ReactElement => {
+export const JourneyAudioContentUpload = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [file, setFile] = useState<File | null>(null);
   const [upload, setUpload] = useState<ReactElement | null>(null);
@@ -28,7 +28,7 @@ export const JourneyBackgroundImageUpload = (): ReactElement => {
       }
 
       const response = await apiFetch(
-        '/api/1/journeys/background_images/',
+        '/api/1/journeys/audio_contents/',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json; charset=UTF-8' },
@@ -46,7 +46,7 @@ export const JourneyBackgroundImageUpload = (): ReactElement => {
         if (!active) {
           return;
         }
-        console.error("Couldn't start journey background image upload", response, text);
+        console.error("Couldn't start journey audio content upload", response, text);
         return;
       }
 
@@ -75,7 +75,7 @@ export const JourneyBackgroundImageUpload = (): ReactElement => {
   return (
     upload ?? (
       <form style={styles.form}>
-        <label style={styles.label}>Select Image File Content</label>
+        <label style={styles.label}>Select Audio Content</label>
         <input
           style={styles.input}
           type="file"

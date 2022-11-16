@@ -80,6 +80,7 @@ const STYLES: { [name: string]: CSSProperties } = {
     flexDirection: 'column',
     gap: '24px',
     maxWidth: '400px',
+    marginBottom: '40px',
   },
   formGroup: {
     display: 'flex',
