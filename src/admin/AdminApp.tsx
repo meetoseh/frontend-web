@@ -7,13 +7,14 @@ import { AdminViewImageFile } from './AdminViewImageFile';
 import { JourneyAudioContentUpload } from './JourneyAudioContentUpload';
 import { JourneyBackgroundImageUpload } from './JourneyBackgroundImageUpload';
 import '../assets/fonts.css';
+import { AdminIsProSubscriber } from './AdminIsProSubscriber';
 
 export default function AdminApp(): ReactElement {
   return (
     <LoginProvider>
       <div style={{ padding: '24px', fontFamily: 'Open Sans', fontSize: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <MyProfilePicture /> AdminApp!
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25em' }}>
+          <MyProfilePicture /> AdminApp! <AdminIsProSubscriber />
         </div>
         <LoginButton />
         <div>
