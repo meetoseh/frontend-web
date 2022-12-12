@@ -1,0 +1,42 @@
+/* #region icons */
+.iconDashboard {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/dashboard.svg');
+}
+
+.iconContent {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/content.svg');
+}
+/* #endregion */
+
+.outerContainer {
+  position: relative;
+  background: #446266;
+  width: 248px;
+  min-height: calc(100vh - 102px);
+}
+
+@media (prefers-reduced-motion) {
+  .collapsed {
+    display: none;
+  }
+}
+
+@media not (prefers-reduced-motion) {
+  .outerContainer {
+    transition: width 0.3s ease-in-out;
+    overflow-x: hidden;
+  }
+  .container {
+    width: 248px;
+  }
+  .collapsed {
+    width: 0;
+  }
+}
+
+.container {
+  padding-top: 28px;
+  margin: 0 3px 0 20px;
+}

@@ -1,0 +1,33 @@
+.container {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 17px;
+}
+
+.active::after {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 24px;
+  background: white;
+  border-radius: 10px;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+
+  text-decoration: none;
+  color: white;
+  font-family: 'OpenSans', sans-serif;
+  font-weight: 500;
+}
+
+.inactive .link {
+  opacity: 60%;
+}
+
+.text {
+}

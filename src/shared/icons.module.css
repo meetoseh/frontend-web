@@ -1,0 +1,9 @@
+.icon {
+  background: no-repeat center center;
+  display: inline-block;
+  vertical-align: middle;
+  content: '';
+  width: 24px;
+  height: 24px;
+  background-size: 100% 100%;
+}
