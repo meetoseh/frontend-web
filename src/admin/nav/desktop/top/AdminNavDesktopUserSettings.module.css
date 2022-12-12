@@ -1,0 +1,17 @@
+.imageContainer {
+  cursor: pointer;
+}
+
+.popupContainer {
+  padding: 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.popupItem {
+  composes: unstyled from '../../../../shared/buttons.module.css';
+  font-family: 'Open-Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  color: white;
+}

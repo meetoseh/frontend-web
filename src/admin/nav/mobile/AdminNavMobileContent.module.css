@@ -1,0 +1,33 @@
+.container {
+  width: 100%;
+  height: calc(100vh - 80px);
+  background: #446266;
+  display: flex;
+}
+
+@media (prefers-reduced-motion) {
+  .collapsed {
+    display: none;
+  }
+}
+
+@media not (prefers-reduced-motion) {
+  .container {
+    transition: height 0.3s ease-in-out;
+    overflow-y: hidden;
+  }
+
+  .collapsed {
+    height: 0;
+  }
+}
+
+.content {
+  padding: 24px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 20px;
+}
