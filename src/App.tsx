@@ -10,7 +10,6 @@ import {
 } from './shared/LoginContext';
 import { TestLogin } from './shared/TestLogin';
 import { apiFetch } from './shared/ApiConstants';
-import DevJourneyApp from './admin/dev_journey/DevJourneyApp';
 
 function App() {
   useEffect(() => {
@@ -74,7 +73,6 @@ function App() {
         <Route path="/admin" element={<AdminApp />}>
           {AdminRoutes()}
         </Route>
-        <Route path="/admin/dev_journey" element={<DevJourneyApp />} />
         <Route path="/dev_login" element={<TestLogin />} />
       </Routes>
     </BrowserRouter>

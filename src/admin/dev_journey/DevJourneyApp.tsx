@@ -1,6 +1,5 @@
 import { ReactElement, useEffect, useState } from 'react';
 import { LoginProvider } from '../../shared/LoginContext';
-import { MyProfilePicture } from '../../shared/MyProfilePicture';
 import '../../assets/fonts.css';
 import { DevJourney } from './DevJourney';
 import { HTTP_API_URL } from '../../shared/ApiConstants';
@@ -96,14 +95,6 @@ export default function DevJourneyApp(): ReactElement {
           fontFamily: 'Open Sans',
           fontSize: '16px',
         }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-          }}>
-          <MyProfilePicture /> DevJourneyApp
-        </div>
-
         <div
           style={{
             padding: '24px',

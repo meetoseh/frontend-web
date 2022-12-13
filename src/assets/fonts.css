@@ -15,14 +15,14 @@
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
-  font-weight: 700;
+  font-weight: 800;
   font-display: swap;
   src: url('fonts/OpenSans/OpenSans-ExtraBold.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: italic;
-  font-weight: 700;
+  font-weight: 800;
   font-display: swap;
   src: url('fonts/OpenSans/OpenSans-ExtraBoldItalic.ttf') format('truetype');
 }
@@ -99,14 +99,14 @@
 @font-face {
   font-family: 'Open Sans Condensed';
   font-style: normal;
-  font-weight: 700;
+  font-weight: 800;
   font-display: swap;
   src: url('fonts/OpenSans_Condensed/OpenSans_Condensed-ExtraBold.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans Condensed';
   font-style: italic;
-  font-weight: 700;
+  font-weight: 800;
   font-display: swap;
   src: url('fonts/OpenSans_Condensed/OpenSans_Condensed-ExtraBoldItalic.ttf') format('truetype');
 }
@@ -183,14 +183,14 @@
 @font-face {
   font-family: 'Open Sans SemiCondensed';
   font-style: normal;
-  font-weight: 700;
+  font-weight: 800;
   font-display: swap;
   src: url('fonts/OpenSans_SemiCondensed/OpenSans_SemiCondensed-ExtraBold.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans SemiCondensed';
   font-style: italic;
-  font-weight: 700;
+  font-weight: 800;
   font-display: swap;
   src: url('fonts/OpenSans_SemiCondensed/OpenSans_SemiCondensed-ExtraBoldItalic.ttf') format('truetype');
 }

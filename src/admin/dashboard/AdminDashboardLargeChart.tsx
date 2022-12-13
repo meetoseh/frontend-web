@@ -1,0 +1,298 @@
+import { ReactElement, useEffect, useMemo, useState } from 'react';
+import {
+  Chart,
+  CategoryScale,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  Legend,
+  Tooltip,
+  Colors,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+import Popup from 'reactjs-popup';
+import '../../assets/fonts.css';
+import styles from './AdminDashboardLargeChart.module.css';
+import iconStyles from './icons.module.css';
+
+Chart.register(
+  LineController,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Legend,
+  Tooltip,
+  Colors
+);
+
+export type AdminDashboardLargeChartItem = {
+  /**
+   * A unique identifier for this chart item.
+   */
+  identifier: string;
+
+  /**
+   * The name for this chart item, e.g., "Daily Active Users"
+   */
+  name: string;
+
+  /**
+   * The labels, either formatted as YYYY-MM-DD or YYYY-MM depending on if
+   * it's a daily or monthly chart, respectively
+   */
+  labels: string[];
+
+  /**
+   * The values corresponding to the labels
+   */
+  values: number[];
+};
+
+export type AdminDashboardLargeChartMonthlyItem = AdminDashboardLargeChartItem & {
+  /**
+   * The chart converted to the daily variant so it can be displayed when
+   * showing both daily and monthly charts in the same graph
+   */
+  dailyVariant: AdminDashboardLargeChartItem;
+};
+
+type AdminDashboardLargeChartProps = {
+  /**
+   * Available daily charts; the user can select any number of these to
+   * display. If they are displayed alongside monthly charts, the monthly
+   * points are rendered on the 15th of each month.
+   */
+  dailyCharts: AdminDashboardLargeChartItem[];
+
+  /**
+   * Available monthly charts; the user can select any number of these to
+   * display.
+   */
+  monthlyCharts: AdminDashboardLargeChartMonthlyItem[];
+};
+
+export const AdminDashboardLargeChart = ({
+  dailyCharts,
+  monthlyCharts,
+}: AdminDashboardLargeChartProps): ReactElement => {
+  const [selectedDailyCharts, setSelectedDailyCharts] = useState<AdminDashboardLargeChartItem[]>([
+    dailyCharts[0],
+  ]);
+  const [selectedMonthlyCharts, setSelectedMonthlyCharts] = useState<
+    AdminDashboardLargeChartMonthlyItem[]
+  >([]);
+  const [primaryChart, setPrimaryChart] = useState<AdminDashboardLargeChartItem>(dailyCharts[0]);
+
+  // many of the plugins don't take kindly to changing the data, especially the colors plugin
+  const [chartCounter, setChartCounter] = useState(0);
+
+  useEffect(() => {
+    if (!selectedDailyCharts.length && !selectedMonthlyCharts.length) {
+      setSelectedDailyCharts([dailyCharts[0]]);
+      return;
+    }
+
+    if (
+      !selectedDailyCharts.some((c) => c.identifier === primaryChart.identifier) &&
+      !selectedMonthlyCharts.some((c) => c.identifier === primaryChart.identifier)
+    ) {
+      setPrimaryChart(selectedDailyCharts[0] || selectedMonthlyCharts[0]);
+    }
+  }, [selectedDailyCharts, selectedMonthlyCharts, primaryChart, dailyCharts]);
+
+  const data = useMemo(() => {
+    setChartCounter((c) => c + 1);
+    if (selectedDailyCharts.length + selectedMonthlyCharts.length === 0) {
+      return {
+        labels: ['Loading'],
+        datasets: [
+          {
+            label: 'Loading',
+            data: [0],
+          },
+        ],
+      };
+    }
+
+    if (selectedDailyCharts.length > 0) {
+      return {
+        labels: selectedDailyCharts[0].labels,
+        datasets: [
+          ...selectedDailyCharts.map((chart) => ({
+            label: chart.name,
+            data: chart.values,
+          })),
+          ...selectedMonthlyCharts.map((chart) => ({
+            label: chart.name,
+            data: chart.dailyVariant.values,
+          })),
+        ],
+      };
+    }
+
+    return {
+      labels: selectedMonthlyCharts[0].labels,
+      datasets: selectedMonthlyCharts.map((chart) => ({
+        label: chart.name,
+        data: chart.values,
+      })),
+    };
+  }, [selectedDailyCharts, selectedMonthlyCharts]);
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.titleContainer}>
+        <div className={styles.primaryTitleContainer}>
+          <div className={styles.primaryTitle}>{primaryChart.name}</div>
+          <Popup
+            trigger={
+              <div className={styles.moreContainer}>
+                <span className={iconStyles.more}></span>
+              </div>
+            }
+            position="right top"
+            on="click"
+            closeOnDocumentClick
+            mouseLeaveDelay={300}
+            mouseEnterDelay={0}
+            arrow={false}>
+            <div className={styles.popupContainer}>
+              <div className={styles.popupTitle}>Daily Charts</div>
+              {dailyCharts.map((chart) => (
+                <button
+                  key={chart.identifier}
+                  type="button"
+                  className={`${styles.popupItem} ${
+                    selectedDailyCharts.includes(chart) ? styles.popupItemSelected : ''
+                  }`}
+                  onClick={() => {
+                    if (selectedDailyCharts.includes(chart)) {
+                      setSelectedDailyCharts((sel) => sel.filter((c) => c !== chart));
+                    } else {
+                      setSelectedDailyCharts((sel) => sel.concat(chart));
+                    }
+                  }}>
+                  <div className={styles.popupItemCheckboxContainer}>
+                    <span
+                      className={`${styles.checkbox} ${
+                        selectedDailyCharts.includes(chart)
+                          ? iconStyles.checkboxChecked
+                          : iconStyles.checkboxUnchecked
+                      }`}></span>
+                  </div>
+                  <div className={styles.popupItemName}>{chart.name}</div>
+                </button>
+              ))}
+              <div className={styles.popupTitle}>Monthly Charts</div>
+              {monthlyCharts.map((chart) => (
+                <button
+                  key={chart.identifier}
+                  type="button"
+                  className={`${styles.popupItem} ${
+                    selectedMonthlyCharts.includes(chart) ? styles.popupItemSelected : ''
+                  }`}
+                  onClick={() => {
+                    if (selectedMonthlyCharts.includes(chart)) {
+                      setSelectedMonthlyCharts(selectedMonthlyCharts.filter((c) => c !== chart));
+                    } else {
+                      setSelectedMonthlyCharts(selectedMonthlyCharts.concat(chart));
+                    }
+                  }}>
+                  <div className={styles.popupItemCheckboxContainer}>
+                    <span
+                      className={`${styles.checkbox} ${
+                        selectedMonthlyCharts.includes(chart)
+                          ? iconStyles.checkboxChecked
+                          : iconStyles.checkboxUnchecked
+                      }`}></span>
+                  </div>
+                  <div className={styles.popupItemName}>{chart.name}</div>
+                </button>
+              ))}
+            </div>
+          </Popup>
+        </div>
+        {selectedDailyCharts.length + selectedMonthlyCharts.length > 1 ? (
+          <div className={styles.secondaryTitle}>
+            {(() => {
+              const chartNames = selectedDailyCharts
+                .filter((chart) => chart !== primaryChart)
+                .map((chart) => chart.name)
+                .concat(
+                  selectedMonthlyCharts
+                    .filter((chart) => chart !== primaryChart)
+                    .map((chart) => chart.name)
+                );
+
+              if (chartNames.length === 1) {
+                return chartNames[0];
+              } else if (chartNames.length === 2) {
+                return chartNames.join(' and ');
+              }
+
+              return (
+                chartNames.slice(0, chartNames.length - 1).join(', ') +
+                ', and ' +
+                chartNames[chartNames.length - 1]
+              );
+            })()}
+          </div>
+        ) : null}
+      </div>
+
+      <div className={styles.chartContainer}>
+        {selectedDailyCharts.length + selectedMonthlyCharts.length > 0 ? (
+          <Line
+            key={chartCounter.toString()}
+            options={{
+              responsive: true,
+              interaction: {
+                mode: 'nearest',
+              },
+              scales: {
+                x: {
+                  ticks: {
+                    callback: (value, index, ticks) => {
+                      const label = primaryChart.labels[index];
+                      const isMonthly = label.length === 7;
+
+                      const isoFormatted = isMonthly ? label + '-01' : label;
+
+                      const dayOfMonth = parseInt(isoFormatted.split('-')[2]);
+                      if (!isMonthly && dayOfMonth !== 1) {
+                        return null;
+                      }
+
+                      return new Date(isoFormatted).toLocaleDateString('en-US', {
+                        timeZone: 'UTC',
+                        month: 'short',
+                      });
+                    },
+                  },
+                },
+                y: {
+                  grid: {
+                    display: false,
+                  },
+
+                  ticks: {
+                    precision: 0,
+                  },
+                },
+              },
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'bottom',
+                },
+              },
+            }}
+            data={data}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+};

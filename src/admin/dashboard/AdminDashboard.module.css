@@ -1,0 +1,41 @@
+.titleContainer {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 32px;
+  color: #171717;
+}
+
+.topBlocksContainer {
+  margin-top: 21px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+@media screen and (max-width: 991px) {
+  .topBlocksContainer {
+    justify-content: center;
+  }
+}
+
+.centerContainer {
+  margin-top: 21px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.centerLeftContainer {
+  flex: 0 1 850px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.centerRightContainer {
+  flex: 0 1 270px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}

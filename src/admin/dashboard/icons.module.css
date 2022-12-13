@@ -1,0 +1,38 @@
+.totalMembers {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/total-members.svg');
+}
+
+.totalViews {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/total-views.svg');
+}
+
+.totalInstructors {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/total-instructors.svg');
+}
+
+.totalJourneys {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/total-journeys.svg');
+}
+
+.more {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/more.svg');
+}
+
+.checkboxChecked {
+  composes: icon from '../../shared/icons.module.css';
+  width: 16px;
+  height: 16px;
+  background-image: url('./icons/checkbox-checked.svg');
+}
+
+.checkboxUnchecked {
+  composes: icon from '../../shared/icons.module.css';
+  width: 16px;
+  height: 16px;
+  background-image: url('./icons/checkbox-unchecked.svg');
+}
