@@ -1,6 +1,6 @@
 import UserApp from './user/UserApp';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import AdminApp from './admin/AdminApp';
+import { AdminApp, AdminRoutes } from './admin/AdminApp';
 import { useEffect } from 'react';
 import {
   extractUserAttributes,
@@ -71,7 +71,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<UserApp />} />
-        <Route path="/admin" element={<AdminApp />} />
+        <Route path="/admin" element={<AdminApp />}>
+          {AdminRoutes()}
+        </Route>
         <Route path="/admin/dev_journey" element={<DevJourneyApp />} />
         <Route path="/dev_login" element={<TestLogin />} />
       </Routes>

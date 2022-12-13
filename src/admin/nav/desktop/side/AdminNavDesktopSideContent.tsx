@@ -25,8 +25,8 @@ export const AdminNavDesktopSideContent = ({
           <AdminNavDesktopSideLink
             iconClass={styles.iconContent}
             text={`Example ${i + 1}`}
-            url="#"
-            active={false}
+            url={`/admin/example${i + 1}`}
+            active={currentPath === `/admin/example${i + 1}`}
             key={`top-${i}`}
           />
         ))}

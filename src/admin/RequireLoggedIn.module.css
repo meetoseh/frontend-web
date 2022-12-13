@@ -1,0 +1,58 @@
+.container {
+  background: #f5f5f5;
+  width: 100%;
+  min-height: 100vh;
+  padding-top: 80px;
+}
+
+.content {
+  padding: 24px;
+  border-radius: 4px;
+  background: #b6a792;
+  margin: 0 auto;
+  max-width: 660px;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 56px;
+  line-height: 72px;
+  font-weight: normal;
+}
+
+@media screen and (max-width: 991px) {
+  .title {
+    font-size: 32px;
+    line-height: 48px;
+  }
+}
+
+.text {
+  font-family: 'Open Sans', sans-serif;
+  color: #191c1d;
+  font-size: 18px;
+  line-height: 32px;
+  letter-spacing: 0.25px;
+  margin-bottom: 60px;
+}
+
+.buttonContainer a,
+.buttonContainer button {
+  border: none;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+
+  display: block;
+  background: #446266;
+  width: 100%;
+  color: white;
+  text-decoration: none;
+  font-family: 'Open Sans', sans-serif;
+  text-align: center;
+  font-size: 20px;
+  line-height: 32px;
+  letter-spacing: 0.25px;
+  border-radius: 100px;
+  padding: 7px 0;
+}

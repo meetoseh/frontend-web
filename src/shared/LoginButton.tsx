@@ -28,9 +28,7 @@ export const LoginButton = (): React.ReactElement => {
   }, []);
 
   return loginContext.state === 'logged-in' ? (
-    <button style={{ padding: '2px 8px' }} onClick={logout}>
-      Logout
-    </button>
+    <button onClick={logout}>Logout</button>
   ) : (
     <a href={LOGIN_URL}>Login</a>
   );
