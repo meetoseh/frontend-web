@@ -4,6 +4,7 @@ import styles from './AdminDashboard.module.css';
 import iconStyles from './icons.module.css';
 import { AdminDashboardSimpleTopBlock } from './AdminDashboardSimpleTopBlock';
 import { AdminDashboardLargeChartLoader } from './AdminDashboardLargeChartLoader';
+import { AdminDashboardSmallChartLoader } from './AdminDashboardSmallChartLoader';
 
 export const AdminDashboard = (): ReactElement => {
   return (
@@ -35,7 +36,9 @@ export const AdminDashboard = (): ReactElement => {
         <div className={styles.centerLeftContainer}>
           <AdminDashboardLargeChartLoader />
         </div>
-        <div className={styles.centerRightContainer}></div>
+        <div className={styles.centerRightContainer}>
+          <AdminDashboardSmallChartLoader />
+        </div>
       </div>
     </div>
   );

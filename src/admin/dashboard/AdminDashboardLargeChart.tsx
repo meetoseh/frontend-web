@@ -251,11 +251,20 @@ export const AdminDashboardLargeChart = ({
               interaction: {
                 mode: 'nearest',
               },
+              elements: {
+                point: {
+                  pointStyle: 'line',
+                },
+              },
               scales: {
                 x: {
                   ticks: {
                     callback: (value, index, ticks) => {
                       const label = primaryChart.labels[index];
+                      if (label === undefined) {
+                        // bad state
+                        return value;
+                      }
                       const isMonthly = label.length === 7;
 
                       const isoFormatted = isMonthly ? label + '-01' : label;

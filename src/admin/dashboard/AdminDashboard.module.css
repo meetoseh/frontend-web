@@ -39,3 +39,22 @@
   flex-direction: column;
   gap: 20px;
 }
+
+@media screen and (max-width: 991px) {
+  .centerContainer {
+    flex: column nowrap;
+    justify-content: center;
+  }
+
+  .centerLeftContainer {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .centerRightContainer {
+    flex-basis: auto;
+    width: 100%;
+    max-width: 500px;
+    justify-content: center;
+  }
+}

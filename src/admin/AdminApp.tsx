@@ -69,15 +69,9 @@ export const AdminApp = (): ReactElement => {
     <LoginProvider>
       <RequireLoggedIn>
         <div className={`${styles.container} ${expanded ? styles.expanded : styles.collapsed}`}>
-          {(isMobile && (
-            <>
-              <div className={styles.mobileHeaderContainer}>
-                <AdminNavMobileHeader expanded={expanded} setExpanded={setExpanded} />
-                <AdminNavMobileContent expanded={expanded} />
-              </div>
-              <div className={styles.mobileHeaderPadding}></div>
-            </>
-          )) || (
+          {isMobile ? (
+            <div className={styles.mobileHeaderPadding}></div>
+          ) : (
             <div className={styles.desktopTopContainer}>
               <AdminNavDesktopSideHeader expanded={expanded} setExpanded={setExpanded} />
               <AdminNavDesktopTop />
@@ -88,6 +82,16 @@ export const AdminApp = (): ReactElement => {
               <AdminNavDesktopSideContent expanded={expanded} />
               {content}
             </div>
+          )}
+          {!isMobile ? (
+            <></>
+          ) : (
+            <>
+              <div className={styles.mobileHeaderContainer}>
+                <AdminNavMobileHeader expanded={expanded} setExpanded={setExpanded} />
+                <AdminNavMobileContent expanded={expanded} />
+              </div>
+            </>
           )}
         </div>
       </RequireLoggedIn>
