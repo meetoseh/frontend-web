@@ -3,8 +3,7 @@
 }
 
 .container {
-  padding: 28px 0 36px 0;
-  margin: 0 20px 0 20px;
+  padding: 28px 20px 36px 20px;
   display: flex;
   gap: 66px;
   border-bottom-width: 1px;
@@ -20,9 +19,28 @@
   padding-bottom: 21px;
 }
 
+.collapsed .logoLink {
+  display: none;
+}
+
 @media not (prefers-reduced-motion) {
   .container {
-    transition: border-bottom 0.3s ease-in-out, padding 0.3s ease-in-out;
+    transition: border-bottom 0.3s ease-in-out, padding 0.3s ease-in-out, gap 0.3s ease-in-out;
+  }
+
+  .collapsed {
+    gap: 0px;
+  }
+
+  .logoLink {
+    overflow-x: hidden;
+    width: 126px;
+    transition: width 0.3s ease-in-out;
+  }
+
+  .collapsed .logoLink {
+    display: flex;
+    width: 0px;
   }
 }
 
@@ -54,6 +72,8 @@
 
 .toggleButton {
   composes: unstyled from '../../../../shared/buttons.module.css';
+  width: 16px;
+  height: 37px;
 }
 
 .toggle {
