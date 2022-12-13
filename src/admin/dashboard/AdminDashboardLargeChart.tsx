@@ -260,7 +260,10 @@ export const AdminDashboardLargeChart = ({
                 x: {
                   ticks: {
                     callback: (value, index, ticks) => {
-                      const label = primaryChart.labels[index];
+                      const usingDaily = selectedDailyCharts.length > 0;
+                      const label = usingDaily
+                        ? selectedDailyCharts[0].labels[index]
+                        : selectedMonthlyCharts[0].labels[index];
                       if (label === undefined) {
                         // bad state
                         return value;
