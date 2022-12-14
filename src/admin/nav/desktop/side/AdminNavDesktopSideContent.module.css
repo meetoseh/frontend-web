@@ -8,6 +8,11 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/content.svg');
 }
+
+.iconDebugJourney {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/debug-journey.svg');
+}
 /* #endregion */
 
 .outerContainer {

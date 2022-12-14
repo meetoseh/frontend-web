@@ -38,7 +38,7 @@ export const AdminNavDesktopSideContent = ({
           ))}
           <AdminNavDesktopSideSectionHeader text="System" />
           <AdminNavDesktopSideLink
-            iconClass={styles.iconContent}
+            iconClass={styles.iconDebugJourney}
             text="Debug Journey"
             url="/admin/dev_journey"
             active={currentPath === '/admin/dev_journey'}
