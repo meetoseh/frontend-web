@@ -1,0 +1,14 @@
+.pencil {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/pencil.svg');
+}
+
+.close {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/close.svg');
+}
+
+.check {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/check.svg');
+}

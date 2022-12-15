@@ -1,0 +1,106 @@
+.input {
+  appearance: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  outline: none;
+  width: 100%;
+  background: none;
+  display: block;
+  border: none;
+
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  color: #191c1d;
+  padding: 5px 16px 5px 16px;
+  border-bottom: 1px solid #191c1d;
+  min-width: 210px;
+}
+
+.labelAndInput {
+  position: relative;
+  width: 100%;
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.label {
+  position: absolute;
+  color: #191c1d;
+}
+
+.filledOrFocused .label {
+  top: 5px;
+  left: 16px;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.15px;
+}
+
+.empty .label {
+  top: 16px;
+  left: 16px;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+}
+
+.help {
+  padding: 4px 16px 0 16px;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.15px;
+  color: #191c1d;
+}
+
+.normal {
+}
+
+.error .label,
+.error .help {
+  color: #ba1a1a;
+}
+
+.error .input {
+  border-color: #ba1a1a;
+}
+
+.disabled {
+  opacity: 38%;
+}
+
+.disabled .label,
+.disabled .help {
+  color: #3f484a;
+}
+
+.disabled .input {
+  color: #3f484a;
+  border-color: #3f484a;
+}
+
+@media not (prefers-reduced-motion) {
+  .container {
+    transition: opacity 0.3s ease;
+  }
+
+  .label {
+    transition: top 0.3s ease, left 0.3s ease, font-size 0.3s ease, letter-spacing 0.3s ease,
+      line-height 0.3s ease, color 0.3s ease;
+  }
+
+  .input {
+    transition: border-color 0.3s ease;
+  }
+
+  .help {
+    transition: color 0.3s ease;
+  }
+}

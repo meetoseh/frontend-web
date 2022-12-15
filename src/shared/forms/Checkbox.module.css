@@ -1,0 +1,66 @@
+.container {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.enabled {
+  cursor: pointer;
+  opacity: 100%;
+}
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 38%;
+}
+
+@media not (prefers-reduced-motion) {
+  .container {
+    transition: opacity 0.3s ease-in-out;
+  }
+}
+
+.input {
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  background: no-repeat center center;
+  background-size: 100% 100%;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  content: '';
+  cursor: pointer;
+}
+
+.input:checked {
+  background-image: url('./icons/checkbox-checked.svg');
+}
+
+.input:not(:checked) {
+  background-image: url('./icons/checkbox-unchecked.svg');
+}
+
+.input:disabled {
+  cursor: not-allowed;
+}
+
+.label {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+}
+
+.enabled .label {
+  cursor: pointer;
+}
+
+.disabled .label {
+  cursor: not-allowed;
+}

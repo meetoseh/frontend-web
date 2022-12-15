@@ -421,6 +421,29 @@ export const LoginProvider = ({
     }
   }, []);
 
+  useEffect(() => {
+    let timeout: NodeJS.Timeout | null = null;
+    if (authTokens !== null) {
+      const idenClaimsB64 = authTokens.idToken.split('.')[1];
+      const idenClaimsJson = Buffer.from(idenClaimsB64, 'base64').toString('utf8');
+      const idenClaims = JSON.parse(idenClaimsJson);
+      const expMs = idenClaims.exp * 1000;
+      const nowMs = Date.now();
+
+      timeout = setTimeout(onExpired, expMs - nowMs);
+    }
+    return () => {
+      if (timeout !== null) {
+        clearTimeout(timeout);
+      }
+    };
+
+    function onExpired() {
+      timeout = null;
+      wrappedSetAuthTokens(null);
+    }
+  }, [authTokens, wrappedSetAuthTokens]);
+
   return (
     <LoginContext.Provider
       value={{

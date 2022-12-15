@@ -192,7 +192,8 @@
   font-style: italic;
   font-weight: 800;
   font-display: swap;
-  src: url('fonts/OpenSans_SemiCondensed/OpenSans_SemiCondensed-ExtraBoldItalic.ttf') format('truetype');
+  src: url('fonts/OpenSans_SemiCondensed/OpenSans_SemiCondensed-ExtraBoldItalic.ttf')
+    format('truetype');
 }
 @font-face {
   font-family: 'Open Sans SemiCondensed';
@@ -227,7 +228,8 @@
   font-style: italic;
   font-weight: 500;
   font-display: swap;
-  src: url('fonts/OpenSans_SemiCondensed/OpenSans_SemiCondensed-MediumItalic.ttf') format('truetype');
+  src: url('fonts/OpenSans_SemiCondensed/OpenSans_SemiCondensed-MediumItalic.ttf')
+    format('truetype');
 }
 @font-face {
   font-family: 'Open Sans SemiCondensed';
@@ -248,7 +250,8 @@
   font-style: italic;
   font-weight: 600;
   font-display: swap;
-  src: url('fonts/OpenSans_SemiCondensed/OpenSans_SemiCondensed-SemiBoldItalic.ttf') format('truetype');
+  src: url('fonts/OpenSans_SemiCondensed/OpenSans_SemiCondensed-SemiBoldItalic.ttf')
+    format('truetype');
 }
 @font-face {
   font-family: 'Roboto Mono';

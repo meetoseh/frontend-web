@@ -13,6 +13,11 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/debug-journey.svg');
 }
+
+.iconInstructors {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/instructors.svg');
+}
 /* #endregion */
 
 .outerContainer {

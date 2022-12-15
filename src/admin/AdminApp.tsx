@@ -11,11 +11,13 @@ import { Outlet, Route } from 'react-router-dom';
 import { AdminDashboard } from './dashboard/AdminDashboard';
 import styles from './AdminApp.module.css';
 import DevJourneyApp from './dev_journey/DevJourneyApp';
+import { Instructors } from './instructors/Instructors';
 
 export const AdminRoutes = (): ReactElement => {
   return (
     <>
       <Route path="dev_journey" element={<DevJourneyApp />} />
+      <Route path="instructors" element={<Instructors />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />

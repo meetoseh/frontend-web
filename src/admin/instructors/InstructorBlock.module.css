@@ -1,0 +1,44 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.editPictureContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.editPictureInput {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  color: #171717;
+}
+
+.picturesContainer {
+  display: flex;
+  gap: 10px;
+}
+
+.circlePictureContainer {
+  width: 60px;
+  height: 60px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.deletedAtContainer {
+  width: 100%;
+  padding: 20px;
+  border-radius: 10px;
+  background: #b6a792;
+  margin-top: 20px;
+}
+
+.deletedAtContainer > * {
+  margin: 0;
+  padding: 0;
+}

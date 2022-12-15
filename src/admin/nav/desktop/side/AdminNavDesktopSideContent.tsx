@@ -27,7 +27,13 @@ export const AdminNavDesktopSideContent = ({
             url="/admin"
             active={currentPath === '/admin'}
           />
-          {[...Array(5)].map((_, i) => (
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconInstructors}
+            text="Instructors"
+            url="/admin/instructors"
+            active={currentPath === '/admin/instructors'}
+          />
+          {[...Array(4)].map((_, i) => (
             <AdminNavDesktopSideLink
               iconClass={styles.iconContent}
               text={`Example ${i + 1}`}
