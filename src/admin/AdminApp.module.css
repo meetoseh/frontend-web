@@ -52,16 +52,17 @@
   position: fixed;
   top: 0;
   left: 56px;
-  width: calc(100% - 60px);
+  width: calc(100% - 56px);
 }
 
 .expanded .desktopTopContainer {
   left: 248px;
+  width: calc(100% - 248px);
 }
 
 @media not (prefers-reduced-motion) {
   .desktopTopContainer {
-    transition: left 0.3s ease-in-out;
+    transition: left 0.3s ease-in-out, width 0.3s ease-in-out;
   }
 }
 
