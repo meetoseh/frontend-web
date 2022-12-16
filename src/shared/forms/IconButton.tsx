@@ -17,11 +17,22 @@ type IconButtonProps = {
    * The click handler
    */
   onClick: MouseEventHandler<HTMLButtonElement>;
+
+  /**
+   * If the button should be disabled
+   * @default false
+   */
+  disabled?: boolean;
 };
 
-export const IconButton = ({ icon, srOnlyName, onClick }: IconButtonProps): ReactElement => {
+export const IconButton = ({
+  icon,
+  srOnlyName,
+  onClick,
+  disabled = false,
+}: IconButtonProps): ReactElement => {
   return (
-    <button type="button" onClick={onClick} className={styles.button}>
+    <button type="button" onClick={onClick} className={styles.button} disabled={disabled}>
       <div className={icon} aria-hidden="true" />
       <span className={assistiveStyles.srOnly}>{srOnlyName}</span>
     </button>

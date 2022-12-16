@@ -17,7 +17,9 @@ export const AdminNavMobileContent = ({ expanded }: AdminNavMobileContentProps):
     <div className={`${styles.container} ${expanded ? styles.expanded : styles.collapsed}`}>
       <div className={styles.content}>
         <AdminNavMobileLink text="Dashboard" url="/admin" />
-        {[...Array(5)].map((_, i) => (
+        <AdminNavMobileLink text="Instructors" url="/admin/instructors" />
+        <AdminNavMobileLink text="Journeys" url="/admin/journeys" />
+        {[...Array(3)].map((_, i) => (
           <AdminNavMobileLink key={i.toString()} text={`Example ${i + 1}`} url="#" />
         ))}
       </div>

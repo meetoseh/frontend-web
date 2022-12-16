@@ -18,6 +18,16 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/instructors.svg');
 }
+
+.iconJourneys {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/journeys.svg');
+}
+
+.iconJourneySubcategories {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/journey-subcategories.svg');
+}
 /* #endregion */
 
 .outerContainer {

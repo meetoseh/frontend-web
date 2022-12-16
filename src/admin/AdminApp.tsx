@@ -12,12 +12,17 @@ import { AdminDashboard } from './dashboard/AdminDashboard';
 import styles from './AdminApp.module.css';
 import DevJourneyApp from './dev_journey/DevJourneyApp';
 import { Instructors } from './instructors/Instructors';
+import { Journeys } from './journeys/Journeys';
+import { JourneySubcategories } from './journeys/subcategories/JourneySubcategories';
+import { ModalProvider } from '../shared/ModalContext';
 
 export const AdminRoutes = (): ReactElement => {
   return (
     <>
       <Route path="dev_journey" element={<DevJourneyApp />} />
       <Route path="instructors" element={<Instructors />} />
+      <Route path="journeys" element={<Journeys />} />
+      <Route path="journeys/subcategories" element={<JourneySubcategories />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />
@@ -70,32 +75,34 @@ export const AdminApp = (): ReactElement => {
   return (
     <LoginProvider>
       <RequireLoggedIn>
-        <div className={`${styles.container} ${expanded ? styles.expanded : styles.collapsed}`}>
-          {isMobile ? (
-            <div className={styles.mobileHeaderPadding}></div>
-          ) : (
-            <div className={styles.desktopTopContainer}>
-              <AdminNavDesktopSideHeader expanded={expanded} setExpanded={setExpanded} />
-              <AdminNavDesktopTop />
-            </div>
-          )}
-          {(isMobile && content) || (
-            <div className={styles.desktopSideAndContentContainer}>
-              <AdminNavDesktopSideContent expanded={expanded} />
-              {content}
-            </div>
-          )}
-          {!isMobile ? (
-            <></>
-          ) : (
-            <>
-              <div className={styles.mobileHeaderContainer}>
-                <AdminNavMobileHeader expanded={expanded} setExpanded={setExpanded} />
-                <AdminNavMobileContent expanded={expanded} />
+        <ModalProvider>
+          <div className={`${styles.container} ${expanded ? styles.expanded : styles.collapsed}`}>
+            {isMobile ? (
+              <div className={styles.mobileHeaderPadding}></div>
+            ) : (
+              <div className={styles.desktopTopContainer}>
+                <AdminNavDesktopSideHeader expanded={expanded} setExpanded={setExpanded} />
+                <AdminNavDesktopTop />
               </div>
-            </>
-          )}
-        </div>
+            )}
+            {(isMobile && content) || (
+              <div className={styles.desktopSideAndContentContainer}>
+                <AdminNavDesktopSideContent expanded={expanded} />
+                {content}
+              </div>
+            )}
+            {!isMobile ? (
+              <></>
+            ) : (
+              <>
+                <div className={styles.mobileHeaderContainer}>
+                  <AdminNavMobileHeader expanded={expanded} setExpanded={setExpanded} />
+                  <AdminNavMobileContent expanded={expanded} />
+                </div>
+              </>
+            )}
+          </div>
+        </ModalProvider>
       </RequireLoggedIn>
     </LoginProvider>
   );

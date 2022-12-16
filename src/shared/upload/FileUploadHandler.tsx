@@ -127,9 +127,14 @@ type FileUploadHandlerProps = {
   uploadInfo: UploadInfo;
 
   /**
-   * Called when the upload is complete
+   * Called when the upload completes successfully
    */
   onComplete: () => void;
+
+  /**
+   * Called if an error occurs during the upload
+   */
+  onError?: ((error: any) => void) | null;
 };
 
 const uploadPart = async (
@@ -200,15 +205,32 @@ export const FileUploadHandler = ({
   file,
   uploadInfo,
   onComplete,
+  onError = null,
 }: FileUploadHandlerProps): ReactElement => {
   const [uploadedBytes, setUploadedBytes] = useState<number>(0);
 
   useEffect(() => {
     let active = true;
-    uploadFile();
+    uploadFileWrapper();
     return () => {
       active = false;
     };
+
+    async function uploadFileWrapper() {
+      try {
+        await uploadFile();
+      } catch (e) {
+        if (!active) {
+          return;
+        }
+
+        if (onError) {
+          onError(e);
+        } else {
+          throw e;
+        }
+      }
+    }
 
     async function uploadFile() {
       const lastPart = convertToRange(uploadInfo.parts[uploadInfo.parts.length - 1]);
@@ -262,7 +284,7 @@ export const FileUploadHandler = ({
 
       onComplete();
     }
-  }, [file, uploadInfo, onComplete]);
+  }, [file, uploadInfo, onComplete, onError]);
 
   return <progress value={(uploadedBytes / file.size) * 100} max={100} />;
 };

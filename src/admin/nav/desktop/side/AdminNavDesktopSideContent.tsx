@@ -33,7 +33,13 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/instructors"
             active={currentPath === '/admin/instructors'}
           />
-          {[...Array(4)].map((_, i) => (
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconJourneys}
+            text="Journeys"
+            url="/admin/journeys"
+            active={currentPath === '/admin/journeys'}
+          />
+          {[...Array(3)].map((_, i) => (
             <AdminNavDesktopSideLink
               iconClass={styles.iconContent}
               text={`Example ${i + 1}`}
@@ -42,14 +48,20 @@ export const AdminNavDesktopSideContent = ({
               key={`top-${i}`}
             />
           ))}
-          <AdminNavDesktopSideSectionHeader text="System" />
+          <AdminNavDesktopSideSectionHeader text="Advanced" />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconJourneySubcategories}
+            text="Journey Categorization"
+            url="/admin/journeys/subcategories"
+            active={currentPath === '/admin/journeys/subcategories'}
+          />
           <AdminNavDesktopSideLink
             iconClass={styles.iconDebugJourney}
             text="Debug Journey"
             url="/admin/dev_journey"
             active={currentPath === '/admin/dev_journey'}
           />
-          {[...Array(3)].map((_, i) => (
+          {[...Array(2)].map((_, i) => (
             <AdminNavDesktopSideLink
               iconClass={styles.iconContent}
               text={`Example ${i + 1}`}

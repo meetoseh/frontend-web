@@ -1,0 +1,5 @@
+.audioContentContainer {
+  display: flex;
+  gap: 20px;
+  margin-top: 8px;
+}

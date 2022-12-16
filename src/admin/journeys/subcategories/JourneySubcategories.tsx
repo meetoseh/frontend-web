@@ -1,36 +1,36 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { LoginContext } from '../../shared/LoginContext';
-import { Crud } from '../crud/Crud';
+import { LoginContext } from '../../../shared/LoginContext';
+import { Crud } from '../../crud/Crud';
 import {
   CrudFetcher,
   CrudFetcherFilter,
   CrudFetcherKeyMap,
   CrudFetcherSort,
-} from '../crud/CrudFetcher';
-import { CrudListing } from '../crud/CrudListing';
-import { CreateInstructor } from './CreateInstructor';
-import { Instructor } from './Instructor';
-import { InstructorBlock } from './InstructorBlock';
+} from '../../crud/CrudFetcher';
+import { CrudListing } from '../../crud/CrudListing';
+import { CreateJourneySubcategory } from './CreateJourneySubcategory';
+import { JourneySubcategory } from './JourneySubcategory';
+import { JourneySubcategoryBlock } from './JourneySubcategoryBlock';
 import {
   defaultFilter,
   defaultSort,
-  InstructorFilterAndSortBlock,
-} from './InstructorFilterAndSortBlock';
+  JourneySubcategoryFilterAndSortBlock,
+} from './JourneySubcategoryFilterAndSortBlock';
 
 const limit = 6;
-const path = '/api/1/instructors/search';
+const path = '/api/1/journeys/subcategories/search';
 
-export const keyMap: CrudFetcherKeyMap<Instructor> = {
-  created_at: (_, val) => ({ key: 'createdAt', value: new Date(val * 1000) }),
-  deleted_at: (_, val) => ({ key: 'deletedAt', value: val === null ? null : new Date(val * 1000) }),
+export const keyMap: CrudFetcherKeyMap<JourneySubcategory> = {
+  internal_name: 'internalName',
+  external_name: 'externalName',
 };
 
 /**
- * Shows the crud components for instructors
+ * Shows the crud components for journey subcategories
  */
-export const Instructors = (): ReactElement => {
+export const JourneySubcategories = (): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const [items, setItems] = useState<Instructor[]>([]);
+  const [items, setItems] = useState<JourneySubcategory[]>([]);
   const [filters, setFilters] = useState<CrudFetcherFilter>(defaultFilter);
   const [sort, setSort] = useState<CrudFetcherSort>(defaultSort);
   const [loading, setLoading] = useState(true);
@@ -54,25 +54,25 @@ export const Instructors = (): ReactElement => {
     );
   }, [fetcher, filters, sort, loginContext]);
 
+  const onItemCreated = useCallback((item: JourneySubcategory) => {
+    setItems((i) => [...i, item]);
+  }, []);
+
   const onMore = useCallback(() => {
     fetcher.loadMore(filters, limit, loginContext);
   }, [fetcher, filters, loginContext]);
 
-  const onInstructorCreated = useCallback((instructor: Instructor) => {
-    setItems((i) => [...i, instructor]);
-  }, []);
-
   return (
     <Crud
-      title="Instructors"
+      title="Journey Categorization"
       listing={
         <CrudListing
           items={items}
           component={(i) => (
-            <InstructorBlock
+            <JourneySubcategoryBlock
               key={i.uid}
-              instructor={i}
-              setInstructor={(i) => {
+              journeySubcategory={i}
+              setJourneySubcategory={(i) => {
                 setItems((items) => {
                   const index = items.findIndex((item) => item.uid === i.uid);
                   if (index === -1) {
@@ -90,9 +90,9 @@ export const Instructors = (): ReactElement => {
           onMore={onMore}
         />
       }
-      create={<CreateInstructor onCreated={onInstructorCreated} />}
+      create={<CreateJourneySubcategory onCreated={onItemCreated} />}
       filters={
-        <InstructorFilterAndSortBlock
+        <JourneySubcategoryFilterAndSortBlock
           sort={sort}
           setSort={setSort}
           filter={filters}

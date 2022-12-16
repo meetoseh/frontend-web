@@ -1,0 +1,28 @@
+.container {
+  max-width: 776px;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 32px;
+  line-height: 48px;
+  letter-spacing: 0;
+  color: #171717;
+  margin-bottom: 8px;
+}
+
+.help {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 18px;
+  line-height: 32px;
+  letter-spacing: 0.25px;
+  color: #171717;
+  margin-bottom: 20px;
+}
+
+.fileInput {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 15px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+}

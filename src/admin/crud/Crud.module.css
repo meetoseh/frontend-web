@@ -28,3 +28,10 @@
 .right {
   flex: 0 1 256px;
 }
+
+@media screen and (max-width: 991px) {
+  .left,
+  .right {
+    flex: 1 1 100%;
+  }
+}
