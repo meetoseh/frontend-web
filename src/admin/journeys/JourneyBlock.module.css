@@ -1,0 +1,31 @@
+.audioContentContainer {
+  margin-top: 8px;
+}
+
+.backgroundImageContainer {
+  margin-top: 8px;
+}
+
+.instructorContainer {
+  margin-top: 8px;
+  display: flex;
+  flex-flow: row wrap;
+  gap: 20px;
+  align-items: center;
+}
+
+.instructorPictureContainer {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.promptContainer pre,
+.uidContainer pre {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 14px;
+  line-height: 20px;
+  color: #171717;
+  overflow: auto;
+}

@@ -1,0 +1,91 @@
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.iconAndInput {
+  background: #f2f2f3;
+  border-radius: 6px;
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 10px;
+}
+
+.searchIcon {
+  composes: icon from '../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('./icons/search.svg');
+}
+
+.searchIconContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+}
+
+.input {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  border-radius: 0;
+  flex: 1 1 100%;
+
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 34px;
+  font-weight: 400;
+  font-style: normal;
+  color: #171717;
+}
+
+.input::placeholder {
+  color: #c8cdd0;
+}
+
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  z-index: 1;
+  display: flex;
+  flex-flow: column nowrap;
+  background: #c3c3c3;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  overflow: hidden;
+}
+
+.variant-down {
+}
+
+.variant-up .suggestions {
+  top: auto;
+  bottom: 100%;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.suggestionContainer {
+  width: 100%;
+}
+
+.suggestion {
+  composes: unstyled from '../../shared/buttons.module.css';
+  padding: 4px;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 15px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  width: 100%;
+  text-align: left;
+}
+
+.suggestion:hover {
+  background: #b6b6b6;
+}

@@ -39,6 +39,14 @@ type TextInputProps = {
   html5Validation: Record<string, string> | null;
 
   /**
+   * The type of input. Generally only text-like inputs will work, like number,
+   * though there are often better components for anything except text or email.
+   *
+   * @default 'text'
+   */
+  type?: string;
+
+  /**
    * If specified, called with a function that can be used to focus the input
    */
   doFocus?: ((focuser: (this: void) => void) => void) | null;
@@ -55,6 +63,7 @@ export const TextInput = ({
   inputStyle,
   onChange,
   html5Validation,
+  type = 'text',
   doFocus = null,
 }: TextInputProps): ReactElement => {
   const [focused, setFocused] = useState(false);
@@ -121,7 +130,7 @@ export const TextInput = ({
           <input
             ref={inputRef}
             className={styles.input}
-            type="text"
+            type={type}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}

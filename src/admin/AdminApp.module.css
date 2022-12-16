@@ -8,12 +8,6 @@
   margin: 0;
 }
 
-@media screen and (min-width: 992px) {
-  .expanded .outletContainer {
-    margin-top: -22px;
-  }
-}
-
 @media not (prefers-reduced-motion) {
   .outletContainer {
     transition: margin 0.3s ease-in-out;
@@ -32,12 +26,75 @@
   height: 80px;
 }
 
+.desktopSideContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: auto;
+  height: 100vh;
+}
+
+.desktopSideHeaderContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: auto;
+  height: 80px;
+}
+
+.expanded .desktopSideHeaderContainer {
+  height: 102px;
+}
+
 .desktopTopContainer {
   display: flex;
   align-items: flex-start;
+  position: fixed;
+  top: 0;
+  left: 56px;
+  width: calc(100% - 60px);
 }
 
-.desktopSideAndContentContainer {
-  display: flex;
-  align-items: flex-start;
+.expanded .desktopTopContainer {
+  left: 248px;
 }
+
+@media not (prefers-reduced-motion) {
+  .desktopTopContainer {
+    transition: left 0.3s ease-in-out;
+  }
+}
+
+.desktopContentContainer {
+  position: absolute;
+  top: 80px;
+  left: 0;
+  width: 100%;
+}
+
+.expanded .desktopContentContainer {
+  left: 248px;
+  width: calc(100% - 248px);
+}
+
+@media not (prefers-reduced-motion) {
+  .desktopContentContainer {
+    transition: width 0.3s ease-in-out, left 0.3s ease-in-out, top 0.3s ease-in-out;
+  }
+}
+
+/* #region desktopSideHeaderPadding - adds a vertical spacer as if it were the desktop side header */
+.desktopSideHeaderPadding {
+  height: 80px;
+}
+
+.expanded .desktopSideHeaderPadding {
+  height: 102px;
+}
+
+@media not (prefers-reduced-motion) {
+  .desktopSideHeaderPadding {
+    transition: height 0.3s ease-in-out;
+  }
+}
+/* #endregion */

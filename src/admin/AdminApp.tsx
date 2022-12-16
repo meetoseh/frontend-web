@@ -80,19 +80,25 @@ export const AdminApp = (): ReactElement => {
             {isMobile ? (
               <div className={styles.mobileHeaderPadding}></div>
             ) : (
-              <div className={styles.desktopTopContainer}>
-                <AdminNavDesktopSideHeader expanded={expanded} setExpanded={setExpanded} />
-                <AdminNavDesktopTop />
-              </div>
+              <>
+                <div className={styles.desktopSideContainer}>
+                  <div className={styles.desktopSideHeaderPadding}></div>
+                  <AdminNavDesktopSideContent expanded={expanded} />
+                </div>
+              </>
             )}
             {(isMobile && content) || (
-              <div className={styles.desktopSideAndContentContainer}>
-                <AdminNavDesktopSideContent expanded={expanded} />
-                {content}
-              </div>
+              <div className={styles.desktopContentContainer}>{content}</div>
             )}
             {!isMobile ? (
-              <></>
+              <>
+                <div className={styles.desktopSideHeaderContainer}>
+                  <AdminNavDesktopSideHeader expanded={expanded} setExpanded={setExpanded} />
+                </div>
+                <div className={styles.desktopTopContainer}>
+                  <AdminNavDesktopTop />
+                </div>
+              </>
             ) : (
               <>
                 <div className={styles.mobileHeaderContainer}>

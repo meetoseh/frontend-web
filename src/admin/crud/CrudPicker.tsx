@@ -60,6 +60,13 @@ type CrudPickerProps<T> = {
    * @default null
    */
   doFocus?: ((this: void, focus: (this: void) => void) => void) | null;
+
+  /**
+   * Variant of the picker. Currently this just controls the direction
+   * that suggestions are shown relative to the input.
+   * @default 'down'
+   */
+  variant?: 'down' | 'up';
 };
 
 /**
@@ -77,9 +84,11 @@ export function CrudPicker<T extends { uid: string }>({
   setSelected,
   disabled = false,
   doFocus = null,
+  variant = 'down',
 }: CrudPickerProps<T>): ReactElement {
   const loginContext = useContext(LoginContext);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [focused, setFocused] = useState(false);
   const [items, setItems] = useState<T[]>([]);
   const [error, setError] = useState<ReactElement | null>(null);
@@ -104,7 +113,7 @@ export function CrudPicker<T extends { uid: string }>({
       input.focus();
       setFocused(true);
     });
-  }, []);
+  }, [doFocus]);
 
   useEffect(() => {
     if (query === '' || disabled) {
@@ -151,10 +160,34 @@ export function CrudPicker<T extends { uid: string }>({
       );
       bonusCancellers.push(fetchCanceller);
     }
-  }, [query, disabled, fetcher]);
+  }, [query, disabled, fetcher, filterMaker, loginContext, sort]);
+
+  useEffect(() => {
+    if (containerRef.current === null) {
+      return;
+    }
+
+    const container = containerRef.current;
+    const onFocusIn = (e: FocusEvent) => {
+      setFocused(true);
+    };
+    const onFocusOut = (e: FocusEvent) => {
+      if (container.contains(e.relatedTarget as Node)) {
+        return;
+      }
+      setFocused(false);
+    };
+
+    container.addEventListener('focusin', onFocusIn);
+    container.addEventListener('focusout', onFocusOut);
+    return () => {
+      container.removeEventListener('focusin', onFocusIn);
+      container.removeEventListener('focusout', onFocusOut);
+    };
+  }, []);
 
   return (
-    <div className={styles.container}>
+    <div ref={containerRef} className={`${styles.container} ${styles[`variant-${variant}`]}`}>
       <div className={styles.iconAndInput}>
         <div className={styles.searchIconContainer}>
           <div className={styles.searchIcon}></div>
@@ -165,6 +198,7 @@ export function CrudPicker<T extends { uid: string }>({
           className={styles.input}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          placeholder="Enter a query..."
           disabled={disabled}
           ref={inputRef}
         />

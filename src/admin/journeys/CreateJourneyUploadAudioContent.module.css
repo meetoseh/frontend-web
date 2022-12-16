@@ -20,6 +20,16 @@
   margin-bottom: 20px;
 }
 
+.help > p:not(:last-child) {
+  margin-bottom: 1em;
+}
+
+.help > ol,
+.help > li {
+  margin-left: 1em;
+  margin-bottom: 1em;
+}
+
 .fileInput {
   font-family: 'Open Sans', sans-serif;
   font-size: 15px;

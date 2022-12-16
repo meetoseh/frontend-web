@@ -44,6 +44,10 @@
   .collapsed {
     display: none;
   }
+
+  .container {
+    width: calc(100% - 23px);
+  }
 }
 
 @media not (prefers-reduced-motion) {
@@ -51,8 +55,9 @@
     transition: width 0.3s ease-in-out;
     overflow-x: hidden;
   }
+
   .container {
-    width: 248px;
+    width: 225px;
   }
   .collapsed {
     width: 0;
@@ -62,7 +67,6 @@
 .container {
   padding-top: 28px;
   margin: 0 3px 0 20px;
-  width: calc(100% - 23px);
   min-height: calc(100vh - 102px);
   padding-bottom: 37px;
   display: flex;

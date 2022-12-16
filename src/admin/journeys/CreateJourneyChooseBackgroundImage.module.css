@@ -1,0 +1,92 @@
+.container {
+  max-width: 776px;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 32px;
+  line-height: 48px;
+  letter-spacing: 0;
+  color: #171717;
+  margin-bottom: 8px;
+}
+
+.help {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 18px;
+  line-height: 32px;
+  letter-spacing: 0.25px;
+  color: #171717;
+  margin-bottom: 20px;
+}
+
+.help > p:not(:last-child) {
+  margin-bottom: 1em;
+}
+
+.loadingContainer {
+  width: 100%;
+  min-height: 447px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loadingText {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 24px;
+  line-height: 32px;
+  color: #c3c3c3;
+}
+
+.noItemsContainer {
+  width: 100%;
+  border-top: 1px solid #c3c3c3;
+  padding-top: 20px;
+}
+
+.noItemsText {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 20px;
+  line-height: 32px;
+  letter-spacing: 0.25px;
+  color: #171717;
+}
+
+.itemsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+  align-items: center;
+}
+
+.itemContainer {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 20px;
+}
+
+.itemsOuterContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.itemsContainer {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+.itemImageButton {
+  composes: unstyled from '../../shared/buttons.module.css';
+}
+
+.controlsContainer {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 20px;
+  align-items: center;
+}

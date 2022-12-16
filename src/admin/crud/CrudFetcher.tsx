@@ -52,6 +52,20 @@ export function convertUsingKeymap<T>(raw: any, keyMap: CrudFetcherKeyMap<T>): T
   return result as T;
 }
 
+function getNextPageSort(
+  nextOrPrevPageSort: CrudFetcherSort | null | undefined
+): CrudFetcherSort | null {
+  if (nextOrPrevPageSort === null || nextOrPrevPageSort === undefined) {
+    return null;
+  }
+
+  if (!nextOrPrevPageSort.some((i) => i.after !== null)) {
+    return null;
+  }
+
+  return nextOrPrevPageSort;
+}
+
 /**
  * This class is capable of fetching items from a standard listing
  * endpoint whose request body has filters, sort, and limit and the
@@ -198,7 +212,7 @@ export class CrudFetcher<T> {
     loginContext: LoginContextValue,
     id: number,
     signal: AbortSignal | null
-  ): Promise<{ items: T[]; nextPageSort: CrudFetcherSort | null }> {
+  ): Promise<{ items: T[]; nextOrPrevPageSort: CrudFetcherSort | null }> {
     const handleAborted = () => {
       if (this.counter !== id || (signal && signal.aborted)) {
         throw new Error('aborted');
@@ -249,7 +263,7 @@ export class CrudFetcher<T> {
 
     return {
       items: json.items.map((i) => this.convertItem(i)),
-      nextPageSort: json.next_page_sort || null,
+      nextOrPrevPageSort: json.next_page_sort || null,
     };
   }
 
@@ -304,19 +318,31 @@ export class CrudFetcher<T> {
    * @param filters The filters to pass to the server
    * @param limit The maximum number of items to fetch
    * @param loginContext The login context to use for the request
+   * @param kwargs Additional optional keyword arguments
+   * @param kwargs.replace Default false. If true, instead of appending
+   *   the new items to the end of the list, this will replace the list
+   *   with the new items.
    */
   async loadMore(
     filters: CrudFetcherFilter,
     limit: number,
-    loginContext: LoginContextValue
+    loginContext: LoginContextValue,
+    kwargs: { replace?: boolean } | undefined = undefined
   ): Promise<void> {
+    kwargs = Object.assign(
+      {},
+      {
+        replace: false,
+      },
+      kwargs
+    );
     if (this.nextPageSort === null) {
       return;
     }
 
     const { id, signal } = this.initRequest();
     try {
-      const { items, nextPageSort } = await this.load(
+      const { items, nextOrPrevPageSort } = await this.load(
         filters,
         this.nextPageSort,
         limit,
@@ -324,7 +350,12 @@ export class CrudFetcher<T> {
         id,
         signal
       );
-      this.setItems((prev) => [...prev, ...items]);
+      if (kwargs.replace) {
+        this.setItems(items);
+      } else {
+        this.setItems((prev) => [...prev, ...items]);
+      }
+      const nextPageSort = getNextPageSort(nextOrPrevPageSort);
       this.nextPageSort = nextPageSort;
       this.setHaveMore(nextPageSort !== null);
     } catch (e: any) {
@@ -379,7 +410,7 @@ export class CrudFetcher<T> {
 
     async function doRequest(this: CrudFetcher<T>) {
       try {
-        const { items, nextPageSort } = await this.load(
+        const { items, nextOrPrevPageSort } = await this.load(
           filters,
           sort,
           limit,
@@ -388,6 +419,7 @@ export class CrudFetcher<T> {
           signal
         );
         this.setItems(items);
+        const nextPageSort = getNextPageSort(nextOrPrevPageSort);
         this.nextPageSort = nextPageSort;
         this.setHaveMore(nextPageSort !== null);
       } catch (e: any) {

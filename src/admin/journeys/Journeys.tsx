@@ -16,9 +16,9 @@ import { CrudListing } from '../crud/CrudListing';
 import { JourneyBlock } from './JourneyBlock';
 import { CreateJourney } from './CreateJourney';
 
-const limit = 6;
+const limit = 3;
 const path = '/api/1/journeys/search';
-const keyMap: CrudFetcherKeyMap<Journey> = {
+export const keyMap: CrudFetcherKeyMap<Journey> = {
   audio_content: 'audioContent',
   background_image: 'backgroundImage',
   subcategory: (_, val) => ({

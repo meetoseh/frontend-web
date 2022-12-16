@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useState } from 'react';
+import { ReactElement, useEffect, useRef, useState } from 'react';
 import { HTTP_API_URL } from './ApiConstants';
 import { describeErrorFromResponse, ErrorBlock } from './forms/ErrorBlock';
 
@@ -29,6 +29,7 @@ type ContentFileWebExport = {
 export const OsehContent = ({ uid, jwt }: OsehContentProps): ReactElement => {
   const [webExport, setWebExport] = useState<ContentFileWebExport | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
+  const ref = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -113,11 +114,27 @@ export const OsehContent = ({ uid, jwt }: OsehContentProps): ReactElement => {
     }
   }, [uid, jwt]);
 
+  useEffect(() => {
+    if (webExport === null || ref.current === null) {
+      return;
+    }
+
+    const audio = ref.current;
+    if (audio.readyState === 0) {
+      return;
+    }
+
+    if (!audio.paused) {
+      audio.pause();
+    }
+    audio.load();
+  }, [webExport]);
+
   return (
     <>
       {error && <ErrorBlock>{error}</ErrorBlock>}
       {webExport && (
-        <audio key={uid} controls>
+        <audio ref={ref} controls>
           <source src={webExport.url} type="audio/mp4" />
         </audio>
       )}

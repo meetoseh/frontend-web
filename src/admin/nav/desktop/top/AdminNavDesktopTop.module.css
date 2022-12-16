@@ -5,4 +5,15 @@
   width: 100%;
   padding: 0 20px;
   height: 80px;
+  background: white;
+}
+
+.scrolled {
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+@media not (prefers-reduced-motion) {
+  .scrolled {
+    transition: box-shadow 0.3s ease-in-out;
+  }
 }
