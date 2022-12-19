@@ -29,3 +29,48 @@
   color: #171717;
   overflow: auto;
 }
+
+.audioContentEditWarning,
+.promptEditWarning {
+  color: #ba1a1a;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 15px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  font-weight: 500;
+}
+
+.backgroundImageEditContainer {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 20px;
+  align-items: center;
+}
+
+.backgroundImageEditButtons {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 20px;
+}
+
+.editCategorizationContainer,
+.editInstructorContainer {
+  margin-top: 8px;
+}
+
+.promptEditContainer {
+  margin-bottom: 8px;
+}
+
+.deletedAtContainer {
+  width: 100%;
+  padding: 20px;
+  border-radius: 10px;
+  background: #b6a792;
+  margin-top: 20px;
+}
+
+.deletedAtContainer > * {
+  margin: 0 !important;
+  padding: 0;
+}
