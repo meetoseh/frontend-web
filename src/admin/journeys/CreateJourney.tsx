@@ -29,6 +29,8 @@ import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorB
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
+import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
+import { InstructorPicker } from '../instructors/InstructorPicker';
 
 type CreateJourneyProps = {
   /**
@@ -202,6 +204,16 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
     );
   }, [showAddBackgroundImageModal, modalContext.setModals]);
 
+  const onSubcategorySelected = useCallback((subcat: JourneySubcategory) => {
+    setSubcategory(subcat);
+    setSubcategoryQuery('');
+  }, []);
+
+  const onInstructorSelected = useCallback((instr: Instructor) => {
+    setInstructor(instr);
+    setInstructorQuery('');
+  }, []);
+
   return (
     <CrudCreateBlock>
       <div className={styles.container}>
@@ -312,27 +324,10 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
             </div>
           ) : (
             <div className={styles.categoryPickerContainer}>
-              <CrudPicker
-                path="/api/1/journeys/subcategories/search"
-                keyMap={journeySubcategoryKeyMap}
-                sort={[{ key: 'internal_name', dir: 'asc', before: null, after: null }]}
-                filterMaker={(query) => {
-                  return {
-                    internal_name: {
-                      operator: 'ilike',
-                      value: makeILikeFromInput(query),
-                    },
-                  };
-                }}
-                component={(item, query) => {
-                  return <CrudPickerItem query={query} match={item.internalName} />;
-                }}
+              <JourneySubcategoryPicker
                 query={subcategoryQuery}
                 setQuery={setSubcategoryQuery}
-                setSelected={(subcat) => {
-                  setSubcategory(subcat);
-                  setSubcategoryQuery('');
-                }}
+                setSelected={onSubcategorySelected}
               />
             </div>
           )}
@@ -362,46 +357,10 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
             </div>
           ) : (
             <div className={styles.instructorPickerContainer}>
-              <CrudPicker
-                path="/api/1/instructors/search"
-                keyMap={instructorKeyMap}
-                sort={[{ key: 'name', dir: 'asc', before: null, after: null }]}
-                filterMaker={(query) => {
-                  return {
-                    name: {
-                      operator: 'ilike',
-                      value: makeILikeFromInput(query),
-                    },
-                    deleted_at: {
-                      operator: 'eq',
-                      value: null,
-                    },
-                  };
-                }}
-                component={(item, query) => {
-                  return (
-                    <div className={styles.instructorContainer}>
-                      {item.picture !== null ? (
-                        <div className={styles.instructorPictureContainer}>
-                          <OsehImage
-                            uid={item.picture.uid}
-                            jwt={item.picture.jwt}
-                            displayWidth={60}
-                            displayHeight={60}
-                            alt="Profile"
-                          />
-                        </div>
-                      ) : null}
-                      <CrudPickerItem query={query} match={item.name} />
-                    </div>
-                  );
-                }}
+              <InstructorPicker
                 query={instructorQuery}
                 setQuery={setInstructorQuery}
-                setSelected={(instr) => {
-                  setInstructor(instr);
-                  setInstructorQuery('');
-                }}
+                setSelected={onInstructorSelected}
               />
             </div>
           )}
