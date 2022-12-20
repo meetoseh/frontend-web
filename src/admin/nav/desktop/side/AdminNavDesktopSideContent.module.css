@@ -28,6 +28,11 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/journey-subcategories.svg');
 }
+
+.iconDailyEvents {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/daily-events.svg');
+}
 /* #endregion */
 
 .outerContainer {

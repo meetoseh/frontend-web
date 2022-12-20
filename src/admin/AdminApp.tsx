@@ -15,6 +15,7 @@ import { Instructors } from './instructors/Instructors';
 import { Journeys } from './journeys/Journeys';
 import { JourneySubcategories } from './journeys/subcategories/JourneySubcategories';
 import { ModalProvider } from '../shared/ModalContext';
+import { DailyEvents } from './daily_events/DailyEvents';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -23,6 +24,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="instructors" element={<Instructors />} />
       <Route path="journeys" element={<Journeys />} />
       <Route path="journeys/subcategories" element={<JourneySubcategories />} />
+      <Route path="daily_events" element={<DailyEvents />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />

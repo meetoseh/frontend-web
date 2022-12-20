@@ -19,9 +19,7 @@ export const AdminNavMobileContent = ({ expanded }: AdminNavMobileContentProps):
         <AdminNavMobileLink text="Dashboard" url="/admin" />
         <AdminNavMobileLink text="Instructors" url="/admin/instructors" />
         <AdminNavMobileLink text="Journeys" url="/admin/journeys" />
-        {[...Array(3)].map((_, i) => (
-          <AdminNavMobileLink key={i.toString()} text={`Example ${i + 1}`} url="#" />
-        ))}
+        <AdminNavMobileLink text="Calendar" url="/admin/daily_events" />
       </div>
     </div>
   );

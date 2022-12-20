@@ -7,7 +7,6 @@ import { OsehContent } from '../../shared/OsehContent';
 import { OsehImage } from '../../shared/OsehImage';
 import { CrudCreateBlock } from '../crud/CrudCreateBlock';
 import { CrudFormElement } from '../crud/CrudFormElement';
-import { CrudPicker } from '../crud/CrudPicker';
 import { JourneyAudioContent } from './audio_contents/JourneyAudioContent';
 import { JourneyBackgroundImage } from './background_images/JourneyBackgroundImage';
 import styles from './CreateJourney.module.css';
@@ -17,11 +16,7 @@ import { CreateJourneyUploadAudioContent } from './CreateJourneyUploadAudioConte
 import { CreateJourneyUploadBackgroundImage } from './CreateJourneyUploadBackgroundImage';
 import { Journey } from './Journey';
 import { JourneySubcategory } from './subcategories/JourneySubcategory';
-import { keyMap as journeySubcategoryKeyMap } from './subcategories/JourneySubcategories';
-import { makeILikeFromInput } from '../../shared/forms/utils';
-import { CrudPickerItem } from '../crud/CrudPickerItem';
 import { Instructor } from '../instructors/Instructor';
-import { keyMap as instructorKeyMap } from '../instructors/Instructors';
 import { TextInput } from '../../shared/forms/TextInput';
 import { AdminJourneyPrompt } from './prompts/AdminJourneyPrompt';
 import { AdminJourneyPromptPicker, defaultPrompt } from './prompts/AdminJourneyPromptPicker';
@@ -160,6 +155,7 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
 
         const raw = await response.json();
         const journey = convertUsingKeymap(raw, journeyKeyMap);
+        journey.deletedAt = null;
 
         onCreated(journey);
         setAudioContent(null);

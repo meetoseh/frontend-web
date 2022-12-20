@@ -15,9 +15,6 @@ import { CreateJourneyUploadBackgroundImage } from './CreateJourneyUploadBackgro
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import { CreateJourneyChooseBackgroundImage } from './CreateJourneyChooseBackgroundImage';
 import { JourneySubcategory } from './subcategories/JourneySubcategory';
-import { CrudPicker } from '../crud/CrudPicker';
-import { makeILikeFromInput } from '../../shared/forms/utils';
-import { CrudPickerItem } from '../crud/CrudPickerItem';
 import { Instructor } from '../instructors/Instructor';
 import { TextInput } from '../../shared/forms/TextInput';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';

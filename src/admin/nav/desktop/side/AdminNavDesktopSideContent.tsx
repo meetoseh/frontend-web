@@ -39,15 +39,12 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/journeys"
             active={currentPath === '/admin/journeys'}
           />
-          {[...Array(3)].map((_, i) => (
-            <AdminNavDesktopSideLink
-              iconClass={styles.iconContent}
-              text={`Example ${i + 1}`}
-              url={`/admin/example${i + 1}`}
-              active={currentPath === `/admin/example${i + 1}`}
-              key={`top-${i}`}
-            />
-          ))}
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconDailyEvents}
+            text="Calendar"
+            url="/admin/daily_events"
+            active={currentPath === '/admin/daily_events'}
+          />
           <AdminNavDesktopSideSectionHeader text="Advanced" />
           <AdminNavDesktopSideLink
             iconClass={styles.iconJourneySubcategories}
@@ -61,15 +58,6 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/dev_journey"
             active={currentPath === '/admin/dev_journey'}
           />
-          {[...Array(2)].map((_, i) => (
-            <AdminNavDesktopSideLink
-              iconClass={styles.iconContent}
-              text={`Example ${i + 1}`}
-              url="#"
-              active={false}
-              key={`system-${i}`}
-            />
-          ))}
         </div>
         <div className={styles.userCardContainer}>
           <MyProfilePicture />
