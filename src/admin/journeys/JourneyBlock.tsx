@@ -9,7 +9,6 @@ import styles from './JourneyBlock.module.css';
 import iconStyles from '../crud/icons.module.css';
 import { Button } from '../../shared/forms/Button';
 import { JourneyBackgroundImage } from './background_images/JourneyBackgroundImage';
-import { keyMap as journeySubcategoryKeyMap } from './subcategories/JourneySubcategories';
 import { LoginContext } from '../../shared/LoginContext';
 import { ModalContext, addModalWithCallbackToRemove } from '../../shared/ModalContext';
 import { CreateJourneyUploadBackgroundImage } from './CreateJourneyUploadBackgroundImage';
@@ -20,13 +19,14 @@ import { CrudPicker } from '../crud/CrudPicker';
 import { makeILikeFromInput } from '../../shared/forms/utils';
 import { CrudPickerItem } from '../crud/CrudPickerItem';
 import { Instructor } from '../instructors/Instructor';
-import { keyMap as instructorKeyMap } from '../instructors/Instructors';
 import { TextInput } from '../../shared/forms/TextInput';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
 import { Checkbox } from '../../shared/forms/Checkbox';
+import { InstructorPicker } from '../instructors/InstructorPicker';
+import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
 
 type JourneyBlockProps = {
   /**
@@ -248,6 +248,16 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
     newDeleted,
   ]);
 
+  const onInstructorSelected = useCallback((instr: Instructor) => {
+    setNewInstructor(instr);
+    setInstructorQuery('');
+  }, []);
+
+  const onJourneySubcategorySelected = useCallback((subcat: JourneySubcategory) => {
+    setNewSubcategory(subcat);
+    setSubcategoryQuery('');
+  }, []);
+
   return (
     <CrudItemBlock
       title={journey.title}
@@ -343,27 +353,10 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
         <CrudFormElement title="Categorization">
           {(editing && (
             <div className={styles.editCategorizationContainer}>
-              <CrudPicker
-                path="/api/1/journeys/subcategories/search"
-                keyMap={journeySubcategoryKeyMap}
-                sort={[{ key: 'internal_name', dir: 'asc', before: null, after: null }]}
-                filterMaker={(query) => {
-                  return {
-                    internal_name: {
-                      operator: 'ilike',
-                      value: makeILikeFromInput(query),
-                    },
-                  };
-                }}
-                component={(item, query) => {
-                  return <CrudPickerItem query={query} match={item.internalName} />;
-                }}
+              <JourneySubcategoryPicker
                 query={subcategoryQuery}
                 setQuery={setSubcategoryQuery}
-                setSelected={(subcat) => {
-                  setNewSubcategory(subcat);
-                  setSubcategoryQuery('');
-                }}
+                setSelected={onJourneySubcategorySelected}
               />
             </div>
           )) || (
@@ -376,46 +369,10 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
         <CrudFormElement title="Instructor">
           {(editing && (
             <div className={styles.editInstructorContainer}>
-              <CrudPicker
-                path="/api/1/instructors/search"
-                keyMap={instructorKeyMap}
-                sort={[{ key: 'name', dir: 'asc', before: null, after: null }]}
-                filterMaker={(query) => {
-                  return {
-                    name: {
-                      operator: 'ilike',
-                      value: makeILikeFromInput(query),
-                    },
-                    deleted_at: {
-                      operator: 'eq',
-                      value: null,
-                    },
-                  };
-                }}
-                component={(item, query) => {
-                  return (
-                    <div className={styles.instructorContainer}>
-                      {item.picture !== null ? (
-                        <div className={styles.instructorPictureContainer}>
-                          <OsehImage
-                            uid={item.picture.uid}
-                            jwt={item.picture.jwt}
-                            displayWidth={60}
-                            displayHeight={60}
-                            alt="Profile"
-                          />
-                        </div>
-                      ) : null}
-                      <CrudPickerItem query={query} match={item.name} />
-                    </div>
-                  );
-                }}
+              <InstructorPicker
                 query={instructorQuery}
                 setQuery={setInstructorQuery}
-                setSelected={(instr) => {
-                  setNewInstructor(instr);
-                  setInstructorQuery('');
-                }}
+                setSelected={onInstructorSelected}
               />
             </div>
           )) || (
@@ -483,7 +440,14 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
         </CrudFormElement>
 
         {editing && (
-          <Checkbox label="Deleted" value={newDeleted} setValue={setNewDeleted} disabled={saving} />
+          <div className={styles.editDeletedContainer}>
+            <Checkbox
+              label="Deleted"
+              value={newDeleted}
+              setValue={setNewDeleted}
+              disabled={saving}
+            />
+          </div>
         )}
 
         <CrudFormElement title="UID">
