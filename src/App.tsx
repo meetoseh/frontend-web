@@ -10,6 +10,7 @@ import {
 } from './shared/LoginContext';
 import { TestLogin } from './shared/TestLogin';
 import { apiFetch } from './shared/ApiConstants';
+import { LoginApp } from './user/login/LoginApp';
 
 function App() {
   useEffect(() => {
@@ -74,6 +75,7 @@ function App() {
           {AdminRoutes()}
         </Route>
         <Route path="/dev_login" element={<TestLogin />} />
+        <Route path="/login" element={<LoginApp />} />
       </Routes>
     </BrowserRouter>
   );

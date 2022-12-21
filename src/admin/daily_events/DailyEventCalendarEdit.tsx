@@ -133,7 +133,7 @@ export const DailyEventCalendarEdit = ({
     return () => {
       clearTimeout(timeout);
     };
-  });
+  }, [showDeleteConfirm]);
 
   const onJourneySelected = useCallback((journey: Journey) => {
     setJourneys((j) => [...j, journey]);
