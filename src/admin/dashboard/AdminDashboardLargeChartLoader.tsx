@@ -179,7 +179,9 @@ export const AdminDashboardLargeChartLoader = (): ReactElement => {
     }
   }, [loginContext]);
 
-  return remainingToLoad > 0 ? (
+  return remainingToLoad > 0 ||
+    Object.keys(dailyChartsRef.current).length + Object.keys(monthlyChartsRef.current).length ===
+      0 ? (
     <div className={styles.loadingContainer}>
       <div className={styles.loadingInnerContainer}>
         <div className={styles.loadingTextContainer}>Loading data...</div>
