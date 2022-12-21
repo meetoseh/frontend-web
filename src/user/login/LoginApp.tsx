@@ -69,7 +69,7 @@ export const LoginApp = (): ReactElement => {
               href={`https://${authDomain}/oauth2/authorize?${new URLSearchParams({
                 response_type: 'token',
                 client_id: authClientId,
-                redirect_uri: window.location.origin,
+                redirect_uri: window.location.origin + '/',
                 identity_provider: 'Google',
               })}`}>
               <span className={styles.signInWithGoogleIcon}></span>
@@ -82,7 +82,7 @@ export const LoginApp = (): ReactElement => {
               href={`https://${authDomain}/oauth2/authorize?${new URLSearchParams({
                 response_type: 'token',
                 client_id: authClientId,
-                redirect_uri: window.location.origin,
+                redirect_uri: window.location.origin + '/',
                 identity_provider: 'SignInWithApple',
               })}`}>
               <span className={styles.signInWithAppleIcon}></span>
