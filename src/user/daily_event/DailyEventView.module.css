@@ -1,0 +1,215 @@
+.container {
+  background: #191c1d;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.innerContainer {
+  width: 100%;
+  max-width: 438px;
+  padding: 0 0 0 0;
+}
+
+.headerContainer {
+  position: absolute;
+  top: 24px;
+  left: 40px;
+  width: calc(100% - 40px);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+@media screen and (min-height: 700px) {
+  .headerContainer {
+    top: calc(50% - 320px);
+  }
+}
+
+@media screen and (min-width: 992px) {
+  .headerContainer {
+    left: calc(50% - 200px);
+    width: auto;
+    justify-content: center;
+  }
+}
+
+.headerProfileContainer {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.82);
+  margin-right: 15px;
+}
+
+.subheader {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.15px;
+  color: #c8cdd0;
+}
+
+.header {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  color: white;
+}
+
+.journeyCarouselContainer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.journeyCarousel {
+  display: flex;
+  flex-flow: row nowrap;
+  margin-left: -20px;
+  transition: transform 0.35s ease-in-out;
+}
+
+.journeyCarouselDragging {
+  transition: transform 0.1s ease-out;
+}
+
+.journeyContainer {
+  margin-left: 20px;
+  box-shadow: 0px 4px 4px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  width: 264px;
+  height: 450px;
+  margin-bottom: -14px; /* 4px for box shadow, 10px to split the active "pop" evenly */
+  margin-top: 0;
+  transition: margin 0.35s ease-in-out;
+  position: relative;
+}
+
+.journeyImageContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+.journeyCategoryContainer {
+  position: absolute;
+  left: 16px;
+  top: 20px;
+}
+
+.journeyCategory {
+  display: inline-block;
+  background: #708f94;
+  border-radius: 8px;
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.15px;
+  color: #ffffff;
+  padding: 3px 8px;
+}
+
+.journeyLockedContainer {
+  position: absolute;
+  top: 22px;
+  right: 16px;
+  filter: drop-shadow(0px 1px 4px rgba(0, 0, 0, 0.5));
+}
+
+.lockIcon {
+  composes: icon from '../../shared/icons.module.css';
+  width: 19px;
+  height: 21px;
+  background-image: url('./icons/lock.svg');
+}
+
+.journeyInfoContainer {
+  position: absolute;
+  top: 223px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  padding: 0 20px;
+}
+
+.journeyTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 32px;
+  text-align: center;
+  color: #f2f2f3;
+  text-shadow: 2px 0 rgba(0, 0, 0, 0.25), 0 2px rgba(0, 0, 0, 0.25), -2px 0 rgba(0, 0, 0, 0.25),
+    0 -2px rgba(0, 0, 0, 0.25);
+}
+
+.journeyInstructor {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.15px;
+  line-height: 22px;
+  text-align: center;
+  color: #f2f2f3;
+  margin-bottom: 23.5px;
+  text-shadow: 2px 0 rgba(0, 0, 0, 0.25), 0 2px rgba(0, 0, 0, 0.25), -2px 0 rgba(0, 0, 0, 0.25),
+    0 -2px rgba(0, 0, 0, 0.25);
+}
+
+.journeyDescription {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.15px;
+  color: #f2f2f3;
+  text-align: center;
+  text-shadow: 2px 0 rgba(0, 0, 0, 0.25), 0 2px rgba(0, 0, 0, 0.25), -2px 0 rgba(0, 0, 0, 0.25),
+    0 -2px rgba(0, 0, 0, 0.25);
+}
+
+.active {
+  margin-top: -21px;
+}
+
+.chooseForMeContainer {
+  position: absolute;
+  top: calc(50% + 250px);
+  left: 0;
+  width: 100%;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+}
+
+@media screen and (min-height: 700px) {
+  .chooseForMeContainer {
+    top: calc(50% + 300px);
+  }
+}

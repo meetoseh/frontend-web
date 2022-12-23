@@ -161,7 +161,6 @@ export const DailyEventCalendarEdit = ({
   const isValid = useMemo(() => {
     return (
       date !== null &&
-      date > new Date() &&
       journeys.length > 0 &&
       new Set(journeys.map((j) => j.uid)).size === journeys.length
     );

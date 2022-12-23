@@ -16,12 +16,14 @@ const authDomain = process.env.REACT_APP_AUTH_DOMAIN!;
 const authClientId = process.env.REACT_APP_AUTH_CLIENT_ID!;
 
 /**
+ * Switches urls to go to the /dev_login page instead of the hosted ui
+ */
+const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'dev';
+
+/**
  * This allows users to sign up or sign in via social logins. It does not
  * use the login context; it will redirect back to the home page with the
  * required tokens in the url fragment on success.
- *
- * This doesn't work in development mode since social sign in requires
- * cognito. Use /dev_login to sign in with a test user.
  *
  * This is an alternative to the hosted ui url which is used for more
  * styling at the cost of all non-social functionality.
@@ -66,12 +68,16 @@ export const LoginApp = (): ReactElement => {
           <div className={styles.signInWithGoogleContainer}>
             <a
               className={styles.signInWithGoogle}
-              href={`https://${authDomain}/oauth2/authorize?${new URLSearchParams({
-                response_type: 'token',
-                client_id: authClientId,
-                redirect_uri: window.location.origin + '/',
-                identity_provider: 'Google',
-              })}`}>
+              href={
+                isDevelopment
+                  ? '/dev_login'
+                  : `https://${authDomain}/oauth2/authorize?${new URLSearchParams({
+                      response_type: 'token',
+                      client_id: authClientId,
+                      redirect_uri: window.location.origin + '/',
+                      identity_provider: 'Google',
+                    })}`
+              }>
               <span className={styles.signInWithGoogleIcon}></span>
               <span className={styles.signInWithGoogleText}>Continue with Google</span>
             </a>
@@ -79,12 +85,16 @@ export const LoginApp = (): ReactElement => {
           <div className={styles.signInWithAppleContainer}>
             <a
               className={styles.signInWithApple}
-              href={`https://${authDomain}/oauth2/authorize?${new URLSearchParams({
-                response_type: 'token',
-                client_id: authClientId,
-                redirect_uri: window.location.origin + '/',
-                identity_provider: 'SignInWithApple',
-              })}`}>
+              href={
+                isDevelopment
+                  ? '/dev_login'
+                  : `https://${authDomain}/oauth2/authorize?${new URLSearchParams({
+                      response_type: 'token',
+                      client_id: authClientId,
+                      redirect_uri: window.location.origin + '/',
+                      identity_provider: 'SignInWithApple',
+                    })}`
+              }>
               <span className={styles.signInWithAppleIcon}></span>
               <span className={styles.signInWithAppleText}>Continue with Apple</span>
             </a>

@@ -3,6 +3,19 @@ import { apiFetch } from './ApiConstants';
 import { LoginContext } from './LoginContext';
 import { OsehImage, OsehImageRef } from './OsehImage';
 
+type MyProfilePictureProps = {
+  /**
+   * Desired display width
+   * @default 60
+   */
+  displayWidth?: number;
+
+  /**
+   * Desired display height
+   * @default 60
+   */
+  displayHeight?: number;
+};
 /**
  * Shows the users profile picture as a 60x60 image. Requires a login
  * context.
@@ -10,7 +23,10 @@ import { OsehImage, OsehImageRef } from './OsehImage';
  * Shows a blank image if the user is not logged in or do not have a
  * profile picture.
  */
-export const MyProfilePicture = (): ReactElement => {
+export const MyProfilePicture = ({
+  displayWidth = 60,
+  displayHeight = 60,
+}: MyProfilePictureProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [profileImage, setProfileImage] = useState<OsehImageRef | null>(null);
 
@@ -65,8 +81,8 @@ export const MyProfilePicture = (): ReactElement => {
         <OsehImage
           uid={profileImage.uid}
           jwt={profileImage.jwt}
-          displayWidth={60}
-          displayHeight={60}
+          displayWidth={displayWidth}
+          displayHeight={displayHeight}
           alt="Profile picture"
         />
       )}

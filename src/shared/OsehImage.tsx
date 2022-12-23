@@ -37,6 +37,16 @@ type OsehImageProps = {
    * The alt text for the image
    */
   alt: string;
+
+  /**
+   * If provided, this will be called whenever we start or finish loading
+   * the image. This can be used to display a splash screen while the image
+   * is loading.
+   *
+   * @param loading True if we're loading, false otherwise
+   * @param uid The uid of the image we're loading
+   */
+  setLoading?: ((this: void, loading: boolean, uid: string) => void) | null;
 };
 
 /**
@@ -229,6 +239,7 @@ export const OsehImage = ({
   displayWidth,
   displayHeight,
   alt,
+  setLoading = null,
 }: OsehImageProps): ReactElement => {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [item, setItem] = useState<PlaylistItem | null>(null);
@@ -359,6 +370,12 @@ export const OsehImage = ({
       setItemUrl(URL.createObjectURL(blob));
     }
   }, [item, jwt]);
+
+  useEffect(() => {
+    if (setLoading !== null) {
+      setLoading(itemUrl === null, uid);
+    }
+  }, [itemUrl, setLoading, uid]);
 
   return (
     <img
