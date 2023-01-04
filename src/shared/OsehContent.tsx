@@ -2,7 +2,7 @@ import { ReactElement, useEffect, useRef, useState } from 'react';
 import { HTTP_API_URL } from './ApiConstants';
 import { describeErrorFromResponse, ErrorBlock } from './forms/ErrorBlock';
 
-type OsehContentProps = {
+export type OsehContentRef = {
   /**
    * The UID of the content file to show
    */
@@ -13,6 +13,8 @@ type OsehContentProps = {
    */
   jwt: string;
 };
+
+type OsehContentProps = OsehContentRef;
 
 type ContentFileWebExport = {
   url: string;

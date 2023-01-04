@@ -80,7 +80,7 @@ type Playlist = {
    * The items in the playlist, broken out by format, where
    * the lists are sorted by size, ascending.
    */
-  items: { [format: string]: PlaylistItem[] };
+  items: { [format: string]: PlaylistItem[]; };
 };
 
 /**
@@ -155,8 +155,8 @@ const USES_WEBP: Promise<boolean> = (async () => {
  * @param want The width and height of the image you want to display
  */
 const getUsefulArea = (
-  have: { width: number; height: number },
-  want: { width: number; height: number }
+  have: { width: number; height: number; },
+  want: { width: number; height: number; }
 ) => {
   const effectiveHave = {
     width: Math.min(have.width, want.width),
@@ -191,8 +191,8 @@ const getUsefulArea = (
  * @param want The width and height of the image you want to display
  */
 const getUselessArea = (
-  have: { width: number; height: number },
-  want: { width: number; height: number }
+  have: { width: number; height: number; },
+  want: { width: number; height: number; }
 ) => {
   return have.width * have.height - getUsefulArea(have, want);
 };
@@ -207,9 +207,9 @@ const getUselessArea = (
  * @return negative if a is better, positive if b is better, 0 if they are equal
  */
 const compareSizes = (
-  want: { width: number; height: number },
-  a: { width: number; height: number },
-  b: { width: number; height: number }
+  want: { width: number; height: number; },
+  a: { width: number; height: number; },
+  b: { width: number; height: number; }
 ): number => {
   // first by useful area (larger is better), then by
   // useless area (smaller is better)
@@ -309,13 +309,13 @@ export const OsehImage = ({
         usesWebp && playlist.items.webp
           ? 'webp'
           : desiredArea <= 200 * 200 && playlist.items.png
-          ? 'png'
-          : 'jpeg';
+            ? 'png'
+            : 'jpeg';
 
       // items is already sorted by size, ascending
       let items = playlist.items[format];
 
-      const itemByResolution: { [resolution: string]: PlaylistItem } = {};
+      const itemByResolution: { [resolution: string]: PlaylistItem; } = {};
       for (const item of items) {
         itemByResolution[`${item.width}x${item.height}`] = item;
       }

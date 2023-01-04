@@ -5,6 +5,10 @@
   grid-auto-rows: 125px;
 }
 
+.content {
+  width: 100%;
+}
+
 .item,
 .itemGrayed {
   display: flex;
