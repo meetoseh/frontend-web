@@ -77,10 +77,16 @@ type PlaylistItem = {
 
 type Playlist = {
   /**
+   * The uid of the image file this playlist is for, so we don't refetch the image
+   * just because the jwt changed
+   */
+  uid: string;
+
+  /**
    * The items in the playlist, broken out by format, where
    * the lists are sorted by size, ascending.
    */
-  items: { [format: string]: PlaylistItem[]; };
+  items: { [format: string]: PlaylistItem[] };
 };
 
 /**
@@ -155,8 +161,8 @@ const USES_WEBP: Promise<boolean> = (async () => {
  * @param want The width and height of the image you want to display
  */
 const getUsefulArea = (
-  have: { width: number; height: number; },
-  want: { width: number; height: number; }
+  have: { width: number; height: number },
+  want: { width: number; height: number }
 ) => {
   const effectiveHave = {
     width: Math.min(have.width, want.width),
@@ -191,8 +197,8 @@ const getUsefulArea = (
  * @param want The width and height of the image you want to display
  */
 const getUselessArea = (
-  have: { width: number; height: number; },
-  want: { width: number; height: number; }
+  have: { width: number; height: number },
+  want: { width: number; height: number }
 ) => {
   return have.width * have.height - getUsefulArea(have, want);
 };
@@ -207,9 +213,9 @@ const getUselessArea = (
  * @return negative if a is better, positive if b is better, 0 if they are equal
  */
 const compareSizes = (
-  want: { width: number; height: number; },
-  a: { width: number; height: number; },
-  b: { width: number; height: number; }
+  want: { width: number; height: number },
+  a: { width: number; height: number },
+  b: { width: number; height: number }
 ): number => {
   // first by useful area (larger is better), then by
   // useless area (smaller is better)
@@ -243,7 +249,10 @@ export const OsehImage = ({
 }: OsehImageProps): ReactElement => {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [item, setItem] = useState<PlaylistItem | null>(null);
-  const [itemUrl, setItemUrl] = useState<string | null>(null);
+  const [downloadedItem, setDownloadedItem] = useState<{
+    localUrl: string;
+    remoteUrl: string;
+  } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -253,6 +262,10 @@ export const OsehImage = ({
     };
 
     async function fetchPlaylist() {
+      if (playlist?.uid === uid) {
+        return;
+      }
+
       const response = await fetch(`${HTTP_API_URL}/api/1/image_files/playlist/${uid}`, {
         method: 'GET',
         headers: { authorization: `bearer ${jwt}` },
@@ -276,7 +289,7 @@ export const OsehImage = ({
 
       setPlaylist(data);
     }
-  }, [uid, jwt]);
+  }, [uid, jwt, playlist?.uid]);
 
   useEffect(() => {
     if (playlist === null) {
@@ -309,13 +322,13 @@ export const OsehImage = ({
         usesWebp && playlist.items.webp
           ? 'webp'
           : desiredArea <= 200 * 200 && playlist.items.png
-            ? 'png'
-            : 'jpeg';
+          ? 'png'
+          : 'jpeg';
 
       // items is already sorted by size, ascending
       let items = playlist.items[format];
 
-      const itemByResolution: { [resolution: string]: PlaylistItem; } = {};
+      const itemByResolution: { [resolution: string]: PlaylistItem } = {};
       for (const item of items) {
         itemByResolution[`${item.width}x${item.height}`] = item;
       }
@@ -344,7 +357,11 @@ export const OsehImage = ({
 
     async function fetchItemUrl() {
       if (item === null) {
-        setItemUrl(null);
+        setDownloadedItem(null);
+        return;
+      }
+
+      if (downloadedItem?.remoteUrl === item.url) {
         return;
       }
 
@@ -355,7 +372,7 @@ export const OsehImage = ({
         });
       } catch (e) {
         console.error(`Couldn't fetch ${item.url}`, e);
-        setItemUrl(null);
+        setDownloadedItem(null);
         return;
       }
       if (!active) {
@@ -367,19 +384,19 @@ export const OsehImage = ({
         return;
       }
 
-      setItemUrl(URL.createObjectURL(blob));
+      setDownloadedItem({ localUrl: URL.createObjectURL(blob), remoteUrl: item.url });
     }
-  }, [item, jwt]);
+  }, [item, jwt, downloadedItem?.remoteUrl]);
 
   useEffect(() => {
     if (setLoading !== null) {
-      setLoading(itemUrl === null, uid);
+      setLoading(downloadedItem === null, uid);
     }
-  }, [itemUrl, setLoading, uid]);
+  }, [downloadedItem, setLoading, uid]);
 
   return (
     <img
-      src={itemUrl ?? require('./placeholder.png')}
+      src={downloadedItem === null ? require('./placeholder.png') : downloadedItem.localUrl}
       style={{ width: displayWidth, height: displayHeight, objectFit: 'cover' }}
       alt={alt}
     />

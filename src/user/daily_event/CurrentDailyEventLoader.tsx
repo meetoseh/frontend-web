@@ -6,6 +6,7 @@ import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorB
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { DailyEventView } from './DailyEventView';
+import { JourneyRef } from '../journey/Journey';
 
 type CurrentDailyEventLoaderProps = {
   /**
@@ -15,10 +16,19 @@ type CurrentDailyEventLoaderProps = {
    * @param loaded True if the current daily event has been loaded, false otherwise
    */
   setLoaded: (this: void, loaded: boolean) => void;
+
+  /**
+   * Called when we receive a ref to the journey that the user should be directed
+   * to
+   *
+   * @param journey The journey that the user should be directed to
+   */
+  setJourney: (this: void, journey: JourneyRef) => void;
 };
 
 export const CurrentDailyEventLoader = ({
   setLoaded,
+  setJourney,
 }: CurrentDailyEventLoaderProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [dailyEvent, setDailyEvent] = useState<DailyEvent | null>(null);
@@ -85,7 +95,13 @@ export const CurrentDailyEventLoader = ({
           <ErrorBlock>{error}</ErrorBlock>
         </div>
       )}
-      {dailyEvent && <DailyEventView event={dailyEvent} setLoading={setDailyEventLoading} />}
+      {dailyEvent && (
+        <DailyEventView
+          event={dailyEvent}
+          setLoading={setDailyEventLoading}
+          setJourney={setJourney}
+        />
+      )}
     </>
   );
 };

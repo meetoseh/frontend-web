@@ -6,6 +6,9 @@ import { OsehImage } from '../../shared/OsehImage';
 import { DailyEvent } from './DailyEvent';
 import styles from './DailyEventView.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
+import { JourneyRef } from '../journey/Journey';
+import { apiFetch } from '../../shared/ApiConstants';
+import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 
 type DailyEventViewProps = {
   /**
@@ -21,13 +24,25 @@ type DailyEventViewProps = {
    * @param loading True if we're loading, false otherwise
    */
   setLoading: (this: void, loading: boolean) => void;
+
+  /**
+   * Called when we receive a ref to the journey that the user should be directed
+   * to
+   *
+   * @param journey The journey that the user should be directed to
+   */
+  setJourney: (this: void, journey: JourneyRef) => void;
 };
 
 /**
  * Shows the specified daily event and allows the user to take actions as
  * appropriate for the indicated access level
  */
-export const DailyEventView = ({ event, setLoading }: DailyEventViewProps): ReactElement => {
+export const DailyEventView = ({
+  event,
+  setLoading,
+  setJourney,
+}: DailyEventViewProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [loadedImagesByUID, setLoadedImagesByUID] = useState<{ [uid: string]: boolean }>({});
   const [carouselOrder, setCarouselOrder] = useState<number[]>([]);
@@ -42,6 +57,8 @@ export const DailyEventView = ({ event, setLoading }: DailyEventViewProps): Reac
   const carouselTouchStartX = useRef<number>(0);
   const carouselTouchMoveSum = useRef<number>(0);
   const [haveCarouselTouchMoved, setHaveCarouselTouchMoved] = useState<boolean>(false);
+  const [startingJourney, setStartingJourney] = useState<boolean>(false);
+  const [error, setError] = useState<ReactElement | null>(null);
 
   useEffect(() => {
     setLoadedImagesByUID((u) => {
@@ -347,9 +364,62 @@ export const DailyEventView = ({ event, setLoading }: DailyEventViewProps): Reac
     setCarouselTransformX(carouselTargetTransformX);
   }, [carouselTargetTransformX]);
 
-  const onChooseForMe = useCallback(() => {
-    console.log('onChooseForMe');
-  }, []);
+  const onChooseForMe = useCallback(async () => {
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    setStartingJourney(true);
+    try {
+      const response = await apiFetch(
+        '/api/1/daily_events/start_random',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          body: JSON.stringify({
+            uid: event.uid,
+            jwt: event.jwt,
+          }),
+        },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      const journey: JourneyRef = {
+        uid: data.uid,
+        sessionUid: data.session_uid,
+        jwt: data.jwt,
+        durationSeconds: data.duration_seconds,
+        backgroundImage: data.background_image,
+        audioContent: data.audio_content,
+        category: {
+          externalName: data.category.external_name,
+        },
+        title: data.title,
+        instructor: data.instructor,
+        description: data.description,
+        prompt: data.prompt,
+      };
+      setJourney(journey);
+    } catch (e) {
+      console.error(e);
+      if (e instanceof TypeError) {
+        setError(<>Failed to connect to server. Check your internet connection.</>);
+      } else if (e instanceof Response) {
+        setError(await describeErrorFromResponse(e));
+      } else {
+        setError(<>Unknown error. Contact support.</>);
+      }
+    } finally {
+      setStartingJourney(false);
+    }
+  }, [loginContext, event.uid, event.jwt, setJourney]);
 
   if (loginContext.state !== 'logged-in') {
     return <></>;
@@ -428,10 +498,11 @@ export const DailyEventView = ({ event, setLoading }: DailyEventViewProps): Reac
         </div>
 
         <div className={styles.chooseForMeContainer}>
+          {error && <ErrorBlock>{error}</ErrorBlock>}
           <Button
             type="button"
             variant="filled"
-            disabled={!event.access.startRandom}
+            disabled={!event.access.startRandom || startingJourney}
             onClick={onChooseForMe}>
             {event.journeys.some((j) => j.access.start) ? 'Choose For Me' : 'Start Your Free Class'}
           </Button>

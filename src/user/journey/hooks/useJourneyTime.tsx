@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from 'react';
 
 /**
  * The state held by journey time. This is a continuously updated value
@@ -20,11 +20,13 @@ export type JourneyTime = {
    * useful for converting the time to a less granular value and using
    * that as a dependency in a hook. This can be done conveniently using
    * useCoarseTime exposed in this file.
-   * 
+   *
    * Providing the old time as well is done to allow for more efficient
    * hooks. See useCoarseTime for an example for how it avoids a dependency
    */
-  onTimeChanged: MutableRefObject<((lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => void)[]>;
+  onTimeChanged: MutableRefObject<
+    ((lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => void)[]
+  >;
 
   /**
    * If the time is currently paused, i.e., not moving forward
@@ -38,7 +40,6 @@ export type JourneyTime = {
   setPaused: (paused: boolean) => void;
 };
 
-
 /**
  * Produces a journey time clock which can be used to sync up various components
  * for a journey, as well as with the server. This is a continuously updated
@@ -51,7 +52,9 @@ export type JourneyTime = {
  */
 export const useJourneyTime = (initialTime: DOMHighResTimeStamp): JourneyTime => {
   const time = useRef<number>(initialTime);
-  const onTimeChanged = useRef<((lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => void)[]>([]);
+  const onTimeChanged = useRef<
+    ((lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => void)[]
+  >([]);
   const [paused, setPaused] = useState<boolean>(false);
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export const useJourneyTime = (initialTime: DOMHighResTimeStamp): JourneyTime =>
 
       if (lastAnimTime === null) {
         lastAnimTime = animTime;
+        requestAnimationFrame(onFrame);
         return;
       }
 
@@ -106,22 +110,44 @@ export const useJourneyTime = (initialTime: DOMHighResTimeStamp): JourneyTime =>
  * Returns a standard state object for a journey time, which can be used as a dependency.
  * This coarsens the time into a number that is updated every granularity milliseconds,
  * which is useful for avoiding excessive rerenders.
- * 
+ *
  * @param time The journey time to use
  * @param granularity The granularity of the time in milliseconds
  * @param offset An offset to apply to the time in milliseconds prior to calculating the coarse time.
  *   For example, if the offset is 1000 and the granularity is 2000, then at 0 the coarse time will be 0,
  *   at 1000 it will be 1, at 2000 it will be 1, at 3000 it will be 2, etc, incrementing every 2 seconds.
  *   Typically 0.
+ * @param clipToZero Whether to clip the coarse time to 0 if it is negative. Default false
  * @returns the coarsened time, updating only once every granularity milliseconds
  */
-export const useCoarseTime = (time: JourneyTime, granularity: number, offset: number): number => {
-  const [coarseTime, setCoarseTime] = useState<number>(Math.floor((time.time.current + offset) / granularity));
+export const useCoarseTime = (
+  time: JourneyTime,
+  granularity: number,
+  offset: number,
+  clipToZero?: boolean | undefined
+): number => {
+  if (clipToZero === undefined) {
+    clipToZero = false;
+  }
+
+  const [coarseTime, setCoarseTime] = useState<number>(() => {
+    const trueCoarseTime = Math.floor((time.time.current + offset) / granularity);
+    if (clipToZero) {
+      return Math.max(trueCoarseTime, 0);
+    }
+    return trueCoarseTime;
+  });
 
   useEffect(() => {
     const onTimeChanged = (lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
-      const oldCoarseTime = Math.floor((lastTime + offset) / granularity);
-      const newCoarseTime = Math.floor((newTime + offset) / granularity);
+      let oldCoarseTime = Math.floor((lastTime + offset) / granularity);
+      let newCoarseTime = Math.floor((newTime + offset) / granularity);
+
+      if (clipToZero) {
+        oldCoarseTime = Math.max(oldCoarseTime, 0);
+        newCoarseTime = Math.max(newCoarseTime, 0);
+      }
+
       if (newCoarseTime !== oldCoarseTime) {
         setCoarseTime(newCoarseTime);
       }
@@ -133,7 +159,7 @@ export const useCoarseTime = (time: JourneyTime, granularity: number, offset: nu
         time.onTimeChanged.current.splice(index, 1);
       }
     };
-  }, []);
+  }, [clipToZero, granularity, offset, time.onTimeChanged]);
 
   return coarseTime;
 };

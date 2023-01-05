@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { HTTP_API_URL } from "../../../shared/ApiConstants";
-import { Prompt } from "../Journey";
-import { JourneyTime } from "./useJourneyTime";
+import { useEffect, useState } from 'react';
+import { HTTP_API_URL } from '../../../shared/ApiConstants';
+import { Prompt } from '../Journey';
+import { JourneyTime } from './useJourneyTime';
 
 type StatsKwargs = {
   /**
@@ -101,7 +101,7 @@ export const useStats = ({
   journeyJwt,
   journeyDurationSeconds,
   journeyPrompt,
-  journeyTime
+  journeyTime,
 }: StatsKwargs): JourneyStats => {
   const [stats, setStats] = useState<JourneyStats>({
     users: 0,
@@ -109,14 +109,16 @@ export const useStats = ({
     numericActive: journeyPrompt.style === 'numeric' ? new Map() : null,
     pressActive: journeyPrompt.style === 'press' ? 0 : null,
     press: journeyPrompt.style === 'press' ? 0 : null,
-    colorActive: journeyPrompt.style === 'color' ? new Array(journeyPrompt.colors.length).fill(0) : null,
-    wordActive: journeyPrompt.style === 'word' ? new Array(journeyPrompt.options.length).fill(0) : null,
+    colorActive:
+      journeyPrompt.style === 'color' ? new Array(journeyPrompt.colors.length).fill(0) : null,
+    wordActive:
+      journeyPrompt.style === 'word' ? new Array(journeyPrompt.options.length).fill(0) : null,
   });
 
   useEffect(() => {
     let binWidth: number | null = null; // the servers bin width, if known
-    let fromBin: number | null = null;  // the largest bin which is still earlier than the journey time, or 0 if the journey time <= 0
-    let nextBin: number | null = null;  // the next bin we want to fetch, or null if we don't know
+    let fromBin: number | null = null; // the largest bin which is still earlier than the journey time, or 0 if the journey time <= 0
+    let nextBin: number | null = null; // the next bin we want to fetch, or null if we don't know
     let availableStats: Map<number, AugmentedJourneyStats> = new Map(); // the stats we have fetched from the server, indexed by bin
     let fetchedLastBin = false; // whether we have fetched the last bin, meaning no more stats are coming
     let failures = 0;
@@ -156,7 +158,11 @@ export const useStats = ({
 
         const predictedIndex = journeyTime.onTimeChanged.current.length;
         const tryRemoveOnTimeChanged = () => {
-          for (let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length - 1); i >= 0; i--) {
+          for (
+            let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length - 1);
+            i >= 0;
+            i--
+          ) {
             if (journeyTime.onTimeChanged.current[i] === onTimeChange) {
               journeyTime.onTimeChanged.current.splice(i, 1);
               return true;
@@ -176,7 +182,9 @@ export const useStats = ({
         bonusCancelListeners.add(onCancelled);
 
         const onTimeChange = (lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
-          if (!active) { return; }
+          if (!active) {
+            return;
+          }
           if (newTime >= targetTime) {
             bonusCancelListeners.delete(onCancelled);
 
@@ -228,7 +236,11 @@ export const useStats = ({
         }
         const predictedIndex = journeyTime.onTimeChanged.current.length;
         const tryRemoveOnTick = () => {
-          for (let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length - 1); i >= 0; i--) {
+          for (
+            let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length - 1);
+            i >= 0;
+            i--
+          ) {
             if (journeyTime.onTimeChanged.current[i] === onTick) {
               journeyTime.onTimeChanged.current.splice(i, 1);
               return true;
@@ -241,7 +253,7 @@ export const useStats = ({
         const onCancel = () => {
           bonusCancelListeners.delete(onCancel);
           if (!tryRemoveOnTick()) {
-            reject(new Error("onTick callback not found in onTimeChanged list!"));
+            reject(new Error('onTick callback not found in onTimeChanged list!'));
             return;
           }
           reject('unmounted');
@@ -253,7 +265,7 @@ export const useStats = ({
           }
           bonusCancelListeners.delete(onCancel);
           if (!tryRemoveOnTick()) {
-            reject(new Error("onTick callback not found in onTimeChanged list!"));
+            reject(new Error('onTick callback not found in onTimeChanged list!'));
             return;
           }
           resolve();
@@ -280,12 +292,15 @@ export const useStats = ({
 
     async function fetchBin(bin: number): Promise<AugmentedJourneyStats> {
       const response = await fetch(
-        `${HTTP_API_URL}/api/1/journeys/events/stats?${new URLSearchParams({ uid: journeyUid, bin: bin.toString() })}`,
+        `${HTTP_API_URL}/api/1/journeys/events/stats?${new URLSearchParams({
+          uid: journeyUid,
+          bin: bin.toString(),
+        })}`,
         {
           method: 'GET',
           headers: {
-            'Authorization': `bearer ${journeyJwt}`
-          }
+            Authorization: `bearer ${journeyJwt}`,
+          },
         }
       );
 
@@ -300,7 +315,12 @@ export const useStats = ({
         binWidth: json.bin_width,
         users: json.users,
         likes: json.likes,
-        numericActive: json.numeric_active ?? null,
+        numericActive:
+          json.numeric_active !== null
+            ? new Map(
+                Object.entries(json.numeric_active).map(([k, v]) => [parseInt(k), v as number])
+              )
+            : null,
         pressActive: json.press_active ?? null,
         press: json.press ?? null,
         colorActive: json.color_active ?? null,
@@ -315,9 +335,9 @@ export const useStats = ({
 
       failures += 1;
       if (failures < 5) {
-        await new Promise(resolve => setTimeout(resolve, 250));
+        await new Promise((resolve) => setTimeout(resolve, 250));
       } else {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -356,7 +376,8 @@ export const useStats = ({
 
       while (active && !fetchedLastBin) {
         const startOfBeforeNextBin = (nextBin - 1) * binWidth * 1000;
-        const nextBinFetchTime = startOfBeforeNextBin - Math.min(Math.max(worstStatsFetchTime, 500), 3500);
+        const nextBinFetchTime =
+          startOfBeforeNextBin - Math.min(Math.max(worstStatsFetchTime, 500), 3500);
 
         if (journeyTime.time.current < nextBinFetchTime) {
           try {
@@ -396,7 +417,27 @@ export const useStats = ({
       return Math.round(a + (b - a) * progress);
     }
 
-    function easeMapBetween(a: Map<number, number>, b: Map<number, number>, progress: number) {
+    function easeMapBetween(
+      a: Map<number, number> | null,
+      b: Map<number, number> | null,
+      progress: number
+    ) {
+      if (a === undefined) {
+        a = null;
+      }
+      if (b === undefined) {
+        b = null;
+      }
+      if (a === null && b === null) {
+        return null;
+      }
+      if (b === null) {
+        return a;
+      }
+      if (a === null) {
+        return b;
+      }
+
       const result = new Map<number, number>();
       const iter = a.entries();
       let next = iter.next();
@@ -408,7 +449,16 @@ export const useStats = ({
       return result;
     }
 
-    function easeArrayBetween(a: number[], b: number[], progress: number) {
+    function easeArrayBetween(a: number[] | null, b: number[] | null, progress: number) {
+      if (a === null && b === null) {
+        return null;
+      }
+      if (b === null) {
+        return a;
+      }
+      if (a === null) {
+        return b;
+      }
       const result = [];
       for (let i = 0; i < a.length; i++) {
         result.push(easeNumberBetween(a[i], b[i], progress));
@@ -420,11 +470,24 @@ export const useStats = ({
       return {
         users: easeNumberBetween(a.users, b.users, progress),
         likes: easeNumberBetween(a.likes, b.likes, progress),
-        numericActive: journeyPrompt.style === 'numeric' ? easeMapBetween(a.numericActive!, b.numericActive!, progress) : null,
-        pressActive: journeyPrompt.style === 'press' ? easeNumberBetween(a.pressActive!, b.pressActive!, progress) : null,
-        press: journeyPrompt.style === 'press' ? easeNumberBetween(a.press!, b.press!, progress) : null,
-        colorActive: journeyPrompt.style === 'color' ? easeArrayBetween(a.colorActive!, b.colorActive!, progress) : null,
-        wordActive: journeyPrompt.style === 'word' ? easeArrayBetween(a.wordActive!, b.wordActive!, progress) : null,
+        numericActive:
+          journeyPrompt.style === 'numeric'
+            ? easeMapBetween(a.numericActive!, b.numericActive!, progress)
+            : null,
+        pressActive:
+          journeyPrompt.style === 'press'
+            ? easeNumberBetween(a.pressActive!, b.pressActive!, progress)
+            : null,
+        press:
+          journeyPrompt.style === 'press' ? easeNumberBetween(a.press!, b.press!, progress) : null,
+        colorActive:
+          journeyPrompt.style === 'color'
+            ? easeArrayBetween(a.colorActive!, b.colorActive!, progress)
+            : null,
+        wordActive:
+          journeyPrompt.style === 'word'
+            ? easeArrayBetween(a.wordActive!, b.wordActive!, progress)
+            : null,
       };
     }
 
@@ -446,16 +509,24 @@ export const useStats = ({
       }
 
       let lastUsedBin = fromBin;
-      let oldStats = stats;
+      let oldStats: JourneyStats = {
+        users: -1,
+        likes: -1,
+        pressActive: -1,
+        press: -1,
+        numericActive: null,
+        colorActive: null,
+        wordActive: null,
+      };
       const setStatsIfDifferent = (newStats: JourneyStats) => {
         if (
           oldStats.users !== newStats.users ||
           oldStats.likes !== newStats.likes ||
           oldStats.pressActive !== newStats.pressActive ||
           oldStats.press !== newStats.press ||
-          oldStats.numericActive !== newStats.numericActive ||
-          oldStats.colorActive !== newStats.colorActive ||
-          oldStats.wordActive !== newStats.wordActive
+          !mapEquals(oldStats.numericActive, newStats.numericActive) ||
+          !arrayEquals(oldStats.colorActive, newStats.colorActive) ||
+          !arrayEquals(oldStats.wordActive, newStats.wordActive)
         ) {
           setStats(newStats);
           oldStats = newStats;
@@ -465,7 +536,10 @@ export const useStats = ({
       while (active && journeyTime.time.current <= journeyDurationSeconds * 1000) {
         const easeFromBin = Math.max(Math.floor(journeyTime.time.current / (binWidth * 1000)), 0);
         const easeToBin = easeFromBin + 1;
-        const progress = Math.max((journeyTime.time.current - easeFromBin * binWidth * 1000) / (binWidth * 1000), 0);
+        const progress = Math.max(
+          (journeyTime.time.current - easeFromBin * binWidth * 1000) / (binWidth * 1000),
+          0
+        );
 
         while (easeFromBin > lastUsedBin) {
           availableStats.delete(lastUsedBin);
@@ -473,7 +547,13 @@ export const useStats = ({
         }
 
         if (availableStats.has(easeFromBin) && availableStats.has(easeToBin)) {
-          setStatsIfDifferent(easeStatsBetween(availableStats.get(easeFromBin)!, availableStats.get(easeToBin)!, progress));
+          setStatsIfDifferent(
+            easeStatsBetween(
+              availableStats.get(easeFromBin)!,
+              availableStats.get(easeToBin)!,
+              progress
+            )
+          );
           try {
             await sleepUntilNextTick();
           } catch (e) {
@@ -492,6 +572,11 @@ export const useStats = ({
           // fall through to wait for new stats
         }
 
+        if (fetchedLastBin) {
+          unmount();
+          return;
+        }
+
         try {
           await sleepUntilNewStats();
         } catch (e) {
@@ -504,7 +589,63 @@ export const useStats = ({
         }
       }
     }
-  }, [journeyUid, journeyJwt, journeyDurationSeconds, journeyPrompt]);
+  }, [
+    journeyUid,
+    journeyJwt,
+    journeyDurationSeconds,
+    journeyPrompt,
+    journeyTime.onTimeChanged,
+    journeyTime.time,
+  ]);
 
   return stats;
 };
+
+function arrayEquals<T>(a: T[] | null | undefined, b: T[] | null | undefined): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === undefined || b === undefined || a === null || b === null) {
+    return false;
+  }
+
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function mapEquals<A, B>(
+  a: Map<A, B> | null | undefined,
+  b: Map<A, B> | null | undefined
+): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === undefined || b === undefined || a === null || b === null) {
+    return false;
+  }
+
+  if (a.size !== b.size) {
+    return false;
+  }
+
+  const iter = a.entries();
+  let next = iter.next();
+  while (!next.done) {
+    const [key, value] = next.value;
+    if (value !== b.get(key)) {
+      return false;
+    }
+    next = iter.next();
+  }
+  return true;
+}

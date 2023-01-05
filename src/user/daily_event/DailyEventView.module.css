@@ -76,6 +76,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
+
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .journeyCarousel {
@@ -96,7 +100,8 @@
   overflow: hidden;
   width: 264px;
   height: 450px;
-  margin-bottom: -14px; /* 4px for box shadow, 10px to split the active "pop" evenly */
+  margin-bottom: -14px;
+  /* 4px for box shadow, 10px to split the active "pop" evenly */
   margin-top: 0;
   transition: margin 0.35s ease-in-out;
   position: relative;

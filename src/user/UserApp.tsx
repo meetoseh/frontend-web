@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { LoginContext, LoginProvider } from '../shared/LoginContext';
 import { ModalProvider } from '../shared/ModalContext';
 import { CurrentDailyEventLoader } from './daily_event/CurrentDailyEventLoader';
@@ -6,6 +6,7 @@ import { LoginApp } from './login/LoginApp';
 import { SplashScreen } from './splash/SplashScreen';
 import '../assets/fonts.css';
 import styles from './UserApp.module.css';
+import { Journey, JourneyRef } from './journey/Journey';
 
 export default function UserApp(): ReactElement {
   useEffect(() => {
@@ -29,11 +30,17 @@ const requiredFonts = ['400 1em Open Sans', '600 1em Open Sans', '700 1em Open S
 
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const [desiredState, setDesiredState] = useState<'current-daily-event'>('current-daily-event');
-  const [state, setState] = useState<'loading' | 'current-daily-event' | 'login'>('loading');
+  const [desiredState, setDesiredState] = useState<'current-daily-event' | 'journey'>(
+    'current-daily-event'
+  );
+  const [state, setState] = useState<'loading' | 'current-daily-event' | 'login' | 'journey'>(
+    'loading'
+  );
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
   const [currentDailyEventLoaded, setCurrentDailyEventLoaded] = useState(false);
+  const [journey, setJourney] = useState<JourneyRef | null>(null);
+  const [journeyLoaded, setJourneyLoaded] = useState(false);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = setTimeout(() => {
@@ -89,8 +96,24 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
+    if (desiredState === 'journey' && !journeyLoaded) {
+      setState('loading');
+      return;
+    }
+
     setState(desiredState);
-  }, [loginContext.state, desiredState, currentDailyEventLoaded, fontsLoaded]);
+  }, [loginContext.state, desiredState, currentDailyEventLoaded, fontsLoaded, journeyLoaded]);
+
+  const wrappedSetJourney = useCallback((journey: JourneyRef) => {
+    setJourneyLoaded(false);
+    setJourney(journey);
+    setDesiredState('journey');
+  }, []);
+
+  const onJourneyFinished = useCallback(() => {
+    setJourney(null);
+    setDesiredState('current-daily-event');
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -98,7 +121,15 @@ const UserAppInner = (): ReactElement => {
       {state === 'login' ? <LoginApp /> : null}
       {desiredState === 'current-daily-event' ? (
         <div className={state !== 'current-daily-event' ? styles.displayNone : ''}>
-          <CurrentDailyEventLoader setLoaded={setCurrentDailyEventLoaded} />
+          <CurrentDailyEventLoader
+            setLoaded={setCurrentDailyEventLoaded}
+            setJourney={wrappedSetJourney}
+          />
+        </div>
+      ) : null}
+      {desiredState === 'journey' && journey !== null ? (
+        <div className={state !== 'journey' ? styles.displayNone : ''}>
+          <Journey setLoaded={setJourneyLoaded} journey={journey} onFinished={onJourneyFinished} />
         </div>
       ) : null}
     </div>
