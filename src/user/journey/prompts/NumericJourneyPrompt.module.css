@@ -1,0 +1,129 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-around;
+  height: 54vh;
+}
+
+@media screen and (min-height: 876px) {
+  .container {
+    height: 560px;
+  }
+}
+
+.promptText {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 32px;
+  color: white;
+  width: 100%;
+}
+
+.carouselContainer {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.carouselItemsContainer {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  transition: transform 0.35s ease-in-out;
+
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.carouselItemsContainerDragging {
+  transition: transform 0.1s ease-out;
+}
+
+.carouselItem {
+  transition: margin 0.35s ease-in-out;
+  height: 153px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.carouselItemOption {
+  width: 28px;
+  height: 75px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  border-radius: 50%;
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition: width 0.35s ease-in-out, height 0.35s ease-in-out, font-size 0.35s ease-in-out,
+    margin-left 0.35s ease-in-out, margin-right 0.35s ease-in-out,
+    background-color 0.35s ease-in-out;
+}
+
+.carouselItem:not(:first-child) {
+  margin-left: 45px;
+}
+
+.activeCarouselItem .carouselItemOption {
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 40px;
+  width: 75px;
+  height: 75px;
+}
+
+.activeCarouselItem:not(:first-child) {
+  margin-left: 20px;
+}
+
+.activeCarouselItem:not(:last-child) {
+  margin-right: -25px;
+}
+
+.carouselItemStats {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+}
+
+.carouselVBar {
+  width: 28px;
+  background: rgba(255, 255, 255, 0.5);
+  transition: background-color 0.35s ease-in-out, height 0.35s ease-in-out;
+}
+
+.activeCarouselItem .carouselVBar {
+  background: white;
+}
+
+.overallStatsContainer {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  color: white;
+}

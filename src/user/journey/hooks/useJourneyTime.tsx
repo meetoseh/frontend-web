@@ -23,6 +23,10 @@ export type JourneyTime = {
    *
    * Providing the old time as well is done to allow for more efficient
    * hooks. See useCoarseTime for an example for how it avoids a dependency
+   *
+   * New entries MUST be appended to the end of the array. Callees may
+   * use this fact to speed up removal by only looking from their insertion
+   * index backward, rather than the full list.
    */
   onTimeChanged: MutableRefObject<
     ((lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => void)[]

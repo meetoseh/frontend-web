@@ -8,6 +8,7 @@ import { useProfilePictures } from './hooks/useProfilePictures';
 import { useStats } from './hooks/useStats';
 import styles from './Journey.module.css';
 import { JourneyProfilePictures } from './JourneyProfilePictures';
+import { JourneyPrompt } from './JourneyPrompt';
 
 /**
  * A prompt where we show a number spinner and the user selects
@@ -345,6 +346,18 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
         <div className={styles.content}>
           <div className={styles.profilePicturesContainer}>
             <JourneyProfilePictures pictures={profilePictures} users={stats.users} />
+          </div>
+          <div className={styles.promptContainer}>
+            <JourneyPrompt
+              journeyUid={journey.uid}
+              journeyJwt={journey.jwt}
+              journeyDurationSeconds={journey.durationSeconds}
+              journeyTime={journeyTime}
+              sessionUid={journey.sessionUid}
+              prompt={journey.prompt}
+              stats={stats}
+              loginContext={loginContext}
+            />
           </div>
         </div>
       </div>
