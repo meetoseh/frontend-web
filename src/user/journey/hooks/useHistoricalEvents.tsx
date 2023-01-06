@@ -1,8 +1,8 @@
-import { MutableRefObject, useEffect, useRef } from "react";
-import { JourneyEvent } from "../models/JourneyEvent";
-import { JourneyTime } from "./useJourneyTime";
-import { heappush as unboundHeapPush, heappop as unboundHeapPop } from "../../../shared/lib/Heap";
-import { HTTP_API_URL } from "../../../shared/ApiConstants";
+import { MutableRefObject, useEffect, useRef } from 'react';
+import { JourneyEvent } from '../models/JourneyEvent';
+import { JourneyTime } from './useJourneyTime';
+import { heappush as unboundHeapPush, heappop as unboundHeapPop } from '../../../shared/lib/Heap';
+import { HTTP_API_URL } from '../../../shared/ApiConstants';
 
 const heappush = unboundHeapPush.bind(undefined, 'journey_time');
 const heappop = unboundHeapPop.bind(undefined, 'journey_time');
@@ -12,7 +12,7 @@ const heappop = unboundHeapPop.bind(undefined, 'journey_time');
  * This is specifically for historical events, i.e., events that are retrieved
  * from the journey events search API, which has a slight delay, plus we prefetch
  * them.
- * 
+ *
  * To get events that occur in real time, this is combined with useLiveEvents.
  */
 export type HistoricalEvents = {
@@ -54,7 +54,12 @@ type HistoricalEventKwargs = {
  * are occuring in real time, due to automatic throttling based on network
  * conditions.
  */
-export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, journeyTime }: HistoricalEventKwargs): HistoricalEvents => {
+export const useHistoricalEvents = ({
+  journeyUid,
+  journeyJwt,
+  journeyDurationSeconds,
+  journeyTime,
+}: HistoricalEventKwargs): HistoricalEvents => {
   const onEvent = useRef<((event: JourneyEvent) => void)[]>([]);
 
   useEffect(() => {
@@ -87,7 +92,11 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
 
         const predictedIndex = journeyTime.onTimeChanged.current.length;
         const tryRemoveOnTimeChanged = () => {
-          for (let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length - 1); i >= 0; i--) {
+          for (
+            let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length - 1);
+            i >= 0;
+            i--
+          ) {
             if (journeyTime.onTimeChanged.current[i] === onTimeChange) {
               journeyTime.onTimeChanged.current.splice(i, 1);
               return true;
@@ -107,7 +116,9 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
         bonusCancelCallbacks.push(onCancelled);
 
         const onTimeChange = (lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
-          if (!active) { return; }
+          if (!active) {
+            return;
+          }
           if (newTime >= targetTime) {
             bonusCancelCallbacks.splice(bonusCancelCallbacks.indexOf(onCancelled), 1);
 
@@ -153,7 +164,9 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
         bonusCancelCallbacks.push(onCancelled);
 
         const onNewEvents = () => {
-          if (!active) { return; }
+          if (!active) {
+            return;
+          }
           bonusCancelCallbacks.splice(bonusCancelCallbacks.indexOf(onCancelled), 1);
 
           if (!tryRemoveNewEventListener()) {
@@ -176,9 +189,9 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
       const handleFailure = async () => {
         failures += 1;
         if (failures < 5) {
-          await new Promise(resolve => setTimeout(resolve, 250));
+          await new Promise((resolve) => setTimeout(resolve, 250));
         } else {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       };
 
@@ -197,7 +210,11 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
             } else {
               bandwidth += 25;
             }
-            console.log('good network conditions, increasing historical bandwidth to', bandwidth, 'events per second');
+            console.log(
+              'good network conditions, increasing historical bandwidth to',
+              bandwidth,
+              'events per second'
+            );
           }
 
           try {
@@ -212,44 +229,45 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
         } else if (nextBin < journeyTime.time.current && bandwidth > 20) {
           goodStreak = 0;
           bandwidth = Math.floor(bandwidth / 2);
-          console.log('poor network conditions, decreasing historical bandwidth to', bandwidth, 'events per second');
+          console.log(
+            'poor network conditions, decreasing historical bandwidth to',
+            bandwidth,
+            'events per second'
+          );
         }
 
         let response: Response;
         try {
-          response = await fetch(
-            HTTP_API_URL + '/api/1/journeys/events/search',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                'Authorization': `bearer ${journeyJwt}`,
-              },
-              body: JSON.stringify({
-                filters: {
-                  journey_uid: {
-                    operator: 'eq',
-                    value: journeyUid
-                  },
-                  journey_time: {
-                    operator: 'bte',
-                    value: [nextBin, nextBin + 1]
-                  },
-                  dropout_for_total: {
-                    operator: 'eq',
-                    value: bandwidth
-                  }
+          response = await fetch(HTTP_API_URL + '/api/1/journeys/events/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              Authorization: `bearer ${journeyJwt}`,
+            },
+            body: JSON.stringify({
+              filters: {
+                journey_uid: {
+                  operator: 'eq',
+                  value: journeyUid,
                 },
-                sort: [
-                  {
-                    key: 'random',
-                    dir: 'asc'
-                  }
-                ],
-                limit: bandwidth + Math.floor(3 * Math.sqrt(bandwidth))
-              })
-            }
-          );
+                journey_time: {
+                  operator: 'bte',
+                  value: [nextBin, nextBin + 1],
+                },
+                dropout_for_total: {
+                  operator: 'eq',
+                  value: bandwidth,
+                },
+              },
+              sort: [
+                {
+                  key: 'random',
+                  dir: 'asc',
+                },
+              ],
+              limit: bandwidth + Math.floor(3 * Math.sqrt(bandwidth)),
+            }),
+          });
         } catch (e) {
           console.error(e);
 
@@ -258,7 +276,10 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
         }
 
         if (!response.ok) {
-          console.error('unexpected status code from /api/1/journeys/events/search:', response.status);
+          console.error(
+            'unexpected status code from /api/1/journeys/events/search:',
+            response.status
+          );
           await handleFailure();
           continue;
         }
@@ -289,16 +310,23 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
 
     async function pushEvents() {
       while (active) {
-        if (eventHeap.length > 0 && eventHeap[0].journey_time <= journeyTime.time.current) {
-          let delay = journeyTime.time.current - eventHeap[0].journey_time;
+        if (eventHeap.length > 0 && eventHeap[0].journey_time * 1000 <= journeyTime.time.current) {
+          let delay = journeyTime.time.current - eventHeap[0].journey_time * 1000;
           if (delay > 500) {
             goodStreak = 0;
             if (bandwidth > 20) {
               bandwidth = Math.floor(bandwidth / 2);
-              console.log('poor cpu conditions detected, bandwidth reduced to', bandwidth, 'events per second and dropping events to catch up');
+              console.log(
+                'poor cpu conditions detected, bandwidth reduced to',
+                bandwidth,
+                'events per second and dropping events to catch up'
+              );
             }
 
-            while (eventHeap.length > 0 && eventHeap[0].journey_time <= journeyTime.time.current) {
+            while (
+              eventHeap.length > 0 &&
+              eventHeap[0].journey_time * 1000 <= journeyTime.time.current
+            ) {
               heappop(eventHeap);
             }
             continue;
@@ -313,7 +341,7 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
         }
 
         if (eventHeap.length > 0 && doneWithEvents) {
-          const timeOfNextEvent = eventHeap[0].journey_time;
+          const timeOfNextEvent = eventHeap[0].journey_time * 1000;
           try {
             await sleepUntilJourneyTime(timeOfNextEvent);
           } catch (e) {
@@ -326,14 +354,9 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
         }
 
         if (eventHeap.length > 0) {
-          const timeOfNextEvent = eventHeap[0].journey_time;
+          const timeOfNextEvent = eventHeap[0].journey_time * 1000;
           try {
-            await Promise.race(
-              [
-                sleepUntilJourneyTime(timeOfNextEvent),
-                sleepUntilNewEvents()
-              ]
-            );
+            await Promise.race([sleepUntilJourneyTime(timeOfNextEvent), sleepUntilNewEvents()]);
           } catch (e) {
             if (!active) {
               return;
@@ -357,7 +380,7 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
         }
       }
     }
-  }, [journeyUid, journeyJwt]);
+  }, [journeyUid, journeyJwt, journeyDurationSeconds, journeyTime.onTimeChanged, journeyTime.time]);
 
   return {
     onEvent,
@@ -367,11 +390,14 @@ export const useHistoricalEvents = ({ journeyUid, journeyJwt, journeyDurationSec
 /**
  * Ensures that the given callback is called whenever the given historical events
  * occur. This is a convenience wrapper around the onEvent callback list.
- * 
+ *
  * @param historicalEvents The historical events to listen to
  * @param callback The callback to call whenever an event occurs
  */
-export const useHistoricalEventCallback = (historicalEvents: HistoricalEvents, callback: (event: JourneyEvent) => void) => {
+export const useHistoricalEventCallback = (
+  historicalEvents: HistoricalEvents,
+  callback: (event: JourneyEvent) => void
+) => {
   useEffect(() => {
     const predictedIndex = historicalEvents.onEvent.current.length;
     historicalEvents.onEvent.current.push(callback);
@@ -385,5 +411,5 @@ export const useHistoricalEventCallback = (historicalEvents: HistoricalEvents, c
 
       console.error('failed to remove historical event callback', callback);
     };
-  }, [callback]);
+  }, [callback, historicalEvents.onEvent]);
 };

@@ -1,19 +1,25 @@
-type JoinData = {};
-type LeaveData = {};
-type LikeData = {};
-type NumericPromptResponseData = {
+import { OsehImageRef } from '../../../shared/OsehImage';
+
+export type JoinData = {
+  name: string;
+};
+export type LeaveData = {
+  name: string;
+};
+export type LikeData = {};
+export type NumericPromptResponseData = {
   rating: number;
 };
-type PressPromptStartResponseData = {};
-type PressPromptEndResponseData = {};
-type ColorPromptResponseData = {
+export type PressPromptStartResponseData = {};
+export type PressPromptEndResponseData = {};
+export type ColorPromptResponseData = {
   index: number;
 };
-type WordPromptResponseData = {
+export type WordPromptResponseData = {
   index: number;
 };
 
-type EventData =
+export type EventData =
   | JoinData
   | LeaveData
   | LikeData
@@ -48,14 +54,14 @@ export type JourneyEvent = {
    * The type of event, determines the data format
    */
   evtype:
-  | 'join'
-  | 'leave'
-  | 'like'
-  | 'numeric_prompt_response'
-  | 'press_prompt_start_response'
-  | 'press_prompt_end_response'
-  | 'color_prompt_response'
-  | 'word_prompt_response';
+    | 'join'
+    | 'leave'
+    | 'like'
+    | 'numeric_prompt_response'
+    | 'press_prompt_start_response'
+    | 'press_prompt_end_response'
+    | 'color_prompt_response'
+    | 'word_prompt_response';
   /**
    * The journey time when the event occurred
    */
@@ -64,4 +70,9 @@ export type JourneyEvent = {
    * The data associated with the event, which depends on the type
    */
   data: EventData;
+  /**
+   * If an icon is associated with this event, usually the users profile picture,
+   * a reference to the corresponding image
+   */
+  icon: OsehImageRef | null;
 };

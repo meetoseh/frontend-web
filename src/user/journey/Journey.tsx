@@ -2,11 +2,14 @@ import { ReactElement, useContext, useEffect, useState } from 'react';
 import { LoginContext } from '../../shared/LoginContext';
 import { OsehContentRef } from '../../shared/OsehContent';
 import { OsehImage, OsehImageRef } from '../../shared/OsehImage';
+import { useHistoricalEvents } from './hooks/useHistoricalEvents';
 import { useJoinLeave } from './hooks/useJoinLeave';
 import { useJourneyTime } from './hooks/useJourneyTime';
+import { useLiveEvents } from './hooks/useLiveEvents';
 import { useProfilePictures } from './hooks/useProfilePictures';
 import { useStats } from './hooks/useStats';
 import styles from './Journey.module.css';
+import { JourneyChat } from './JourneyChat';
 import { JourneyProfilePictures } from './JourneyProfilePictures';
 import { JourneyPrompt } from './JourneyPrompt';
 
@@ -14,7 +17,7 @@ import { JourneyPrompt } from './JourneyPrompt';
  * A prompt where we show a number spinner and the user selects
  * a number from that.
  */
-type NumericPrompt = {
+export type NumericPrompt = {
   /**
    * The style of the prompt. This is always 'numeric' for this type.
    */
@@ -46,7 +49,7 @@ type NumericPrompt = {
  * A prompt where we show the user a button and they can press (and hold)
  * whenever they want.
  */
-type PressPrompt = {
+export type PressPrompt = {
   /**
    * The style of the prompt. This is always 'press' for this type.
    */
@@ -61,7 +64,7 @@ type PressPrompt = {
 /**
  * A prompt where we show the user multiple colors and they select one.
  */
-type ColorPrompt = {
+export type ColorPrompt = {
   /**
    * The style of the prompt. This is always 'color' for this type.
    */
@@ -81,7 +84,7 @@ type ColorPrompt = {
 /**
  * A prompt where we show the user multiple words and they select one.
  */
-type WordPrompt = {
+export type WordPrompt = {
   /**
    * The style of the prompt. This is always 'word' for this type.
    */
@@ -233,6 +236,18 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
     journeyTime,
     loginContext,
   });
+  const historicalEvents = useHistoricalEvents({
+    journeyUid: journey.uid,
+    journeyJwt: journey.jwt,
+    journeyDurationSeconds: journey.durationSeconds,
+    journeyTime,
+  });
+  const liveEvents = useLiveEvents({
+    journeyUid: journey.uid,
+    journeyJwt: journey.jwt,
+    journeyDurationSeconds: journey.durationSeconds,
+    journeyTime,
+  });
 
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = null;
@@ -358,6 +373,15 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
               stats={stats}
               loginContext={loginContext}
             />
+          </div>
+          <div className={styles.chatAndLikesContainer}>
+            <div className={styles.chatContainer}>
+              <JourneyChat
+                historicalEvents={historicalEvents}
+                liveEvents={liveEvents}
+                prompt={journey.prompt}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -1,0 +1,44 @@
+.container {
+  display: flex;
+  flex-direction: column-reverse;
+  width: 100%;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.chatMessage {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  max-width: 255px;
+  overflow-x: auto;
+  opacity: 100%;
+  transition: opacity 0.35s ease-in-out;
+}
+
+.chatMessage:not(:first-child) {
+  margin-bottom: 16px;
+  opacity: 40%;
+}
+
+.chatMessageIcon {
+  margin-right: 10px;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(to bottom right, #c9d6d6, #c5cfd0);
+  overflow: hidden;
+}
+
+.chatMessageText {
+  padding: 19px 25px 18px 22px;
+  border-radius: 20px;
+  background: white;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.15px;
+  color: #191c1d;
+}

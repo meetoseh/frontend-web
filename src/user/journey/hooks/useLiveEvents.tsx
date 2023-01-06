@@ -1,9 +1,9 @@
-import { MutableRefObject, useEffect, useRef } from "react";
-import { JourneyEvent } from "../models/JourneyEvent";
-import { JourneyTime } from "./useJourneyTime";
-import { heappush as unboundHeapPush, heappop as unboundHeapPop } from "../../../shared/lib/Heap";
-import { HTTP_WEBSOCKET_URL } from "../../../shared/ApiConstants";
-import { useHistoricalEventCallback } from "./useHistoricalEvents";
+import { MutableRefObject, useEffect, useRef } from 'react';
+import { JourneyEvent } from '../models/JourneyEvent';
+import { JourneyTime } from './useJourneyTime';
+import { heappush as unboundHeapPush, heappop as unboundHeapPop } from '../../../shared/lib/Heap';
+import { HTTP_WEBSOCKET_URL } from '../../../shared/ApiConstants';
+import { useHistoricalEventCallback } from './useHistoricalEvents';
 
 const heappush = unboundHeapPush.bind(undefined, 'journey_time');
 const heappop = unboundHeapPop.bind(undefined, 'journey_time');
@@ -52,7 +52,12 @@ type LiveEventKwargs = {
  * historical events and potentially some live events due to automatic
  * throttling based on network conditions.
  */
-export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, journeyTime }: LiveEventKwargs): LiveEvents => {
+export const useLiveEvents = ({
+  journeyUid,
+  journeyJwt,
+  journeyDurationSeconds,
+  journeyTime,
+}: LiveEventKwargs): LiveEvents => {
   const onEvent = useRef<((event: JourneyEvent) => void)[]>([]);
 
   useEffect(() => {
@@ -91,7 +96,11 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
 
         const predictedIndex = journeyTime.onTimeChanged.current.length;
         const tryRemoveOnTimeChanged = () => {
-          for (let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length - 1); i >= 0; i--) {
+          for (
+            let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length - 1);
+            i >= 0;
+            i--
+          ) {
             if (journeyTime.onTimeChanged.current[i] === onTimeChange) {
               journeyTime.onTimeChanged.current.splice(i, 1);
               return true;
@@ -111,7 +120,9 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
         bonusCancelCallbacks.add(onCancelled);
 
         const onTimeChange = (lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
-          if (!active) { return; }
+          if (!active) {
+            return;
+          }
           if (newTime >= targetTime) {
             bonusCancelCallbacks.delete(onCancelled);
 
@@ -199,14 +210,19 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
 
     async function fetchEvents() {
       let pws: PromiseWebSocket | null = null;
-      let state: 'unconnected' | 'awaiting_open' | 'awaiting_sync_request' | 'awaiting_auth_response' | 'awaiting_events' = 'unconnected';
+      let state:
+        | 'unconnected'
+        | 'awaiting_open'
+        | 'awaiting_sync_request'
+        | 'awaiting_auth_response'
+        | 'awaiting_events' = 'unconnected';
       let failures = 0;
 
       let bandwidth = 100;
       let lookahead = 3;
       let lookback = 3;
 
-      let maxSyncMismatch = 0.05;
+      let maxSyncMismatch = 50; // ms
       let resetsDueToSyncMismatch = 0;
 
       const handleFailure = async () => {
@@ -249,8 +265,8 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
             await Promise.race([
               pws.getOpen((aborter) => aborters.push(aborter)),
               pws.getClose((aborter) => aborters.push(aborter)),
-              sleepUntilUnmounted((aborter) => aborters.push(aborter))
-            ]).catch(e => { });
+              sleepUntilUnmounted((aborter) => aborters.push(aborter)),
+            ]).catch((e) => {});
 
             for (const aborter of aborters) {
               aborter();
@@ -275,8 +291,8 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
                   jwt: journeyJwt,
                   bandwidth,
                   lookback,
-                  lookahead
-                }
+                  lookahead,
+                },
               })
             );
 
@@ -289,8 +305,8 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
             await Promise.race([
               pws.getMessage((aborter) => aborters.push(aborter), false),
               pws.getClose((aborter) => aborters.push(aborter)),
-              sleepUntilUnmounted((aborter) => aborters.push(aborter))
-            ]).catch(e => { });
+              sleepUntilUnmounted((aborter) => aborters.push(aborter)),
+            ]).catch((e) => {});
             for (const aborter of aborters) {
               aborter();
             }
@@ -321,13 +337,15 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
               return;
             }
 
-            pws.ws.send(JSON.stringify({
-              type: 'sync_response',
-              data: {
-                recieve_timestamp: journeyTime.time.current,
-                transmit_timestamp: journeyTime.time.current
-              }
-            }));
+            pws.ws.send(
+              JSON.stringify({
+                type: 'sync_response',
+                data: {
+                  receive_timestamp: journeyTime.time.current / 1000,
+                  transmit_timestamp: journeyTime.time.current / 1000,
+                },
+              })
+            );
             state = 'awaiting_auth_response';
             continue;
           }
@@ -369,19 +387,27 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
           }
 
           if (msg.type === 'latency_detection') {
-            const expectedReceiveJourneyTime: number = msg.data.expected_receive_journey_time;
+            const expectedReceiveJourneyTime: number =
+              msg.data.expected_receive_journey_time * 1000;
             const currentJourneyTime = journeyTime.time.current;
 
             const syncDifference = Math.abs(expectedReceiveJourneyTime - currentJourneyTime);
             if (syncDifference > maxSyncMismatch) {
-              console.log('live events sync mismatch exceeds threshold;', syncDifference, '>', maxSyncMismatch);
+              console.log(
+                'live events sync mismatch exceeds threshold;',
+                syncDifference,
+                '>',
+                maxSyncMismatch
+              );
               if (resetsDueToSyncMismatch === 0) {
                 console.log('resetting with same settings');
               } else if (resetsDueToSyncMismatch <= 2) {
                 console.log('doubling max sync mismatch and resetting');
                 maxSyncMismatch *= 2;
               } else if (resetsDueToSyncMismatch <= 4) {
-                console.log('halving bandwidth, decreasing lookback and lookahead by 0.5, and resetting');
+                console.log(
+                  'halving bandwidth, decreasing lookback and lookahead by 0.5, and resetting'
+                );
                 bandwidth /= 2;
                 lookahead -= 0.5;
                 lookback -= 0.5;
@@ -395,6 +421,7 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
               pws = null;
               continue;
             }
+            continue;
           }
 
           console.log('ignoring unknown message on live events socket:', msg);
@@ -406,7 +433,11 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
         console.error(e);
         unmount();
       } finally {
-        if (pws !== null && pws.ws.readyState !== WebSocket.CLOSING && pws.ws.readyState !== WebSocket.CLOSED) {
+        if (
+          pws !== null &&
+          pws.ws.readyState !== WebSocket.CLOSING &&
+          pws.ws.readyState !== WebSocket.CLOSED
+        ) {
           pws.ws.close();
         }
       }
@@ -415,7 +446,11 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
     async function pushEvents() {
       try {
         while (active) {
-          while (eventHeap.length > 0 && eventHeap[0].journey_time <= journeyTime.time.current && active) {
+          while (
+            eventHeap.length > 0 &&
+            eventHeap[0].journey_time * 1000 <= journeyTime.time.current &&
+            active
+          ) {
             const ev = heappop(eventHeap);
             const cpCallbacks = onEvent.current.slice();
             for (const callback of cpCallbacks) {
@@ -430,14 +465,14 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
             }
             await Promise.race([
               sleepUntilNewEvents(),
-              sleepUntilJourneyTime(journeyDurationSeconds * 1000 + 250)
+              sleepUntilJourneyTime(journeyDurationSeconds * 1000 + 250),
             ]);
             continue;
           }
 
           await Promise.race([
             sleepUntilNewEvents(),
-            sleepUntilJourneyTime(eventHeap[0].journey_time),
+            sleepUntilJourneyTime(eventHeap[0].journey_time * 1000),
           ]);
         }
       } catch (e) {
@@ -448,7 +483,7 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
         unmount();
       }
     }
-  }, [journeyUid, journeyJwt, journeyDurationSeconds]);
+  }, [journeyUid, journeyJwt, journeyDurationSeconds, journeyTime.onTimeChanged, journeyTime.time]);
 
   return { onEvent };
 };
@@ -456,11 +491,14 @@ export const useLiveEvents = ({ journeyUid, journeyJwt, journeyDurationSeconds, 
 /**
  * Ensures that the given callback is called whenever the given live events
  * occur. This is a convenience wrapper around the onEvent callback list.
- * 
+ *
  * @param liveEvents The live events to listen to
  * @param callback The callback to call whenever an event occurs
  */
-export const useLiveEventCallback = (liveEvents: LiveEvents, callback: (event: JourneyEvent) => void) => useHistoricalEventCallback(liveEvents, callback);
+export const useLiveEventCallback = (
+  liveEvents: LiveEvents,
+  callback: (event: JourneyEvent) => void
+) => useHistoricalEventCallback(liveEvents, callback);
 
 /**
  * Makes a websocket easier to use in an async context.
@@ -474,7 +512,7 @@ type PromiseWebSocket = {
   /**
    * Returns a promise which resolves when the websocket opens and rejects
    * when it closes or errors. Can be called from any state.
-   * 
+   *
    * @param doAbort stand-in for AbortSignal since it's still <95% supported
    *   due to people being slow to update their browsers. If provided, this
    *   is called with a function which can be called to abort the request.
@@ -484,7 +522,7 @@ type PromiseWebSocket = {
   /**
    * Returns a promise which resolves when the websocket closes. Can be
    * called from any state.
-   * 
+   *
    * @param doAbort stand-in for AbortSignal since it's still <95% supported
    *   due to people being slow to update their browsers. If provided, this
    *   is called with a function which can be called to abort the request.
@@ -495,7 +533,7 @@ type PromiseWebSocket = {
    * Returns a promise which resolves when the websocket errors. Can be
    * called from any state, but will resolve at most once. Rejects if
    * the websocket closes before erroring.
-   * 
+   *
    * @param doAbort stand-in for AbortSignal since it's still <95% supported
    *   due to people being slow to update their browsers. If provided, this
    *   is called with a function which can be called to abort the request.
@@ -506,7 +544,7 @@ type PromiseWebSocket = {
    * Returns a promise which resolves when a message is received, after JSON
    * parsing. If this is called in parallel, an arbitrary one will get the
    * message, but only one.
-   * 
+   *
    * @param doAbort stand-in for AbortSignal since it's still <95% supported
    *   due to people being slow to update their browsers. If provided, this
    *   is called with a function which can be called to abort the request.
@@ -515,7 +553,10 @@ type PromiseWebSocket = {
    *   the promise will resolve with null, and the next getMessage will resolve
    *   immediately with the message
    */
-  getMessage: (doAbort: ((abort: () => void) => void) | undefined | null, consume: boolean) => Promise<any>;
+  getMessage: (
+    doAbort: ((abort: () => void) => void) | undefined | null,
+    consume: boolean
+  ) => Promise<any>;
 };
 
 /**
@@ -583,196 +624,203 @@ function newPromiseWebSocket(uri: string): PromiseWebSocket {
     }
   };
 
-  const getOpen = (doAbort: ((abort: () => void) => void) | undefined | null) => new Promise<void>((resolve, reject) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      resolve();
-      return;
-    }
-
-    if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-      reject(new Error('WebSocket already closed'));
-      return;
-    }
-
-    if (ws.readyState !== WebSocket.CONNECTING) {
-      reject(new Error('WebSocket in unexpected state'));
-      return;
-    }
-
-    let finished = false;
-    const onAbort = () => {
-      if (finished) {
+  const getOpen = (doAbort: ((abort: () => void) => void) | undefined | null) =>
+    new Promise<void>((resolve, reject) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        resolve();
         return;
       }
 
-      finished = true;
-      evListeners.get('open')!.delete(listener);
-      reject('aborted');
-    };
-
-    const listener = () => {
-      if (finished) {
+      if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+        reject(new Error('WebSocket already closed'));
         return;
       }
 
-      finished = true;
-      evListeners.get('open')!.delete(listener);
-      resolve();
-    };
-    evListeners.get('open')!.add(listener);
-    if (doAbort !== null && doAbort !== undefined) {
-      doAbort(onAbort);
-    }
-  });
-
-  const getClose = (doAbort: ((abort: () => void) => void) | undefined | null) => new Promise<void>((resolve, reject) => {
-    if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-      resolve();
-      return;
-    }
-
-    if (ws.readyState === WebSocket.OPEN) {
-      reject(new Error('WebSocket already open'));
-      return;
-    }
-
-    if (ws.readyState !== WebSocket.CONNECTING) {
-      reject(new Error('WebSocket in unexpected state'));
-      return;
-    }
-
-    let finished = false;
-    const onAbort = () => {
-      if (finished) {
+      if (ws.readyState !== WebSocket.CONNECTING) {
+        reject(new Error('WebSocket in unexpected state'));
         return;
       }
 
-      finished = true;
-      evListeners.get('close')!.delete(listener);
-      reject('aborted');
-    };
+      let finished = false;
+      const onAbort = () => {
+        if (finished) {
+          return;
+        }
 
-    const listener = () => {
-      if (finished) {
+        finished = true;
+        evListeners.get('open')!.delete(listener);
+        reject('aborted');
+      };
+
+      const listener = () => {
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+        evListeners.get('open')!.delete(listener);
+        resolve();
+      };
+      evListeners.get('open')!.add(listener);
+      if (doAbort !== null && doAbort !== undefined) {
+        doAbort(onAbort);
+      }
+    });
+
+  const getClose = (doAbort: ((abort: () => void) => void) | undefined | null) =>
+    new Promise<void>((resolve, reject) => {
+      if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+        resolve();
         return;
       }
 
-      finished = true;
-      evListeners.get('close')!.delete(listener);
-      resolve();
-    };
-    evListeners.get('close')!.add(listener);
-    if (doAbort !== null && doAbort !== undefined) {
-      doAbort(onAbort);
-    }
-  });
-
-  const getError = (doAbort: ((abort: () => void) => void) | undefined | null) => new Promise<Event>((resolve, reject) => {
-    if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-      reject(new Error('WebSocket already closed'));
-      return;
-    }
-
-    const removeListeners = () => {
-      evListeners.get('error')!.delete(errorListener);
-      evListeners.get('close')!.delete(closeListener);
-    };
-
-    let finished = false;
-    const onAbort = () => {
-      if (finished) {
+      if (ws.readyState === WebSocket.OPEN) {
+        reject(new Error('WebSocket already open'));
         return;
       }
 
-      finished = true;
-      removeListeners();
-      reject('aborted');
-    };
-
-    const errorListener = (ev: Event) => {
-      if (finished) {
+      if (ws.readyState !== WebSocket.CONNECTING) {
+        reject(new Error('WebSocket in unexpected state'));
         return;
       }
 
-      finished = true;
-      removeListeners();
-      resolve(ev);
-    };
+      let finished = false;
+      const onAbort = () => {
+        if (finished) {
+          return;
+        }
 
-    const closeListener = () => {
-      if (finished) {
+        finished = true;
+        evListeners.get('close')!.delete(listener);
+        reject('aborted');
+      };
+
+      const listener = () => {
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+        evListeners.get('close')!.delete(listener);
+        resolve();
+      };
+      evListeners.get('close')!.add(listener);
+      if (doAbort !== null && doAbort !== undefined) {
+        doAbort(onAbort);
+      }
+    });
+
+  const getError = (doAbort: ((abort: () => void) => void) | undefined | null) =>
+    new Promise<Event>((resolve, reject) => {
+      if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+        reject(new Error('WebSocket already closed'));
         return;
       }
 
-      finished = true;
-      removeListeners();
-      reject(new Error('WebSocket closed before erroring'));
-    };
+      const removeListeners = () => {
+        evListeners.get('error')!.delete(errorListener);
+        evListeners.get('close')!.delete(closeListener);
+      };
 
-    evListeners.get('error')!.add(errorListener);
-    evListeners.get('close')!.add(closeListener);
-    if (doAbort !== null && doAbort !== undefined) {
-      doAbort(onAbort);
-    }
-  });
+      let finished = false;
+      const onAbort = () => {
+        if (finished) {
+          return;
+        }
 
-  const getMessage = (doAbort: ((abort: () => void) => void) | undefined | null, consume: boolean) => new Promise<any>((resolve, reject) => {
-    if (unreadMessages.length > 0) {
-      resolve(consume ? unreadMessages.shift() : null);
-      return;
-    }
+        finished = true;
+        removeListeners();
+        reject('aborted');
+      };
 
-    if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-      reject(new Error('WebSocket already closed'));
-    }
+      const errorListener = (ev: Event) => {
+        if (finished) {
+          return;
+        }
 
-    const removeListeners = () => {
-      onNewMessageListeners.delete(messageListener);
-      evListeners.get('close')!.delete(closeListener);
-    };
+        finished = true;
+        removeListeners();
+        resolve(ev);
+      };
 
-    let finished = false;
-    const onAbort = () => {
-      if (finished) {
+      const closeListener = () => {
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+        removeListeners();
+        reject(new Error('WebSocket closed before erroring'));
+      };
+
+      evListeners.get('error')!.add(errorListener);
+      evListeners.get('close')!.add(closeListener);
+      if (doAbort !== null && doAbort !== undefined) {
+        doAbort(onAbort);
+      }
+    });
+
+  const getMessage = (
+    doAbort: ((abort: () => void) => void) | undefined | null,
+    consume: boolean
+  ) =>
+    new Promise<any>((resolve, reject) => {
+      if (unreadMessages.length > 0) {
+        resolve(consume ? unreadMessages.shift() : null);
         return;
       }
 
-      finished = true;
-      removeListeners();
-      reject('aborted');
-    };
-
-    const messageListener = () => {
-      if (finished) {
-        return;
+      if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+        reject(new Error('WebSocket already closed'));
       }
 
-      if (unreadMessages.length === 0) {
-        return; // another listener was first
+      const removeListeners = () => {
+        onNewMessageListeners.delete(messageListener);
+        evListeners.get('close')!.delete(closeListener);
+      };
+
+      let finished = false;
+      const onAbort = () => {
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+        removeListeners();
+        reject('aborted');
+      };
+
+      const messageListener = () => {
+        if (finished) {
+          return;
+        }
+
+        if (unreadMessages.length === 0) {
+          return; // another listener was first
+        }
+
+        const msg = consume ? unreadMessages.shift() : null;
+        finished = true;
+        removeListeners();
+        resolve(msg);
+      };
+
+      const closeListener = () => {
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+        removeListeners();
+        reject(new Error('WebSocket closed before a message was received'));
+      };
+
+      onNewMessageListeners.add(messageListener);
+      evListeners.get('close')!.add(closeListener);
+      if (doAbort !== null && doAbort !== undefined) {
+        doAbort(onAbort);
       }
-
-      const msg = consume ? unreadMessages.shift() : null;
-      finished = true;
-      removeListeners();
-      resolve(msg);
-    };
-
-    const closeListener = () => {
-      if (finished) {
-        return;
-      }
-
-      finished = true;
-      removeListeners();
-      reject(new Error('WebSocket closed before a message was received'));
-    };
-
-    onNewMessageListeners.add(messageListener);
-    evListeners.get('close')!.add(closeListener);
-    if (doAbort !== null && doAbort !== undefined) {
-      doAbort(onAbort);
-    }
-  });
+    });
 
   return {
     ws,
