@@ -37,6 +37,10 @@ export const JourneyChat = ({
 
   const onMessage = useCallback(
     (event: JourneyEvent) => {
+      if (!isChatEvent(event)) {
+        return;
+      }
+
       const item = <ChatMessage key={event.uid} prompt={prompt} event={event} />;
       setChat((oldChat) => {
         const newChat = [...oldChat, item];
@@ -57,6 +61,9 @@ export const JourneyChat = ({
 
 const ChatMessage = ({ prompt, event }: { prompt: Prompt; event: JourneyEvent }): ReactElement => {
   const text = getMessageText(prompt, event);
+  if (text === null) {
+    return <></>;
+  }
   return (
     <div className={styles.chatMessage}>
       {event.icon && (
@@ -101,4 +108,18 @@ const getMessageText = (prompt: Prompt, event: JourneyEvent): string | null => {
   } else {
     return null;
   }
+};
+
+const chatEventsTypes: Record<string, boolean | undefined> = {
+  join: true,
+  leave: true,
+  numeric_prompt_response: true,
+  press_prompt_start_response: true,
+  press_prompt_end_response: true,
+  color_prompt_response: true,
+  word_prompt_response: true,
+};
+
+const isChatEvent = (event: JourneyEvent): boolean => {
+  return !!chatEventsTypes[event.evtype];
 };

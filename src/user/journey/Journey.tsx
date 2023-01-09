@@ -10,6 +10,7 @@ import { useProfilePictures } from './hooks/useProfilePictures';
 import { useStats } from './hooks/useStats';
 import styles from './Journey.module.css';
 import { JourneyChat } from './JourneyChat';
+import { JourneyLikes } from './JourneyLikes';
 import { JourneyProfilePictures } from './JourneyProfilePictures';
 import { JourneyPrompt } from './JourneyPrompt';
 
@@ -380,6 +381,16 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
                 historicalEvents={historicalEvents}
                 liveEvents={liveEvents}
                 prompt={journey.prompt}
+              />
+            </div>
+            <div className={styles.likesContainer}>
+              <JourneyLikes
+                journeyUid={journey.uid}
+                journeyJwt={journey.jwt}
+                sessionUid={journey.sessionUid}
+                journeyTime={journeyTime}
+                likes={stats.likes}
+                loginContext={loginContext}
               />
             </div>
           </div>

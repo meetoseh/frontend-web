@@ -1,0 +1,70 @@
+.heart {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/heart.svg');
+  width: 20px;
+  height: 18px;
+}
+
+.ourHeart {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/our-heart.svg');
+  width: 20px;
+  height: 18px;
+}
+
+.container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.heartsContainer {
+  position: absolute;
+  top: 0;
+  left: calc(50% - 10px);
+  overflow: visible;
+}
+
+.heartsContainer .heart {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.button {
+  composes: unstyled from '../../shared/buttons.module.css';
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  -ms-backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  border-radius: 28px;
+  padding: 18px 19px 14px 20px;
+}
+
+.buttonIconContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.buttonTextContainer {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.15px;
+  color: white;
+}
