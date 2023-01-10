@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useState } from 'react';
+import { ReactElement, useCallback, useRef, useState } from 'react';
 import { HistoricalEvents, useHistoricalEventCallback } from './hooks/useHistoricalEvents';
 import { LiveEvents, useLiveEventCallback } from './hooks/useLiveEvents';
 import {
@@ -10,8 +10,9 @@ import {
   WordPromptResponseData,
 } from './models/JourneyEvent';
 import styles from './JourneyChat.module.css';
-import { Prompt, WordPrompt } from './Journey';
+import { ColorPrompt, Prompt, WordPrompt } from './Journey';
 import { OsehImage } from '../../shared/OsehImage';
+import { OrderedDictionary } from '../../shared/lib/OrderedDictionary';
 
 type JourneyChatProps = {
   /**
@@ -34,12 +35,25 @@ export const JourneyChat = ({
   prompt,
 }: JourneyChatProps): ReactElement => {
   const [chat, setChat] = useState<ReactElement[]>([]);
+  const recentMessages = useRef(
+    new OrderedDictionary<{ uid: string; journey_time: number }, 'uid', 'journey_time'>(
+      'uid',
+      'journey_time'
+    )
+  );
 
   const onMessage = useCallback(
     (event: JourneyEvent) => {
       if (!isChatEvent(event)) {
         return;
       }
+
+      if (recentMessages.current.has(event.uid)) {
+        return;
+      }
+
+      recentMessages.current.deleteBelow(event.journey_time - 10);
+      recentMessages.current.push({ uid: event.uid, journey_time: event.journey_time });
 
       const item = <ChatMessage key={event.uid} prompt={prompt} event={event} />;
       setChat((oldChat) => {
@@ -60,10 +74,29 @@ export const JourneyChat = ({
 };
 
 const ChatMessage = ({ prompt, event }: { prompt: Prompt; event: JourneyEvent }): ReactElement => {
-  const text = getMessageText(prompt, event);
-  if (text === null) {
+  let chatMessage: ReactElement = <></>;
+  let text: string | null = null;
+  if (!customEventTypes[event.evtype]) {
+    text = getMessageText(prompt, event);
+    if (text === null) {
+      return <></>;
+    }
+    chatMessage = <>{text}</>;
+  } else if (event.evtype === 'color_prompt_response') {
+    const colorPrompt = prompt as ColorPrompt;
+    const data = event.data as ColorPromptResponseData;
+
+    const color = colorPrompt.colors[data.index];
+    chatMessage = (
+      <>
+        <div className={styles.chatMessageColorBox} style={{ backgroundColor: color }}></div>
+        <div className={styles.chatMessageColorText}>{color}</div>
+      </>
+    );
+  } else {
     return <></>;
   }
+
   return (
     <div className={styles.chatMessage}>
       {event.icon && (
@@ -77,7 +110,7 @@ const ChatMessage = ({ prompt, event }: { prompt: Prompt; event: JourneyEvent })
           />
         </div>
       )}
-      <div className={styles.chatMessageText}>{text}</div>
+      <div className={styles.chatMessageText}>{chatMessage}</div>
     </div>
   );
 };
@@ -99,8 +132,7 @@ const getMessageText = (prompt: Prompt, event: JourneyEvent): string | null => {
   } else if (event.evtype === 'press_prompt_end_response') {
     return null;
   } else if (event.evtype === 'color_prompt_response') {
-    const data = event.data as ColorPromptResponseData;
-    return (data.index + 1).toLocaleString();
+    return null;
   } else if (event.evtype === 'word_prompt_response') {
     const data = event.data as WordPromptResponseData;
     const wordPrompt = prompt as WordPrompt;
@@ -117,6 +149,10 @@ const chatEventsTypes: Record<string, boolean | undefined> = {
   press_prompt_start_response: true,
   color_prompt_response: true,
   word_prompt_response: true,
+};
+
+const customEventTypes: Record<string, boolean | undefined> = {
+  color_prompt_response: true,
 };
 
 const isChatEvent = (event: JourneyEvent): boolean => {
