@@ -94,6 +94,7 @@
 }
 
 .journeyContainer {
+  composes: unstyled from '../../shared/buttons.module.css';
   margin-left: 20px;
   box-shadow: 0px 4px 4px 4px rgba(0, 0, 0, 0.1);
   border-radius: 20px;

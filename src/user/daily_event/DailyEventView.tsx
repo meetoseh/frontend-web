@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../shared/forms/Button';
 import { LoginContext } from '../../shared/LoginContext';
 import { MyProfilePicture } from '../../shared/MyProfilePicture';
@@ -421,6 +421,84 @@ export const DailyEventView = ({
     }
   }, [loginContext, event.uid, event.jwt, setJourney]);
 
+  const showUpgradeModal = useCallback(() => {
+    console.log('would show upgrade modal');
+  }, []);
+
+  const onChooseSpecific = useCallback(
+    async (index: number) => {
+      if (loginContext.state !== 'logged-in') {
+        return;
+      }
+
+      const journey = event.journeys[index];
+      if (!journey.access.start) {
+        showUpgradeModal();
+        return;
+      }
+
+      setStartingJourney(true);
+      try {
+        const response = await apiFetch(
+          '/api/1/daily_events/start_specific',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              daily_event_uid: event.uid,
+              daily_event_jwt: event.jwt,
+              journey_uid: event.journeys[index].uid,
+            }),
+          },
+          loginContext
+        );
+
+        if (!response.ok) {
+          throw response;
+        }
+
+        const data = await response.json();
+        const journey: JourneyRef = {
+          uid: data.uid,
+          sessionUid: data.session_uid,
+          jwt: data.jwt,
+          durationSeconds: data.duration_seconds,
+          backgroundImage: data.background_image,
+          audioContent: data.audio_content,
+          category: {
+            externalName: data.category.external_name,
+          },
+          title: data.title,
+          instructor: data.instructor,
+          description: data.description,
+          prompt: data.prompt,
+        };
+        setJourney(journey);
+      } catch (e) {
+        console.error(e);
+        if (e instanceof TypeError) {
+          setError(<>Failed to connect to server. Check your internet connection.</>);
+        } else if (e instanceof Response) {
+          setError(await describeErrorFromResponse(e));
+        } else {
+          setError(<>Unknown error. Contact support.</>);
+        }
+      } finally {
+        setStartingJourney(false);
+      }
+    },
+    [loginContext, event.uid, event.jwt, event.journeys, setJourney, showUpgradeModal]
+  );
+
+  const boundOnChooseSpecific: ((e: React.MouseEvent) => void)[] = useMemo(() => {
+    return event.journeys.map((_, i) => (e: React.MouseEvent) => {
+      e.preventDefault();
+      onChooseSpecific(i);
+    });
+  }, [onChooseSpecific, event.journeys]);
+
   if (loginContext.state !== 'logged-in') {
     return <></>;
   }
@@ -456,12 +534,14 @@ export const DailyEventView = ({
             }`}
             style={{ transform: `translateX(${carouselTransformX}px)` }}>
             {carouselOrder
-              .map((i) => event.journeys[i])
-              .map((journey) => (
-                <div
+              .map((i) => [event.journeys[i], i] as const)
+              .map(([journey, i]) => (
+                <button
                   className={`${styles.journeyContainer} ${
                     journey.uid === activeJourney ? styles.active : styles.inactive
                   }`}
+                  onClick={boundOnChooseSpecific[i]}
+                  disabled={startingJourney}
                   key={journey.uid}>
                   <div className={styles.journeyImageContainer}>
                     <OsehImage
@@ -492,7 +572,7 @@ export const DailyEventView = ({
                     <div className={styles.journeyInstructor}>{journey.instructor.name}</div>
                     <div className={styles.journeyDescription}>{journey.description.text}</div>
                   </div>
-                </div>
+                </button>
               ))}
           </div>
         </div>
