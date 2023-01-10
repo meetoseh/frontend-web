@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { JourneyPromptProps } from '../models/JourneyPromptProps';
 import styles from './ColorPrompt.module.css';
@@ -18,6 +18,10 @@ export const ColorPrompt = ({
   }
 
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  // we want pressing the button to immediately react, but stats won't come in
+  // for a second or so, so we alter the stats temporarily
+  const [fakingMove, setFakingMove] = useState<FakedMove | null>(null);
 
   const colorRows: string[][] = useMemo(() => {
     const colors = prompt.colors;
@@ -47,6 +51,16 @@ export const ColorPrompt = ({
       if (index < 0) {
         return;
       }
+      if (activeIndex === index) {
+        return;
+      }
+
+      setFakingMove({
+        fromIndex: activeIndex,
+        toIndex: index,
+        fakeEndsAt: journeyTime.time.current + 1500,
+        cancelFakeToMin: stats.colorActive === null ? 1 : stats.colorActive[index] + 1,
+      });
       setActiveIndex(index);
 
       if (loginContext.state !== 'logged-in') {
@@ -101,12 +115,85 @@ export const ColorPrompt = ({
       prompt.colors,
       journeyTime.time,
       journeyDurationSeconds,
+      activeIndex,
+      stats.colorActive,
     ]
   );
 
+  // don't want to unmount faking move every time stats updates
+  const colorActiveRef = useRef<number[] | null>(stats.colorActive);
+  colorActiveRef.current = stats.colorActive;
+  useEffect(() => {
+    if (fakingMove === null) {
+      return;
+    }
+
+    if (
+      colorActiveRef.current !== null &&
+      colorActiveRef.current[fakingMove.toIndex] >= fakingMove.cancelFakeToMin
+    ) {
+      setFakingMove(null);
+      return;
+    }
+
+    if (journeyTime.time.current >= fakingMove.fakeEndsAt) {
+      setFakingMove(null);
+      return;
+    }
+
+    let active = true;
+    const onTimeChange = (oldTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
+      if (!active) {
+        return;
+      }
+
+      if (
+        newTime < fakingMove.fakeEndsAt &&
+        (colorActiveRef.current === null ||
+          colorActiveRef.current[fakingMove.toIndex] < fakingMove.cancelFakeToMin)
+      ) {
+        return;
+      }
+
+      setFakingMove(null);
+      unmount();
+    };
+
+    const predictedIndex = journeyTime.onTimeChanged.current.length;
+    journeyTime.onTimeChanged.current.push(onTimeChange);
+
+    const unmount = () => {
+      if (!active) {
+        return;
+      }
+
+      active = false;
+      for (
+        let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length);
+        i >= 0;
+        i--
+      ) {
+        if (journeyTime.onTimeChanged.current[i] === onTimeChange) {
+          journeyTime.onTimeChanged.current.splice(i, 1);
+          break;
+        }
+      }
+    };
+    return unmount;
+  }, [journeyTime.onTimeChanged, journeyTime.time, fakingMove]);
+
   const buttons = useMemo(() => {
-    const colorActive =
+    let colorActive =
       stats.colorActive === null ? Array(prompt.colors.length).fill(0) : stats.colorActive;
+
+    if (fakingMove !== null) {
+      colorActive = colorActive.slice();
+      if (fakingMove.fromIndex !== null && colorActive[fakingMove.fromIndex] > 0) {
+        colorActive[fakingMove.fromIndex]--;
+      }
+      colorActive[fakingMove.toIndex]++;
+    }
+
     const totalResponses = colorActive.reduce((a, b) => a + b, 0);
     const percentageResponses = colorActive.map((count) =>
       totalResponses === 0 ? 0 : count / totalResponses
@@ -135,7 +222,7 @@ export const ColorPrompt = ({
         ))}
       </div>
     ));
-  }, [colorRows, onChooseColor, stats.colorActive, activeIndex]);
+  }, [colorRows, onChooseColor, stats.colorActive, activeIndex, prompt.colors, fakingMove]);
 
   return (
     <div className={styles.container}>
@@ -143,4 +230,12 @@ export const ColorPrompt = ({
       <div className={styles.colorsContainer}>{buttons}</div>
     </div>
   );
+};
+
+type FakedMove = {
+  fromIndex: number | null;
+  toIndex: number;
+
+  fakeEndsAt: DOMHighResTimeStamp;
+  cancelFakeToMin: number;
 };
