@@ -9,6 +9,7 @@ import { useLiveEvents } from './hooks/useLiveEvents';
 import { useProfilePictures } from './hooks/useProfilePictures';
 import { useStats } from './hooks/useStats';
 import styles from './Journey.module.css';
+import { JourneyAudio } from './JourneyAudio';
 import { JourneyChat } from './JourneyChat';
 import { JourneyLikes } from './JourneyLikes';
 import { JourneyProfilePictures } from './JourneyProfilePictures';
@@ -396,6 +397,7 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
           </div>
         </div>
       </div>
+      <JourneyAudio audioContent={journey.audioContent} journeyTime={journeyTime} />
     </div>
   );
 };

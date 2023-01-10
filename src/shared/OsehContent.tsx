@@ -29,9 +29,49 @@ type ContentFileWebExport = {
  * Shows an audio file from Oseh, with controls and error handling
  */
 export const OsehContent = ({ uid, jwt }: OsehContentProps): ReactElement => {
+  const { webExport, error } = useOsehContent({ uid, jwt });
+  const ref = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (webExport === null || ref.current === null) {
+      return;
+    }
+
+    const audio = ref.current;
+    if (audio.readyState === 0) {
+      return;
+    }
+
+    if (!audio.paused) {
+      audio.pause();
+    }
+    audio.load();
+  }, [webExport]);
+
+  return (
+    <>
+      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {webExport && (
+        <audio ref={ref} controls>
+          <source src={webExport.url} type="audio/mp4" />
+        </audio>
+      )}
+    </>
+  );
+};
+
+/**
+ * A hook for getting the web export for an Oseh content file. This is
+ * useful for if you need fine-tuned control over the audio player,
+ * but want to reuse the logic for downloading the playlist and selecting
+ * the export.
+ */
+export const useOsehContent = ({
+  uid,
+  jwt,
+}: OsehContentProps): { error: ReactElement | null; webExport: ContentFileWebExport | null } => {
   const [webExport, setWebExport] = useState<ContentFileWebExport | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
-  const ref = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -116,30 +156,5 @@ export const OsehContent = ({ uid, jwt }: OsehContentProps): ReactElement => {
     }
   }, [uid, jwt]);
 
-  useEffect(() => {
-    if (webExport === null || ref.current === null) {
-      return;
-    }
-
-    const audio = ref.current;
-    if (audio.readyState === 0) {
-      return;
-    }
-
-    if (!audio.paused) {
-      audio.pause();
-    }
-    audio.load();
-  }, [webExport]);
-
-  return (
-    <>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
-      {webExport && (
-        <audio ref={ref} controls>
-          <source src={webExport.url} type="audio/mp4" />
-        </audio>
-      )}
-    </>
-  );
+  return { error, webExport };
 };
