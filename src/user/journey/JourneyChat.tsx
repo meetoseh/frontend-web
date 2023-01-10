@@ -115,7 +115,6 @@ const chatEventsTypes: Record<string, boolean | undefined> = {
   leave: true,
   numeric_prompt_response: true,
   press_prompt_start_response: true,
-  press_prompt_end_response: true,
   color_prompt_response: true,
   word_prompt_response: true,
 };

@@ -2,6 +2,7 @@ import { ReactElement } from 'react';
 import { Prompt } from './Journey';
 import { JourneyPromptProps } from './models/JourneyPromptProps';
 import { NumericJourneyPrompt } from './prompts/NumericJourneyPrompt';
+import { PressJourneyPrompt } from './prompts/PressJourneyPrompt';
 
 const PROMPT_STYLE_TO_COMPONENT: Record<
   Prompt['style'],
@@ -9,7 +10,7 @@ const PROMPT_STYLE_TO_COMPONENT: Record<
 > = {
   numeric: (props) => <NumericJourneyPrompt {...props} />,
   word: (props) => <>word prompt not implemented</>,
-  press: (props) => <>press prompt not implemented</>,
+  press: (props) => <PressJourneyPrompt {...props} />,
   color: (props) => <>color prompt not implemented</>,
 };
 
