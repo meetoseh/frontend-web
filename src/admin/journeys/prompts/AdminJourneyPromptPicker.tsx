@@ -111,7 +111,7 @@ export const AdminJourneyPromptPicker = ({
       setPromptValid(
         prompt.options.length > 1 &&
           prompt.options.length <= 8 &&
-          !prompt.options.some((o) => o.length < 1 || o.length > 24) &&
+          !prompt.options.some((o) => o.length < 1 || o.length > 8) &&
           new Set(prompt.options).size === prompt.options.length
       );
     } else if (prompt.style === 'color') {
@@ -199,7 +199,7 @@ export const AdminJourneyPromptPicker = ({
                         return { ...p, options: newOptions };
                       });
                     }}
-                    html5Validation={{ required: '' }}
+                    html5Validation={{ required: '', maxlength: '8' }}
                   />
 
                   <div className={styles.removeOptionContainer}>
