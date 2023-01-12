@@ -76,7 +76,7 @@ export const LoginApp = (): ReactElement => {
                       client_id: authClientId,
                       redirect_uri: window.location.origin + '/',
                       identity_provider: 'Google',
-                      scope: 'email openid phone profile',
+                      scope: 'email openid profile',
                     })}`
               }>
               <span className={styles.signInWithGoogleIcon}></span>
@@ -94,7 +94,7 @@ export const LoginApp = (): ReactElement => {
                       client_id: authClientId,
                       redirect_uri: window.location.origin + '/',
                       identity_provider: 'SignInWithApple',
-                      scope: 'email openid phone profile',
+                      scope: 'email openid profile',
                     })}`
               }>
               <span className={styles.signInWithAppleIcon}></span>
