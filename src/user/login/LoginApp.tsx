@@ -1,19 +1,11 @@
-import { ReactElement, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useState } from 'react';
 import '../../assets/fonts.css';
 import backgroundHuge from './assets/background-huge.jpg';
 import backgroundMobile from './assets/background-mobile.jpg';
 import backgroundDesktop from './assets/background-desktop.jpg';
 import styles from './LoginApp.module.css';
-
-/**
- * The domain of the auth service, e.g., auth.example.com
- */
-const authDomain = process.env.REACT_APP_AUTH_DOMAIN!;
-
-/**
- * The client id of the hosted ui, e.g., 1234567890abcdef1234567890abcdef
- */
-const authClientId = process.env.REACT_APP_AUTH_CLIENT_ID!;
+import { SplashScreen } from '../splash/SplashScreen';
+import { HTTP_API_URL } from '../../shared/ApiConstants';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -55,6 +47,69 @@ export const LoginApp = (): ReactElement => {
     huge: [backgroundHuge, 4000, 6000],
   }[imgVariant];
 
+  const [googleUrl, setGoogleUrl] = useState<string | null>(null);
+  const [appleUrl, setAppleUrl] = useState<string | null>(null);
+
+  const getProviderUrl = useCallback(async (provider: string): Promise<string> => {
+    if (isDevelopment) {
+      return '/dev_login';
+    }
+
+    const response = await fetch(HTTP_API_URL + '/api/1/oauth/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({
+        provider: provider,
+        refresh_token_desired: false,
+      }),
+    });
+
+    if (!response.ok) {
+      throw response;
+    }
+
+    const data = await response.json();
+    return data.url;
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getGoogleUrl();
+    return () => {
+      active = false;
+    };
+
+    async function getGoogleUrl() {
+      const url = await getProviderUrl('Google');
+      if (!active) {
+        return;
+      }
+
+      setGoogleUrl(url);
+    }
+  }, [getProviderUrl]);
+
+  useEffect(() => {
+    let active = true;
+    getAppleUrl();
+    return () => {
+      active = false;
+    };
+
+    async function getAppleUrl() {
+      const url = await getProviderUrl('SignInWithApple');
+      if (!active) {
+        return;
+      }
+
+      setAppleUrl(url);
+    }
+  }, [getProviderUrl]);
+
+  if (googleUrl === null || appleUrl === null) {
+    return <SplashScreen />;
+  }
+
   return (
     <div className={styles.container}>
       {typeof img === 'string' ? (
@@ -66,37 +121,13 @@ export const LoginApp = (): ReactElement => {
         <div className={styles.primaryContainer}>
           <div className={styles.title}>Sign in with your social account</div>
           <div className={styles.signInWithGoogleContainer}>
-            <a
-              className={styles.signInWithGoogle}
-              href={
-                isDevelopment
-                  ? '/dev_login'
-                  : `https://${authDomain}/oauth2/authorize?${new URLSearchParams({
-                      response_type: 'token',
-                      client_id: authClientId,
-                      redirect_uri: window.location.origin + '/',
-                      identity_provider: 'Google',
-                      scope: 'email openid profile',
-                    })}`
-              }>
+            <a className={styles.signInWithGoogle} href={googleUrl}>
               <span className={styles.signInWithGoogleIcon}></span>
               <span className={styles.signInWithGoogleText}>Continue with Google</span>
             </a>
           </div>
           <div className={styles.signInWithAppleContainer}>
-            <a
-              className={styles.signInWithApple}
-              href={
-                isDevelopment
-                  ? '/dev_login'
-                  : `https://${authDomain}/oauth2/authorize?${new URLSearchParams({
-                      response_type: 'token',
-                      client_id: authClientId,
-                      redirect_uri: window.location.origin + '/',
-                      identity_provider: 'SignInWithApple',
-                      scope: 'email openid profile',
-                    })}`
-              }>
+            <a className={styles.signInWithApple} href={appleUrl}>
               <span className={styles.signInWithAppleIcon}></span>
               <span className={styles.signInWithAppleText}>Continue with Apple</span>
             </a>

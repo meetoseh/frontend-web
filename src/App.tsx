@@ -9,7 +9,6 @@ import {
   TokenResponseConfig,
 } from './shared/LoginContext';
 import { TestLogin } from './shared/TestLogin';
-import { apiFetch } from './shared/ApiConstants';
 import { LoginApp } from './user/login/LoginApp';
 
 function App() {
@@ -40,21 +39,7 @@ function App() {
     const userAttributes = extractUserAttributes(tokens);
 
     (async () => {
-      await Promise.all([
-        storeAuthTokens(tokens),
-        storeUserAttributes(userAttributes),
-        apiFetch(
-          '/api/1/users/',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              Authorization: `bearer ${tokens.idToken}`,
-            },
-          },
-          null
-        ).catch(console.error),
-      ]);
+      await Promise.all([storeAuthTokens(tokens), storeUserAttributes(userAttributes)]);
 
       const redirectLoc = localStorage.getItem('login-redirect');
       if (redirectLoc) {
