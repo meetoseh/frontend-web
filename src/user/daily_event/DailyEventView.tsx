@@ -59,6 +59,7 @@ export const DailyEventView = ({
   const [haveCarouselTouchMoved, setHaveCarouselTouchMoved] = useState<boolean>(false);
   const [startingJourney, setStartingJourney] = useState<boolean>(false);
   const [error, setError] = useState<ReactElement | null>(null);
+  const [profilePictureAvailable, setProfilePictureAvailable] = useState(false);
 
   useEffect(() => {
     setLoadedImagesByUID((u) => {
@@ -507,11 +508,15 @@ export const DailyEventView = ({
     <div className={styles.container}>
       <div className={styles.innerContainer}>
         <div className={styles.headerContainer}>
-          {loginContext.userAttributes?.picture && (
-            <div className={styles.headerProfileContainer}>
-              <MyProfilePicture displayWidth={48} displayHeight={48} />
-            </div>
-          )}
+          <div
+            className={styles.headerProfileContainer}
+            style={profilePictureAvailable ? {} : { display: 'none' }}>
+            <MyProfilePicture
+              displayWidth={48}
+              displayHeight={48}
+              setAvailable={setProfilePictureAvailable}
+            />
+          </div>
           <div className={styles.headerTextContainer}>
             <div className={styles.subheader}>Hi {loginContext.userAttributes?.name ?? ''} 👋</div>
             <div className={styles.header}>Choose today's journey</div>

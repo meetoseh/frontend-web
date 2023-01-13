@@ -1,5 +1,6 @@
-import { createContext, PropsWithChildren, useCallback, useEffect, useState } from 'react';
+import { createContext, PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 import { Buffer } from 'buffer';
+import { apiFetch } from './ApiConstants';
 
 /**
  * The user attributes that are available when a user is logged in. When
@@ -13,21 +14,10 @@ export type UserAttributes = {
   email: string;
 
   /**
-   * If the users email address has been verified; generally this is true
-   * by the time we get the user attributes.
-   */
-  emailVerified: boolean;
-
-  /**
    * The users phone number, if available. Most users will not have a phone
    * number available directly from single sign on.
    */
   phoneNumber: string | null;
-
-  /**
-   * If the users phone number has been verified, if applicable.
-   */
-  phoneNumberVerified: boolean | null;
 
   /**
    * The users name as they specified it. This is sometimes broken down into
@@ -50,13 +40,6 @@ export type UserAttributes = {
    * The users family name, if available. See name for more details.
    */
   familyName: string | null;
-
-  /**
-   * A URL where the users profile picture can be found. It is often
-   * preferable to use the result from `GET /api/1/users/me/picture`
-   * which will have more formats.
-   */
-  picture: string | null;
 };
 
 /**
@@ -70,9 +53,11 @@ export type TokenResponseConfig = {
   idToken: string;
 
   /**
-   * The access token - this is largely unused.
+   * The refresh token, if available. This can be used to get a new id token
+   * for up to 30 days after it was first issued and up to 90 days after the
+   * user logged in.
    */
-  accessToken: string | null;
+  refreshToken: string | null;
 };
 
 /**
@@ -208,13 +193,10 @@ export const extractUserAttributes = (tokenConfig: TokenResponseConfig): UserAtt
 
   return {
     email: claims.email,
-    emailVerified: claims.email_verified || false,
     phoneNumber: claims.phone_number || null,
-    phoneNumberVerified: claims['custom:pn_verified'] || false,
     name: nameClaims.name,
     givenName: nameClaims.given_name,
     familyName: nameClaims.family_name,
-    picture: claims.picture || null,
   };
 };
 
@@ -294,6 +276,53 @@ const isTokenFresh = (token: TokenResponseConfig): boolean => {
   return claims.exp * 1000 > minExpTime;
 };
 
+const isRefreshable = (token: TokenResponseConfig): boolean => {
+  if (token.refreshToken === null) {
+    return false;
+  }
+
+  const nowMs = Date.now();
+  const minIat = nowMs - 1000 * 60 * 10;
+  const minExpTime = nowMs + 1000 * 60 * 5;
+  const minOgExpTime = nowMs - 1000 * 60 * 60 * 24 * 60 + 1000 * 60 * 5;
+
+  const refreshClaimsBase64 = token.refreshToken.split('.')[1];
+  const refreshClaimsJson = Buffer.from(refreshClaimsBase64, 'base64').toString('utf8');
+  const refreshClaims = JSON.parse(refreshClaimsJson);
+
+  return (
+    refreshClaims.exp * 1000 > minExpTime &&
+    refreshClaims['oseh:og_exp'] * 1000 > minOgExpTime &&
+    refreshClaims.iat * 1000 > minIat
+  );
+};
+
+const refreshTokens = async (oldTokens: TokenResponseConfig): Promise<TokenResponseConfig> => {
+  const response = await apiFetch(
+    '/api/1/oauth/refresh',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({
+        refresh_token: oldTokens.refreshToken,
+      }),
+    },
+    null
+  );
+
+  if (!response.ok) {
+    throw response;
+  }
+
+  const data: { id_token: string; refresh_token: string } = await response.json();
+  return {
+    idToken: data.id_token,
+    refreshToken: data.refresh_token,
+  };
+};
+
 /**
  * A provider for the LoginContext. This is responsible for loading the auth
  * tokens. The auth tokens will only be provided if they are reasonably fresh;
@@ -306,6 +335,8 @@ export const LoginProvider = ({
   const [authTokens, setAuthTokens] = useState<TokenResponseConfig | null>(null);
   const [userAttributes, setUserAttributes] = useState<UserAttributes | null>(null);
   const [logoutCounter, setLogoutCounter] = useState(0);
+
+  const tokenLock = useRef<Promise<void> | null>(null);
 
   const wrappedSetAuthTokens = useCallback(
     async (authTokens: TokenResponseConfig | null) => {
@@ -349,7 +380,7 @@ export const LoginProvider = ({
 
   useEffect(() => {
     let active = true;
-    fetchTokens();
+    acquireLockAndFetchTokens();
     return () => {
       active = false;
     };
@@ -375,11 +406,60 @@ export const LoginProvider = ({
         return;
       }
 
+      if (isRefreshable(tokens)) {
+        let newTokens: TokenResponseConfig | null = null;
+        try {
+          newTokens = await refreshTokens(tokens);
+        } catch (e) {
+          console.error('failed to refresh tokens', e);
+        }
+
+        if (newTokens !== null) {
+          console.log('successfully refreshed authorization tokens');
+          const userAttributes = extractUserAttributes(newTokens);
+          await Promise.all([storeAuthTokens(newTokens), storeUserAttributes(userAttributes)]);
+
+          if (active) {
+            setAuthTokens(newTokens);
+            setUserAttributes(userAttributes);
+            setState('logged-in');
+          }
+          return;
+        }
+      }
+
       await Promise.all([storeAuthTokens(null), storeUserAttributes(null)]);
       if (!active) {
         return;
       }
       setState('logged-out');
+    }
+
+    async function acquireLockAndFetchTokens() {
+      if (tokenLock.current !== null) {
+        try {
+          await tokenLock.current;
+        } catch (e) {
+          console.log('ignoring error from previous token fetch', e);
+        }
+      }
+
+      if (!active) {
+        return;
+      }
+
+      tokenLock.current = fetchTokens();
+      try {
+        await tokenLock.current;
+      } catch (e) {
+        console.log('error fetching tokens', e);
+      } finally {
+        if (!active) {
+          return;
+        }
+
+        tokenLock.current = null;
+      }
     }
   }, []);
 
@@ -400,9 +480,15 @@ export const LoginProvider = ({
       }
     };
 
-    function onExpired() {
+    async function onExpired() {
       timeout = null;
-      wrappedSetAuthTokens(null);
+
+      if (authTokens !== null && isRefreshable(authTokens)) {
+        const refreshed = await refreshTokens(authTokens);
+        wrappedSetAuthTokens(refreshed);
+      } else {
+        wrappedSetAuthTokens(null);
+      }
     }
   }, [authTokens, wrappedSetAuthTokens]);
 

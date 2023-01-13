@@ -30,12 +30,12 @@ function App() {
     }
 
     const idToken = args.get('id_token');
-    const accessToken = args.get('access_token');
+    const refreshToken = args.get('refresh_token');
     if (idToken === null) {
       return;
     }
 
-    const tokens: TokenResponseConfig = { idToken, accessToken };
+    const tokens: TokenResponseConfig = { idToken, refreshToken };
     const userAttributes = extractUserAttributes(tokens);
 
     (async () => {

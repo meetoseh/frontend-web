@@ -17,8 +17,15 @@ export const TestLogin = (): ReactElement => {
       setLoggingIn(true);
       try {
         const response = await apiFetch(
-          '/api/1/test/dev_login?' + new URLSearchParams({ sub: userSub }).toString(),
-          { method: 'POST' },
+          '/api/1/dev/login',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({
+              sub: userSub,
+              refresh_token_desired: true,
+            }),
+          },
           null
         );
 
@@ -26,8 +33,13 @@ export const TestLogin = (): ReactElement => {
           throw response;
         }
 
-        const data: { id: string } = await response.json();
-        window.location.href = '/#' + new URLSearchParams({ id_token: data.id }).toString();
+        const data: { id_token: string; refresh_token: string } = await response.json();
+        window.location.href =
+          '/#' +
+          new URLSearchParams({
+            id_token: data.id_token,
+            refresh_token: data.refresh_token,
+          }).toString();
       } catch (e) {
         console.error(e);
         setLoggingIn(false);
