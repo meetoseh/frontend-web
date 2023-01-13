@@ -464,7 +464,23 @@ export const LoginProvider = ({
   }, []);
 
   useEffect(() => {
+    let visibilityEventKey: string | null = null;
+    let visibilityStateKey: keyof Document | null = null;
+    for (let [stateKey, eventKey] of [
+      ['hidden', 'visibilitychange'],
+      ['webkitHidden', 'webkitvisibilitychange'],
+      ['mozHidden', 'mozvisibilitychange'],
+      ['msHidden', 'msvisibilitychange'],
+    ]) {
+      if (stateKey in document) {
+        visibilityEventKey = eventKey;
+        visibilityStateKey = stateKey as keyof Document;
+        break;
+      }
+    }
+
     let timeout: NodeJS.Timeout | null = null;
+    let visibilityHandler: (() => void) | null = null;
     if (authTokens !== null) {
       const idenClaimsB64 = authTokens.idToken.split('.')[1];
       const idenClaimsJson = Buffer.from(idenClaimsB64, 'base64').toString('utf8');
@@ -474,14 +490,57 @@ export const LoginProvider = ({
 
       timeout = setTimeout(onExpired, expMs - nowMs);
     }
+
+    let active = true;
     return () => {
+      if (!active) {
+        return;
+      }
+
+      active = false;
       if (timeout !== null) {
         clearTimeout(timeout);
+      }
+
+      if (visibilityHandler !== null) {
+        document.removeEventListener(visibilityEventKey!, visibilityHandler);
       }
     };
 
     async function onExpired() {
+      if (!active) {
+        return;
+      }
+
       timeout = null;
+      if (visibilityHandler !== null) {
+        document.removeEventListener(visibilityEventKey!, visibilityHandler);
+        visibilityHandler = null;
+      }
+
+      if (
+        visibilityStateKey !== null &&
+        visibilityEventKey !== null &&
+        document[visibilityStateKey]
+      ) {
+        visibilityHandler = onExpired;
+        document.addEventListener(visibilityEventKey, visibilityHandler);
+        return;
+      }
+
+      const storedTokens = await retrieveAuthTokens();
+      if (storedTokens === null) {
+        wrappedSetAuthTokens(null);
+        return;
+      }
+
+      if (
+        storedTokens.idToken !== authTokens?.idToken ||
+        storedTokens.refreshToken !== authTokens?.refreshToken
+      ) {
+        wrappedSetAuthTokens(storedTokens);
+        return;
+      }
 
       if (authTokens !== null && isRefreshable(authTokens)) {
         const refreshed = await refreshTokens(authTokens);
