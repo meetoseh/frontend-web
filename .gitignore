@@ -26,6 +26,7 @@ yarn-error.log*
 venv
 __pycache__
 updater.lock
+tmp
 
 # dev
 dev*.bat
