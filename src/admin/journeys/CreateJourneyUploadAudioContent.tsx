@@ -247,6 +247,12 @@ export const CreateJourneyUploadAudioContent = ({
           }
         } catch (e) {
           console.error(e);
+
+          if (e instanceof Response && [502, 504].indexOf(e.status) >= 0) {
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+            continue;
+          }
+
           setError(
             <>
               The upload completed, but an error occurred waiting for the server to finish
