@@ -60,7 +60,7 @@ export const LoginApp = (): ReactElement => {
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({
         provider: provider,
-        refresh_token_desired: false,
+        refresh_token_desired: true,
       }),
     });
 
