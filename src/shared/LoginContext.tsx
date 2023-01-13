@@ -210,8 +210,9 @@ export const storeAuthTokens = async (authTokens: TokenResponseConfig | null) =>
   // storage interface available
   if (authTokens === null) {
     localStorage.removeItem('authTokens');
+  } else {
+    localStorage.setItem('authTokens', JSON.stringify(authTokens));
   }
-  localStorage.setItem('authTokens', JSON.stringify(authTokens));
 };
 
 /**
@@ -239,9 +240,9 @@ export const storeUserAttributes = async (userAttributes: UserAttributes | null)
   // storage interface available
   if (userAttributes === null) {
     localStorage.removeItem('userAttributes');
+  } else {
+    localStorage.setItem('userAttributes', JSON.stringify(userAttributes));
   }
-
-  localStorage.setItem('userAttributes', JSON.stringify(userAttributes));
 };
 
 /**
