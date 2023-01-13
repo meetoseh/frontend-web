@@ -544,8 +544,13 @@ export const LoginProvider = ({
       }
 
       if (authTokens !== null && isRefreshable(authTokens)) {
-        const refreshed = await refreshTokens(authTokens);
-        wrappedSetAuthTokens(refreshed);
+        try {
+          const refreshed = await refreshTokens(authTokens);
+          wrappedSetAuthTokens(refreshed);
+        } catch (e) {
+          console.error('error refreshing tokens: ', e);
+          wrappedSetAuthTokens(null);
+        }
       } else {
         wrappedSetAuthTokens(null);
       }
