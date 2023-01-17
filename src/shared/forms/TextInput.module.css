@@ -31,6 +31,7 @@
 .label {
   position: absolute;
   color: #191c1d;
+  font-family: 'Open Sans', sans-serif;
 }
 
 .filledOrFocused .label {
@@ -60,7 +61,14 @@
   color: #191c1d;
 }
 
-.normal {
+.white .label,
+.white .help {
+  color: white;
+}
+
+.white .input {
+  color: white;
+  border-color: white;
 }
 
 .error .label,

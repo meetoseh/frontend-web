@@ -7,6 +7,7 @@ import { SplashScreen } from './splash/SplashScreen';
 import '../assets/fonts.css';
 import styles from './UserApp.module.css';
 import { Journey, JourneyRef } from './journey/Journey';
+import { RequestNameForm } from './login/RequestNameForm';
 
 export default function UserApp(): ReactElement {
   useEffect(() => {
@@ -33,14 +34,16 @@ const UserAppInner = (): ReactElement => {
   const [desiredState, setDesiredState] = useState<'current-daily-event' | 'journey'>(
     'current-daily-event'
   );
-  const [state, setState] = useState<'loading' | 'current-daily-event' | 'login' | 'journey'>(
-    'loading'
-  );
+  const [needRequestName, setNeedRequestName] = useState(false);
+  const [state, setState] = useState<
+    'loading' | 'current-daily-event' | 'request-name' | 'login' | 'journey'
+  >('loading');
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
   const [currentDailyEventLoaded, setCurrentDailyEventLoaded] = useState(false);
   const [journey, setJourney] = useState<JourneyRef | null>(null);
   const [journeyLoaded, setJourneyLoaded] = useState(false);
+  const [requestNameLoaded, setRequestNameLoaded] = useState(false);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = setTimeout(() => {
@@ -81,8 +84,23 @@ const UserAppInner = (): ReactElement => {
   }, []);
 
   useEffect(() => {
+    setNeedRequestName(
+      loginContext.state === 'logged-in' && loginContext.userAttributes?.givenName === 'Anonymous'
+    );
+  }, [loginContext]);
+
+  useEffect(() => {
     if (loginContext.state === 'loading' || !fontsLoaded) {
       setState('loading');
+      return;
+    }
+
+    if (needRequestName) {
+      if (!requestNameLoaded) {
+        setState('loading');
+      } else {
+        setState('request-name');
+      }
       return;
     }
 
@@ -102,7 +120,15 @@ const UserAppInner = (): ReactElement => {
     }
 
     setState(desiredState);
-  }, [loginContext.state, desiredState, currentDailyEventLoaded, fontsLoaded, journeyLoaded]);
+  }, [
+    loginContext.state,
+    desiredState,
+    currentDailyEventLoaded,
+    fontsLoaded,
+    journeyLoaded,
+    needRequestName,
+    requestNameLoaded,
+  ]);
 
   const wrappedSetJourney = useCallback((journey: JourneyRef) => {
     setJourneyLoaded(false);
@@ -119,6 +145,11 @@ const UserAppInner = (): ReactElement => {
     <div className={styles.container}>
       {state === 'loading' && !flashWhiteInsteadOfSplash ? <SplashScreen /> : null}
       {state === 'login' ? <LoginApp /> : null}
+      {needRequestName ? (
+        <div className={state !== 'request-name' ? styles.displayNone : ''}>
+          <RequestNameForm setLoaded={setRequestNameLoaded} />
+        </div>
+      ) : null}
       {desiredState === 'current-daily-event' ? (
         <div className={state !== 'current-daily-event' ? styles.displayNone : ''}>
           <CurrentDailyEventLoader

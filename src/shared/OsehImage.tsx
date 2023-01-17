@@ -19,9 +19,9 @@ type OsehImageProps = {
   uid: string;
 
   /**
-   * The JWT which provides access to the image file
+   * The JWT which provides access to the image file. May only be null if not is_public
    */
-  jwt: string;
+  jwt: string | null;
 
   /**
    * The width we want to display the image at. The URL will be selected based on this.
@@ -37,6 +37,11 @@ type OsehImageProps = {
    * The alt text for the image
    */
   alt: string;
+
+  /**
+   * If set and true, the jwt is ignored and we request this as a public file instead.
+   */
+  isPublic?: boolean;
 
   /**
    * If provided, this will be called whenever we start or finish loading
@@ -245,9 +250,11 @@ export const OsehImage = ({
   displayWidth,
   displayHeight,
   alt,
+  isPublic = false,
   setLoading = null,
 }: OsehImageProps): ReactElement => {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  const [publicJwt, setPublicJwt] = useState<string | null>(null);
   const [item, setItem] = useState<PlaylistItem | null>(null);
   const [downloadedItem, setDownloadedItem] = useState<{
     localUrl: string;
@@ -266,10 +273,14 @@ export const OsehImage = ({
         return;
       }
 
-      const response = await fetch(`${HTTP_API_URL}/api/1/image_files/playlist/${uid}`, {
-        method: 'GET',
-        headers: { authorization: `bearer ${jwt}` },
-      });
+      const response = isPublic
+        ? await fetch(`${HTTP_API_URL}/api/1/image_files/playlist/${uid}?public=1`, {
+            method: 'GET',
+          })
+        : await fetch(`${HTTP_API_URL}/api/1/image_files/playlist/${uid}`, {
+            method: 'GET',
+            headers: { authorization: `bearer ${jwt}` },
+          });
       if (!alive) {
         return;
       }
@@ -287,9 +298,14 @@ export const OsehImage = ({
         return;
       }
 
+      if (response.headers.has('x-image-file-jwt')) {
+        setPublicJwt(response.headers.get('x-image-file-jwt'));
+      } else {
+        setPublicJwt(null);
+      }
       setPlaylist(data);
     }
-  }, [uid, jwt, playlist?.uid]);
+  }, [uid, jwt, playlist?.uid, isPublic]);
 
   useEffect(() => {
     if (playlist === null) {
@@ -368,7 +384,7 @@ export const OsehImage = ({
       let response: Response;
       try {
         response = await fetch(item.url, {
-          headers: { Authorization: `bearer ${jwt}` },
+          headers: { Authorization: `bearer ${publicJwt ?? jwt}` },
         });
       } catch (e) {
         console.error(`Couldn't fetch ${item.url}`, e);
@@ -386,7 +402,7 @@ export const OsehImage = ({
 
       setDownloadedItem({ localUrl: URL.createObjectURL(blob), remoteUrl: item.url });
     }
-  }, [item, jwt, downloadedItem?.remoteUrl]);
+  }, [item, jwt, downloadedItem?.remoteUrl, publicJwt]);
 
   useEffect(() => {
     if (setLoading !== null) {

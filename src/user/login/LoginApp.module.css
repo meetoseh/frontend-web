@@ -12,27 +12,17 @@
 }
 
 .imageContainer {
-  display: none;
-}
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
-@media screen and (max-width: 775px) {
-  .container {
-    background: url('./assets/background-mobile.jpg') no-repeat center center;
-    background-size: 100% 100%;
-  }
-}
-
-@media screen and (min-width: 776px) {
-  .imageContainer {
-    display: block;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    overflow: hidden;
-  }
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
 }
 
 .innerContainer {

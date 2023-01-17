@@ -1,11 +1,10 @@
 import { ReactElement, useCallback, useEffect, useState } from 'react';
 import '../../assets/fonts.css';
-import backgroundHuge from './assets/background-huge.jpg';
-import backgroundMobile from './assets/background-mobile.jpg';
-import backgroundDesktop from './assets/background-desktop.jpg';
 import styles from './LoginApp.module.css';
 import { SplashScreen } from '../splash/SplashScreen';
 import { HTTP_API_URL } from '../../shared/ApiConstants';
+import { useWindowSize } from '../../shared/hooks/useWindowSize';
+import { OsehImage } from '../../shared/OsehImage';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -21,32 +20,7 @@ const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'dev';
  * styling at the cost of all non-social functionality.
  */
 export const LoginApp = (): ReactElement => {
-  const [imgVariant, setImageVariant] = useState<'none' | 'mobile' | 'desktop' | 'huge'>('none');
-
-  useEffect(() => {
-    const mobileQuery = matchMedia('(max-width: 767px)');
-    const desktopQuery = matchMedia('(max-width: 1920px)');
-
-    const listener = () =>
-      setImageVariant(mobileQuery.matches ? 'mobile' : desktopQuery.matches ? 'desktop' : 'huge');
-
-    listener();
-
-    mobileQuery.addEventListener('change', listener);
-    desktopQuery.addEventListener('change', listener);
-    return () => {
-      mobileQuery.removeEventListener('change', listener);
-      desktopQuery.removeEventListener('change', listener);
-    };
-  }, []);
-
-  const [img, imgWidth, imgHeight] = {
-    none: [null, null, null],
-    mobile: [backgroundMobile, 767, 1151],
-    desktop: [backgroundDesktop, 1920, 1080],
-    huge: [backgroundHuge, 4000, 6000],
-  }[imgVariant];
-
+  const windowSize = useWindowSize();
   const [googleUrl, setGoogleUrl] = useState<string | null>(null);
   const [appleUrl, setAppleUrl] = useState<string | null>(null);
 
@@ -112,11 +86,16 @@ export const LoginApp = (): ReactElement => {
 
   return (
     <div className={styles.container}>
-      {typeof img === 'string' ? (
-        <div className={styles.imageContainer}>
-          <img src={img} width={imgWidth!} height={imgHeight!} alt="" />
-        </div>
-      ) : null}
+      <div className={styles.imageContainer}>
+        <OsehImage
+          uid="oseh_if_hH68hcmVBYHanoivLMgstg"
+          jwt={null}
+          displayWidth={windowSize.width}
+          displayHeight={windowSize.height}
+          alt=""
+          isPublic={true}
+        />
+      </div>
       <div className={styles.innerContainer}>
         <div className={styles.primaryContainer}>
           <div className={styles.title}>Sign in with your social account</div>
