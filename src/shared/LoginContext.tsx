@@ -280,6 +280,7 @@ const isTokenFresh = (token: TokenResponseConfig): boolean => {
 
 const isRefreshable = (token: TokenResponseConfig): boolean => {
   if (token.refreshToken === null) {
+    console.log('not refreshable: no refresh token');
     return false;
   }
 
@@ -292,11 +293,26 @@ const isRefreshable = (token: TokenResponseConfig): boolean => {
   const refreshClaimsJson = Buffer.from(refreshClaimsBase64, 'base64').toString('utf8');
   const refreshClaims = JSON.parse(refreshClaimsJson);
 
-  return (
+  const refreshable =
     refreshClaims.exp * 1000 > minExpTime &&
     refreshClaims['oseh:og_exp'] * 1000 > minOgExpTime &&
-    refreshClaims.iat * 1000 > minIat
+    refreshClaims.iat * 1000 > minIat;
+
+  console.log(
+    'given nowMs=',
+    nowMs,
+    'minIat=',
+    minIat,
+    'minExpTime=',
+    minExpTime,
+    'minOgExpTime=',
+    minOgExpTime,
+    'refreshClaims=',
+    refreshClaims,
+    '; refreshable=',
+    refreshable
   );
+  return refreshable;
 };
 
 const refreshTokens = async (oldTokens: TokenResponseConfig): Promise<TokenResponseConfig> => {
