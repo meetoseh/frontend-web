@@ -55,6 +55,11 @@ const UserAppInner = (): ReactElement => {
     };
 
     async function checkCheckoutSuccess() {
+      if (loginContext.state === 'logged-out') {
+        setHandlingCheckout(false);
+        return;
+      }
+
       if (loginContext.state !== 'logged-in') {
         return;
       }
