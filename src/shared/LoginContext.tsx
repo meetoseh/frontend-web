@@ -280,12 +280,11 @@ const isTokenFresh = (token: TokenResponseConfig): boolean => {
 
 const isRefreshable = (token: TokenResponseConfig): boolean => {
   if (token.refreshToken === null) {
-    console.log('not refreshable: no refresh token');
     return false;
   }
 
   const nowMs = Date.now();
-  const minIat = nowMs - 1000 * 60 * 10;
+  const maxIat = nowMs - 1000 * 60 * 10;
   const minExpTime = nowMs + 1000 * 60 * 5;
   const minOgExpTime = nowMs - 1000 * 60 * 60 * 24 * 60 + 1000 * 60 * 5;
 
@@ -296,22 +295,8 @@ const isRefreshable = (token: TokenResponseConfig): boolean => {
   const refreshable =
     refreshClaims.exp * 1000 > minExpTime &&
     refreshClaims['oseh:og_exp'] * 1000 > minOgExpTime &&
-    refreshClaims.iat * 1000 > minIat;
+    refreshClaims.iat * 1000 < maxIat;
 
-  console.log(
-    'given nowMs=',
-    nowMs,
-    'minIat=',
-    minIat,
-    'minExpTime=',
-    minExpTime,
-    'minOgExpTime=',
-    minOgExpTime,
-    'refreshClaims=',
-    refreshClaims,
-    '; refreshable=',
-    refreshable
-  );
   return refreshable;
 };
 
@@ -433,7 +418,6 @@ export const LoginProvider = ({
         }
 
         if (newTokens !== null) {
-          console.log('successfully refreshed authorization tokens');
           const userAttributes = extractUserAttributes(newTokens);
           await Promise.all([storeAuthTokens(newTokens), storeUserAttributes(userAttributes)]);
 
