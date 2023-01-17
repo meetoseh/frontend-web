@@ -8,6 +8,7 @@ import '../assets/fonts.css';
 import styles from './UserApp.module.css';
 import { Journey, JourneyRef } from './journey/Journey';
 import { RequestNameForm } from './login/RequestNameForm';
+import { apiFetch } from '../shared/ApiConstants';
 
 export default function UserApp(): ReactElement {
   useEffect(() => {
@@ -44,6 +45,60 @@ const UserAppInner = (): ReactElement => {
   const [journey, setJourney] = useState<JourneyRef | null>(null);
   const [journeyLoaded, setJourneyLoaded] = useState(false);
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
+  const [handlingCheckout, setHandlingCheckout] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    checkCheckoutSuccess();
+    return () => {
+      active = false;
+    };
+
+    async function checkCheckoutSuccess() {
+      if (loginContext.state !== 'logged-in') {
+        return;
+      }
+
+      const searchParams = new URLSearchParams(window.location.search);
+      if (!searchParams.has('checkout_uid')) {
+        setHandlingCheckout(false);
+        return;
+      }
+
+      setHandlingCheckout(true);
+      try {
+        const uid = searchParams.get('checkout_uid');
+
+        await apiFetch(
+          '/api/1/users/me/checkout/stripe/finish',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              checkout_uid: uid,
+            }),
+            keepalive: true,
+          },
+          loginContext
+        );
+
+        const newParams = new URLSearchParams(window.location.search);
+        newParams.delete('checkout_uid');
+        newParams.delete('checkout_success');
+        window.history.replaceState(
+          {},
+          document.title,
+          `${window.location.pathname}?${newParams.toString()}`
+        );
+      } finally {
+        if (active) {
+          setHandlingCheckout(false);
+        }
+      }
+    }
+  }, [loginContext]);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = setTimeout(() => {
@@ -90,7 +145,7 @@ const UserAppInner = (): ReactElement => {
   }, [loginContext]);
 
   useEffect(() => {
-    if (loginContext.state === 'loading' || !fontsLoaded) {
+    if (loginContext.state === 'loading' || !fontsLoaded || handlingCheckout) {
       setState('loading');
       return;
     }
@@ -128,6 +183,7 @@ const UserAppInner = (): ReactElement => {
     journeyLoaded,
     needRequestName,
     requestNameLoaded,
+    handlingCheckout,
   ]);
 
   const wrappedSetJourney = useCallback((journey: JourneyRef) => {
@@ -150,7 +206,7 @@ const UserAppInner = (): ReactElement => {
           <RequestNameForm setLoaded={setRequestNameLoaded} />
         </div>
       ) : null}
-      {desiredState === 'current-daily-event' ? (
+      {desiredState === 'current-daily-event' && !handlingCheckout ? (
         <div className={state !== 'current-daily-event' ? styles.displayNone : ''}>
           <CurrentDailyEventLoader
             setLoaded={setCurrentDailyEventLoaded}

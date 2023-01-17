@@ -540,45 +540,66 @@ export const DailyEventView = ({
             style={{ transform: `translateX(${carouselTransformX}px)` }}>
             {carouselOrder
               .map((i) => [event.journeys[i], i] as const)
-              .map(([journey, i]) => (
-                <button
-                  className={`${styles.journeyContainer} ${
-                    journey.uid === activeJourney ? styles.active : styles.inactive
-                  }`}
-                  onClick={boundOnChooseSpecific[i]}
-                  disabled={startingJourney}
-                  key={journey.uid}>
-                  <div className={styles.journeyImageContainer}>
-                    <OsehImage
-                      uid={journey.backgroundImage.uid}
-                      jwt={journey.backgroundImage.jwt}
-                      displayWidth={264}
-                      displayHeight={446}
-                      alt=""
-                      setLoading={onImageSetLoading}
-                    />
-                  </div>
-
-                  <div className={styles.journeyCategoryContainer}>
-                    <div className={styles.journeyCategory}>{journey.category.externalName}</div>
-                  </div>
-
-                  {!journey.access.start && (
-                    <div className={styles.journeyLockedContainer}>
-                      <div className={styles.journeyLocked}>
-                        <div className={styles.lockIcon}></div>
-                        <div className={assistiveStyles.srOnly}>Locked</div>
-                      </div>
+              .map(([journey, i]) => {
+                const inner = (
+                  <>
+                    <div className={styles.journeyImageContainer}>
+                      <OsehImage
+                        uid={journey.backgroundImage.uid}
+                        jwt={journey.backgroundImage.jwt}
+                        displayWidth={264}
+                        displayHeight={446}
+                        alt=""
+                        setLoading={onImageSetLoading}
+                      />
                     </div>
-                  )}
 
-                  <div className={styles.journeyInfoContainer}>
-                    <div className={styles.journeyTitle}>{journey.title}</div>
-                    <div className={styles.journeyInstructor}>{journey.instructor.name}</div>
-                    <div className={styles.journeyDescription}>{journey.description.text}</div>
-                  </div>
-                </button>
-              ))}
+                    <div className={styles.journeyCategoryContainer}>
+                      <div className={styles.journeyCategory}>{journey.category.externalName}</div>
+                    </div>
+
+                    {!journey.access.start && (
+                      <div className={styles.journeyLockedContainer}>
+                        <div className={styles.journeyLocked}>
+                          <div className={styles.lockIcon}></div>
+                          <div className={assistiveStyles.srOnly}>Locked</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className={styles.journeyInfoContainer}>
+                      <div className={styles.journeyTitle}>{journey.title}</div>
+                      <div className={styles.journeyInstructor}>{journey.instructor.name}</div>
+                      <div className={styles.journeyDescription}>{journey.description.text}</div>
+                    </div>
+                  </>
+                );
+
+                if (!journey.access.start) {
+                  return (
+                    <a
+                      href="/upgrade"
+                      className={`${styles.journeyContainer} ${
+                        journey.uid === activeJourney ? styles.active : styles.inactive
+                      }`}
+                      key={journey.uid}>
+                      {inner}
+                    </a>
+                  );
+                }
+
+                return (
+                  <button
+                    className={`${styles.journeyContainer} ${
+                      journey.uid === activeJourney ? styles.active : styles.inactive
+                    }`}
+                    onClick={boundOnChooseSpecific[i]}
+                    disabled={startingJourney}
+                    key={journey.uid}>
+                    {inner}
+                  </button>
+                );
+              })}
           </div>
         </div>
 

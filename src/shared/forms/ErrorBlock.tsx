@@ -22,7 +22,7 @@ export const describeErrorFromResponse = async (response: Response): Promise<Rea
   if (response.status === 422 && body.detail) {
     // fastapi validation error
     return (
-      <p>
+      <div>
         There was an issue with the client that sent the request. Contact support with the following
         information:
         <ul>
@@ -32,7 +32,7 @@ export const describeErrorFromResponse = async (response: Response): Promise<Rea
             </div>
           ))}
         </ul>
-      </p>
+      </div>
     );
   }
 

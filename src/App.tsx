@@ -4,12 +4,14 @@ import { AdminApp, AdminRoutes } from './admin/AdminApp';
 import { useEffect } from 'react';
 import {
   extractUserAttributes,
+  LoginProvider,
   storeAuthTokens,
   storeUserAttributes,
   TokenResponseConfig,
 } from './shared/LoginContext';
 import { TestLogin } from './shared/TestLogin';
 import { LoginApp } from './user/login/LoginApp';
+import { OsehPlusUpgradePrompt } from './user/payment/OsehPlusUpgradePrompt';
 
 function App() {
   useEffect(() => {
@@ -56,6 +58,14 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<UserApp />} />
+        <Route
+          path="/upgrade"
+          element={
+            <LoginProvider>
+              <OsehPlusUpgradePrompt setLoaded={() => {}} />
+            </LoginProvider>
+          }
+        />
         <Route path="/admin" element={<AdminApp />}>
           {AdminRoutes()}
         </Route>
