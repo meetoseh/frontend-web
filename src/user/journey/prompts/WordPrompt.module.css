@@ -4,6 +4,7 @@
   align-items: center;
   justify-content: center;
   height: 54vh;
+  max-height: 568px;
 }
 
 .prompt {

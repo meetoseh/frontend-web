@@ -4,6 +4,7 @@
   align-items: stretch;
   justify-content: space-around;
   height: 54vh;
+  max-height: 568px;
 }
 
 @media screen and (min-height: 876px) {
