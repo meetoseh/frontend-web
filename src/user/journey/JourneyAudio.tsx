@@ -145,12 +145,25 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
           }
         };
 
+        const onError = () => {
+          if (didResetLoad) {
+            console.log('  audio load error after explicit load(), treating as if ready');
+            cancel();
+            resolve();
+          } else {
+            console.log('  audio load error before ready');
+            resetLoad();
+          }
+        };
+
         cancelers.push(() => audio.removeEventListener('canplaythrough', onLoaded));
         cancelers.push(() => audio.removeEventListener('suspend', onSuspended));
         cancelers.push(() => audio.removeEventListener('stalled', onStalled));
+        cancelers.push(() => audio.removeEventListener('error', onError));
         audio.addEventListener('canplaythrough', onLoaded);
         audio.addEventListener('suspend', onSuspended);
         audio.addEventListener('stalled', onStalled);
+        audio.addEventListener('error', onError);
 
         let didResetLoad = false;
         const resetLoad = () => {
