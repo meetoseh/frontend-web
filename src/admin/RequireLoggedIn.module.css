@@ -1,7 +1,7 @@
 .container {
   background: #f5f5f5;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100vh; /* swapped to innerHeight in js */
   padding-top: 80px;
 }
 

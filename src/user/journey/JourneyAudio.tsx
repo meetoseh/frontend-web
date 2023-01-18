@@ -105,17 +105,63 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
       }
 
       const onLoadPromise = new Promise<void>((resolve) => {
+        const cancelers: (() => void)[] = [];
+        const cancel = () => {
+          for (const canceler of cancelers) {
+            canceler();
+          }
+        };
+
         if (audio.readyState >= 4) {
+          cancel();
           resolve();
           return;
         }
 
         const onLoaded = () => {
+          cancel();
           resolve();
-          window.removeEventListener('canplaythrough', onLoaded);
         };
 
+        cancelers.push(() => window.removeEventListener('canplaythrough', onLoaded));
         audio.addEventListener('canplaythrough', onLoaded);
+
+        if (audio.networkState !== 2) {
+          // browser consistency doesn't seem great here, so we're being a little paranoid
+
+          console.log(
+            "  audio isn't attempting to load, calling load() directly, and going to set 250ms timeout to start loading"
+          );
+          let timeout: NodeJS.Timeout | null = null;
+          cancelers.push(() => {
+            if (timeout !== null) {
+              clearTimeout(timeout);
+              timeout = null;
+            }
+          });
+
+          const onLoadStart = () => {
+            if (timeout !== null) {
+              console.log('  load started, using standard canplaythrough event instead of timeout');
+              clearTimeout(timeout);
+            } else {
+              console.log('  load started too late');
+            }
+          };
+
+          timeout = setTimeout(() => {
+            timeout = null;
+            console.log(
+              '  timed out before audio started loading, browser is ignoring load request, assuming loaded'
+            );
+            cancel();
+            resolve();
+          }, 250);
+
+          cancelers.push(() => audio.removeEventListener('loadstart', onLoadStart));
+          audio.addEventListener('loadstart', onLoadStart);
+          audio.load();
+        }
       });
 
       if (journeyTime.time.current > 0) {
