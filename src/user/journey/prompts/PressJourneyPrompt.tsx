@@ -88,15 +88,18 @@ export const PressJourneyPrompt = ({
   );
 
   const onMouseDown = useCallback(() => {
+    console.log('onMouseDown');
     setPressSourceIfMatches('mouse', null);
   }, [setPressSourceIfMatches]);
 
   const onMouseUp = useCallback(() => {
+    console.log('onMouseUp');
     setPressSourceIfMatches(null, 'mouse');
   }, [setPressSourceIfMatches]);
 
   const onTouchStart = useCallback(
     (e: React.TouchEvent) => {
+      console.log('onTouchStart');
       setPressSourceIfMatches('touch', null);
     },
     [setPressSourceIfMatches]
@@ -104,6 +107,7 @@ export const PressJourneyPrompt = ({
 
   const onTouchEnd = useCallback(
     (e: React.TouchEvent) => {
+      console.log('onTouchEnd');
       e.preventDefault();
       setPressSourceIfMatches(null, 'touch');
     },
