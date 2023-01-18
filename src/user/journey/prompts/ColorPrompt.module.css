@@ -75,3 +75,13 @@
 .color:not(:first-child) {
   margin-left: 32px;
 }
+
+@media screen and (max-height: 724px) {
+  .prompt {
+    margin-bottom: 32px;
+  }
+
+  .container {
+    height: calc(54vh - 32px);
+  }
+}

@@ -37,6 +37,10 @@
   align-items: stretch;
 }
 
+.skipForNowContainer {
+  padding: 0 40px;
+}
+
 .button {
   composes: unstyled from '../../shared/buttons.module.css';
   height: 56px;

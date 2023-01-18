@@ -101,3 +101,13 @@
 .wordActive .wordInner {
   background: white;
 }
+
+@media screen and (max-height: 724px) {
+  .prompt {
+    margin-bottom: 32px;
+  }
+
+  .container {
+    height: calc(54vh - 32px);
+  }
+}
