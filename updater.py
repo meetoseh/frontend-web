@@ -17,7 +17,7 @@ async def _listen_forever():
         await release_update_lock_if_held(itgs)
 
         slack = await itgs.slack()
-        await slack.send_ops_message(f"frontend-web {socket.gethostname()} updater started")
+        await slack.send_ops_message(f"frontend-web {socket.gethostname()} ready")
 
     while True:
         try:
