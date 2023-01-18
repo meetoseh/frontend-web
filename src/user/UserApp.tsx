@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { LoginContext, LoginProvider } from '../shared/LoginContext';
 import { ModalProvider } from '../shared/ModalContext';
 import { CurrentDailyEventLoader } from './daily_event/CurrentDailyEventLoader';
@@ -14,7 +14,6 @@ import {
   useJourneyAndJourneyStartShared,
   JourneyRef,
 } from './journey/JourneyAndJourneyStartShared';
-import { useFullHeight } from '../shared/hooks/useFullHeight';
 
 export default function UserApp(): ReactElement {
   useEffect(() => {
@@ -54,10 +53,6 @@ const UserAppInner = (): ReactElement => {
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
   const journeyAndJourneyStartShared = useJourneyAndJourneyStartShared(journey);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useFullHeight({ element: containerRef, attribute: 'minHeight' });
 
   const setStartJourneyWithFunc = useCallback((start: ((this: void) => void) | null) => {
     setStartJourney(() => start);
@@ -224,7 +219,7 @@ const UserAppInner = (): ReactElement => {
   }, [startJourney]);
 
   return (
-    <div className={styles.container} ref={containerRef}>
+    <div className={styles.container}>
       {state === 'loading' && !flashWhiteInsteadOfSplash ? <SplashScreen /> : null}
       {state === 'login' ? <LoginApp /> : null}
       {needRequestName ? (

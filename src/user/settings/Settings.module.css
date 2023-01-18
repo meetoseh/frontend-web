@@ -1,0 +1,97 @@
+.container {
+  background: #191c1d;
+  min-height: 100vh; /* swapped to inner height in js */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.content {
+  width: 100%;
+  max-width: 440px;
+  padding: 0 40px;
+}
+
+.closeButtonContainer {
+  position: absolute;
+  top: min(60px, 5vh);
+  left: 0;
+  width: 100%;
+  z-index: 1;
+}
+
+.closeButtonInnerContainer {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding-left: 40px;
+}
+
+.closeIcon {
+  composes: icon from '../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('./icons/close.svg');
+}
+
+.bigLinks {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  margin-bottom: 64px;
+  margin-left: 16px;
+}
+
+.bigLinkContainer:not(:first-child) {
+  margin-top: 32px;
+}
+
+.bigLink {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  text-decoration: none;
+
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 48px;
+  color: white;
+}
+
+.smallLinks {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  margin-left: 16px;
+}
+
+.smallLinkContainer:not(:first-child) {
+  margin-top: 16px;
+}
+
+.smallLink {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  text-decoration: none;
+
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.15px;
+  color: white;
+}

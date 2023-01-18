@@ -12,6 +12,8 @@ import {
 import { TestLogin } from './shared/TestLogin';
 import { LoginApp } from './user/login/LoginApp';
 import { OsehPlusUpgradePrompt } from './user/payment/OsehPlusUpgradePrompt';
+import { Settings } from './user/settings/Settings';
+import { ModalProvider } from './shared/ModalContext';
 
 function App() {
   useEffect(() => {
@@ -63,6 +65,16 @@ function App() {
           element={
             <LoginProvider>
               <OsehPlusUpgradePrompt setLoaded={() => {}} />
+            </LoginProvider>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <LoginProvider>
+              <ModalProvider>
+                <Settings />
+              </ModalProvider>
             </LoginProvider>
           }
         />

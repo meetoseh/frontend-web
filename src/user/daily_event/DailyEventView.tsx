@@ -500,21 +500,25 @@ export const DailyEventView = ({
   return (
     <div className={styles.container} ref={containerRef}>
       <div className={styles.innerContainer}>
-        <div className={styles.headerContainer}>
-          <div
-            className={styles.headerProfileContainer}
-            style={profilePictureAvailable ? {} : { display: 'none' }}>
-            <MyProfilePicture
-              displayWidth={48}
-              displayHeight={48}
-              setAvailable={setProfilePictureAvailable}
-            />
+        <a href="/settings" className={styles.headerLink}>
+          <div className={styles.headerContainer}>
+            <div
+              className={styles.headerProfileContainer}
+              style={profilePictureAvailable ? {} : { display: 'none' }}>
+              <MyProfilePicture
+                displayWidth={48}
+                displayHeight={48}
+                setAvailable={setProfilePictureAvailable}
+              />
+            </div>
+            <div className={styles.headerTextContainer}>
+              <div className={styles.subheader}>
+                Hi {loginContext.userAttributes?.name ?? ''} 👋
+              </div>
+              <div className={styles.header}>Choose today's journey</div>
+            </div>
           </div>
-          <div className={styles.headerTextContainer}>
-            <div className={styles.subheader}>Hi {loginContext.userAttributes?.name ?? ''} 👋</div>
-            <div className={styles.header}>Choose today's journey</div>
-          </div>
-        </div>
+        </a>
 
         <div
           className={styles.journeyCarouselContainer}

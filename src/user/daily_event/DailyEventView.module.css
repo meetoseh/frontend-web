@@ -13,11 +13,19 @@
   padding: 0 0 0 0;
 }
 
-.headerContainer {
+.headerLink {
   position: absolute;
   top: 24px;
   left: 40px;
   width: calc(100% - 40px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.headerContainer {
   display: flex;
   flex-flow: row nowrap;
   justify-content: flex-start;
@@ -25,13 +33,13 @@
 }
 
 @media screen and (min-height: 700px) {
-  .headerContainer {
+  .headerLink {
     top: calc(50% - 320px);
   }
 }
 
 @media screen and (min-width: 992px) {
-  .headerContainer {
+  .headerLink {
     left: calc(50% - 200px);
     width: auto;
     justify-content: center;
@@ -76,10 +84,6 @@
   display: flex;
   justify-content: center;
   align-items: center;
-
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
 }
 
 .journeyCarousel {
@@ -87,6 +91,10 @@
   flex-flow: row nowrap;
   margin-left: -20px;
   transition: transform 0.35s ease-in-out;
+
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .journeyCarouselDragging {
