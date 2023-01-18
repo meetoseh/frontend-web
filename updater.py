@@ -5,6 +5,7 @@ import asyncio
 import subprocess
 import platform
 import secrets
+import socket
 import os
 
 
@@ -14,6 +15,9 @@ async def _listen_forever():
     """
     async with Itgs() as itgs:
         await release_update_lock_if_held(itgs)
+
+        slack = await itgs.slack()
+        await slack.send_ops_message(f"frontend-web {socket.gethostname()} updater started")
 
     while True:
         try:
