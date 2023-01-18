@@ -247,7 +247,7 @@ export const useLiveEvents = ({
                 const err = await pws.getError(null);
                 console.error('error opening live events socket:', err);
               } catch (e) {
-                if (e !== 'unmounted') {
+                if (e !== 'unmounted' && e !== 'closed') {
                   console.error('error retrieving error:', e);
                 }
               }
@@ -750,7 +750,7 @@ function newPromiseWebSocket(uri: string): PromiseWebSocket {
 
         finished = true;
         removeListeners();
-        reject(new Error('WebSocket closed before erroring'));
+        reject('closed');
       };
 
       evListeners.get('error')!.add(errorListener);

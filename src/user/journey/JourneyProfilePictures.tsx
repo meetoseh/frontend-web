@@ -1,5 +1,5 @@
-import { ReactElement } from 'react';
-import { OsehImage } from '../../shared/OsehImage';
+import { ReactElement, useMemo } from 'react';
+import { OsehImage, OsehImageRef } from '../../shared/OsehImage';
 import { ProfilePictures } from './hooks/useProfilePictures';
 import '../../assets/fonts.css';
 import styles from './JourneyProfilePictures.module.css';
@@ -26,11 +26,22 @@ export const JourneyProfilePictures = ({
   users,
 }: JourneyProfilePicturesProps): ReactElement => {
   const bonusUsers = users - pictures.pictures.length;
+  const usedPictures = useMemo(() => {
+    const seen = new Set<string>();
+    const used: OsehImageRef[] = [];
+    for (const picture of pictures.pictures) {
+      if (!seen.has(picture.uid)) {
+        used.push(picture);
+        seen.add(picture.uid);
+      }
+    }
+    return used;
+  }, [pictures.pictures]);
 
   return (
     <div className={styles.container}>
       <div className={styles.picturesContainer}>
-        {pictures.pictures.map((picture) => (
+        {usedPictures.map((picture) => (
           <div className={styles.pictureContainer} key={picture.uid}>
             <OsehImage
               uid={picture.uid}

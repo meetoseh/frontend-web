@@ -219,3 +219,24 @@
     top: calc(50% + 300px);
   }
 }
+
+@media screen and (max-height: 639px) {
+  .journeyContainer {
+    width: 198px;
+    height: 334px;
+  }
+
+  .journeyInfoContainer {
+    position: relative;
+    display: block;
+    top: unset;
+    left: unset;
+    bottom: unset;
+    right: unset;
+  }
+
+  .chooseForMeContainer {
+    top: unset;
+    bottom: 20px;
+  }
+}

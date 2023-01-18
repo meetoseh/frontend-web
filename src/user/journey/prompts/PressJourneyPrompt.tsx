@@ -95,12 +95,16 @@ export const PressJourneyPrompt = ({
     setPressSourceIfMatches(null, 'mouse');
   }, [setPressSourceIfMatches]);
 
-  const onTouchStart = useCallback(() => {
-    setPressSourceIfMatches('touch', null);
-  }, [setPressSourceIfMatches]);
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      setPressSourceIfMatches('touch', null);
+    },
+    [setPressSourceIfMatches]
+  );
 
   const onTouchEnd = useCallback(
     (e: React.TouchEvent) => {
+      e.preventDefault();
       setPressSourceIfMatches(null, 'touch');
     },
     [setPressSourceIfMatches]

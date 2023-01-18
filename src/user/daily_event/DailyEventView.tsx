@@ -9,6 +9,7 @@ import assistiveStyles from '../../shared/assistive.module.css';
 import { JourneyRef } from '../journey/Journey';
 import { apiFetch } from '../../shared/ApiConstants';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { useWindowSize } from '../../shared/hooks/useWindowSize';
 
 type DailyEventViewProps = {
   /**
@@ -49,7 +50,11 @@ export const DailyEventView = ({
   const [activeJourney, setActiveJourney] = useState<string>('');
   const [carouselTargetTransformX, setCarouselTargetTransformX] = useState<number>(0);
   const [carouselTransformX, setCarouselTransformX] = useState<number>(0);
-  const [windowWidth, setWindowWidth] = useState<number>(window.innerWidth);
+  const windowSize = useWindowSize();
+  const [itemSize, setItemSize] = useState<{ width: number; height: number }>({
+    width: 264,
+    height: 446,
+  });
   const [onScrollCooldown, setOnScrollCooldown] = useState<boolean>(false);
   const carouselMouseDragSum = useRef<number>(0);
   const [haveCarouselMouseDragged, setHaveCarouselMouseDragged] = useState<boolean>(false);
@@ -60,6 +65,14 @@ export const DailyEventView = ({
   const [startingJourney, setStartingJourney] = useState<boolean>(false);
   const [error, setError] = useState<ReactElement | null>(null);
   const [profilePictureAvailable, setProfilePictureAvailable] = useState(false);
+
+  useEffect(() => {
+    if (windowSize.height < 640) {
+      setItemSize({ width: 198, height: 334 });
+    } else {
+      setItemSize({ width: 264, height: 446 });
+    }
+  }, [windowSize.height]);
 
   useEffect(() => {
     setLoadedImagesByUID((u) => {
@@ -93,32 +106,6 @@ export const DailyEventView = ({
     );
   }, [event.journeys]);
 
-  useEffect(() => {
-    let timeout: NodeJS.Timeout | null = null;
-
-    const handler = () => {
-      timeout = null;
-      setWindowWidth(window.innerWidth);
-    };
-
-    const listener = () => {
-      if (timeout !== null) {
-        clearTimeout(timeout);
-      }
-
-      timeout = setTimeout(handler, 250);
-    };
-
-    window.addEventListener('resize', listener);
-
-    return () => {
-      window.removeEventListener('resize', listener);
-      if (timeout !== null) {
-        clearTimeout(timeout);
-      }
-    };
-  });
-
   const onImageSetLoading = useCallback((loading: boolean, uid: string) => {
     setLoadedImagesByUID((u) => ({
       ...u,
@@ -128,19 +115,19 @@ export const DailyEventView = ({
 
   const calculateTransformForIndex = useCallback(
     (idx: number) => {
-      const itemWidth = 264;
+      const itemWidth = itemSize.width;
       const itemGutter = 20;
 
       const carouselWidth =
         itemWidth * event.journeys.length + itemGutter * (event.journeys.length - 1);
-      const offsetOfFirstIndexWithNoTransform = windowWidth / 2 - carouselWidth / 2;
-      const activeIndexDesiredOffset = windowWidth / 2 - itemWidth / 2;
+      const offsetOfFirstIndexWithNoTransform = windowSize.width / 2 - carouselWidth / 2;
+      const activeIndexDesiredOffset = windowSize.width / 2 - itemWidth / 2;
 
       const idxOffsetWithNoTransform =
         offsetOfFirstIndexWithNoTransform + idx * (itemWidth + itemGutter);
       return activeIndexDesiredOffset - idxOffsetWithNoTransform;
     },
-    [windowWidth, event.journeys.length]
+    [windowSize.width, event.journeys.length, itemSize.width]
   );
 
   useEffect(() => {
@@ -323,7 +310,7 @@ export const DailyEventView = ({
     }
 
     const offsetOfFirstIdx = calculateTransformForIndex(0);
-    const itemWidth = 264;
+    const itemWidth = itemSize.width;
     const itemGutter = 20;
 
     const nearestIdx = -Math.round(
@@ -338,6 +325,7 @@ export const DailyEventView = ({
     calculateTransformForIndex,
     event.journeys,
     carouselOrder,
+    itemSize.width,
   ]);
 
   const cancelDrag = useCallback((e: React.DragEvent) => {
@@ -547,8 +535,8 @@ export const DailyEventView = ({
                       <OsehImage
                         uid={journey.backgroundImage.uid}
                         jwt={journey.backgroundImage.jwt}
-                        displayWidth={264}
-                        displayHeight={446}
+                        displayWidth={itemSize.width}
+                        displayHeight={itemSize.height}
                         alt=""
                         setLoading={onImageSetLoading}
                       />

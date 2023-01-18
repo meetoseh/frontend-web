@@ -52,6 +52,11 @@
   flex-direction: column-reverse;
   overflow: hidden;
   position: relative;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .wordActive {
@@ -69,7 +74,7 @@
   align-items: center;
   z-index: 3;
   border-radius: 20px;
-  border: 2px solid white;
+  border: 2px solid #708f94;
   background: rgba(255, 255, 255, 0.3);
 
   font-family: 'Open Sans', sans-serif;
@@ -81,10 +86,18 @@
 
 .wordInner {
   width: 100%;
-  background: white;
+  background: #708f94;
   transition: height 0.35s ease-in-out;
 }
 
 .word:not(:first-child) {
   margin-left: 32px;
+}
+
+.wordActive .wordText {
+  border-color: white;
+}
+
+.wordActive .wordInner {
+  background: white;
 }

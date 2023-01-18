@@ -201,25 +201,26 @@ export const ColorPrompt = ({
 
     return colorRows.map((row, rowIndex) => (
       <div key={rowIndex} className={styles.colorRow}>
-        {row.map((color, colorIndex) => (
-          <button
-            key={colorIndex}
-            className={`${styles.color} ${
-              activeIndex !== null && color === prompt.colors[activeIndex] ? styles.colorActive : ''
-            }`}
-            style={{ borderColor: color }}
-            onClick={(e) => {
-              e.preventDefault();
-              onChooseColor(color);
-            }}>
-            <div
-              className={styles.colorInner}
-              style={{
-                backgroundColor: color,
-                height: `${percentageResponses[rowIndex * row.length + colorIndex] * 100}%`,
-              }}></div>
-          </button>
-        ))}
+        {row.map((color, colorIndex) => {
+          const isActive = activeIndex !== null && color === prompt.colors[activeIndex];
+          return (
+            <button
+              key={colorIndex}
+              className={`${styles.color} ${isActive ? styles.colorActive : ''}`}
+              style={{ borderColor: color }}
+              onClick={(e) => {
+                e.preventDefault();
+                onChooseColor(color);
+              }}>
+              <div
+                className={styles.colorInner}
+                style={{
+                  backgroundColor: color,
+                  height: `${percentageResponses[rowIndex * row.length + colorIndex] * 100}%`,
+                }}></div>
+            </button>
+          );
+        })}
       </div>
     ));
   }, [colorRows, onChooseColor, stats.colorActive, activeIndex, prompt.colors, fakingMove]);

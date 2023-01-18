@@ -48,3 +48,12 @@
   align-items: flex-end;
   padding: 0 40px;
 }
+
+@media screen and (max-height: 724px) {
+  .content {
+    justify-content: center;
+  }
+  .profilePicturesContainer {
+    display: none;
+  }
+}
