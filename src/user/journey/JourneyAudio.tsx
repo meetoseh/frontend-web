@@ -156,6 +156,26 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
           }
         };
 
+        const onRecheckNetworkStateTimeout = () => {
+          console.log("  rechecking networkState, it's", audio.networkState);
+          recheckNetworkStateTimeout = null;
+
+          if (audio.networkState !== 2) {
+            if (didResetLoad) {
+              console.log(
+                '  timeout detected not loading after explicit load(), treating as if ready'
+              );
+              cancel();
+              resolve();
+            } else {
+              console.log('  timeout detected not loading before ready');
+              resetLoad();
+            }
+          } else {
+            recheckNetworkStateTimeout = setTimeout(onRecheckNetworkStateTimeout, 100);
+          }
+        };
+
         cancelers.push(() => audio.removeEventListener('canplaythrough', onLoaded));
         cancelers.push(() => audio.removeEventListener('suspend', onSuspended));
         cancelers.push(() => audio.removeEventListener('stalled', onStalled));
@@ -164,6 +184,17 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
         audio.addEventListener('suspend', onSuspended);
         audio.addEventListener('stalled', onStalled);
         audio.addEventListener('error', onError);
+
+        let recheckNetworkStateTimeout: NodeJS.Timeout | null = setTimeout(
+          onRecheckNetworkStateTimeout,
+          100
+        );
+        cancelers.push(() => {
+          if (recheckNetworkStateTimeout !== null) {
+            clearTimeout(recheckNetworkStateTimeout);
+            recheckNetworkStateTimeout = null;
+          }
+        });
 
         let didResetLoad = false;
         const resetLoad = () => {
@@ -216,7 +247,7 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
         };
 
         console.log(
-          'registered listeners for canplaythough, suspend, stalled; audio.networkState=',
+          'registered listeners for canplaythough, suspend, stalled, timeout; audio.networkState=',
           audio.networkState
         );
         if (audio.networkState !== 2) {
