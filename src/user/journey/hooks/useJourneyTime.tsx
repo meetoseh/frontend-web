@@ -54,12 +54,15 @@ export type JourneyTime = {
  * @param initialTime The initial time to use
  * @returns The journey time state, automatically updated
  */
-export const useJourneyTime = (initialTime: DOMHighResTimeStamp): JourneyTime => {
+export const useJourneyTime = (
+  initialTime: DOMHighResTimeStamp,
+  initiallyPaused?: boolean | undefined
+): JourneyTime => {
   const time = useRef<number>(initialTime);
   const onTimeChanged = useRef<
     ((lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => void)[]
   >([]);
-  const [paused, setPaused] = useState<boolean>(false);
+  const [paused, setPaused] = useState<boolean>(initiallyPaused ?? false);
 
   useEffect(() => {
     if (paused) {

@@ -210,11 +210,6 @@ export const useHistoricalEvents = ({
             } else {
               bandwidth += 25;
             }
-            console.log(
-              'good network conditions, increasing historical bandwidth to',
-              bandwidth,
-              'events per second'
-            );
           }
 
           try {

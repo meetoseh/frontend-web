@@ -61,6 +61,10 @@ export const useLiveEvents = ({
   const onEvent = useRef<((event: JourneyEvent) => void)[]>([]);
 
   useEffect(() => {
+    if (journeyTime.paused) {
+      return;
+    }
+
     let active = true;
     const bonusCancelCallbacks: Set<() => void> = new Set();
     const newEventCallbacks: Set<() => void> = new Set();
@@ -483,7 +487,14 @@ export const useLiveEvents = ({
         unmount();
       }
     }
-  }, [journeyUid, journeyJwt, journeyDurationSeconds, journeyTime.onTimeChanged, journeyTime.time]);
+  }, [
+    journeyUid,
+    journeyJwt,
+    journeyDurationSeconds,
+    journeyTime.onTimeChanged,
+    journeyTime.time,
+    journeyTime.paused,
+  ]);
 
   return { onEvent };
 };

@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
 import { LoginContext } from '../../shared/LoginContext';
 import { OsehContentRef } from '../../shared/OsehContent';
@@ -191,9 +191,18 @@ type JourneyProps = {
   journey: JourneyRef;
 
   /**
-   * Called when the loaded state of the journey changes
+   * Called when the loaded state of the journey changes. The journey
+   * should not be started until it's loaded.
    */
   setLoaded: (loaded: boolean) => void;
+
+  /**
+   * Called with a function that can be used to start the journey. This
+   * must be called in a privileged context, i.e., immediately after
+   * a user interaction. May be unavailable if already started or not
+   * yet loaded.
+   */
+  doStart: (this: void, start: ((this: void) => void) | null) => void;
 
   /**
    * Called when the journey finishes
@@ -209,15 +218,19 @@ type JourneyProps = {
  * to the user, while they are allowed to engage via the prompt and a "like"
  * button.
  */
-export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): ReactElement => {
+export const Journey = ({
+  journey,
+  setLoaded,
+  doStart,
+  onFinished,
+}: JourneyProps): ReactElement => {
   const [windowSize, setWindowSize] = useState<{ width: number; height: number }>({
     width: document.body.clientWidth,
     height: window.innerHeight,
   });
   const loginContext = useContext(LoginContext);
   const [imageLoading, setImageLoading] = useState(true);
-  const [journeyStarted, setJourneyStarted] = useState(false);
-  const journeyTime = useJourneyTime(-2500);
+  const journeyTime = useJourneyTime(0, true);
   const profilePictures = useProfilePictures({
     journeyUid: journey.uid,
     journeyJwt: journey.jwt,
@@ -251,6 +264,13 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
     journeyDurationSeconds: journey.durationSeconds,
     journeyTime,
   });
+  const [audioLoaded, setAudioLoaded] = useState(false);
+  const [playAudio, setPlayAudio] = useState<((this: void) => Promise<void>) | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const setPlayAudioWithFunc = useCallback((play: ((this: void) => Promise<void>) | null) => {
+    setPlayAudio(() => play);
+  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -290,39 +310,6 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
         return;
       }
 
-      if (oldTime < 0 && newTime >= 0) {
-        setJourneyStarted(true);
-        unmount();
-      }
-    };
-
-    const predictedIndex = journeyTime.onTimeChanged.current.length;
-    journeyTime.onTimeChanged.current.push(onJourneyTimeChanged);
-
-    const unmount = () => {
-      if (!active) {
-        return;
-      }
-
-      active = false;
-      for (let i = predictedIndex; i >= 0; i--) {
-        if (journeyTime.onTimeChanged.current[i] === onJourneyTimeChanged) {
-          journeyTime.onTimeChanged.current.splice(i, 1);
-          break;
-        }
-      }
-    };
-    return unmount;
-  }, [journeyTime.onTimeChanged]);
-
-  useEffect(() => {
-    let active = true;
-
-    const onJourneyTimeChanged = (oldTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
-      if (!active) {
-        return;
-      }
-
       if (oldTime < journey.durationSeconds * 1000 && newTime >= journey.durationSeconds * 1000) {
         onFinished();
         unmount();
@@ -349,8 +336,23 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
   }, [journeyTime.onTimeChanged, journey.durationSeconds, onFinished]);
 
   useEffect(() => {
-    setLoaded(!imageLoading && journeyStarted);
-  }, [imageLoading, journeyStarted, setLoaded]);
+    if (isLoaded) {
+      return;
+    }
+
+    if (!imageLoading && audioLoaded && playAudio !== null) {
+      doStart(() => {
+        playAudio();
+        journeyTime.setPaused.bind(undefined)(false);
+        doStart(null);
+      });
+      setIsLoaded(true);
+    }
+  }, [isLoaded, imageLoading, audioLoaded, playAudio, doStart, journeyTime.setPaused]);
+
+  useEffect(() => {
+    setLoaded(isLoaded);
+  }, [isLoaded, setLoaded]);
 
   return (
     <div className={styles.container} ref={containerRef}>
@@ -402,7 +404,11 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
           </div>
         </div>
       </div>
-      <JourneyAudio audioContent={journey.audioContent} journeyTime={journeyTime} />
+      <JourneyAudio
+        audioContent={journey.audioContent}
+        setLoaded={setAudioLoaded}
+        doPlay={setPlayAudioWithFunc}
+      />
     </div>
   );
 };

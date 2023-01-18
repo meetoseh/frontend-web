@@ -1,7 +1,6 @@
 import { ReactElement, useEffect, useRef } from 'react';
 import { ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { OsehContentRef, useOsehContent } from '../../shared/OsehContent';
-import { JourneyTime } from './hooks/useJourneyTime';
 
 type JourneyAudioProps = {
   /**
@@ -10,16 +9,35 @@ type JourneyAudioProps = {
   audioContent: OsehContentRef;
 
   /**
-   * The journey time, so the audio can be synced up
+   * Called when the audio is ready to play. Note that play() is privileged,
+   * meaning that it must be called _immediately_ after a user interaction,
+   * after the audio is loaded, or it will fail.
+   *
+   * @param loaded Whether the audio is loaded
    */
-  journeyTime: JourneyTime;
+  setLoaded: (this: void, loaded: boolean) => void;
+
+  /**
+   * Called with a function that can be used to play the audio after a
+   * user interaction, starting from the beginning. Note that it is
+   * privileged, so there can be no delay between the user interaction
+   * and the call to play()
+   *
+   * @param play A function that can be called to play the audio in
+   *   a privileged context. May reject if not privileged.
+   */
+  doPlay: (this: void, play: ((this: void) => Promise<void>) | null) => void;
 };
 
 /**
  * Plays the audio for the journey in the background, without controls. Shows
  * an error if the audio can't be played.
  */
-export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): ReactElement => {
+export const JourneyAudio = ({
+  audioContent,
+  setLoaded,
+  doPlay,
+}: JourneyAudioProps): ReactElement => {
   const { webExport, error } = useOsehContent(audioContent);
   const ref = useRef<HTMLAudioElement | null>(null);
 
@@ -45,62 +63,10 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
     };
     return unmount;
 
-    function sleepUntilJourneyTime(targetTime: DOMHighResTimeStamp): Promise<void> {
-      return new Promise<void>((resolve, reject) => {
-        if (!active) {
-          reject('unmounted');
-          return;
-        }
-
-        const predictedIndex = journeyTime.onTimeChanged.current.length;
-        const tryRemoveOnTimeChanged = () => {
-          for (
-            let i = Math.min(predictedIndex, journeyTime.onTimeChanged.current.length - 1);
-            i >= 0;
-            i--
-          ) {
-            if (journeyTime.onTimeChanged.current[i] === onTimeChange) {
-              journeyTime.onTimeChanged.current.splice(i, 1);
-              return true;
-            }
-          }
-
-          return false;
-        };
-
-        const onCancelled = () => {
-          if (!tryRemoveOnTimeChanged()) {
-            reject(new Error('onTimeChange callback not found in onTimeChanged list!'));
-            return;
-          }
-          reject('unmounted');
-        };
-        onCancel.push(onCancelled);
-
-        const onTimeChange = (lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
-          if (!active) {
-            return;
-          }
-          if (newTime >= targetTime) {
-            onCancel.splice(onCancel.indexOf(onCancelled), 1);
-
-            if (!tryRemoveOnTimeChanged()) {
-              reject(new Error('onTimeChange callback not found in onTimeChanged list!'));
-              return;
-            }
-
-            resolve();
-          }
-        };
-
-        journeyTime.onTimeChanged.current.push(onTimeChange);
-      });
-    }
-
     async function manageAudio() {
-      console.log('manageAudio');
+      setLoaded(false);
+      doPlay(null);
       if (!audio.paused) {
-        console.log('  pausing');
         audio.pause();
       }
 
@@ -123,52 +89,23 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
           resolve();
         };
 
-        const onSuspended = () => {
+        const onPotentiallyResolvableIssue = () => {
           if (didResetLoad) {
-            console.log('  audio load suspended after explicit load(), treating as if ready');
             cancel();
             resolve();
           } else {
-            console.log('  audio load suspended before ready');
-            resetLoad();
-          }
-        };
-
-        const onStalled = () => {
-          if (didResetLoad) {
-            console.log('  audio load stalled after explicit load(), treating as if ready');
-            cancel();
-            resolve();
-          } else {
-            console.log('  audio load stalled before ready');
-            resetLoad();
-          }
-        };
-
-        const onError = () => {
-          if (didResetLoad) {
-            console.log('  audio load error after explicit load(), treating as if ready');
-            cancel();
-            resolve();
-          } else {
-            console.log('  audio load error before ready');
             resetLoad();
           }
         };
 
         const onRecheckNetworkStateTimeout = () => {
-          console.log("  rechecking networkState, it's", audio.networkState);
           recheckNetworkStateTimeout = null;
 
           if (audio.networkState !== 2) {
             if (didResetLoad) {
-              console.log(
-                '  timeout detected not loading after explicit load(), treating as if ready'
-              );
               cancel();
               resolve();
             } else {
-              console.log('  timeout detected not loading before ready');
               resetLoad();
             }
           } else {
@@ -177,13 +114,13 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
         };
 
         cancelers.push(() => audio.removeEventListener('canplaythrough', onLoaded));
-        cancelers.push(() => audio.removeEventListener('suspend', onSuspended));
-        cancelers.push(() => audio.removeEventListener('stalled', onStalled));
-        cancelers.push(() => audio.removeEventListener('error', onError));
+        cancelers.push(() => audio.removeEventListener('suspend', onPotentiallyResolvableIssue));
+        cancelers.push(() => audio.removeEventListener('stalled', onPotentiallyResolvableIssue));
+        cancelers.push(() => audio.removeEventListener('error', onPotentiallyResolvableIssue));
         audio.addEventListener('canplaythrough', onLoaded);
-        audio.addEventListener('suspend', onSuspended);
-        audio.addEventListener('stalled', onStalled);
-        audio.addEventListener('error', onError);
+        audio.addEventListener('suspend', onPotentiallyResolvableIssue);
+        audio.addEventListener('stalled', onPotentiallyResolvableIssue);
+        audio.addEventListener('error', onPotentiallyResolvableIssue);
 
         let recheckNetworkStateTimeout: NodeJS.Timeout | null = setTimeout(
           onRecheckNetworkStateTimeout,
@@ -203,11 +140,7 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
           }
           didResetLoad = true;
 
-          console.log('  falling back to audio.load() directly, with timeout for loadstart');
           if (audio.networkState === 3) {
-            console.log(
-              "  detected that the browser doesn't support <source> elements, adding src directly"
-            );
             audio.src = webExport!.url;
           }
           let timeout: NodeJS.Timeout | null = null;
@@ -220,23 +153,12 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
 
           const onLoadStart = () => {
             if (timeout !== null) {
-              console.log(
-                '  load started, readyState=',
-                audio.readyState,
-                ', networkState=',
-                audio.networkState
-              );
               clearTimeout(timeout);
-            } else {
-              console.log('  load started too late');
             }
           };
 
           timeout = setTimeout(() => {
             timeout = null;
-            console.log(
-              '  timed out before audio started loading, browser is ignoring load request, assuming loaded'
-            );
             cancel();
             resolve();
           }, 250);
@@ -246,56 +168,21 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
           audio.load();
         };
 
-        console.log(
-          'registered listeners for canplaythough, suspend, stalled, timeout; audio.networkState=',
-          audio.networkState
-        );
         if (audio.networkState !== 2) {
-          // browser consistency doesn't seem great here, so we're being a little paranoid
-          console.log("  audio isn't attempting to load");
           resetLoad();
         }
       });
 
-      if (journeyTime.time.current > 0) {
-        if (audio.fastSeek) {
-          audio.fastSeek(journeyTime.time.current / 1000);
-        } else {
-          audio.currentTime = journeyTime.time.current / 1000;
-        }
-      }
-
-      console.log('  waiting for load');
       await onLoadPromise;
       if (!active) {
-        console.log('  unmounted while waiting for load');
         return;
       }
 
-      if (journeyTime.time.current < 0) {
-        console.log('  waiting for time 0');
-        await sleepUntilJourneyTime(0);
-        if (!active) {
-          console.log('  unmounted while waiting for time 0');
-          return;
-        }
-      } else {
-        if (audio.fastSeek) {
-          audio.fastSeek(journeyTime.time.current / 1000);
-        } else {
-          audio.currentTime = journeyTime.time.current / 1000;
-        }
-      }
-
-      console.log('  playing');
-      await audio.play();
-      if (!active) {
-        console.log('  unmounted while playing');
-      }
-      console.log('  done');
+      doPlay(() => audio.play());
+      setLoaded(true);
       unmount();
     }
-  }, [webExport, journeyTime.time, journeyTime.onTimeChanged]);
+  }, [webExport, doPlay, setLoaded]);
 
   return (
     <>

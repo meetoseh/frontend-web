@@ -9,6 +9,7 @@ import styles from './UserApp.module.css';
 import { Journey, JourneyRef } from './journey/Journey';
 import { RequestNameForm } from './login/RequestNameForm';
 import { apiFetch } from '../shared/ApiConstants';
+import { JourneyStart } from './journey/JourneyStart';
 
 export default function UserApp(): ReactElement {
   useEffect(() => {
@@ -32,20 +33,25 @@ const requiredFonts = ['400 1em Open Sans', '600 1em Open Sans', '700 1em Open S
 
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const [desiredState, setDesiredState] = useState<'current-daily-event' | 'journey'>(
-    'current-daily-event'
-  );
+  const [desiredState, setDesiredState] = useState<
+    'current-daily-event' | 'journey' | 'start-journey'
+  >('current-daily-event');
   const [needRequestName, setNeedRequestName] = useState(false);
   const [state, setState] = useState<
-    'loading' | 'current-daily-event' | 'request-name' | 'login' | 'journey'
+    'loading' | 'current-daily-event' | 'request-name' | 'login' | 'journey' | 'start-journey'
   >('loading');
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
   const [currentDailyEventLoaded, setCurrentDailyEventLoaded] = useState(false);
   const [journey, setJourney] = useState<JourneyRef | null>(null);
   const [journeyLoaded, setJourneyLoaded] = useState(false);
+  const [startJourney, setStartJourney] = useState<((this: void) => void) | null>(null);
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
+
+  const setStartJourneyWithFunc = useCallback((start: ((this: void) => void) | null) => {
+    setStartJourney(() => start);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -174,7 +180,7 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
-    if (desiredState === 'journey' && !journeyLoaded) {
+    if (['journey', 'start-journey'].indexOf(desiredState) >= 0 && !journeyLoaded) {
       setState('loading');
       return;
     }
@@ -194,13 +200,18 @@ const UserAppInner = (): ReactElement => {
   const wrappedSetJourney = useCallback((journey: JourneyRef) => {
     setJourneyLoaded(false);
     setJourney(journey);
-    setDesiredState('journey');
+    setDesiredState('start-journey');
   }, []);
 
   const onJourneyFinished = useCallback(() => {
     setJourney(null);
     setDesiredState('current-daily-event');
   }, []);
+
+  const onUserInitiatedStartJourney = useCallback(() => {
+    startJourney!();
+    setDesiredState('journey');
+  }, [startJourney]);
 
   return (
     <div className={styles.container}>
@@ -219,9 +230,19 @@ const UserAppInner = (): ReactElement => {
           />
         </div>
       ) : null}
-      {desiredState === 'journey' && journey !== null ? (
+      {desiredState === 'start-journey' && journey !== null && startJourney !== null ? (
+        <div className={state !== 'start-journey' ? styles.displayNone : ''}>
+          <JourneyStart journey={journey} onStart={onUserInitiatedStartJourney} />
+        </div>
+      ) : null}
+      {['journey', 'start-journey'].indexOf(desiredState) >= 0 && journey !== null ? (
         <div className={state !== 'journey' ? styles.displayNone : ''}>
-          <Journey setLoaded={setJourneyLoaded} journey={journey} onFinished={onJourneyFinished} />
+          <Journey
+            setLoaded={setJourneyLoaded}
+            journey={journey}
+            doStart={setStartJourneyWithFunc}
+            onFinished={onJourneyFinished}
+          />
         </div>
       ) : null}
     </div>
