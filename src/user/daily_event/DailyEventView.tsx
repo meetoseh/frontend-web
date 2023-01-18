@@ -6,11 +6,11 @@ import { OsehImage } from '../../shared/OsehImage';
 import { DailyEvent } from './DailyEvent';
 import styles from './DailyEventView.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
-import { JourneyRef } from '../journey/Journey';
 import { apiFetch } from '../../shared/ApiConstants';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
+import { JourneyRef } from '../journey/JourneyAndJourneyStartShared';
 
 type DailyEventViewProps = {
   /**

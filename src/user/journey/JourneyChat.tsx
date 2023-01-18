@@ -10,9 +10,9 @@ import {
   WordPromptResponseData,
 } from './models/JourneyEvent';
 import styles from './JourneyChat.module.css';
-import { ColorPrompt, Prompt, WordPrompt } from './Journey';
 import { OsehImage } from '../../shared/OsehImage';
 import { OrderedDictionary } from '../../shared/lib/OrderedDictionary';
+import { ColorPrompt, Prompt, WordPrompt } from './JourneyAndJourneyStartShared';
 
 type JourneyChatProps = {
   /**

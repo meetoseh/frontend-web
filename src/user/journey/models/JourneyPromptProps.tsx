@@ -1,7 +1,7 @@
 import { LoginContextValue } from '../../../shared/LoginContext';
 import { JourneyTime } from '../hooks/useJourneyTime';
 import { JourneyStats } from '../hooks/useStats';
-import { Prompt } from '../Journey';
+import { Prompt } from '../JourneyAndJourneyStartShared';
 
 /**
  * The standard props for the various styles of journey prompts.

@@ -1,8 +1,6 @@
 import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
 import { LoginContext } from '../../shared/LoginContext';
-import { OsehContentRef } from '../../shared/OsehContent';
-import { OsehImage, OsehImageRef } from '../../shared/OsehImage';
 import { useHistoricalEvents } from './hooks/useHistoricalEvents';
 import { useJoinLeave } from './hooks/useJoinLeave';
 import { useJourneyTime } from './hooks/useJourneyTime';
@@ -10,185 +8,24 @@ import { useLiveEvents } from './hooks/useLiveEvents';
 import { useProfilePictures } from './hooks/useProfilePictures';
 import { useStats } from './hooks/useStats';
 import styles from './Journey.module.css';
+import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
 import { JourneyAudio } from './JourneyAudio';
 import { JourneyChat } from './JourneyChat';
 import { JourneyLikes } from './JourneyLikes';
 import { JourneyProfilePictures } from './JourneyProfilePictures';
 import { JourneyPrompt } from './JourneyPrompt';
 
-/**
- * A prompt where we show a number spinner and the user selects
- * a number from that.
- */
-export type NumericPrompt = {
-  /**
-   * The style of the prompt. This is always 'numeric' for this type.
-   */
-  style: 'numeric';
-
-  /**
-   * The text to show to the user which they use to select a number.
-   */
-  text: string;
-
-  /**
-   * The minimum number that the user can select. Integer value, inclusive.
-   */
-  min: number;
-
-  /**
-   * The maximum number that the user can select. Integer value, inclusive.
-   */
-  max: number;
-
-  /**
-   * The step size between numbers. Integer value, results in about 10 or
-   * fewer numbers being shown.
-   */
-  step: number;
-};
-
-/**
- * A prompt where we show the user a button and they can press (and hold)
- * whenever they want.
- */
-export type PressPrompt = {
-  /**
-   * The style of the prompt. This is always 'press' for this type.
-   */
-  style: 'press';
-
-  /**
-   * The text to show to the user which they use to decide when to press
-   */
-  text: string;
-};
-
-/**
- * A prompt where we show the user multiple colors and they select one.
- */
-export type ColorPrompt = {
-  /**
-   * The style of the prompt. This is always 'color' for this type.
-   */
-  style: 'color';
-
-  /**
-   * The text to show to the user which they use to decide which color to select.
-   */
-  text: string;
-
-  /**
-   * The colors the user can choose from; 2-8 colors as rgb strings, e.g., #ff0000
-   */
-  colors: string[];
-};
-
-/**
- * A prompt where we show the user multiple words and they select one.
- */
-export type WordPrompt = {
-  /**
-   * The style of the prompt. This is always 'word' for this type.
-   */
-  style: 'word';
-
-  /**
-   * The text to show to the user which they use to decide which word to select.
-   */
-  text: string;
-
-  /**
-   * The words the user can choose from; 2-8 words as strings
-   */
-  options: string[];
-};
-
-/**
- * A prompt that a journey can have
- */
-export type Prompt = NumericPrompt | PressPrompt | ColorPrompt | WordPrompt;
-
-export type JourneyRef = {
-  /**
-   * The UID of the journey to show. When the journey is initialized, this
-   * already has a session active, but that session doesn't yet have any events
-   * (including the join event)
-   */
-  uid: string;
-
-  /**
-   * The UID of the session within the journey that we will add events to when
-   * the user interacts with the journey.
-   */
-  sessionUid: string;
-
-  /**
-   * The JWT which allows us access to the journey and session
-   */
-  jwt: string;
-
-  /**
-   * The duration of the journey in seconds, which should match the audio content
-   */
-  durationSeconds: number;
-
-  /**
-   * The image to show as the background of the journey
-   */
-  backgroundImage: OsehImageRef;
-
-  /**
-   * The audio file to play during the journey
-   */
-  audioContent: OsehContentRef;
-
-  /**
-   * The category of the journey
-   */
-  category: {
-    /**
-     * The name of the category, as we show users
-     */
-    externalName: string;
-  };
-
-  /**
-   * The very short title for the journey
-   */
-  title: string;
-
-  /**
-   * Who made the journey
-   */
-  instructor: {
-    /**
-     * Their display name
-     */
-    name: string;
-  };
-
-  /**
-   * A brief description of what to expect in the journey
-   */
-  description: {
-    /**
-     * As raw text
-     */
-    text: string;
-  };
-
-  /**
-   * The prompt to show to the user during the journey
-   */
-  prompt: Prompt;
-};
-
 type JourneyProps = {
   /**
    * The journey to show
    */
   journey: JourneyRef;
+
+  /**
+   * Shared information between us and the previous screen to reduce
+   * redundant requests
+   */
+  shared: JourneyAndJourneyStartShared;
 
   /**
    * Called when the loaded state of the journey changes. The journey
@@ -220,16 +57,12 @@ type JourneyProps = {
  */
 export const Journey = ({
   journey,
+  shared,
   setLoaded,
   doStart,
   onFinished,
 }: JourneyProps): ReactElement => {
-  const [windowSize, setWindowSize] = useState<{ width: number; height: number }>({
-    width: document.body.clientWidth,
-    height: window.innerHeight,
-  });
   const loginContext = useContext(LoginContext);
-  const [imageLoading, setImageLoading] = useState(true);
   const journeyTime = useJourneyTime(0, true);
   const profilePictures = useProfilePictures({
     journeyUid: journey.uid,
@@ -274,33 +107,7 @@ export const Journey = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize });
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout | null = null;
-    const postDebounce = () => {
-      timeout = null;
-      setWindowSize({ width: document.body.clientWidth, height: window.innerHeight });
-    };
-
-    const onWindowResize = () => {
-      if (timeout !== null) {
-        clearTimeout(timeout);
-      }
-
-      timeout = setTimeout(postDebounce, 250);
-    };
-
-    window.addEventListener('resize', onWindowResize);
-
-    return () => {
-      if (timeout !== null) {
-        clearTimeout(timeout);
-      }
-
-      window.removeEventListener('resize', onWindowResize);
-    };
-  }, []);
+  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize: shared.windowSize });
 
   useEffect(() => {
     let active = true;
@@ -340,7 +147,7 @@ export const Journey = ({
       return;
     }
 
-    if (!imageLoading && audioLoaded && playAudio !== null) {
+    if (!shared.imageLoading && audioLoaded && playAudio !== null) {
       doStart(() => {
         playAudio();
         journeyTime.setPaused.bind(undefined)(false);
@@ -348,7 +155,7 @@ export const Journey = ({
       });
       setIsLoaded(true);
     }
-  }, [isLoaded, imageLoading, audioLoaded, playAudio, doStart, journeyTime.setPaused]);
+  }, [isLoaded, shared.imageLoading, audioLoaded, playAudio, doStart, journeyTime.setPaused]);
 
   useEffect(() => {
     setLoaded(isLoaded);
@@ -356,16 +163,7 @@ export const Journey = ({
 
   return (
     <div className={styles.container} ref={containerRef}>
-      <div className={styles.backgroundImageContainer}>
-        <OsehImage
-          uid={journey.backgroundImage.uid}
-          jwt={journey.backgroundImage.jwt}
-          displayWidth={windowSize.width}
-          displayHeight={windowSize.height}
-          alt=""
-          setLoading={setImageLoading}
-        />
-      </div>
+      <div className={styles.backgroundImageContainer}>{shared.image}</div>
       <div className={styles.innerContainer}>
         <div className={styles.content}>
           <div className={styles.profilePicturesContainer}>

@@ -6,7 +6,7 @@ import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorB
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { DailyEventView } from './DailyEventView';
-import { JourneyRef } from '../journey/Journey';
+import { JourneyRef } from '../journey/JourneyAndJourneyStartShared';
 import { Buffer } from 'buffer';
 
 type CurrentDailyEventLoaderProps = {

@@ -1,5 +1,5 @@
 import { ReactElement } from 'react';
-import { Prompt } from './Journey';
+import { Prompt } from './JourneyAndJourneyStartShared';
 import { JourneyPromptProps } from './models/JourneyPromptProps';
 import { ColorPrompt } from './prompts/ColorPrompt';
 import { NumericJourneyPrompt } from './prompts/NumericJourneyPrompt';

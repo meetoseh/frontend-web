@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { HTTP_API_URL } from '../../../shared/ApiConstants';
-import { Prompt } from '../Journey';
+import { Prompt } from '../JourneyAndJourneyStartShared';
 import { JourneyTime } from './useJourneyTime';
 
 type StatsKwargs = {

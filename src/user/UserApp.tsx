@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { LoginContext, LoginProvider } from '../shared/LoginContext';
 import { ModalProvider } from '../shared/ModalContext';
 import { CurrentDailyEventLoader } from './daily_event/CurrentDailyEventLoader';
@@ -6,10 +6,15 @@ import { LoginApp } from './login/LoginApp';
 import { SplashScreen } from './splash/SplashScreen';
 import '../assets/fonts.css';
 import styles from './UserApp.module.css';
-import { Journey, JourneyRef } from './journey/Journey';
+import { Journey } from './journey/Journey';
 import { RequestNameForm } from './login/RequestNameForm';
 import { apiFetch } from '../shared/ApiConstants';
 import { JourneyStart } from './journey/JourneyStart';
+import {
+  useJourneyAndJourneyStartShared,
+  JourneyRef,
+} from './journey/JourneyAndJourneyStartShared';
+import { useFullHeight } from '../shared/hooks/useFullHeight';
 
 export default function UserApp(): ReactElement {
   useEffect(() => {
@@ -48,6 +53,11 @@ const UserAppInner = (): ReactElement => {
   const [startJourney, setStartJourney] = useState<((this: void) => void) | null>(null);
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
+  const journeyAndJourneyStartShared = useJourneyAndJourneyStartShared(journey);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useFullHeight({ element: containerRef, attribute: 'minHeight' });
 
   const setStartJourneyWithFunc = useCallback((start: ((this: void) => void) | null) => {
     setStartJourney(() => start);
@@ -214,7 +224,7 @@ const UserAppInner = (): ReactElement => {
   }, [startJourney]);
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} ref={containerRef}>
       {state === 'loading' && !flashWhiteInsteadOfSplash ? <SplashScreen /> : null}
       {state === 'login' ? <LoginApp /> : null}
       {needRequestName ? (
@@ -232,13 +242,18 @@ const UserAppInner = (): ReactElement => {
       ) : null}
       {desiredState === 'start-journey' && journey !== null && startJourney !== null ? (
         <div className={state !== 'start-journey' ? styles.displayNone : ''}>
-          <JourneyStart journey={journey} onStart={onUserInitiatedStartJourney} />
+          <JourneyStart
+            journey={journey}
+            shared={journeyAndJourneyStartShared}
+            onStart={onUserInitiatedStartJourney}
+          />
         </div>
       ) : null}
       {['journey', 'start-journey'].indexOf(desiredState) >= 0 && journey !== null ? (
         <div className={state !== 'journey' ? styles.displayNone : ''}>
           <Journey
             setLoaded={setJourneyLoaded}
+            shared={journeyAndJourneyStartShared}
             journey={journey}
             doStart={setStartJourneyWithFunc}
             onFinished={onJourneyFinished}
