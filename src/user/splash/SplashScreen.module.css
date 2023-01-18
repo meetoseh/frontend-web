@@ -1,6 +1,6 @@
 .container {
   background: #191c1d;
-  min-height: 100vh;
+  min-height: 100vh; /* swapped to inner height in js */
   display: flex;
   flex-direction: column;
   justify-content: center;

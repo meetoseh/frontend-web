@@ -1,4 +1,5 @@
-import { ReactElement, useContext, useEffect, useState } from 'react';
+import { ReactElement, useContext, useEffect, useRef, useState } from 'react';
+import { useFullHeight } from '../../shared/hooks/useFullHeight';
 import { LoginContext } from '../../shared/LoginContext';
 import { OsehContentRef } from '../../shared/OsehContent';
 import { OsehImage, OsehImageRef } from '../../shared/OsehImage';
@@ -251,6 +252,10 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
     journeyTime,
   });
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize });
+
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = null;
     const postDebounce = () => {
@@ -348,7 +353,7 @@ export const Journey = ({ journey, setLoaded, onFinished }: JourneyProps): React
   }, [imageLoading, journeyStarted, setLoaded]);
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} ref={containerRef}>
       <div className={styles.backgroundImageContainer}>
         <OsehImage
           uid={journey.backgroundImage.uid}

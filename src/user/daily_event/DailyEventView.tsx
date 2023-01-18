@@ -10,6 +10,7 @@ import { JourneyRef } from '../journey/Journey';
 import { apiFetch } from '../../shared/ApiConstants';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
+import { useFullHeight } from '../../shared/hooks/useFullHeight';
 
 type DailyEventViewProps = {
   /**
@@ -65,6 +66,10 @@ export const DailyEventView = ({
   const [startingJourney, setStartingJourney] = useState<boolean>(false);
   const [error, setError] = useState<ReactElement | null>(null);
   const [profilePictureAvailable, setProfilePictureAvailable] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize });
 
   useEffect(() => {
     if (windowSize.height < 640) {
@@ -493,7 +498,7 @@ export const DailyEventView = ({
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} ref={containerRef}>
       <div className={styles.innerContainer}>
         <div className={styles.headerContainer}>
           <div

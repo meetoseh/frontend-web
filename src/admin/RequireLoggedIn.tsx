@@ -1,8 +1,9 @@
-import { PropsWithChildren, ReactElement, useContext, useEffect, useState } from 'react';
+import { PropsWithChildren, ReactElement, useContext, useEffect, useRef, useState } from 'react';
 import { LoginContext } from '../shared/LoginContext';
 import '../assets/fonts.css';
 import styles from './RequireLoggedIn.module.css';
 import { LoginButton } from '../shared/LoginButton';
+import { useFullHeight } from '../shared/hooks/useFullHeight';
 
 /**
  * Redirects the user to the login page if they are not logged in. Requires
@@ -11,6 +12,9 @@ import { LoginButton } from '../shared/LoginButton';
 export const RequireLoggedIn = ({ children }: PropsWithChildren<{}>): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [hiding, setHiding] = useState(loginContext.state === 'logged-out');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useFullHeight({ element: containerRef, attribute: 'minHeight' });
 
   useEffect(() => {
     setHiding(loginContext.state === 'logged-out');
@@ -18,7 +22,7 @@ export const RequireLoggedIn = ({ children }: PropsWithChildren<{}>): ReactEleme
 
   if (hiding) {
     return (
-      <div className={styles.container}>
+      <div className={styles.container} ref={containerRef}>
         <div className={styles.content}>
           <h1 className={styles.title}>You are not logged in</h1>
           <p className={styles.text}>Please log in to continue</p>
