@@ -134,10 +134,23 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
           }
         };
 
+        const onStalled = () => {
+          if (didResetLoad) {
+            console.log('  audio load stalled after explicit load(), treating as if ready');
+            cancel();
+            resolve();
+          } else {
+            console.log('  audio load stalled before ready');
+            resetLoad();
+          }
+        };
+
         cancelers.push(() => audio.removeEventListener('canplaythrough', onLoaded));
         cancelers.push(() => audio.removeEventListener('suspend', onSuspended));
+        cancelers.push(() => audio.removeEventListener('stalled', onStalled));
         audio.addEventListener('canplaythrough', onLoaded);
         audio.addEventListener('suspend', onSuspended);
+        audio.addEventListener('stalled', onStalled);
 
         let didResetLoad = false;
         const resetLoad = () => {
@@ -190,7 +203,7 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
         };
 
         console.log(
-          'registered listeners for canplaythough, suspend; audio.networkState=',
+          'registered listeners for canplaythough, suspend, stalled; audio.networkState=',
           audio.networkState
         );
         if (audio.networkState !== 2) {
