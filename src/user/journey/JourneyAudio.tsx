@@ -136,6 +136,12 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
           console.log(
             "  audio isn't attempting to load, calling load() directly, and going to set 250ms timeout to start loading"
           );
+          if (audio.networkState === 3) {
+            console.log(
+              "  detected that the browser doesn't support <source> elements, adding src directly"
+            );
+            audio.src = webExport!.url;
+          }
           let timeout: NodeJS.Timeout | null = null;
           cancelers.push(() => {
             if (timeout !== null) {
@@ -146,7 +152,12 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
 
           const onLoadStart = () => {
             if (timeout !== null) {
-              console.log('  load started, using standard canplaythrough event instead of timeout');
+              console.log(
+                '  load started, readyState=',
+                audio.readyState,
+                ', networkState=',
+                audio.networkState
+              );
               clearTimeout(timeout);
             } else {
               console.log('  load started too late');
