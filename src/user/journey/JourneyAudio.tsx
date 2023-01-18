@@ -126,6 +126,10 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
         cancelers.push(() => window.removeEventListener('canplaythrough', onLoaded));
         audio.addEventListener('canplaythrough', onLoaded);
 
+        console.log(
+          'registered listeners for canplaythough; audio.networkState=',
+          audio.networkState
+        );
         if (audio.networkState !== 2) {
           // browser consistency doesn't seem great here, so we're being a little paranoid
 
