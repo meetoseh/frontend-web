@@ -123,19 +123,30 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
           resolve();
         };
 
-        cancelers.push(() => window.removeEventListener('canplaythrough', onLoaded));
+        const onSuspended = () => {
+          if (didResetLoad) {
+            console.log('  audio load suspended after explicit load(), treating as if ready');
+            cancel();
+            resolve();
+          } else {
+            console.log('  audio load suspended before ready');
+            resetLoad();
+          }
+        };
+
+        cancelers.push(() => audio.removeEventListener('canplaythrough', onLoaded));
+        cancelers.push(() => audio.removeEventListener('suspend', onSuspended));
         audio.addEventListener('canplaythrough', onLoaded);
+        audio.addEventListener('suspend', onSuspended);
 
-        console.log(
-          'registered listeners for canplaythough; audio.networkState=',
-          audio.networkState
-        );
-        if (audio.networkState !== 2) {
-          // browser consistency doesn't seem great here, so we're being a little paranoid
+        let didResetLoad = false;
+        const resetLoad = () => {
+          if (didResetLoad) {
+            return;
+          }
+          didResetLoad = true;
 
-          console.log(
-            "  audio isn't attempting to load, calling load() directly, and going to set 250ms timeout to start loading"
-          );
+          console.log('  falling back to audio.load() directly, with timeout for loadstart');
           if (audio.networkState === 3) {
             console.log(
               "  detected that the browser doesn't support <source> elements, adding src directly"
@@ -176,6 +187,16 @@ export const JourneyAudio = ({ audioContent, journeyTime }: JourneyAudioProps): 
           cancelers.push(() => audio.removeEventListener('loadstart', onLoadStart));
           audio.addEventListener('loadstart', onLoadStart);
           audio.load();
+        };
+
+        console.log(
+          'registered listeners for canplaythough, suspend; audio.networkState=',
+          audio.networkState
+        );
+        if (audio.networkState !== 2) {
+          // browser consistency doesn't seem great here, so we're being a little paranoid
+          console.log("  audio isn't attempting to load");
+          resetLoad();
         }
       });
 
