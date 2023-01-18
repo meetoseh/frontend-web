@@ -530,6 +530,14 @@ export const LoginProvider = ({
         return;
       }
 
+      await acquireLockAndHandleExpired();
+    }
+
+    async function handleExpired() {
+      if (!active) {
+        return;
+      }
+
       const storedTokens = await retrieveAuthTokens();
       if (storedTokens === null) {
         wrappedSetAuthTokens(null);
@@ -554,6 +562,33 @@ export const LoginProvider = ({
         }
       } else {
         wrappedSetAuthTokens(null);
+      }
+    }
+
+    async function acquireLockAndHandleExpired() {
+      if (tokenLock.current !== null) {
+        try {
+          await tokenLock.current;
+        } catch (e) {
+          console.log('ignoring error from previous token fetch', e);
+        }
+      }
+
+      if (!active) {
+        return;
+      }
+
+      tokenLock.current = handleExpired();
+      try {
+        await tokenLock.current;
+      } catch (e) {
+        console.log('error fetching tokens', e);
+      } finally {
+        if (!active) {
+          return;
+        }
+
+        tokenLock.current = null;
       }
     }
   }, [authTokens, wrappedSetAuthTokens]);
