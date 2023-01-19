@@ -12,9 +12,12 @@
 }
 
 .innerContainer {
+  max-height: 90%;
+  overflow-y: auto;
+}
+
+.normal .innerContainer {
   padding: 20px;
   background-color: white;
   border-radius: 10px;
-  max-height: 90%;
-  overflow-y: auto;
 }

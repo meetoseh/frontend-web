@@ -6,6 +6,13 @@ type ModalProps = {
    * Called when the user clicks outside the modal
    */
   onClosed: () => void;
+
+  /**
+   * If true, the modal will not have any padding or border radius. Helpful
+   * if you want to style that part yourself, or set a background color.
+   * Default false.
+   */
+  minimalStyling?: boolean | undefined;
 };
 
 /**
@@ -15,10 +22,15 @@ type ModalProps = {
 export const ModalWrapper = ({
   children,
   onClosed,
+  minimalStyling = undefined,
 }: PropsWithChildren<ModalProps>): ReactElement => {
+  if (minimalStyling === undefined) {
+    minimalStyling = false;
+  }
+
   return (
     <div
-      className={styles.container}
+      className={`${styles.container} ${minimalStyling ? styles.minimal : styles.normal}`}
       onClick={(e) => {
         e.stopPropagation();
         onClosed();

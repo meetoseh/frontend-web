@@ -1,5 +1,6 @@
 .unstyled {
   border: none;
+  border-radius: 0;
   background: none;
   padding: 0;
   cursor: pointer;
