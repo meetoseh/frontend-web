@@ -190,6 +190,15 @@ export const OsehPlusUpgradePrompt = ({ setLoaded }: OsehPlusUpgradePromptProps)
     <>
       {!loaded ? <SplashScreen /> : null}
       <div className={styles.container} style={!loaded ? { display: 'none' } : {}}>
+        <div className={styles.closeButtonContainer}>
+          <div className={styles.closeButtonInnerContainer}>
+            <a href="/" className={styles.close}>
+              <div className={styles.closeIcon} />
+              <div className={assistiveStyles.srOnly}>Close</div>
+            </a>
+          </div>
+        </div>
+
         <div className={styles.imageContainer}>
           <OsehImage
             uid="oseh_if_YpB7t4oDSpuOVgEu8O1ejQ"

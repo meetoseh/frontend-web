@@ -11,6 +11,28 @@
   background: transparent;
 }
 
+.closeButtonContainer {
+  position: absolute;
+  top: min(60px, 5vh);
+  left: 0;
+  width: 100%;
+  z-index: 1;
+}
+
+.closeButtonInnerContainer {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding-left: 40px;
+}
+
+.closeIcon {
+  composes: icon from '../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('./icons/close.svg');
+}
+
 .imageContainer {
   display: flex;
   justify-content: center;
@@ -58,8 +80,8 @@
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  margin-top: 56px;
-  margin-bottom: 56px;
+  margin-top: 50px;
+  margin-bottom: 50px;
 }
 
 .valueProp {
