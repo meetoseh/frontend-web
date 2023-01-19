@@ -22,6 +22,12 @@ export const Settings = () => {
   const [showDeleteConfirmGooglePrompt, setShowDeleteConfirmGooglePrompt] = useState(false);
   const [showDeleteConfirmStripePrompt, setShowDeleteConfirmStripePrompt] = useState(false);
   const [showDeleteConfirmPromoPrompt, setShowDeleteConfirmPromoPrompt] = useState(false);
+  const [havePro, setHavePro] = useState(false);
+  const [showCancelInitialPrompt, setShowCancelInitialPrompt] = useState(false);
+  const [showCancelApplePrompt, setShowCancelApplePrompt] = useState(false);
+  const [showCancelPromoPrompt, setShowCancelPromoPrompt] = useState(false);
+  const [showCancelNoSubscriptionPrompt, setShowCancelNoSubscriptionPrompt] = useState(false);
+  const [showCancelSuccessPrompt, setShowCancelSuccessPrompt] = useState(false);
   const [error, setError] = useState<ReactElement | null>(null);
 
   const boundShowNotYetImplemented = useCallback(() => {
@@ -30,6 +36,10 @@ export const Settings = () => {
 
   const boundShowDeleteConfirmInitialPrompt = useCallback(() => {
     setShowDeleteConfirmInitialPrompt(true);
+  }, []);
+
+  const boundShowCancelInitialPrompt = useCallback(() => {
+    setShowCancelInitialPrompt(true);
   }, []);
 
   useEffect(() => {
@@ -285,10 +295,267 @@ export const Settings = () => {
   }, [showDeleteConfirmPromoPrompt, modalContext.setModals, deleteAccount]);
 
   useEffect(() => {
+    let active = true;
+    fetchHavePro();
+    return () => {
+      active = false;
+    };
+    async function fetchHavePro() {
+      if (loginContext.state !== 'logged-in') {
+        setHavePro(false);
+        return;
+      }
+
+      try {
+        let response = await apiFetch(
+          '/api/1/users/me/entitlements/pro',
+          {
+            method: 'GET',
+            headers: {
+              Pragma: 'no-cache',
+            },
+          },
+          loginContext
+        );
+        if (!active) {
+          return;
+        }
+
+        if (response.status === 429) {
+          response = await apiFetch(
+            '/api/1/users/me/entitlements/pro',
+            {
+              method: 'GET',
+            },
+            loginContext
+          );
+          if (!active) {
+            return;
+          }
+        }
+
+        if (!response.ok) {
+          throw response;
+        }
+
+        const data = await response.json();
+        if (!active) {
+          return;
+        }
+
+        setHavePro(data.is_active);
+      } catch (e) {
+        if (!active) {
+          return;
+        }
+
+        console.error(e);
+        if (e instanceof TypeError) {
+          setError(<>Could not connect to server. Check your internet connection.</>);
+        } else if (e instanceof Response) {
+          const error = await describeErrorFromResponse(e);
+          if (!active) {
+            return;
+          }
+          setError(error);
+        } else {
+          setError(<>Unknown error. Contact support.</>);
+        }
+      }
+    }
+  }, [loginContext]);
+
+  useEffect(() => {
+    if (!showCancelInitialPrompt) {
+      return;
+    }
+
+    const tryCancel = async () => {
+      try {
+        const response = await apiFetch(
+          '/api/1/users/me/subscription',
+          {
+            method: 'DELETE',
+          },
+          loginContext
+        );
+
+        if (!response.ok) {
+          throw response;
+        }
+
+        setShowCancelSuccessPrompt(true);
+      } catch (e) {
+        if (e instanceof TypeError) {
+          setError(<>Could not connect to server. Check your internet connection.</>);
+        } else if (e instanceof Response) {
+          if (e.status === 409) {
+            const body = await e.json();
+            console.log('conflict on cancel:', body);
+            if (body.type === 'no_active_subscription') {
+              setShowCancelNoSubscriptionPrompt(true);
+            } else if (body.type === 'has_active_ios_subscription') {
+              setShowCancelApplePrompt(true);
+            } else if (body.type === 'has_active_promotional_subscription') {
+              setShowCancelPromoPrompt(true);
+            } else {
+              console.error('unexpected 409 for deleting account:', body);
+              setError(
+                <>
+                  Your subscription requires special handling in order to be canceled. Contact
+                  hi@oseh.com for assistance.
+                </>
+              );
+            }
+          } else {
+            console.error('unexpected response for deleting account:', e);
+            setError(await describeErrorFromResponse(e));
+          }
+        } else {
+          console.error('unexpected error for deleting account:', e);
+          setError(<>An unexpected error occurred. Contact hi@oseh.com for assistance.</>);
+        }
+      } finally {
+        setShowCancelInitialPrompt(false);
+      }
+    };
+
+    const onCancel = () => setShowCancelInitialPrompt(false);
+
+    return addModalWithCallbackToRemove(
+      modalContext.setModals,
+      <ModalWrapper minimalStyling={true} onClosed={onCancel}>
+        <SettingsForceDelete
+          title="Are you sure you want to cancel your subscription?"
+          body={
+            <>
+              You will lose access to Oseh+, including the ability to choose your own journey's,
+              give access to friends, and more.
+            </>
+          }
+          cta="Unsubscribe"
+          onConfirm={tryCancel}
+          onCancel={onCancel}
+        />
+      </ModalWrapper>
+    );
+  }, [showCancelInitialPrompt, modalContext.setModals, loginContext]);
+
+  useEffect(() => {
+    if (!showCancelApplePrompt) {
+      return;
+    }
+
+    const onCancel = () => setShowCancelApplePrompt(false);
+
+    return addModalWithCallbackToRemove(
+      modalContext.setModals,
+      <ModalWrapper minimalStyling={true} onClosed={onCancel}>
+        <SettingsForceDelete
+          title="How to cancel your iOS subscription"
+          body={
+            <>
+              Your subscription through Apple cannot be canceled automatically. To cancel, go to App
+              Store &gt; Settings &gt; Subscriptions &gt; Oseh &gt; Cancel Subscription.
+            </>
+          }
+          cta="Okay"
+          onConfirm={null}
+          onCancel={onCancel}
+        />
+      </ModalWrapper>
+    );
+  }, [showCancelApplePrompt, modalContext.setModals]);
+
+  useEffect(() => {
+    if (!showCancelPromoPrompt) {
+      return;
+    }
+
+    const onCancel = () => setShowCancelPromoPrompt(false);
+
+    return addModalWithCallbackToRemove(
+      modalContext.setModals,
+      <ModalWrapper minimalStyling={true} onClosed={onCancel}>
+        <SettingsForceDelete
+          title="You will not be charged."
+          body={
+            <>
+              You currently have promotional access to Oseh+. You will not be charged when your
+              promotional period ends.
+            </>
+          }
+          cta="Okay"
+          onConfirm={null}
+          onCancel={onCancel}
+        />
+      </ModalWrapper>
+    );
+  }, [showCancelPromoPrompt, modalContext.setModals]);
+
+  useEffect(() => {
+    if (!showCancelNoSubscriptionPrompt) {
+      return;
+    }
+
+    const onCancel = () => setShowCancelNoSubscriptionPrompt(false);
+
+    return addModalWithCallbackToRemove(
+      modalContext.setModals,
+      <ModalWrapper minimalStyling={true} onClosed={onCancel}>
+        <SettingsForceDelete
+          title="You will not be charged."
+          body={
+            <>
+              You do not have any recurring payments configured for Oseh+. You may still have access
+              to Oseh+ for the remainder of the period or while your cancellation is processed.
+            </>
+          }
+          cta="Okay"
+          onConfirm={null}
+          onCancel={onCancel}
+        />
+      </ModalWrapper>
+    );
+  }, [showCancelNoSubscriptionPrompt, modalContext.setModals]);
+
+  useEffect(() => {
+    if (!showCancelSuccessPrompt) {
+      return;
+    }
+
+    const onCancel = () => setShowCancelSuccessPrompt(false);
+
+    return addModalWithCallbackToRemove(
+      modalContext.setModals,
+      <ModalWrapper minimalStyling={true} onClosed={onCancel}>
+        <SettingsForceDelete
+          title="Subscription canceled successfully"
+          body={
+            <>
+              You have successfully canceled your subscription to Oseh+. You may still have access
+              to Oseh+ for the remainder of the period or while your cancellation is processed.
+            </>
+          }
+          cta="Okay"
+          onConfirm={null}
+          onCancel={onCancel}
+        />
+      </ModalWrapper>
+    );
+  }, [showCancelSuccessPrompt, modalContext.setModals]);
+
+  useEffect(() => {
     if (loginContext.state === 'logged-out') {
       window.location.href = '/';
     }
   }, [loginContext.state]);
+
+  const logout = useCallback(() => {
+    if (loginContext.state === 'logged-in') {
+      loginContext.setAuthTokens(null);
+    }
+  }, [loginContext]);
 
   return (
     <div className={styles.container} style={{ minHeight: `${windowSize.height}px` }}>
@@ -308,19 +575,23 @@ export const Settings = () => {
             </button>
           </div>
           <div className={styles.bigLinkContainer}>
-            <button type="button" className={styles.bigLink} onClick={boundShowNotYetImplemented}>
-              Upgrade to Oseh+
-            </button>
+            {havePro ? (
+              <button
+                type="button"
+                className={styles.bigLink}
+                onClick={boundShowCancelInitialPrompt}>
+                Cancel Oseh+
+              </button>
+            ) : (
+              <a href="/upgrade" className={styles.bigLink}>
+                Upgrade to Oseh+
+              </a>
+            )}
           </div>
           <div className={styles.bigLinkContainer}>
-            <button type="button" className={styles.bigLink} onClick={boundShowNotYetImplemented}>
+            <a href="mailto:hi@oseh.com" className={styles.bigLink}>
               Contact Support
-            </button>
-          </div>
-          <div className={styles.bigLinkContainer}>
-            <button type="button" className={styles.bigLink} onClick={boundShowNotYetImplemented}>
-              Restore Purchase
-            </button>
+            </a>
           </div>
           <div className={styles.bigLinkContainer}>
             <button
@@ -341,6 +612,12 @@ export const Settings = () => {
           <div className={styles.smallLinkContainer}>
             <button type="button" className={styles.smallLink} onClick={boundShowNotYetImplemented}>
               Terms & Conditions
+            </button>
+          </div>
+
+          <div className={styles.smallLinkContainer}>
+            <button type="button" className={styles.smallLink} onClick={logout}>
+              Logout
             </button>
           </div>
         </div>
@@ -367,8 +644,8 @@ const SettingsForceDelete = ({
 }: {
   title: ReactElement | string;
   body: ReactElement | string;
-  cta: ReactElement | string;
-  onConfirm: () => Promise<void>;
+  cta: ReactElement | string | null;
+  onConfirm: (() => Promise<void>) | null;
   onCancel: () => void;
 }): ReactElement => {
   const [ignoringDelete, setIgnoringDelete] = useState(true);
@@ -395,7 +672,7 @@ const SettingsForceDelete = ({
   const doConfirm = useCallback(async () => {
     setConfirming(true);
     try {
-      await onConfirm();
+      await onConfirm!();
     } finally {
       setConfirming(false);
     }
@@ -406,14 +683,16 @@ const SettingsForceDelete = ({
       <div className={styles.deleteConfirmTitle}>{title}</div>
       <div className={styles.deleteConfirmBody}>{body}</div>
       <div className={styles.deleteConfirmButtons}>
-        <button
-          className={`${styles.deleteConfirmButton} ${styles.deleteConfirmDeleteButton}`}
-          disabled={ignoringDelete || confirming}
-          onClick={doConfirm}>
-          {cta}
-        </button>
+        {onConfirm !== null ? (
+          <button
+            className={`${styles.deleteConfirmButton} ${styles.deleteConfirmDeleteButton}`}
+            disabled={ignoringDelete || confirming}
+            onClick={doConfirm}>
+            {cta}
+          </button>
+        ) : null}
         <button className={styles.deleteConfirmButton} onClick={onCancel} disabled={confirming}>
-          Cancel
+          {onConfirm !== null ? 'Cancel' : cta}
         </button>
       </div>
     </div>
