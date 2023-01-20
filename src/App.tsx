@@ -14,6 +14,7 @@ import { LoginApp } from './user/login/LoginApp';
 import { OsehPlusUpgradePrompt } from './user/payment/OsehPlusUpgradePrompt';
 import { Settings } from './user/settings/Settings';
 import { ModalProvider } from './shared/ModalContext';
+import { SplashScreen } from './user/splash/SplashScreen';
 
 function App() {
   useEffect(() => {
@@ -83,6 +84,8 @@ function App() {
         </Route>
         <Route path="/dev_login" element={<TestLogin />} />
         <Route path="/login" element={<LoginApp />} />
+        <Route path="/splash" element={<SplashScreen />} />
+        <Route path="/splash-alt" element={<SplashScreen style="wordmark" />} />
       </Routes>
     </BrowserRouter>
   );
