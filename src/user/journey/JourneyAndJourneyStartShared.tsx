@@ -1,6 +1,6 @@
-import { ReactElement, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { OsehImage, OsehImageRef } from '../../shared/OsehImage';
+import { OsehImageRef, OsehImageState, useOsehImageState } from '../../shared/OsehImage';
 import { OsehContentRef } from '../../shared/OsehContent';
 
 /**
@@ -177,7 +177,7 @@ export type JourneyRef = {
  */
 export type JourneyAndJourneyStartShared = {
   windowSize: { width: number; height: number };
-  image: ReactElement | null;
+  image: OsehImageState | null;
   imageLoading: boolean;
 };
 
@@ -193,28 +193,15 @@ export const useJourneyAndJourneyStartShared = (
     imageLoading: true,
     windowSize,
   });
-
-  const [image, setImage] = useState<ReactElement | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
-
-  useEffect(() => {
-    if (journey?.backgroundImage === null || journey?.backgroundImage === undefined) {
-      setImage(null);
-      setImageLoading(true);
-      return;
-    }
-
-    setImage(
-      <OsehImage
-        uid={journey.backgroundImage.uid}
-        jwt={journey.backgroundImage.jwt}
-        displayWidth={windowSize.width}
-        displayHeight={windowSize.height}
-        alt=""
-        setLoading={setImageLoading}
-      />
-    );
-  }, [journey?.backgroundImage, windowSize]);
+  const image = useOsehImageState({
+    uid: journey?.backgroundImage?.uid ?? null,
+    jwt: journey?.backgroundImage?.jwt ?? null,
+    displayWidth: windowSize.width,
+    displayHeight: windowSize.height,
+    alt: '',
+    setLoading: setImageLoading,
+  });
 
   useEffect(() => {
     setShared({

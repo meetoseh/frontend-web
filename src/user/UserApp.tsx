@@ -221,7 +221,7 @@ const UserAppInner = (): ReactElement => {
   return (
     <div className={styles.container}>
       {state === 'loading' && !flashWhiteInsteadOfSplash ? (
-        <SplashScreen style={desiredState === 'current-daily-event' ? 'wordmark' : 'brandmark'} />
+        <SplashScreen type={desiredState === 'current-daily-event' ? 'wordmark' : 'brandmark'} />
       ) : null}
       {state === 'login' ? <LoginApp /> : null}
       {needRequestName ? (

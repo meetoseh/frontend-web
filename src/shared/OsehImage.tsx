@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useState } from 'react';
+import { ReactElement, useEffect, useMemo, useState } from 'react';
 import { HTTP_API_URL } from './ApiConstants';
 
 /**
@@ -14,9 +14,10 @@ export type OsehImageRef = {
 
 type OsehImageProps = {
   /**
-   * The uid of the oseh image file
+   * The uid of the oseh image file. If null, no image is loaded until
+   * the uid is set.
    */
-  uid: string;
+  uid: string | null;
 
   /**
    * The JWT which provides access to the image file. May only be null if not is_public
@@ -49,9 +50,9 @@ type OsehImageProps = {
    * is loading.
    *
    * @param loading True if we're loading, false otherwise
-   * @param uid The uid of the image we're loading
+   * @param uid The uid of the image we're loading, or null if we don't know yet
    */
-  setLoading?: ((this: void, loading: boolean, uid: string) => void) | null;
+  setLoading?: ((this: void, loading: boolean, uid: string | null) => void) | null;
 };
 
 /**
@@ -145,6 +146,33 @@ const USES_WEBP: Promise<boolean> = (async () => {
 
   return false;
 })();
+
+/**
+ * The required state informaiton to display an oseh image. Useful when you want
+ * to use a single image in multiple places, as the standard OsehImage component
+ * will refetch the image state every time
+ */
+export type OsehImageState = {
+  /**
+   * The local url where the image can be accessed
+   */
+  localUrl: string | null;
+
+  /**
+   * The width we want to display the image at. The URL will be selected based on this.
+   */
+  displayWidth: number;
+
+  /**
+   * The height we want to display the image at. The URL will be selected based on this.
+   */
+  displayHeight: number;
+
+  /**
+   * The alt text for the image
+   */
+  alt: string;
+};
 
 /**
  * Gets how many useful pixels there are if you have an image
@@ -242,9 +270,47 @@ const compareSizes = (
  * image to display based on the displayWidth and displayHeight props as well
  * as device characteristics, such as DPI.
  *
+ * This is just a convenience component for useOsehImageState + OsehImageFromState
+ *
  * @returns The element to render
  */
-export const OsehImage = ({
+export const OsehImage = (props: OsehImageProps): ReactElement => {
+  const state = useOsehImageState(props);
+  return <OsehImageFromState {...state} />;
+};
+
+/**
+ * Creates a component which renders an image whose state has already been loaded
+ * as if by useOsehImageState.
+ *
+ * @returns The element to render
+ */
+export const OsehImageFromState = ({
+  localUrl,
+  displayWidth,
+  displayHeight,
+  alt,
+}: OsehImageState): ReactElement => {
+  return (
+    <img
+      src={localUrl === null ? require('./placeholder.png') : localUrl}
+      style={{ width: displayWidth, height: displayHeight, objectFit: 'cover' }}
+      alt={alt}
+    />
+  );
+};
+
+/**
+ * A hook for loading an image from oseh. This hook will load the playlist
+ * for the given uid, and then select the best image to display based on
+ * the displayWidth and displayHeight props as well as device characteristics,
+ * such as DPI. This will then download the image, but will not decode it,
+ * before setting loading to false and setting the localUrl to the downloaded
+ * image blob.
+ *
+ * @returns The state of the image which can be used by OsehImageFromState
+ */
+export const useOsehImageState = ({
   uid,
   jwt,
   displayWidth,
@@ -252,7 +318,7 @@ export const OsehImage = ({
   alt,
   isPublic = false,
   setLoading = null,
-}: OsehImageProps): ReactElement => {
+}: OsehImageProps): OsehImageState => {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [publicJwt, setPublicJwt] = useState<string | null>(null);
   const [item, setItem] = useState<PlaylistItem | null>(null);
@@ -262,6 +328,11 @@ export const OsehImage = ({
   } | null>(null);
 
   useEffect(() => {
+    if (uid === null) {
+      setPlaylist(null);
+      return;
+    }
+
     let alive = true;
     fetchPlaylist();
     return () => {
@@ -406,15 +477,16 @@ export const OsehImage = ({
 
   useEffect(() => {
     if (setLoading !== null) {
-      setLoading(downloadedItem === null, uid);
+      setLoading(uid === null || downloadedItem === null, uid);
     }
   }, [downloadedItem, setLoading, uid]);
 
-  return (
-    <img
-      src={downloadedItem === null ? require('./placeholder.png') : downloadedItem.localUrl}
-      style={{ width: displayWidth, height: displayHeight, objectFit: 'cover' }}
-      alt={alt}
-    />
-  );
+  return useMemo(() => {
+    return {
+      localUrl: downloadedItem?.localUrl ?? null,
+      alt,
+      displayWidth,
+      displayHeight,
+    };
+  }, [downloadedItem?.localUrl, alt, displayWidth, displayHeight]);
 };

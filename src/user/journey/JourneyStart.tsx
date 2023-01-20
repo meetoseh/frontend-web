@@ -1,5 +1,6 @@
 import { ReactElement, useCallback, useRef } from 'react';
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
+import { OsehImageFromState } from '../../shared/OsehImage';
 import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
 import styles from './JourneyStart.module.css';
 
@@ -45,7 +46,9 @@ export const JourneyStart = ({ journey, shared, onStart }: JourneyStartProps): R
 
   return (
     <div className={styles.container} ref={containerRef}>
-      <div className={styles.backgroundImageContainer}>{shared.image}</div>
+      <div className={styles.backgroundImageContainer}>
+        {shared.image && <OsehImageFromState {...shared.image} />}
+      </div>
 
       <div className={styles.innerContainer}>
         <div className={styles.content}>

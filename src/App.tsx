@@ -85,7 +85,7 @@ function App() {
         <Route path="/dev_login" element={<TestLogin />} />
         <Route path="/login" element={<LoginApp />} />
         <Route path="/splash" element={<SplashScreen />} />
-        <Route path="/splash-alt" element={<SplashScreen style="wordmark" />} />
+        <Route path="/splash-alt" element={<SplashScreen type="wordmark" />} />
       </Routes>
     </BrowserRouter>
   );

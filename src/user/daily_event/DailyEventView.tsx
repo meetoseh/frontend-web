@@ -111,7 +111,11 @@ export const DailyEventView = ({
     );
   }, [event.journeys]);
 
-  const onImageSetLoading = useCallback((loading: boolean, uid: string) => {
+  const onImageSetLoading = useCallback((loading: boolean, uid: string | null) => {
+    if (uid === null) {
+      return;
+    }
+
     setLoadedImagesByUID((u) => ({
       ...u,
       [uid]: !loading,

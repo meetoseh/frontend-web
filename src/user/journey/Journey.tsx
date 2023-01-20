@@ -1,6 +1,7 @@
 import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
 import { LoginContext } from '../../shared/LoginContext';
+import { OsehImageFromState } from '../../shared/OsehImage';
 import { useHistoricalEvents } from './hooks/useHistoricalEvents';
 import { useJoinLeave } from './hooks/useJoinLeave';
 import { useJourneyTime } from './hooks/useJourneyTime';
@@ -163,7 +164,9 @@ export const Journey = ({
 
   return (
     <div className={styles.container} ref={containerRef}>
-      <div className={styles.backgroundImageContainer}>{shared.image}</div>
+      <div className={styles.backgroundImageContainer}>
+        {shared.image && <OsehImageFromState {...shared.image} />}
+      </div>
       <div className={styles.innerContainer}>
         <div className={styles.content}>
           <div className={styles.profilePicturesContainer}>

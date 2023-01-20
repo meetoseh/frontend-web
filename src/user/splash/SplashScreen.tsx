@@ -31,11 +31,11 @@ type SplashScreenProps = {
   /**
    * The style to use for the spinner. Defaults to 'brandmark'
    */
-  style?: 'wordmark' | 'brandmark' | undefined;
+  type?: 'wordmark' | 'brandmark' | undefined;
 };
 
-export const SplashScreen = ({ style = undefined }: SplashScreenProps): ReactElement => {
-  const realStyle = style ?? 'brandmark';
+export const SplashScreen = ({ type = undefined }: SplashScreenProps): ReactElement => {
+  const realStyle = type ?? 'brandmark';
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<AnimationItem>();
   const [playerStyle, setPlayerStyle] = useState<CSSProperties>({});
@@ -187,8 +187,19 @@ const useForwardBackwardEffect = ({
         holdTimeout = null;
       }
 
-      player.removeEventListener('data_ready', onLoad);
-      player.removeEventListener('complete', onComplete);
+      // not sure what the correct solution is here, but the player doesn't
+      // want us to call removeEventListener once it's been destroyed
+      if (player.renderer === null) {
+        return;
+      }
+
+      if (state === 'loading') {
+        player.removeEventListener('data_ready', onLoad);
+      }
+
+      if (state === 'forward' || state === 'backward') {
+        player.removeEventListener('complete', onComplete);
+      }
     };
   }, [
     style,
