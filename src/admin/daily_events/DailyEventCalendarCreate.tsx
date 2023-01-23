@@ -7,7 +7,7 @@ import { Journey } from '../journeys/Journey';
 import { OsehImage } from '../../shared/OsehImage';
 import { JourneyPicker } from '../journeys/JourneyPicker';
 import { Button } from '../../shared/forms/Button';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/LoginContext';
 
@@ -145,13 +145,7 @@ export const DailyEventCalendarCreate = ({
         });
       } catch (e) {
         console.error('error saving daily event', e);
-        if (e instanceof TypeError) {
-          setError(<>Failed to connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          setError(await describeErrorFromResponse(e));
-        } else {
-          setError(<>An unknown error occurred. Contact support.</>);
-        }
+        setError(await describeError(e));
       } finally {
         setSaving(false);
       }

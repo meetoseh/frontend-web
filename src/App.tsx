@@ -15,6 +15,7 @@ import { OsehPlusUpgradePrompt } from './user/payment/OsehPlusUpgradePrompt';
 import { Settings } from './user/settings/Settings';
 import { ModalProvider } from './shared/ModalContext';
 import { SplashScreen } from './user/splash/SplashScreen';
+import { HandleDailyEventUserInviteScreen } from './user/referral/HandleDailyEventUserInviteScreen';
 
 function App() {
   useEffect(() => {
@@ -86,6 +87,7 @@ function App() {
         <Route path="/login" element={<LoginApp />} />
         <Route path="/splash" element={<SplashScreen />} />
         <Route path="/splash-alt" element={<SplashScreen type="wordmark" />} />
+        <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />
       </Routes>
     </BrowserRouter>
   );

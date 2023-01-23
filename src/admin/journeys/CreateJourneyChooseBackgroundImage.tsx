@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Button } from '../../shared/forms/Button';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/LoginContext';
 import { OsehImage } from '../../shared/OsehImage';
 import { CrudFetcher } from '../crud/CrudFetcher';
@@ -43,13 +43,8 @@ export const CreateJourneyChooseBackgroundImage = ({
     } catch (e) {
       console.error(e);
 
-      if (e instanceof TypeError) {
-        setError(<>Unable to connect to server. Check your internet connection.</>);
-      } else if (e instanceof Response) {
-        setError(await describeErrorFromResponse(e));
-      } else {
-        setError(<>An unknown error occurred. Contact support.</>);
-      }
+      const err = await describeError(e);
+      setError(err);
     }
   }, [fetcher, loginContext]);
 
@@ -62,13 +57,8 @@ export const CreateJourneyChooseBackgroundImage = ({
       loginContext,
       async (e) => {
         console.error(e);
-        if (e instanceof TypeError) {
-          setError(<>Unable to connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          setError(await describeErrorFromResponse(e));
-        } else {
-          setError(<>An unknown error occurred. Contact support.</>);
-        }
+        const err = await describeError(e);
+        setError(err);
       }
     );
   }, [fetcher, loginContext]);

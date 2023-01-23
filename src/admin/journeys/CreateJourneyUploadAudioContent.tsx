@@ -6,7 +6,11 @@ import {
   UploadInfo,
 } from '../../shared/upload/FileUploadHandler';
 import styles from './CreateJourneyUploadAudioContent.module.css';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import {
+  describeError,
+  describeErrorFromResponse,
+  ErrorBlock,
+} from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext, LoginContextValue } from '../../shared/LoginContext';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
@@ -91,26 +95,12 @@ export const CreateJourneyUploadAudioContent = ({
           return;
         }
 
-        if (e instanceof TypeError) {
-          console.error(e);
-          setError(<>Unable to connect to server. Check your internet connection.</>);
-          setUploadState('picking-file');
-          return;
-        }
-
-        if (e instanceof Response) {
-          const err = await describeErrorFromResponse(e);
-          if (!active) {
-            return;
-          }
-
-          setError(err);
-          setUploadState('picking-file');
-          return;
-        }
-
         console.error(e);
-        setError(<>Unknown error.</>);
+        const err = await describeError(e);
+        if (!active) {
+          return;
+        }
+        setError(err);
         setUploadState('picking-file');
         return;
       }
@@ -198,26 +188,12 @@ export const CreateJourneyUploadAudioContent = ({
           return;
         }
 
-        if (e instanceof TypeError) {
-          console.error('assuming network error: ', e);
-          setError(<>Unable to connect to server. Check your internet connection.</>);
-          setUploadState('picking-file');
-          return;
-        }
-
-        if (e instanceof Response) {
-          const err = await describeErrorFromResponse(e);
-          if (!active) {
-            return;
-          }
-
-          setError(err);
-          setUploadState('picking-file');
-          return;
-        }
-
         console.error(e);
-        setError(<>An unexpected error occurred while uploading. Contact support.</>);
+        const err = await describeError(e);
+        if (!active) {
+          return;
+        }
+        setError(err);
         setUploadState('picking-file');
         return;
       }

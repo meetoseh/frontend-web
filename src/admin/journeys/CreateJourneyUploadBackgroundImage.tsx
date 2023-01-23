@@ -1,7 +1,11 @@
 import { ReactElement, useContext, useEffect, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { computeFileSha512 } from '../../shared/computeFileSha512';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import {
+  describeError,
+  describeErrorFromResponse,
+  ErrorBlock,
+} from '../../shared/forms/ErrorBlock';
 import { LoginContext, LoginContextValue } from '../../shared/LoginContext';
 import {
   FileUploadHandler,
@@ -84,26 +88,12 @@ export const CreateJourneyUploadBackgroundImage = ({
           return;
         }
 
-        if (e instanceof TypeError) {
-          console.error(e);
-          setError(<>Unable to connect to server. Check your internet connection.</>);
-          setUploadState('picking-file');
-          return;
-        }
-
-        if (e instanceof Response) {
-          const err = await describeErrorFromResponse(e);
-          if (!active) {
-            return;
-          }
-
-          setError(err);
-          setUploadState('picking-file');
-          return;
-        }
-
         console.error(e);
-        setError(<>Unknown error.</>);
+        const err = await describeError(e);
+        if (!active) {
+          return;
+        }
+        setError(err);
         setUploadState('picking-file');
         return;
       }
@@ -190,27 +180,12 @@ export const CreateJourneyUploadBackgroundImage = ({
         if (!active) {
           return;
         }
-
-        if (e instanceof TypeError) {
-          console.error('assuming network error: ', e);
-          setError(<>Unable to connect to server. Check your internet connection.</>);
-          setUploadState('picking-file');
-          return;
-        }
-
-        if (e instanceof Response) {
-          const err = await describeErrorFromResponse(e);
-          if (!active) {
-            return;
-          }
-
-          setError(err);
-          setUploadState('picking-file');
-          return;
-        }
-
         console.error(e);
-        setError(<>An unexpected error occurred while uploading. Contact support.</>);
+        const err = await describeError(e);
+        if (!active) {
+          return;
+        }
+        setError(err);
         setUploadState('picking-file');
         return;
       }

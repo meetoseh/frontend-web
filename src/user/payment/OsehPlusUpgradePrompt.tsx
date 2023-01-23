@@ -7,7 +7,7 @@ import assistiveStyles from '../../shared/assistive.module.css';
 import { LoginContext } from '../../shared/LoginContext';
 import { SplashScreen } from '../splash/SplashScreen';
 import { apiFetch } from '../../shared/ApiConstants';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 
 type OsehPlusUpgradePromptProps = {
   /**
@@ -98,17 +98,11 @@ export const OsehPlusUpgradePrompt = ({ setLoaded }: OsehPlusUpgradePromptProps)
         }
 
         console.error(e);
-        if (e instanceof TypeError) {
-          setError(<>Could not connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          const error = await describeErrorFromResponse(e);
-          if (!active) {
-            return;
-          }
-          setError(error);
-        } else {
-          setError(<>Unknown error. Contact support.</>);
+        const err = await describeError(e);
+        if (!active) {
+          return;
         }
+        setError(err);
       }
     }
   }, [loginContext]);
@@ -139,13 +133,8 @@ export const OsehPlusUpgradePrompt = ({ setLoaded }: OsehPlusUpgradePromptProps)
       return data.url;
     } catch (e) {
       console.error(e);
-      if (e instanceof TypeError) {
-        setError(<>Could not connect to server. Check your internet connection.</>);
-      } else if (e instanceof Response) {
-        setError(await describeErrorFromResponse(e));
-      } else {
-        setError(<>Unknown error. Contact support.</>);
-      }
+      const err = await describeError(e);
+      setError(err);
       return null;
     }
   }, [loginContext]);
@@ -220,7 +209,7 @@ export const OsehPlusUpgradePrompt = ({ setLoaded }: OsehPlusUpgradePromptProps)
           <div className={styles.valueProps}>
             <div className={styles.valueProp}>
               <div className={styles.check}></div>
-              <div className={styles.valueText}>Choose your own journey's</div>
+              <div className={styles.valueText}>Choose your own journey&rsquo;s</div>
             </div>
             <div className={styles.valueProp}>
               <div className={styles.check}></div>

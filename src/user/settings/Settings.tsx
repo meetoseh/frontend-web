@@ -1,13 +1,20 @@
-import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  describeError,
+  describeErrorFromResponse,
+  ErrorBlock,
+} from '../../shared/forms/ErrorBlock';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext, LoginContextValue } from '../../shared/LoginContext';
 import { addModalWithCallbackToRemove, ModalContext } from '../../shared/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import '../../assets/fonts.css';
 import styles from './Settings.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { apiFetch } from '../../shared/ApiConstants';
+import { NewUserDailyEventInvite } from '../referral/models/NewUserDailyEventInvite';
+import { getDailyEventInvite } from '../referral/lib/getDailyEventInvite';
+import { joinWithCommas } from '../../shared/lib/joinWithCommas';
 
 /**
  * Shows a basic settings screen for the user. Requires a login context and a modal
@@ -28,6 +35,8 @@ export const Settings = () => {
   const [showCancelPromoPrompt, setShowCancelPromoPrompt] = useState(false);
   const [showCancelNoSubscriptionPrompt, setShowCancelNoSubscriptionPrompt] = useState(false);
   const [showCancelSuccessPrompt, setShowCancelSuccessPrompt] = useState(false);
+  const [showInviteFallbackPrompt, setShowInviteFallbackPrompt] = useState(false);
+  const [preloadedInvite, setPreloadedInvite] = useState<NewUserDailyEventInvite | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
 
   const boundShowNotYetImplemented = useCallback(() => {
@@ -78,37 +87,9 @@ export const Settings = () => {
         await loginContext.setAuthTokens(null);
         window.location.href = '/';
       } catch (e) {
-        if (e instanceof TypeError) {
-          setError(<>Could not connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          if (e.status === 409) {
-            const body = await e.json();
-            console.log('conflict on delete:', body, 'force:', force);
-            if (body.type === 'has_active_stripe_subscription') {
-              setShowDeleteConfirmStripePrompt(true);
-            } else if (body.type === 'has_active_ios_subscription') {
-              setShowDeleteConfirmApplePrompt(true);
-            } else if (body.type === 'has_active_google_subscription') {
-              setShowDeleteConfirmGooglePrompt(true);
-            } else if (body.type === 'has_active_promotional_subscription') {
-              setShowDeleteConfirmPromoPrompt(true);
-            } else {
-              console.error('unexpected 409 for deleting account:', body);
-              setError(
-                <>
-                  Your account requires special handling in order to be deleted. Contact hi@oseh.com
-                  for assistance.
-                </>
-              );
-            }
-          } else {
-            console.error('unexpected response for deleting account:', e);
-            setError(await describeErrorFromResponse(e));
-          }
-        } else {
-          console.error('unexpected error for deleting account:', e);
-          setError(<>An unexpected error occurred. Contact hi@oseh.com for assistance.</>);
-        }
+        console.error(e);
+        const err = await describeError(e);
+        setError(err);
       }
     },
     [loginContext]
@@ -350,17 +331,11 @@ export const Settings = () => {
         }
 
         console.error(e);
-        if (e instanceof TypeError) {
-          setError(<>Could not connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          const error = await describeErrorFromResponse(e);
-          if (!active) {
-            return;
-          }
-          setError(error);
-        } else {
-          setError(<>Unknown error. Contact support.</>);
+        const err = await describeError(e);
+        if (!active) {
+          return;
         }
+        setError(err);
       }
     }
   }, [loginContext]);
@@ -546,6 +521,25 @@ export const Settings = () => {
   }, [showCancelSuccessPrompt, modalContext.setModals]);
 
   useEffect(() => {
+    if (!showInviteFallbackPrompt) {
+      return;
+    }
+
+    const onCancel = () => setShowInviteFallbackPrompt(false);
+
+    return addModalWithCallbackToRemove(
+      modalContext.setModals,
+      <ModalWrapper minimalStyling={true} onClosed={onCancel}>
+        <InviteFallbackPrompt
+          loginContext={loginContext}
+          onCancel={onCancel}
+          initialInvite={preloadedInvite}
+        />
+      </ModalWrapper>
+    );
+  }, [showInviteFallbackPrompt, modalContext.setModals, loginContext, preloadedInvite]);
+
+  useEffect(() => {
     if (loginContext.state === 'logged-out') {
       window.location.href = '/';
     }
@@ -554,6 +548,42 @@ export const Settings = () => {
   const logout = useCallback(() => {
     if (loginContext.state === 'logged-in') {
       loginContext.setAuthTokens(null);
+    }
+  }, [loginContext]);
+
+  const inviteFriends = useCallback(async () => {
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    try {
+      const invite = await getDailyEventInvite({
+        loginContext,
+        journeyUid: null,
+      });
+
+      const shareData = {
+        url: invite.url,
+        text: `Oseh has classes from ${joinWithCommas(invite.dailyEventInfo.instructors)} today! ${
+          invite.url
+        }`,
+      };
+      if (
+        !invite.isPlusLink ||
+        !window.navigator ||
+        !window.navigator.share ||
+        !window.navigator.canShare ||
+        !window.navigator.canShare(shareData)
+      ) {
+        setPreloadedInvite(invite);
+        setShowInviteFallbackPrompt(true);
+        return;
+      }
+
+      await window.navigator.share(shareData);
+    } catch (e) {
+      console.error(e);
+      setShowInviteFallbackPrompt(true);
     }
   }, [loginContext]);
 
@@ -570,7 +600,7 @@ export const Settings = () => {
       <div className={styles.content}>
         <div className={styles.bigLinks}>
           <div className={styles.bigLinkContainer}>
-            <button type="button" className={styles.bigLink} onClick={boundShowNotYetImplemented}>
+            <button type="button" className={styles.bigLink} onClick={inviteFriends}>
               Invite Friends
             </button>
           </div>
@@ -626,6 +656,124 @@ export const Settings = () => {
   );
 };
 
+const InviteFallbackPrompt = ({
+  loginContext,
+  onCancel,
+  initialInvite,
+}: {
+  loginContext: LoginContextValue;
+  onCancel: (this: void) => void;
+  initialInvite: NewUserDailyEventInvite | null;
+}): ReactElement => {
+  const [invite, setInvite] = useState<NewUserDailyEventInvite | null>(initialInvite);
+  const [error, setError] = useState<ReactElement | null>(null);
+  const [justCopied, setJustCopied] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchInvite();
+    return () => {
+      active = false;
+    };
+
+    async function fetchInvite() {
+      if (loginContext.state !== 'logged-in') {
+        return;
+      }
+
+      try {
+        const inv = await getDailyEventInvite({ loginContext, journeyUid: null });
+        if (active) {
+          setInvite(inv);
+        }
+      } catch (e) {
+        if (!active) {
+          return;
+        }
+        console.error(e);
+        setError(await describeError(e));
+      }
+    }
+  }, [loginContext]);
+
+  const inviteMessage: ReactElement | string | null = useMemo(() => {
+    if (invite === null) {
+      return null;
+    }
+
+    if (invite.isPlusLink) {
+      return (
+        <div className={styles.inviteText}>
+          Use the following URL to invite friends and they will get Oseh+ for 24 hours, for free:{' '}
+          <a href={invite.url} className={styles.inviteTextURL}>
+            {invite.url}
+          </a>
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.inviteText}>
+        Use the following URL to invite friends:{' '}
+        <a href={invite.url} className={styles.inviteTextURL}>
+          {invite.url}
+        </a>
+        <div className={styles.inviteUpsellText}>
+          If you get Oseh+ then anyone who uses this link today can choose their journey.{' '}
+          <a href="/upgrade" className={styles.inviteUpsellLink}>
+            Upgrade Now
+          </a>
+          .
+        </div>
+      </div>
+    );
+  }, [invite]);
+
+  const onConfirm = useCallback(async () => {
+    if (invite === null) {
+      return;
+    }
+
+    if (!(window.navigator && navigator.clipboard && navigator.clipboard.writeText)) {
+      console.error('detected missing clipboard support');
+      setError(<>Sorry, your browser does not support copying to the clipboard.</>);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(invite.url);
+      setJustCopied(true);
+      setTimeout(() => {
+        setJustCopied(false);
+      }, 2000);
+    } catch (e) {
+      console.error(e);
+      setError(<>Sorry, we were unable to copy to the clipboard.</>);
+    }
+  }, [invite]);
+
+  return (
+    <SettingsForceDelete
+      title="Invite Friends"
+      body={
+        <>
+          {invite === null || inviteMessage === null ? (
+            <>Loading invite...</>
+          ) : (
+            <>{inviteMessage}</>
+          )}
+          {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
+        </>
+      }
+      cta={justCopied ? 'Copied' : 'Copy URL'}
+      confirmDisabled={justCopied}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+      cancelCta={invite === null ? 'Cancel' : 'Done'}
+    />
+  );
+};
+
 /**
  * The content of the modal we use when the user clicks "Delete Account".
  *
@@ -641,12 +789,16 @@ const SettingsForceDelete = ({
   cta,
   onConfirm,
   onCancel,
+  cancelCta = 'Cancel',
+  confirmDisabled = false,
 }: {
   title: ReactElement | string;
   body: ReactElement | string;
   cta: ReactElement | string | null;
   onConfirm: (() => Promise<void>) | null;
   onCancel: () => void;
+  cancelCta?: ReactElement | string;
+  confirmDisabled?: boolean;
 }): ReactElement => {
   const [ignoringDelete, setIgnoringDelete] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -686,13 +838,13 @@ const SettingsForceDelete = ({
         {onConfirm !== null ? (
           <button
             className={`${styles.deleteConfirmButton} ${styles.deleteConfirmDeleteButton}`}
-            disabled={ignoringDelete || confirming}
+            disabled={ignoringDelete || confirming || confirmDisabled}
             onClick={doConfirm}>
             {cta}
           </button>
         ) : null}
         <button className={styles.deleteConfirmButton} onClick={onCancel} disabled={confirming}>
-          {onConfirm !== null ? 'Cancel' : cta}
+          {onConfirm !== null ? cancelCta : cta}
         </button>
       </div>
     </div>

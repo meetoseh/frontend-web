@@ -17,7 +17,7 @@ import { CreateJourneyChooseBackgroundImage } from './CreateJourneyChooseBackgro
 import { JourneySubcategory } from './subcategories/JourneySubcategory';
 import { Instructor } from '../instructors/Instructor';
 import { TextInput } from '../../shared/forms/TextInput';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
@@ -219,13 +219,8 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
       setEditing(false);
     } catch (e) {
       console.error('error saving journey', e);
-      if (e instanceof TypeError) {
-        setError(<>Error connecting to server. Check your internet connection.</>);
-      } else if (e instanceof Response) {
-        setError(await describeErrorFromResponse(e));
-      } else {
-        setError(<>Unknown error. Contact support.</>);
-      }
+      const err = await describeError(e);
+      setError(err);
     } finally {
       if (journey !== newJourney) {
         setJourney(newJourney);

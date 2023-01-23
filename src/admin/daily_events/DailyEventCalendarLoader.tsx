@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/LoginContext';
 import { convertUsingKeymap, CrudFetcherSort } from '../crud/CrudFetcher';
 import { DailyEvent } from './DailyEvent';
@@ -298,17 +298,11 @@ export const DailyEventCalendarLoader = ({
         }
         console.error('error fetching days', e);
 
-        if (e instanceof TypeError) {
-          setError(<>Unable to connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          const err = await describeErrorFromResponse(e);
-          if (!active) {
-            return;
-          }
-          setError(err);
-        } else {
-          setError(<>An unknown error occurred.</>);
+        const err = await describeError(e);
+        if (!active) {
+          return;
         }
+        setError(err);
       }
     }
   }, [loginContext, primaryMonth, endDate, numDays, startDate, onWantAdd, onEventEdited]);

@@ -1,13 +1,14 @@
-import { ReactElement, useContext, useEffect, useState } from 'react';
+import { ReactElement, useContext, useEffect, useRef, useState } from 'react';
 import { LoginContext } from '../../shared/LoginContext';
 import { DailyEvent, keyMap } from './DailyEvent';
 import styles from './CurrentDailyEventLoader.module.css';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { DailyEventView } from './DailyEventView';
 import { JourneyRef } from '../journey/JourneyAndJourneyStartShared';
 import { Buffer } from 'buffer';
+import { RedeemedUserDailyEventInvite } from '../referral/models/RedeemedUserDailyEventInvite';
 
 type CurrentDailyEventLoaderProps = {
   /**
@@ -27,6 +28,21 @@ type CurrentDailyEventLoaderProps = {
   setJourney: (this: void, journey: JourneyRef) => void;
 };
 
+const checkLocalStorageForRedeemedInvite = (): RedeemedUserDailyEventInvite | null => {
+  const fromRedemptionRaw = localStorage.getItem('redeemedUserDailyEventInvite');
+  if (fromRedemptionRaw === null || fromRedemptionRaw === undefined) {
+    return null;
+  }
+  localStorage.removeItem('redeemedUserDailyEventInvite');
+
+  const fromRedemption: RedeemedUserDailyEventInvite = JSON.parse(fromRedemptionRaw);
+  if (fromRedemption === null || fromRedemption === undefined) {
+    return null;
+  }
+
+  return fromRedemption;
+};
+
 export const CurrentDailyEventLoader = ({
   setLoaded,
   setJourney,
@@ -37,6 +53,8 @@ export const CurrentDailyEventLoader = ({
   const [dailyEventLoading, setDailyEventLoading] = useState(true);
   const [error, setError] = useState<ReactElement | null>(null);
 
+  const redeemed = useRef<RedeemedUserDailyEventInvite | null | undefined>(undefined);
+
   useEffect(() => {
     let active = true;
     fetchCurrentDailyEvent();
@@ -45,11 +63,32 @@ export const CurrentDailyEventLoader = ({
     };
 
     async function fetchCurrentDailyEvent() {
+      if (dailyEvent !== null && !jwtIsExpired) {
+        return;
+      }
+
+      const redemption =
+        redeemed.current === undefined ? checkLocalStorageForRedeemedInvite() : redeemed.current;
+      redeemed.current = redemption;
+      if (redemption !== null && redemption !== undefined) {
+        if (jwtIsExpired) {
+          redeemed.current = null;
+        } else {
+          if (redemption.dailyEvent !== null) {
+            setDailyEvent(redemption.dailyEvent);
+          }
+
+          if (redemption.journey !== null) {
+            setJourney(redemption.journey);
+          }
+        }
+        return;
+      }
+
       setError(null);
       if (loginContext.state !== 'logged-in') {
         return;
       }
-
       try {
         const response = await apiFetch('/api/1/daily_events/now', {}, loginContext);
         if (!active) {
@@ -72,20 +111,15 @@ export const CurrentDailyEventLoader = ({
           return;
         }
 
-        if (e instanceof TypeError) {
-          setError(<>Failed to connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          const err = await describeErrorFromResponse(e);
-          if (!active) {
-            return;
-          }
-          setError(err);
-        } else {
-          setError(<>An unknown error occurred</>);
+        console.error(e);
+        const err = await describeError(e);
+        if (!active) {
+          return;
         }
+        setError(err);
       }
     }
-  }, [loginContext, jwtIsExpired]);
+  }, [loginContext, jwtIsExpired, dailyEvent]);
 
   useEffect(() => {
     if (dailyEvent === null) {

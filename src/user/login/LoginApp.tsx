@@ -11,6 +11,15 @@ import { OsehImage } from '../../shared/OsehImage';
  */
 const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'dev';
 
+type LoginAppProps = {
+  /**
+   * The url to redirect to after login. Defaults to the current page. Note
+   * that this is _not_ the initial url they are redirected back to for social
+   * logins; we redirect client-side afterwords
+   */
+  redirectUrl?: string | undefined;
+};
+
 /**
  * This allows users to sign up or sign in via social logins. It does not
  * use the login context; it will redirect back to the home page with the
@@ -19,7 +28,7 @@ const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'dev';
  * This is an alternative to the hosted ui url which is used for more
  * styling at the cost of all non-social functionality.
  */
-export const LoginApp = (): ReactElement => {
+export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactElement => {
   const windowSize = useWindowSize();
   const [googleUrl, setGoogleUrl] = useState<string | null>(null);
   const [appleUrl, setAppleUrl] = useState<string | null>(null);
@@ -79,6 +88,14 @@ export const LoginApp = (): ReactElement => {
       setAppleUrl(url);
     }
   }, [getProviderUrl]);
+
+  useEffect(() => {
+    localStorage.setItem('login-redirect', redirectUrl ?? window.location.pathname);
+
+    return () => {
+      localStorage.removeItem('login-redirect');
+    };
+  }, [redirectUrl]);
 
   if (googleUrl === null || appleUrl === null) {
     return <SplashScreen />;

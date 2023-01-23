@@ -13,6 +13,13 @@
       "comment": "used in OsehPlusUpgradePrompt as background",
       "source": "server_images/oseh_plus_upgrade_background.jpeg",
       "resolutions": "full-bleed"
+    },
+    {
+      "uid": "oseh_if_-i-Qff8gqHyMZRb1r_5WMQ",
+      "name": "login-blurred",
+      "comment": "used for post-referral screen",
+      "source": "server_images/login-GaussianBlur36px-Darken30.jpeg",
+      "resolutions": "full-bleed"
     }
   ]
 }

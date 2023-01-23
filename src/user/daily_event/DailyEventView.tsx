@@ -7,10 +7,11 @@ import { DailyEvent } from './DailyEvent';
 import styles from './DailyEventView.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { apiFetch } from '../../shared/ApiConstants';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
-import { JourneyRef } from '../journey/JourneyAndJourneyStartShared';
+import { JourneyRef, journeyRefKeyMap } from '../journey/JourneyAndJourneyStartShared';
+import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 
 type DailyEventViewProps = {
   /**
@@ -389,31 +390,12 @@ export const DailyEventView = ({
       }
 
       const data = await response.json();
-      const journey: JourneyRef = {
-        uid: data.uid,
-        sessionUid: data.session_uid,
-        jwt: data.jwt,
-        durationSeconds: data.duration_seconds,
-        backgroundImage: data.background_image,
-        audioContent: data.audio_content,
-        category: {
-          externalName: data.category.external_name,
-        },
-        title: data.title,
-        instructor: data.instructor,
-        description: data.description,
-        prompt: data.prompt,
-      };
+      const journey: JourneyRef = convertUsingKeymap(data, journeyRefKeyMap);
       setJourney(journey);
     } catch (e) {
       console.error(e);
-      if (e instanceof TypeError) {
-        setError(<>Failed to connect to server. Check your internet connection.</>);
-      } else if (e instanceof Response) {
-        setError(await describeErrorFromResponse(e));
-      } else {
-        setError(<>Unknown error. Contact support.</>);
-      }
+      const err = await describeError(e);
+      setError(err);
     } finally {
       setStartingJourney(false);
     }
@@ -476,13 +458,8 @@ export const DailyEventView = ({
         setJourney(journey);
       } catch (e) {
         console.error(e);
-        if (e instanceof TypeError) {
-          setError(<>Failed to connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          setError(await describeErrorFromResponse(e));
-        } else {
-          setError(<>Unknown error. Contact support.</>);
-        }
+        const err = await describeError(e);
+        setError(err);
       } finally {
         setStartingJourney(false);
       }

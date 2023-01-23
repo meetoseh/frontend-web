@@ -2,7 +2,7 @@ import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } f
 import '../../assets/fonts.css';
 import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/LoginContext';
 import { OsehImage } from '../../shared/OsehImage';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
@@ -98,16 +98,9 @@ export const DailyEventCalendarEdit = ({
           return;
         }
         console.error('error fetching daily event', e);
-        if (e instanceof TypeError) {
-          setError(<>Failed to connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          const err = await describeErrorFromResponse(e);
-          if (!active) {
-            return;
-          }
+        const err = await describeError(e);
+        if (active) {
           setError(err);
-        } else {
-          setError(<>An unknown error occurred. Contact support.</>);
         }
       } finally {
         if (active) {
@@ -247,13 +240,8 @@ export const DailyEventCalendarEdit = ({
         });
       } catch (e) {
         console.error('error saving daily event', e);
-        if (e instanceof TypeError) {
-          setError(<>Failed to connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          setError(await describeErrorFromResponse(e));
-        } else {
-          setError(<>An unknown error occurred. Contact support.</>);
-        }
+        const err = await describeError(e);
+        setError(err);
       } finally {
         setSavingOrLoading(false);
       }
@@ -292,13 +280,8 @@ export const DailyEventCalendarEdit = ({
       onDelete(event);
     } catch (e) {
       console.error('error deleting daily event', e);
-      if (e instanceof TypeError) {
-        setError(<>Failed to connect to server. Check your internet connection.</>);
-      } else if (e instanceof Response) {
-        setError(await describeErrorFromResponse(e));
-      } else {
-        setError(<>An unknown error occurred. Contact support.</>);
-      }
+      const err = await describeError(e);
+      setError(err);
     } finally {
       setSavingOrLoading(false);
     }

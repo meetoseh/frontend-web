@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImageRef, OsehImageState, useOsehImageState } from '../../shared/OsehImage';
 import { OsehContentRef } from '../../shared/OsehContent';
+import { CrudFetcherKeyMap } from '../../admin/crud/CrudFetcher';
 
 /**
  * A prompt where we show a number spinner and the user selects
@@ -169,6 +170,22 @@ export type JourneyRef = {
    * The prompt to show to the user during the journey
    */
   prompt: Prompt;
+};
+
+/**
+ * The key map for parsing journey refs
+ */
+export const journeyRefKeyMap: CrudFetcherKeyMap<JourneyRef> = {
+  session_uid: 'sessionUid',
+  duration_seconds: 'durationSeconds',
+  background_image: 'backgroundImage',
+  audio_content: 'audioContent',
+  category: (_, val) => ({
+    key: 'category',
+    value: {
+      externalName: val.external_name,
+    },
+  }),
 };
 
 /**

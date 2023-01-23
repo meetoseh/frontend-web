@@ -3,7 +3,7 @@ import { LoginContext } from '../../shared/LoginContext';
 import '../../assets/fonts.css';
 import styles from './RequestNameForm.module.css';
 import { TextInput } from '../../shared/forms/TextInput';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/OsehImage';
@@ -62,14 +62,9 @@ export const RequestNameForm = ({ setLoaded }: RequestNameFormProps): ReactEleme
           familyName: data.family_name,
         });
       } catch (e) {
-        if (e instanceof TypeError) {
-          setError(<>Failed to connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          setError(await describeErrorFromResponse(e));
-        } else {
-          console.log(e);
-          setError(<>Unknown error. Contact support.</>);
-        }
+        console.error(e);
+        const err = await describeError(e);
+        setError(err);
       } finally {
         setSaving(false);
       }

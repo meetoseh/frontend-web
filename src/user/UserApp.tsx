@@ -14,16 +14,9 @@ import {
   useJourneyAndJourneyStartShared,
   JourneyRef,
 } from './journey/JourneyAndJourneyStartShared';
+import { useFonts } from '../shared/lib/useFonts';
 
 export default function UserApp(): ReactElement {
-  useEffect(() => {
-    localStorage.setItem('login-redirect', window.location.pathname);
-
-    return () => {
-      localStorage.removeItem('login-redirect');
-    };
-  }, []);
-
   return (
     <LoginProvider>
       <ModalProvider>
@@ -44,7 +37,7 @@ const UserAppInner = (): ReactElement => {
   const [state, setState] = useState<
     'loading' | 'current-daily-event' | 'request-name' | 'login' | 'journey' | 'start-journey'
   >('loading');
-  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const fontsLoaded = useFonts(requiredFonts);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
   const [currentDailyEventLoaded, setCurrentDailyEventLoaded] = useState(false);
   const [journey, setJourney] = useState<JourneyRef | null>(null);
@@ -128,31 +121,6 @@ const UserAppInner = (): ReactElement => {
       }
     };
   });
-
-  useEffect(() => {
-    if (!document.fonts || !document.fonts.load) {
-      setFontsLoaded(true);
-      return;
-    }
-
-    let active = true;
-    loadRequiredFonts();
-    return () => {
-      active = false;
-    };
-
-    async function loadRequiredFonts() {
-      try {
-        await Promise.all(requiredFonts.map((font) => document.fonts.load(font)));
-      } catch (e) {
-        console.error('error while loading required fonts', e);
-      } finally {
-        if (active) {
-          setFontsLoaded(true);
-        }
-      }
-    }
-  }, []);
 
   useEffect(() => {
     setNeedRequestName(
