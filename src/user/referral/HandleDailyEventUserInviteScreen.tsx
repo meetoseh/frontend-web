@@ -115,6 +115,9 @@ const Inner = ({ code }: { code: string }): ReactElement => {
     }
   }, [redeemed, returnToHome]);
 
+  if (error !== null) {
+    return <ErrorBlock>{error}</ErrorBlock>;
+  }
   if (!fontsLoaded || loginContext.state === 'loading') {
     return <SplashScreen type="wordmark" />;
   }
