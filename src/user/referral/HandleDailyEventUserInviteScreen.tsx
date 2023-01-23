@@ -115,11 +115,14 @@ const Inner = ({ code }: { code: string }): ReactElement => {
     }
   }, [redeemed, returnToHome]);
 
-  if (!fontsLoaded || loginContext.state === 'loading' || redeemed === null) {
+  if (!fontsLoaded || loginContext.state === 'loading') {
     return <SplashScreen type="wordmark" />;
   }
   if (loginContext.state === 'logged-out') {
     return <LoginApp />;
+  }
+  if (redeemed === null) {
+    return <SplashScreen type="wordmark" />;
   }
 
   return (
