@@ -84,7 +84,7 @@ function App() {
           {AdminRoutes()}
         </Route>
         <Route path="/dev_login" element={<TestLogin />} />
-        <Route path="/login" element={<LoginApp />} />
+        <Route path="/login" element={<LoginApp redirectUrl="/" />} />
         <Route path="/splash" element={<SplashScreen />} />
         <Route path="/splash-alt" element={<SplashScreen type="wordmark" />} />
         <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />

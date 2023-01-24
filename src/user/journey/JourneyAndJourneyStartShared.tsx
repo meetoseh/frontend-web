@@ -127,6 +127,11 @@ export type JourneyRef = {
   backgroundImage: OsehImageRef;
 
   /**
+   * The image to show as the blurred version of the background of the journey
+   */
+  blurredBackgroundImage: OsehImageRef;
+
+  /**
    * The audio file to play during the journey
    */
   audioContent: OsehContentRef;
@@ -179,6 +184,7 @@ export const journeyRefKeyMap: CrudFetcherKeyMap<JourneyRef> = {
   session_uid: 'sessionUid',
   duration_seconds: 'durationSeconds',
   background_image: 'backgroundImage',
+  blurred_background_image: 'blurredBackgroundImage',
   audio_content: 'audioContent',
   category: (_, val) => ({
     key: 'category',
@@ -196,6 +202,8 @@ export type JourneyAndJourneyStartShared = {
   windowSize: { width: number; height: number };
   image: OsehImageState | null;
   imageLoading: boolean;
+  blurredImage: OsehImageState | null;
+  blurredImageLoading: boolean;
 };
 
 /**
@@ -209,6 +217,8 @@ export const useJourneyAndJourneyStartShared = (
     image: null,
     imageLoading: true,
     windowSize,
+    blurredImage: null,
+    blurredImageLoading: true,
   });
   const [imageLoading, setImageLoading] = useState(true);
   const image = useOsehImageState({
@@ -219,14 +229,25 @@ export const useJourneyAndJourneyStartShared = (
     alt: '',
     setLoading: setImageLoading,
   });
+  const [blurredImageLoading, setBlurredImageLoading] = useState(true);
+  const blurredImage = useOsehImageState({
+    uid: journey?.blurredBackgroundImage?.uid ?? null,
+    jwt: journey?.blurredBackgroundImage?.jwt ?? null,
+    displayWidth: windowSize.width,
+    displayHeight: windowSize.height,
+    alt: '',
+    setLoading: setBlurredImageLoading,
+  });
 
   useEffect(() => {
     setShared({
       image,
       imageLoading,
+      blurredImage,
+      blurredImageLoading,
       windowSize,
     });
-  }, [image, imageLoading, windowSize]);
+  }, [image, imageLoading, blurredImage, blurredImageLoading, windowSize]);
 
   return shared;
 };

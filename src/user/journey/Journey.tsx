@@ -148,7 +148,7 @@ export const Journey = ({
       return;
     }
 
-    if (!shared.imageLoading && audioLoaded && playAudio !== null) {
+    if (!shared.imageLoading && !shared.blurredImageLoading && audioLoaded && playAudio !== null) {
       doStart(() => {
         playAudio();
         journeyTime.setPaused.bind(undefined)(false);
@@ -156,7 +156,15 @@ export const Journey = ({
       });
       setIsLoaded(true);
     }
-  }, [isLoaded, shared.imageLoading, audioLoaded, playAudio, doStart, journeyTime.setPaused]);
+  }, [
+    isLoaded,
+    shared.imageLoading,
+    shared.blurredImageLoading,
+    audioLoaded,
+    playAudio,
+    doStart,
+    journeyTime.setPaused,
+  ]);
 
   useEffect(() => {
     setLoaded(isLoaded);

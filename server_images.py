@@ -157,9 +157,11 @@ async def update_server_images(itgs: Itgs):
 
     old_config = None
     old_config_lookup: Dict[str, ServerImageFile] = dict()
-    if os.path.exists("server_images_old.json"):
-        with open("server_images_old.json") as f:
-            old_config = ServerImageConfig.parse_raw(f.read())
+
+    redis = await itgs.redis()
+    old_raw_bytes = await redis.get(b"frontend-web:server_images:config")
+    if old_raw_bytes is not None:
+        old_config = ServerImageConfig.parse_raw(old_raw_bytes)
 
         for file in old_config.files:
             old_config_lookup[file.uid] = file
@@ -184,13 +186,8 @@ async def update_server_images(itgs: Itgs):
             if file.uid not in existing_uids:
                 await delete_file(itgs, file)
 
-    with open("server_images_old_cp.json", "w") as f:
-        f.write(config.json())
-
-    if os.path.exists("server_images_old.json"):
-        os.remove("server_images_old.json")
-
-    os.rename("server_images_old_cp.json", "server_images_old.json")
+    new_config_bytes = config.json().encode("utf-8")
+    await redis.set(b"frontend-web:server_images:config", new_config_bytes)
 
 
 async def ensure_file_exists(itgs: Itgs, file: ServerImageFile, force: bool = False):

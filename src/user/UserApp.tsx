@@ -15,6 +15,7 @@ import {
   JourneyRef,
 } from './journey/JourneyAndJourneyStartShared';
 import { useFonts } from '../shared/lib/useFonts';
+import { JourneyPostScreen } from './journey/JourneyPostScreen';
 
 export default function UserApp(): ReactElement {
   return (
@@ -26,16 +27,27 @@ export default function UserApp(): ReactElement {
   );
 }
 
-const requiredFonts = ['400 1em Open Sans', '600 1em Open Sans', '700 1em Open Sans'];
+const requiredFonts = [
+  '300 1em Open Sans',
+  '400 1em Open Sans',
+  '600 1em Open Sans',
+  '700 1em Open Sans',
+];
 
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [desiredState, setDesiredState] = useState<
-    'current-daily-event' | 'journey' | 'start-journey'
+    'current-daily-event' | 'journey' | 'start-journey' | 'post-journey'
   >('current-daily-event');
   const [needRequestName, setNeedRequestName] = useState(false);
   const [state, setState] = useState<
-    'loading' | 'current-daily-event' | 'request-name' | 'login' | 'journey' | 'start-journey'
+    | 'loading'
+    | 'current-daily-event'
+    | 'request-name'
+    | 'login'
+    | 'journey'
+    | 'start-journey'
+    | 'post-journey'
   >('loading');
   const fontsLoaded = useFonts(requiredFonts);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
@@ -177,6 +189,10 @@ const UserAppInner = (): ReactElement => {
   }, []);
 
   const onJourneyFinished = useCallback(() => {
+    setDesiredState('post-journey');
+  }, []);
+
+  const onJourneyPostFinished = useCallback(() => {
     setJourney(null);
     setDesiredState('current-daily-event');
   }, []);
@@ -222,6 +238,15 @@ const UserAppInner = (): ReactElement => {
             journey={journey}
             doStart={setStartJourneyWithFunc}
             onFinished={onJourneyFinished}
+          />
+        </div>
+      ) : null}
+      {desiredState === 'post-journey' && journey !== null ? (
+        <div className={state !== 'post-journey' ? styles.displayNone : ''}>
+          <JourneyPostScreen
+            journey={journey}
+            shared={journeyAndJourneyStartShared}
+            onReturn={onJourneyPostFinished}
           />
         </div>
       ) : null}

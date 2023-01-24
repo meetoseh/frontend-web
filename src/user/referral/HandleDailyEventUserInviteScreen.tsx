@@ -12,7 +12,7 @@ import {
   keyMap as redeemedUserDailyEventInviteKeyMap,
 } from './models/RedeemedUserDailyEventInvite';
 import styles from './HandleDailyEventUserInviteScreen.module.css';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImageFromState, useOsehImageState } from '../../shared/OsehImage';
 
 /**
  * This screen will redirect to the home screen unless at the invite
@@ -44,9 +44,19 @@ const requiredFonts = ['400 1em Open Sans', '600 1em Open Sans', '700 1em Open S
 const Inner = ({ code }: { code: string }): ReactElement => {
   const loginContext = useContext(LoginContext);
   const fontsLoaded = useFonts(requiredFonts);
+  const windowSize = useWindowSize();
+  const [imageLoading, setImageLoading] = useState(true);
+  const imageState = useOsehImageState({
+    uid: 'oseh_if_-i-Qff8gqHyMZRb1r_5WMQ',
+    jwt: null,
+    displayWidth: windowSize.width,
+    displayHeight: windowSize.height,
+    alt: '',
+    isPublic: true,
+    setLoading: setImageLoading,
+  });
   const [redeemed, setRedeemed] = useState<RedeemedUserDailyEventInvite | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
-  const windowSize = useWindowSize();
 
   const returnToHome = useCallback(() => {
     window.location.href = '/';
@@ -118,7 +128,7 @@ const Inner = ({ code }: { code: string }): ReactElement => {
   if (error !== null) {
     return <ErrorBlock>{error}</ErrorBlock>;
   }
-  if (!fontsLoaded || loginContext.state === 'loading') {
+  if (!fontsLoaded || loginContext.state === 'loading' || imageLoading) {
     return <SplashScreen type="wordmark" />;
   }
   if (loginContext.state === 'logged-out') {
@@ -131,14 +141,7 @@ const Inner = ({ code }: { code: string }): ReactElement => {
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImage
-          uid="oseh_if_-i-Qff8gqHyMZRb1r_5WMQ"
-          jwt={null}
-          displayWidth={windowSize.width}
-          displayHeight={windowSize.height}
-          alt=""
-          isPublic={true}
-        />
+        <OsehImageFromState {...imageState} />
       </div>
       <div className={styles.innerContainer}>
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}

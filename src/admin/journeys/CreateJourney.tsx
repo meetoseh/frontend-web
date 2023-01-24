@@ -280,6 +280,24 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
                 />
               </div>
               <div>
+                <OsehImage
+                  uid={backgroundImage.blurredImageFile.uid}
+                  jwt={backgroundImage.blurredImageFile.jwt}
+                  displayWidth={180}
+                  displayHeight={368}
+                  alt="Blurred Mobile Preview"
+                />
+              </div>
+              <div>
+                <OsehImage
+                  uid={backgroundImage.blurredImageFile.uid}
+                  jwt={backgroundImage.blurredImageFile.jwt}
+                  displayWidth={480}
+                  displayHeight={270}
+                  alt="Blurred Desktop Preview"
+                />
+              </div>
+              <div>
                 <Button type="button" variant="outlined" onClick={() => setBackgroundImage(null)}>
                   Clear
                 </Button>

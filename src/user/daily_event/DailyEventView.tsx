@@ -440,21 +440,7 @@ export const DailyEventView = ({
         }
 
         const data = await response.json();
-        const journey: JourneyRef = {
-          uid: data.uid,
-          sessionUid: data.session_uid,
-          jwt: data.jwt,
-          durationSeconds: data.duration_seconds,
-          backgroundImage: data.background_image,
-          audioContent: data.audio_content,
-          category: {
-            externalName: data.category.external_name,
-          },
-          title: data.title,
-          instructor: data.instructor,
-          description: data.description,
-          prompt: data.prompt,
-        };
+        const journey = convertUsingKeymap(data, journeyRefKeyMap);
         setJourney(journey);
       } catch (e) {
         console.error(e);

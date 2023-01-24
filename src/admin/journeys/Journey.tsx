@@ -30,6 +30,14 @@ export type Journey = {
   };
 
   /**
+   * A reference to the image file containing the blurred background image for the journey
+   */
+  blurredBackgroundImage: {
+    uid: string;
+    jwt: string;
+  };
+
+  /**
    * The subcategory of the journey
    */
   subcategory: JourneySubcategory;
