@@ -447,6 +447,36 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
             <pre>{journey.uid}</pre>
           </div>
         </CrudFormElement>
+
+        <CrudFormElement title="Sample">
+          <div className={styles.sampleContainer}>
+            {journey.sample ? (
+              <OsehContent
+                uid={journey.sample.uid}
+                jwt={journey.sample.jwt}
+                showAs="video"
+                playerStyle={{ width: '270px', height: '480px' }}
+              />
+            ) : (
+              <>Still processing.</>
+            )}
+          </div>
+        </CrudFormElement>
+
+        <CrudFormElement title="Full Video">
+          <div className={styles.videoContainer}>
+            {journey.video ? (
+              <OsehContent
+                uid={journey.video.uid}
+                jwt={journey.video.jwt}
+                showAs="video"
+                playerStyle={{ width: '270px', height: '480px' }}
+              />
+            ) : (
+              <>Still processing.</>
+            )}
+          </div>
+        </CrudFormElement>
       </div>
     </CrudItemBlock>
   );

@@ -78,4 +78,18 @@ export type Journey = {
    * Undefined if we don't know if the journey is part of a daily event.
    */
   dailyEventUID: string | null | undefined;
+
+  /**
+   * If the sample for this journey is available, the sample, otherwise null.
+   * If the journey is changed, it will have the old sample until the new
+   * sample is available.
+   */
+  sample: { uid: string; jwt: string } | null;
+
+  /**
+   * If the full video for this journey is available, the full video, otherwise null.
+   * If the journey is changed, it will have the old full video until the new
+   * full video is available.
+   */
+  video: { uid: string; jwt: string } | null;
 };

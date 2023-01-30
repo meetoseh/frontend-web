@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useRef, useState } from 'react';
+import { CSSProperties, ReactElement, useEffect, useRef, useState } from 'react';
 import { HTTP_API_URL } from './ApiConstants';
 import { describeErrorFromResponse, ErrorBlock } from './forms/ErrorBlock';
 
@@ -14,7 +14,14 @@ export type OsehContentRef = {
   jwt: string;
 };
 
-type OsehContentProps = OsehContentRef;
+type OsehContentProps = OsehContentRef & {
+  /**
+   * How the content file should be shown. Defaults to 'audio', meaning it
+   * will be handled as audio-only content. For 'video', we may select a
+   * different export and will show as a video.
+   */
+  showAs?: 'audio' | 'video';
+};
 
 type ContentFileWebExport = {
   url: string;
@@ -28,47 +35,58 @@ type ContentFileWebExport = {
 /**
  * Shows an audio file from Oseh, with controls and error handling
  */
-export const OsehContent = ({ uid, jwt }: OsehContentProps): ReactElement => {
+export const OsehContent = ({
+  uid,
+  jwt,
+  showAs = 'audio',
+  playerStyle = undefined,
+}: OsehContentProps & { playerStyle?: CSSProperties | undefined }): ReactElement => {
   const { webExport, error } = useOsehContent({ uid, jwt });
-  const ref = useRef<HTMLAudioElement | null>(null);
+  const ref = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (webExport === null || ref.current === null) {
       return;
     }
 
-    const audio = ref.current;
-    if (audio.readyState === 0) {
+    const media: HTMLMediaElement = ref.current;
+    if (media.readyState === 0) {
       return;
     }
 
-    if (!audio.paused) {
-      audio.pause();
+    if (!media.paused) {
+      media.pause();
     }
-    audio.load();
+    media.load();
   }, [webExport]);
 
   return (
     <>
       {error && <ErrorBlock>{error}</ErrorBlock>}
-      {webExport && (
-        <audio ref={ref} controls>
+      {webExport && showAs === 'audio' ? (
+        <audio ref={ref} controls style={playerStyle}>
           <source src={webExport.url} type="audio/mp4" />
         </audio>
-      )}
+      ) : null}
+      {webExport && showAs === 'video' ? (
+        <video ref={ref} controls style={playerStyle}>
+          <source src={webExport.url} type="video/mp4" />
+        </video>
+      ) : null}
     </>
   );
 };
 
 /**
  * A hook for getting the web export for an Oseh content file. This is
- * useful for if you need fine-tuned control over the audio player,
+ * useful for if you need fine-tuned control over the audio/video player,
  * but want to reuse the logic for downloading the playlist and selecting
  * the export.
  */
 export const useOsehContent = ({
   uid,
   jwt,
+  showAs = 'audio',
 }: OsehContentProps): { error: ReactElement | null; webExport: ContentFileWebExport | null } => {
   const [webExport, setWebExport] = useState<ContentFileWebExport | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
