@@ -4,14 +4,14 @@ import { describeErrorFromResponse, ErrorBlock } from './forms/ErrorBlock';
 
 export type OsehContentRef = {
   /**
-   * The UID of the content file to show
+   * The UID of the content file to show. If null, we will show nothing.
    */
-  uid: string;
+  uid: string | null;
 
   /**
-   * The JWT to use to access the content file
+   * The JWT to use to access the content file. If null, we will show nothing.
    */
-  jwt: string;
+  jwt: string | null;
 };
 
 type OsehContentProps = OsehContentRef & {
@@ -21,6 +21,13 @@ type OsehContentProps = OsehContentRef & {
    * different export and will show as a video.
    */
   showAs?: 'audio' | 'video';
+
+  /**
+   * True if the url needs presigning, false if the url does not need
+   * presigning. Typically true if we want to use native controls and false if
+   * we want to use custom controls.
+   */
+  presign?: boolean;
 };
 
 type ContentFileWebExport = {
@@ -87,6 +94,7 @@ export const useOsehContent = ({
   uid,
   jwt,
   showAs = 'audio',
+  presign = true,
 }: OsehContentProps): { error: ReactElement | null; webExport: ContentFileWebExport | null } => {
   const [webExport, setWebExport] = useState<ContentFileWebExport | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
@@ -99,14 +107,23 @@ export const useOsehContent = ({
     };
 
     async function fetchWebExport() {
+      if (uid === null || jwt === null) {
+        return;
+      }
+
       let response: Response;
       try {
-        response = await fetch(`${HTTP_API_URL}/api/1/content_files/${uid}/web.json?presign=1`, {
-          method: 'GET',
-          headers: {
-            Authorization: `bearer ${jwt}`,
-          },
-        });
+        response = await fetch(
+          `${HTTP_API_URL}/api/1/content_files/${uid}/web.json?${new URLSearchParams({
+            presign: presign ? '1' : '0',
+          })}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `bearer ${jwt}`,
+            },
+          }
+        );
       } catch (e) {
         if (!active) {
           return;
@@ -172,7 +189,7 @@ export const useOsehContent = ({
 
       setWebExport(bestExport);
     }
-  }, [uid, jwt]);
+  }, [uid, jwt, presign]);
 
   return { error, webExport };
 };

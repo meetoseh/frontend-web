@@ -175,6 +175,12 @@ export type JourneyRef = {
    * The prompt to show to the user during the journey
    */
   prompt: Prompt;
+
+  /**
+   * If a short sample of this journey is available in video form (typically
+   * a 1080x1920 15s vertical video), this is the content ref for that video.
+   */
+  sample: OsehContentRef | null;
 };
 
 /**

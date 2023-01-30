@@ -19,6 +19,12 @@ type JourneyPostScreenProps = {
   shared: JourneyAndJourneyStartShared;
 
   /**
+   * The function to call when the user wants to go to the share screen for
+   * this journey
+   */
+  onShare: (this: void) => void;
+
+  /**
    * The function to call when the user wants to return to the current daily
    * event screen
    */
@@ -28,6 +34,7 @@ type JourneyPostScreenProps = {
 export const JourneyPostScreen = ({
   journey,
   shared,
+  onShare,
   onReturn,
 }: JourneyPostScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
@@ -42,6 +49,14 @@ export const JourneyPostScreen = ({
   const onReviewDown = useCallback(() => {
     setReviewResponse(false);
   }, []);
+
+  const doShare = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      onShare();
+    },
+    [onShare]
+  );
 
   return (
     <div className={styles.container}>
@@ -97,9 +112,9 @@ export const JourneyPostScreen = ({
             </div>
           </div>
           <div className={styles.buttonContainer}>
-            <a className={styles.button} href="/">
+            <button className={styles.button} onClick={doShare} type="button">
               Share this Class
-            </a>
+            </button>
           </div>
         </div>
       </div>

@@ -16,6 +16,7 @@ import {
 } from './journey/JourneyAndJourneyStartShared';
 import { useFonts } from '../shared/lib/useFonts';
 import { JourneyPostScreen } from './journey/JourneyPostScreen';
+import { JourneyShareScreen } from './journey/JourneyShareScreen';
 
 export default function UserApp(): ReactElement {
   return (
@@ -37,7 +38,7 @@ const requiredFonts = [
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [desiredState, setDesiredState] = useState<
-    'current-daily-event' | 'journey' | 'start-journey' | 'post-journey'
+    'current-daily-event' | 'journey' | 'start-journey' | 'post-journey' | 'share-journey'
   >('current-daily-event');
   const [needRequestName, setNeedRequestName] = useState(false);
   const [state, setState] = useState<
@@ -48,6 +49,7 @@ const UserAppInner = (): ReactElement => {
     | 'journey'
     | 'start-journey'
     | 'post-journey'
+    | 'share-journey'
   >('loading');
   const fontsLoaded = useFonts(requiredFonts);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
@@ -188,8 +190,12 @@ const UserAppInner = (): ReactElement => {
     setDesiredState('start-journey');
   }, []);
 
-  const onJourneyFinished = useCallback(() => {
+  const gotoPostJourney = useCallback(() => {
     setDesiredState('post-journey');
+  }, []);
+
+  const gotoJourneyShare = useCallback(() => {
+    setDesiredState('share-journey');
   }, []);
 
   const onJourneyPostFinished = useCallback(() => {
@@ -237,13 +243,23 @@ const UserAppInner = (): ReactElement => {
             shared={journeyAndJourneyStartShared}
             journey={journey}
             doStart={setStartJourneyWithFunc}
-            onFinished={onJourneyFinished}
+            onFinished={gotoPostJourney}
           />
         </div>
       ) : null}
       {desiredState === 'post-journey' && journey !== null ? (
         <div className={state !== 'post-journey' ? styles.displayNone : ''}>
           <JourneyPostScreen
+            journey={journey}
+            shared={journeyAndJourneyStartShared}
+            onShare={gotoJourneyShare}
+            onReturn={onJourneyPostFinished}
+          />
+        </div>
+      ) : null}
+      {desiredState === 'share-journey' && journey !== null ? (
+        <div className={state !== 'share-journey' ? styles.displayNone : ''}>
+          <JourneyShareScreen
             journey={journey}
             shared={journeyAndJourneyStartShared}
             onReturn={onJourneyPostFinished}
