@@ -1,10 +1,11 @@
-import { ReactElement, useCallback, useContext, useState } from 'react';
-import { ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { OsehImageFromState } from '../../shared/OsehImage';
 import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
 import styles from './JourneyPostScreen.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { LoginContext } from '../../shared/LoginContext';
+import { apiFetch } from '../../shared/ApiConstants';
 
 type JourneyPostScreenProps = {
   /**
@@ -38,9 +39,53 @@ export const JourneyPostScreen = ({
   onReturn,
 }: JourneyPostScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const error = useState<ReactElement | null>(null)[0];
-  const streak = useState<number>(57)[0];
+  const [error, setError] = useState<ReactElement | null>(null);
+  const [streak, setStreak] = useState<number>(-1);
   const [reviewResponse, setReviewResponse] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    let active = true;
+    fetchStreak();
+    return () => {
+      active = false;
+    };
+
+    async function fetchStreak() {
+      try {
+        const response = await apiFetch(
+          '/api/1/users/me/streak',
+          {
+            method: 'GET',
+          },
+          loginContext
+        );
+        if (!active) {
+          return;
+        }
+        if (!response.ok) {
+          throw response;
+        }
+        const data = await response.json();
+        if (!active) {
+          return;
+        }
+        setStreak(data.streak);
+      } catch (e) {
+        if (!active) {
+          return;
+        }
+        const err = await describeError(e);
+        if (!active) {
+          return;
+        }
+        setError(err);
+      }
+    }
+  }, [loginContext]);
 
   const onReviewUp = useCallback(() => {
     setReviewResponse(true);
