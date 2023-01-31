@@ -67,8 +67,8 @@ export const JourneyLikes = ({
     let active = true;
     let lastEffectiveNumLikes = 0;
 
-    const maxHeartTokens = 3;
-    const heartTokenEveryMS = 250;
+    const maxHeartTokens = 2;
+    const heartTokenEveryMS = 1000;
     let heartTokens = maxHeartTokens;
     let lastHeartTokenAt = Number.MIN_SAFE_INTEGER;
     const logicalHearts: Heart[] = [];
@@ -301,11 +301,11 @@ type Heart = {
  * Spawns a new heart with random properties
  */
 const spawnHeart = (isOurs: boolean, now: DOMHighResTimeStamp): Heart => {
-  const minOpacityDuration = 1;
-  const maxOpacityDuration = 3;
+  const minOpacityDuration = 2.5;
+  const maxOpacityDuration = 4.25;
   const maxYMovement = 150;
-  const minPeakXVelocity = 0.128;
-  const maxPeakXVelocity = 0.192;
+  const minPeakXVelocity = 0.064;
+  const maxPeakXVelocity = 0.096;
 
   const yInitial = -20 - Math.random() * 24;
   const opacityDuration =
@@ -313,7 +313,7 @@ const spawnHeart = (isOurs: boolean, now: DOMHighResTimeStamp): Heart => {
   const yMovement = -(maxYMovement + yInitial);
 
   const peakXVelocity = minPeakXVelocity + Math.random() * (maxPeakXVelocity - minPeakXVelocity);
-  const xPeriod = Math.sqrt(peakXVelocity / TWO_PI_OVER_1000) * (0.25 + Math.random() * 0.2);
+  const xPeriod = Math.sqrt(peakXVelocity / TWO_PI_OVER_1000) * (0.125 + Math.random() * 0.1);
   const xAmplitude = peakXVelocity / (xPeriod * TWO_PI_OVER_1000);
 
   return {
