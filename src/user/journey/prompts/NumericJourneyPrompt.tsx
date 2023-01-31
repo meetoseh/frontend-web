@@ -16,6 +16,39 @@ import { JourneyPromptProps } from '../models/JourneyPromptProps';
 import '../../../assets/fonts.css';
 import styles from './NumericJourneyPrompt.module.css';
 
+type FakedMove = {
+  /**
+   * The index of the prompt option we are lowering the selection of by
+   * 1
+   */
+  fromIndex: number;
+
+  /**
+   * The maximum value we should assume for the fromIndex; if the actual
+   * value from the stats endpoint dips below this value, ignore this part
+   * of the faked move
+   */
+  maxFromActive: number;
+
+  /**
+   * The index of the prompt option we are increasing the selection of by
+   * 1
+   */
+  toIndex: number;
+
+  /**
+   * The minimum value we shoul assume for the toIndex; if the actual
+   * value from the stats endpoint goes above this value, drop the faked
+   * move early
+   */
+  minToActive: number;
+
+  /**
+   * The journey time at which we should stop faking the move
+   */
+  endsAt: number;
+};
+
 /**
  * Renders a numeric style prompt using a horizontal carousel for the user to
  * select their response, where below each response in the carousel is a
@@ -37,6 +70,10 @@ export const NumericJourneyPrompt = ({
     throw new Error('Invalid prompt style');
   }
 
+  // we want changing our answer to immediately react, but stats won't come in
+  // for a second or so, so we alter the stats temporarily
+  const [fakingMove, setFakingMove] = useState<FakedMove | null>(null);
+
   const promptOptions = useMemo(() => {
     const result: number[] = [];
     for (let i = prompt.min; i <= prompt.max; i += prompt.step) {
@@ -44,6 +81,31 @@ export const NumericJourneyPrompt = ({
     }
     return result;
   }, [prompt.min, prompt.max, prompt.step]);
+
+  const activeAfterFakingMove = useMemo(() => {
+    if (fakingMove === null) {
+      return stats.numericActive;
+    }
+
+    const active = new Map<number, number>(stats.numericActive);
+
+    if (stats.numericActive === null) {
+      for (const opt of promptOptions) {
+        active.set(opt, 0);
+      }
+      return active;
+    }
+
+    active.set(
+      promptOptions[fakingMove.fromIndex],
+      Math.min(fakingMove.maxFromActive, active.get(promptOptions[fakingMove.fromIndex]) ?? 0)
+    );
+    active.set(
+      promptOptions[fakingMove.toIndex],
+      Math.max(fakingMove.minToActive, active.get(promptOptions[fakingMove.toIndex]) ?? 0)
+    );
+    return active;
+  }, [promptOptions, stats.numericActive, fakingMove]);
 
   const [promptSelection, setPromptSelection] = useState(
     promptOptions[Math.floor(promptOptions.length / 2)]
@@ -53,10 +115,63 @@ export const NumericJourneyPrompt = ({
   }, [promptSelection, promptOptions]);
   const setPromptSelectionIndex = useCallback(
     (idx: number) => {
-      setPromptSelection(promptOptions[idx]);
+      if (promptSelection !== promptOptions[idx]) {
+        setFakingMove({
+          fromIndex: promptSelectionIndex,
+          maxFromActive: Math.max((activeAfterFakingMove?.get(promptSelection) ?? 0) - 1, 0),
+          toIndex: idx,
+          minToActive: (activeAfterFakingMove?.get(promptOptions[idx]) ?? 0) + 1,
+          endsAt: journeyTime.time.current + 2500,
+        });
+        setPromptSelection(promptOptions[idx]);
+      }
     },
-    [promptOptions]
+    [promptOptions, promptSelection, journeyTime.time, activeAfterFakingMove, promptSelectionIndex]
   );
+  useEffect(() => {
+    if (fakingMove === null) {
+      return;
+    }
+
+    if (fakingMove.endsAt <= journeyTime.time.current) {
+      setFakingMove(null);
+      return;
+    }
+
+    let active = true;
+    const onTimeChanged = (lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
+      if (!active) {
+        return;
+      }
+      if (newTime >= fakingMove.endsAt) {
+        setFakingMove(null);
+        unmount();
+        return;
+      }
+    };
+
+    const expectedIndex = journeyTime.onTimeChanged.current.length;
+    journeyTime.onTimeChanged.current.push(onTimeChanged);
+
+    const unmount = () => {
+      if (!active) {
+        return;
+      }
+      active = false;
+      for (
+        let i = Math.min(expectedIndex, journeyTime.onTimeChanged.current.length - 1);
+        i >= 0;
+        i--
+      ) {
+        if (journeyTime.onTimeChanged.current[i] === onTimeChanged) {
+          journeyTime.onTimeChanged.current.splice(i, 1);
+          break;
+        }
+      }
+    };
+
+    return unmount;
+  }, [fakingMove, journeyTime.onTimeChanged, journeyTime.time]);
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
   usePromptSelectionEvents(
@@ -69,9 +184,9 @@ export const NumericJourneyPrompt = ({
     loginContext
   );
   const carouselTransform = useCarouselTransform({
-    inactiveItemWidth: 28,
+    inactiveItemWidth: 75,
     activeItemWidth: 75,
-    inactiveInactiveGap: 45,
+    inactiveInactiveGap: 20,
     inactiveActiveGap: 20,
     numItems: promptOptions.length,
     activeItemIndex: promptSelectionIndex,
@@ -80,13 +195,13 @@ export const NumericJourneyPrompt = ({
     setActiveItemIndex: setPromptSelectionIndex,
   });
   const averageMood = useMemo(() => {
-    if (stats.numericActive === null) {
+    if (activeAfterFakingMove === null) {
       return promptOptions[Math.floor(promptOptions.length / 2)];
     }
 
     let totalResponses = 0;
     let sumResponses = 0;
-    const iter = stats.numericActive.entries();
+    const iter = activeAfterFakingMove.entries();
     let next = iter.next();
     while (!next.done) {
       const [option, count] = next.value;
@@ -100,10 +215,10 @@ export const NumericJourneyPrompt = ({
     }
 
     return sumResponses / totalResponses;
-  }, [stats.numericActive, promptOptions]);
+  }, [activeAfterFakingMove, promptOptions]);
   const percentagesByOption = useMemo(() => {
     const percentagesByOption = new Map<number, number>();
-    if (stats.numericActive === null) {
+    if (activeAfterFakingMove === null) {
       for (const opt of promptOptions) {
         percentagesByOption.set(opt, 0);
       }
@@ -113,7 +228,7 @@ export const NumericJourneyPrompt = ({
 
     let responsesByOption = [];
     for (const opt of promptOptions) {
-      responsesByOption.push([opt, stats.numericActive.get(opt) ?? 0]);
+      responsesByOption.push([opt, activeAfterFakingMove.get(opt) ?? 0]);
     }
 
     const totalResponses = responsesByOption.reduce((acc, [_, count]) => acc + count, 0);
@@ -125,7 +240,23 @@ export const NumericJourneyPrompt = ({
       percentagesByOption.set(promptOptions[Math.floor(promptOptions.length / 2)], 100);
     }
     return percentagesByOption;
-  }, [promptOptions, stats.numericActive]);
+  }, [promptOptions, activeAfterFakingMove]);
+
+  const carouselOptions = useMemo(() => {
+    return promptOptions.map((option, optionIndex) => (
+      <button
+        key={option}
+        className={`${styles.carouselItem} ${
+          option === promptSelection ? styles.activeCarouselItem : ''
+        }`}
+        onClick={() => setPromptSelectionIndex(optionIndex)}>
+        <div
+          className={styles.carouselVBar}
+          style={{ height: `${percentagesByOption.get(option) ?? 0}%` }}></div>
+        <div className={styles.carouselItemOption}>{option.toLocaleString()}</div>
+      </button>
+    ));
+  }, [promptOptions, promptSelection, percentagesByOption, setPromptSelectionIndex]);
 
   return (
     <div className={styles.container}>
@@ -136,20 +267,7 @@ export const NumericJourneyPrompt = ({
             carouselTransform.dragging ? styles.carouselItemsContainerDragging : ''
           }`}
           style={{ transform: `translateX(${carouselTransform.translateX}px)` }}>
-          {promptOptions.map((option) => (
-            <div
-              key={option}
-              className={`${styles.carouselItem} ${
-                option === promptSelection ? styles.activeCarouselItem : ''
-              }`}>
-              <div className={styles.carouselItemOption}>{option.toLocaleString()}</div>
-              <div className={styles.carouselItemStats}>
-                <div
-                  className={styles.carouselVBar}
-                  style={{ height: Math.round(percentagesByOption.get(option)! * 0.7) }}></div>
-              </div>
-            </div>
-          ))}
+          {carouselOptions}
         </div>
       </div>
       <div className={styles.overallStatsContainer}>

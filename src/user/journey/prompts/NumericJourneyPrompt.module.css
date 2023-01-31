@@ -52,66 +52,57 @@
 }
 
 .carouselItem {
-  transition: margin 0.35s ease-in-out;
-  height: 153px;
+  composes: unstyled from '../../../shared/buttons.module.css';
+  position: relative;
+  width: 75px;
+  height: 75px;
+
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+  flex-flow: column nowrap;
   align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+
+  border-radius: 50%;
+  overflow: hidden;
+  opacity: 40%;
+  transition: opacity 0.35s ease;
+}
+
+.activeCarouselItem {
+  opacity: 100%;
+}
+
+.carouselItem:not(:last-child) {
+  margin-right: 20px;
 }
 
 .carouselItemOption {
-  width: 28px;
-  height: 75px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  font-family: 'Open Sans', sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  border-radius: 50%;
-  margin-bottom: 8px;
-  overflow: hidden;
-  transition: width 0.35s ease-in-out, height 0.35s ease-in-out, font-size 0.35s ease-in-out,
-    margin-left 0.35s ease-in-out, margin-right 0.35s ease-in-out,
-    background-color 0.35s ease-in-out;
-}
-
-.carouselItem:not(:first-child) {
-  margin-left: 45px;
-}
-
-.activeCarouselItem .carouselItemOption {
-  background: rgba(255, 255, 255, 0.5);
-  font-size: 40px;
-  width: 75px;
-  height: 75px;
-}
-
-.activeCarouselItem:not(:first-child) {
-  margin-left: 20px;
-}
-
-.activeCarouselItem:not(:last-child) {
-  margin-right: -25px;
-}
-
-.carouselItemStats {
-  display: flex;
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 100%;
+  height: 100%;
+  display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1;
+
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid white;
+  border-radius: 50%;
+
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 34px;
+  color: #191c1d;
 }
 
 .carouselVBar {
-  width: 28px;
-  background: rgba(255, 255, 255, 0.5);
-  transition: background-color 0.35s ease-in-out, height 0.35s ease-in-out;
-}
-
-.activeCarouselItem .carouselVBar {
+  width: 100%;
   background: white;
+  transition: height 0.35s ease;
 }
 
 .overallStatsContainer {
