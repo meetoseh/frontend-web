@@ -1,11 +1,11 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import {
   describeError,
   describeErrorFromResponse,
   ErrorBlock,
 } from '../../shared/forms/ErrorBlock';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { LoginContext, LoginContextValue } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/LoginContext';
 import { addModalWithCallbackToRemove, ModalContext } from '../../shared/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import '../../assets/fonts.css';
@@ -113,7 +113,7 @@ export const Settings = () => {
       }
     };
 
-    const onCancel = () => setShowDeleteConfirmInitialPrompt(false);
+    const onCancel = async () => setShowDeleteConfirmInitialPrompt(false);
 
     return addModalWithCallbackToRemove(
       modalContext.setModals,
@@ -122,14 +122,15 @@ export const Settings = () => {
           title="Are you sure you want to delete your account?"
           body={
             <>
-              Deleting your account will permanently lose your progress, history, and settings. Your
-              associated personal data will be deleted where allowed by law. If you have purchased a
-              subscription, it may not be canceled or refunded automatically.
+              By deleting your account, all your progress and history will be permanently lost. If
+              you have a subscription, we recommend you manually unsubscribe prior to deleting your
+              account.
             </>
           }
-          cta="Delete"
-          onConfirm={onDelete}
-          onCancel={onCancel}
+          cta="Not Now"
+          cancelCta="Delete"
+          onConfirm={onCancel}
+          onCancel={onDelete}
         />
       </ModalWrapper>
     );
@@ -154,16 +155,17 @@ export const Settings = () => {
       modalContext.setModals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
-          title="Are you sure you want to waive your subscription?"
+          title="To unsubscribe from Oseh+"
           body={
             <>
-              Your subscription through Apple will not be canceled automatically. To cancel, go to
-              App Store &gt; Settings &gt; Subscriptions &gt; Oseh &gt; Cancel Subscription.
+              Visit the App Store &gt; Settings &gt; Subscriptions &gt; Oseh &gt; Cancel
+              subscription.
             </>
           }
-          cta="Delete Anyway"
-          onConfirm={onDelete}
-          onCancel={onCancel}
+          cta="Cancel"
+          cancelCta="Delete my account"
+          onConfirm={onCancel}
+          onCancel={onDelete}
         />
       </ModalWrapper>
     );
@@ -188,20 +190,18 @@ export const Settings = () => {
       modalContext.setModals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
-          title="Are you sure you want to cancel your subscription?"
+          title="To unsubscribe from Oseh+"
           body={
             <>
-              Your subscription through Google will be canceled automatically. You may receive a
-              partial refund for the latest purchase in{' '}
-              <span style={{ whiteSpace: 'nowrap' }}>5-7</span> business days. To cancel manually,
-              open the Google Play app, at the top right, tap the profile icon, tap Payments &
+              Open the Google Play app, at the top right, tap the profile icon, tap Payments &
               subscriptions &gt; Subscriptions, select the subcription you want to cancel, tap
               Cancel subscription, and follow the instructions.
             </>
           }
-          cta="Unsubscribe and Delete Account"
-          onConfirm={onDelete}
-          onCancel={onCancel}
+          cta="Cancel"
+          cancelCta="Delete my account"
+          onConfirm={onCancel}
+          onCancel={onDelete}
         />
       </ModalWrapper>
     );
@@ -229,14 +229,14 @@ export const Settings = () => {
           title="Are you sure you want to cancel your subscription?"
           body={
             <>
-              Your subscription through Stripe will be canceled automatically. You may receive a
-              partial refund for the latest purchase in{' '}
-              <span style={{ whiteSpace: 'nowrap' }}>5-7</span> business days.
+              By unsubscribing, you will lose access to Oseh+ including choosing your own journeys,
+              unlocking more classes each day, and inviting friends for free.
             </>
           }
-          cta="Unsubscribe and Delete Account"
-          onConfirm={onDelete}
-          onCancel={onCancel}
+          cta="Cancel"
+          cancelCta="Unsubscribe and Delete Account"
+          onConfirm={onCancel}
+          onCancel={onDelete}
         />
       </ModalWrapper>
     );
@@ -261,16 +261,12 @@ export const Settings = () => {
       modalContext.setModals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
-          title="Are you sure you want to waive your access?"
-          body={
-            <>
-              You currently have promotional access to Oseh+. If you delete your account, you will
-              lose access to Oseh+ and may not be eligible for special offers in the future.
-            </>
-          }
-          cta="Delete Anyway"
-          onConfirm={onDelete}
-          onCancel={onCancel}
+          title="You do not have an active subscription."
+          body={<>You were gifted free access and are currently not being charged.</>}
+          cta="Cancel"
+          cancelCta="Delete my account"
+          onConfirm={onCancel}
+          onCancel={onDelete}
         />
       </ModalWrapper>
     );
@@ -402,16 +398,17 @@ export const Settings = () => {
       modalContext.setModals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
-          title="Are you sure you want to cancel your subscription?"
+          title="Are you sure you want to unsubscribe from Oseh+?"
           body={
             <>
-              You will lose access to Oseh+, including the ability to choose your own journey's,
-              give access to friends, and more.
+              By unsubscribing, you will lose access to Oseh+ including choosing your own journeys,
+              unlocking more classes each day, and inviting friends for free.
             </>
           }
-          cta="Unsubscribe"
-          onConfirm={tryCancel}
-          onCancel={onCancel}
+          cta="Not Now"
+          cancelCta="Unsubscribe"
+          onConfirm={onCancel}
+          onCancel={tryCancel}
         />
       </ModalWrapper>
     );
@@ -428,11 +425,11 @@ export const Settings = () => {
       modalContext.setModals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
-          title="How to cancel your iOS subscription"
+          title="To unsubscribe from Oseh+"
           body={
             <>
-              Your subscription through Apple cannot be canceled automatically. To cancel, go to App
-              Store &gt; Settings &gt; Subscriptions &gt; Oseh &gt; Cancel Subscription.
+              Visit the App Store &gt; Settings &gt; Subscriptions &gt; Oseh &gt; Cancel
+              subscription.
             </>
           }
           cta="Okay"
@@ -454,13 +451,8 @@ export const Settings = () => {
       modalContext.setModals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
-          title="You will not be charged."
-          body={
-            <>
-              You currently have promotional access to Oseh+. You will not be charged when your
-              promotional period ends.
-            </>
-          }
+          title="You do not have an active subscription."
+          body={<>You were gifted free access and are currently not being charged.</>}
           cta="Okay"
           onConfirm={null}
           onCancel={onCancel}
@@ -480,11 +472,11 @@ export const Settings = () => {
       modalContext.setModals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
-          title="You will not be charged."
+          title="You’ve already cancelled your subscription to Oseh+"
           body={
             <>
-              You do not have any recurring payments configured for Oseh+. You may still have access
-              to Oseh+ for the remainder of the period or while your cancellation is processed.
+              You do not have a recurring subscription. Access will end after your current billing
+              period.
             </>
           }
           cta="Okay"
@@ -506,13 +498,8 @@ export const Settings = () => {
       modalContext.setModals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
-          title="Subscription canceled successfully"
-          body={
-            <>
-              You have successfully canceled your subscription to Oseh+. You may still have access
-              to Oseh+ for the remainder of the period or while your cancellation is processed.
-            </>
-          }
+          title="You are no longer subscribed to Oseh+."
+          body={<>You may continue to have access for a short period of time.</>}
           cta="Okay"
           onConfirm={null}
           onCancel={onCancel}
@@ -605,31 +592,21 @@ export const Settings = () => {
               Invite Friends
             </button>
           </div>
-          <div className={styles.bigLinkContainer}>
-            {havePro ? (
-              <button
-                type="button"
-                className={styles.bigLink}
-                onClick={boundShowCancelInitialPrompt}>
-                Cancel Oseh+
-              </button>
-            ) : (
+          {!havePro ? (
+            <div className={styles.bigLinkContainer}>
               <a href="/upgrade" className={styles.bigLink}>
                 Upgrade to Oseh+
               </a>
-            )}
-          </div>
+            </div>
+          ) : null}
           <div className={styles.bigLinkContainer}>
             <a href="mailto:hi@oseh.com" className={styles.bigLink}>
               Contact Support
             </a>
           </div>
           <div className={styles.bigLinkContainer}>
-            <button
-              type="button"
-              className={styles.bigLink}
-              onClick={boundShowDeleteConfirmInitialPrompt}>
-              Delete Account
+            <button type="button" className={styles.bigLink} onClick={logout}>
+              Logout
             </button>
           </div>
         </div>
@@ -646,9 +623,23 @@ export const Settings = () => {
             </button>
           </div>
 
+          {havePro ? (
+            <div className={styles.smallLinkContainer}>
+              <button
+                type="button"
+                className={styles.smallLink}
+                onClick={boundShowCancelInitialPrompt}>
+                Unsubscribe Oseh+
+              </button>
+            </div>
+          ) : null}
+
           <div className={styles.smallLinkContainer}>
-            <button type="button" className={styles.smallLink} onClick={logout}>
-              Logout
+            <button
+              type="button"
+              className={styles.smallLink}
+              onClick={boundShowDeleteConfirmInitialPrompt}>
+              Delete Account
             </button>
           </div>
         </div>
@@ -678,13 +669,14 @@ export const SettingsForceDelete = ({
   title: ReactElement | string;
   body: ReactElement | string;
   cta: ReactElement | string | null;
-  onConfirm: (() => Promise<void>) | null;
-  onCancel: () => void;
+  onConfirm: (() => Promise<void> | void) | null;
+  onCancel: () => Promise<void> | void;
   cancelCta?: ReactElement | string;
   confirmDisabled?: boolean;
 }): ReactElement => {
   const [ignoringDelete, setIgnoringDelete] = useState(true);
   const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (!ignoringDelete) {
@@ -713,6 +705,15 @@ export const SettingsForceDelete = ({
     }
   }, [onConfirm]);
 
+  const doCancel = useCallback(async () => {
+    setCancelling(true);
+    try {
+      await onCancel();
+    } finally {
+      setCancelling(false);
+    }
+  }, [onCancel]);
+
   return (
     <div className={styles.deleteConfirm}>
       <div className={styles.deleteConfirmTitle}>{title}</div>
@@ -721,12 +722,15 @@ export const SettingsForceDelete = ({
         {onConfirm !== null ? (
           <button
             className={`${styles.deleteConfirmButton} ${styles.deleteConfirmDeleteButton}`}
-            disabled={ignoringDelete || confirming || confirmDisabled}
+            disabled={ignoringDelete || confirming || cancelling || confirmDisabled}
             onClick={doConfirm}>
             {cta}
           </button>
         ) : null}
-        <button className={styles.deleteConfirmButton} onClick={onCancel} disabled={confirming}>
+        <button
+          className={styles.deleteConfirmButton}
+          onClick={doCancel}
+          disabled={confirming || cancelling}>
           {onConfirm !== null ? cancelCta : cta}
         </button>
       </div>
