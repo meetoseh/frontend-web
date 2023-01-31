@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { OsehImageFromState } from '../../shared/OsehImage';
 import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
@@ -55,6 +55,7 @@ export const JourneyPostScreen = ({
     };
 
     async function fetchStreak() {
+      setError(null);
       try {
         const response = await apiFetch(
           '/api/1/users/me/streak',
@@ -86,6 +87,66 @@ export const JourneyPostScreen = ({
       }
     }
   }, [loginContext]);
+
+  const feedbackHandledFor = useRef<{ uid: string; response: boolean } | null>(null);
+  useEffect(() => {
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+    if (reviewResponse === null) {
+      return;
+    }
+    if (
+      feedbackHandledFor.current !== null &&
+      feedbackHandledFor.current.uid === journey.uid &&
+      feedbackHandledFor.current.response === reviewResponse
+    ) {
+      return;
+    }
+    feedbackHandledFor.current = { uid: journey.uid, response: reviewResponse };
+
+    let active = true;
+    sendReviewResponse();
+    return () => {
+      active = false;
+    };
+
+    async function sendReviewResponse() {
+      setError(null);
+      try {
+        const response = await apiFetch(
+          '/api/1/journeys/feedback',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({
+              journey_uid: journey.uid,
+              journey_jwt: journey.jwt,
+              version: 'oseh_jf-otp_fKWQzTG-JnA',
+              response: reviewResponse ? 1 : 2,
+              feedback: null,
+            }),
+          },
+          loginContext
+        );
+        if (!active) {
+          return;
+        }
+        if (!response.ok) {
+          throw response;
+        }
+      } catch (e) {
+        if (!active) {
+          return;
+        }
+        const err = await describeError(e);
+        if (!active) {
+          return;
+        }
+        setError(err);
+      }
+    }
+  }, [loginContext, reviewResponse, journey.jwt, journey.uid]);
 
   const onReviewUp = useCallback(() => {
     setReviewResponse(true);
