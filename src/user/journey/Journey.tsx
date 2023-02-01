@@ -2,17 +2,14 @@ import { ReactElement, useCallback, useContext, useEffect, useRef, useState } fr
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
 import { LoginContext } from '../../shared/LoginContext';
 import { OsehImageFromState } from '../../shared/OsehImage';
-import { useHistoricalEvents } from './hooks/useHistoricalEvents';
 import { useJoinLeave } from './hooks/useJoinLeave';
 import { useJourneyTime } from './hooks/useJourneyTime';
-import { useLiveEvents } from './hooks/useLiveEvents';
 import { useProfilePictures } from './hooks/useProfilePictures';
 import { useStats } from './hooks/useStats';
 import styles from './Journey.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
 import { JourneyAudio } from './JourneyAudio';
-import { JourneyChat } from './JourneyChat';
 import { JourneyLikes } from './JourneyLikes';
 import { JourneyProfilePictures } from './JourneyProfilePictures';
 import { JourneyPrompt } from './JourneyPrompt';
@@ -86,18 +83,6 @@ export const Journey = ({
     journeyDurationSeconds: journey.durationSeconds,
     journeyTime,
     loginContext,
-  });
-  const historicalEvents = useHistoricalEvents({
-    journeyUid: journey.uid,
-    journeyJwt: journey.jwt,
-    journeyDurationSeconds: journey.durationSeconds,
-    journeyTime,
-  });
-  const liveEvents = useLiveEvents({
-    journeyUid: journey.uid,
-    journeyJwt: journey.jwt,
-    journeyDurationSeconds: journey.durationSeconds,
-    journeyTime,
   });
   const [audioLoaded, setAudioLoaded] = useState(false);
   const [playAudio, setPlayAudio] = useState<((this: void) => Promise<void>) | null>(null);
@@ -202,13 +187,6 @@ export const Journey = ({
             />
           </div>
           <div className={styles.chatAndLikesContainer}>
-            <div className={styles.chatContainer}>
-              <JourneyChat
-                historicalEvents={historicalEvents}
-                liveEvents={liveEvents}
-                prompt={journey.prompt}
-              />
-            </div>
             <div className={styles.likesContainer}>
               <JourneyLikes
                 journeyUid={journey.uid}
