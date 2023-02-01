@@ -276,6 +276,7 @@ async def ensure_file_exists(itgs: Itgs, file: ServerImageFile, force: bool = Fa
 
 
 async def delete_file(itgs: Itgs, file: ServerImageFile):
+    print(f"Deleting {file.uid=} ({file.name=}) which is no longer needed")
     jobs = await itgs.jobs()
     await jobs.enqueue("runners.delete_image_file", uid=file.uid)
 

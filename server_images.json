@@ -3,15 +3,8 @@
     {
       "uid": "oseh_if_hH68hcmVBYHanoivLMgstg",
       "name": "login",
-      "comment": "used for login screen and name form",
+      "comment": "used for login screen, name form, and upgrade to oseh prompt",
       "source": "server_images/oseh_ocean_bg.jpeg",
-      "resolutions": "full-bleed"
-    },
-    {
-      "uid": "oseh_if_YpB7t4oDSpuOVgEu8O1ejQ",
-      "name": "oseh-plus-upgrade",
-      "comment": "used in OsehPlusUpgradePrompt as background",
-      "source": "server_images/oseh_plus_upgrade_background.jpeg",
       "resolutions": "full-bleed"
     },
     {

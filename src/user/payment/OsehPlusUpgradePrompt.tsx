@@ -190,7 +190,7 @@ export const OsehPlusUpgradePrompt = ({ setLoaded }: OsehPlusUpgradePromptProps)
 
         <div className={styles.imageContainer}>
           <OsehImage
-            uid="oseh_if_YpB7t4oDSpuOVgEu8O1ejQ"
+            uid="oseh_if_hH68hcmVBYHanoivLMgstg"
             jwt={null}
             displayWidth={windowSize.width}
             displayHeight={windowSize.height}
