@@ -552,9 +552,7 @@ export const Settings = () => {
 
       const shareData = {
         url: invite.url,
-        text: `Oseh has classes from ${joinWithCommas(invite.dailyEventInfo.instructors)} today! ${
-          invite.url
-        }`,
+        text: "Join Oseh so we can do mindfulness journey's together.",
       };
       if (
         !invite.isPlusLink ||

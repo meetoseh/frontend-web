@@ -229,7 +229,7 @@ export const OsehPlusUpgradePrompt = ({ setLoaded }: OsehPlusUpgradePromptProps)
             </div>
           </div>
           <div className={styles.bottom}>
-            <div className={styles.price}>Only $2.49/mo, $29.99 billed annually</div>
+            <div className={styles.price}>Only $3.33/mo, $39.99 billed annually</div>
             {error && <ErrorBlock>{error}</ErrorBlock>}
             <div className={styles.upgradeContainer}>
               {havePro ? (
