@@ -1,0 +1,48 @@
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.iconAndInput {
+  background: #f2f2f3;
+  border-radius: 6px;
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 10px;
+}
+
+.searchIcon {
+  composes: icon from '../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('./icons/search.svg');
+}
+
+.searchIconContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+}
+
+.input {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  border-radius: 0;
+  flex: 1 1 100%;
+  margin-right: 12px;
+
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 34px;
+  font-weight: 400;
+  font-style: normal;
+  color: #171717;
+}
+
+.input:empty {
+  content: 'Choose an option';
+  color: #c8cdd0;
+}

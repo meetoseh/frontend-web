@@ -1,10 +1,9 @@
 import { Dispatch, ReactElement, SetStateAction } from 'react';
 import { makeILikeFromInput } from '../../../shared/forms/utils';
 import { CrudFetcherFilter, CrudFetcherSort } from '../../crud/CrudFetcher';
-import { CrudPicker } from '../../crud/CrudPicker';
-import { CrudPickerItem } from '../../crud/CrudPickerItem';
 import { JourneySubcategory } from './JourneySubcategory';
 import { keyMap as journeySubcategoryKeyMap } from './JourneySubcategories';
+import { CrudDropdown } from '../../crud/CrudDropdown';
 
 type JourneySubcategoryPickerProps = {
   /**
@@ -36,7 +35,7 @@ const sort: CrudFetcherSort = [{ key: 'internal_name', dir: 'asc', before: null,
  * @param query The query to filter by
  * @returns The filter to use
  */
-const filterMaker = (query: string): CrudFetcherFilter => {
+export const filterMaker = (query: string): CrudFetcherFilter => {
   return {
     internal_name: {
       operator: 'ilike',
@@ -51,14 +50,14 @@ const filterMaker = (query: string): CrudFetcherFilter => {
  * @param query The query used
  * @returns The component to allow the user to select the item
  */
-const component = (item: JourneySubcategory, query: string): ReactElement => {
-  return <CrudPickerItem query={query} match={item.internalName} />;
+const component = (item: JourneySubcategory): ReactElement => {
+  return <>{item.internalName}</>;
 };
 
 /**
- * A crud picker specifically for journey subcategories. When using crud picker
- * directly, it's easy to accidentally make extra requests to the server. This
- * component minimizes the number of requests made.
+ * A crud picker-like component specifically for journey subcategories. When
+ * using crud picker directly, it's easy to accidentally make extra requests to
+ * the server. This component minimizes the number of requests made.
  */
 export const JourneySubcategoryPicker = ({
   query,
@@ -66,15 +65,13 @@ export const JourneySubcategoryPicker = ({
   setSelected,
 }: JourneySubcategoryPickerProps): ReactElement => {
   return (
-    <CrudPicker
+    <CrudDropdown
       path="/api/1/journeys/subcategories/search"
       keyMap={journeySubcategoryKeyMap}
       sort={sort}
-      filterMaker={filterMaker}
       component={component}
-      query={query}
-      setQuery={setQuery}
       setSelected={setSelected}
+      limit={100}
     />
   );
 };
