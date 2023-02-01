@@ -9,6 +9,7 @@ import { useLiveEvents } from './hooks/useLiveEvents';
 import { useProfilePictures } from './hooks/useProfilePictures';
 import { useStats } from './hooks/useStats';
 import styles from './Journey.module.css';
+import assistiveStyles from '../../shared/assistive.module.css';
 import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
 import { JourneyAudio } from './JourneyAudio';
 import { JourneyChat } from './JourneyChat';
@@ -174,6 +175,14 @@ export const Journey = ({
     <div className={styles.container} ref={containerRef}>
       <div className={styles.backgroundImageContainer}>
         {shared.image && <OsehImageFromState {...shared.image} />}
+      </div>
+      <div className={styles.closeButtonContainer}>
+        <div className={styles.closeButtonInnerContainer}>
+          <button type="button" className={styles.close} onClick={onFinished}>
+            <div className={styles.closeIcon} />
+            <div className={assistiveStyles.srOnly}>Close</div>
+          </button>
+        </div>
       </div>
       <div className={styles.innerContainer}>
         <div className={styles.content}>
