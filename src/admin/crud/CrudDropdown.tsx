@@ -209,6 +209,7 @@ export function CrudDropdown<T extends { uid: string }>({
           return;
         }
         setItems(newItems);
+        setChoice(newItems.length > 0 ? newItems[0] : null);
         setFetchedItems(true);
       } catch (e) {
         if (!active) {
