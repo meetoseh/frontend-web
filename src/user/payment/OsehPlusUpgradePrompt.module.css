@@ -13,7 +13,7 @@
 
 .closeButtonContainer {
   position: absolute;
-  top: min(42px, 5vh);
+  top: 16px;
   left: 0;
   width: 100%;
   z-index: 1;
@@ -21,11 +21,10 @@
 
 .closeButtonInnerContainer {
   width: 100%;
-  max-width: 440px;
   margin: 0 auto;
   display: flex;
   flex-direction: row-reverse;
-  padding-right: 32px;
+  padding-right: 16px;
 }
 
 .closeIcon {
