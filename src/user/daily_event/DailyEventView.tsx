@@ -73,7 +73,7 @@ export const DailyEventView = ({
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize });
 
   useEffect(() => {
-    if (windowSize.height < 640) {
+    if (windowSize.height < 720) {
       setItemSize({ width: 198, height: 334 });
     } else {
       setItemSize({ width: 264, height: 446 });
@@ -569,13 +569,27 @@ export const DailyEventView = ({
 
         <div className={styles.chooseForMeContainer}>
           {error && <ErrorBlock>{error}</ErrorBlock>}
-          <Button
-            type="button"
-            variant="filled"
-            disabled={!event.access.startRandom || startingJourney}
-            onClick={onChooseForMe}>
-            {event.journeys.some((j) => j.access.start) ? 'Choose For Me' : 'Start Your Free Class'}
-          </Button>
+          {event.access.startRandom ? (
+            <Button
+              type="button"
+              variant="filled"
+              disabled={!event.access.startRandom || startingJourney}
+              onClick={onChooseForMe}>
+              {event.journeys.some((j) => j.access.start)
+                ? 'Choose For Me'
+                : 'Start Your Free Class'}
+            </Button>
+          ) : (
+            <>
+              <a href="/upgrade" className={styles.upgradeLink}>
+                Upgrade to Oseh+
+              </a>
+              <div className={styles.upgradeChooseForMeText}>
+                You&rsquo;ve used your free class for the day, to continue practicing upgrade to
+                Oseh+.
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
