@@ -14,7 +14,6 @@ import assistiveStyles from '../../shared/assistive.module.css';
 import { apiFetch } from '../../shared/ApiConstants';
 import { NewUserDailyEventInvite } from '../referral/models/NewUserDailyEventInvite';
 import { getDailyEventInvite } from '../referral/lib/getDailyEventInvite';
-import { joinWithCommas } from '../../shared/lib/joinWithCommas';
 import { InviteFallbackPrompt } from '../referral/InviteFallbackPrompt';
 
 /**
