@@ -99,24 +99,6 @@ const newPersistedState = (): FullscreenPersistedState => ({
 });
 
 /**
- * The state we store in sessionStorage
- */
-type FullscreenTemporaryState = {
-  /**
-   * If we prompted them about full screen this session, their answer,
-   * or null if we haven't prompted them yet
-   */
-  fullscreenPromptResponse: boolean | null;
-};
-
-/**
- * The default state if the temporary state is not in sessionStorage
- */
-const newTemporaryState = (): FullscreenTemporaryState => ({
-  fullscreenPromptResponse: null,
-});
-
-/**
  * Provides the FullscreenContext to the children. This requires itself being
  * in a ModalContext, and is not nestable. It uses localStorage to keep track of
  * preferences.
@@ -127,7 +109,6 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
   const [wantsFullscreen, setWantsFullscreen] = useState<boolean>(false);
   const [fullscreenReasons, setFullscreenReasons] = useState<Set<string>>(new Set());
   const [persistedState, setPersistedState] = useState<FullscreenPersistedState | null>(null);
-  const [temporaryState, setTemporaryState] = useState<FullscreenTemporaryState | null>(null);
   const [promptingFullscreen, setPromptingFullscreen] = useState<boolean>(false);
   const fullscreenIsForced = useRef<boolean>(false);
   const attemptedFullscreen = useRef<boolean>(false);
@@ -188,37 +169,6 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
   }, [persistedState]);
 
   useEffect(() => {
-    if (temporaryState !== null) {
-      return;
-    }
-
-    const temporaryStateRaw = sessionStorage.getItem('oseh-fullscreen-temporary');
-    if (temporaryStateRaw === null) {
-      setTemporaryState(newTemporaryState());
-      return;
-    }
-
-    try {
-      const loadedTemporaryState = JSON.parse(temporaryStateRaw) as FullscreenTemporaryState;
-
-      const temporaryState = Object.assign(newTemporaryState(), loadedTemporaryState);
-      setTemporaryState(temporaryState);
-    } catch (e) {
-      console.error(e);
-      setTemporaryState(newTemporaryState());
-    }
-  }, [temporaryState]);
-
-  useEffect(() => {
-    if (temporaryState === null) {
-      return;
-    }
-
-    const temporaryStateRaw = JSON.stringify(temporaryState);
-    sessionStorage.setItem('oseh-fullscreen-temporary', temporaryStateRaw);
-  }, [temporaryState]);
-
-  useEffect(() => {
     const onFullscreenChange = () => {
       setFullscreen(!!document.fullscreenElement);
     };
@@ -276,17 +226,6 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
           newState.fullscreenPermission = 'prompt';
           return newState;
         });
-        setTemporaryState((oldTemporaryState) => {
-          const newState = Object.assign(newTemporaryState(), oldTemporaryState);
-          newState.fullscreenPromptResponse = true;
-          return newState;
-        });
-      } else {
-        setTemporaryState((oldTemporaryState) => {
-          const newState = Object.assign(newTemporaryState(), oldTemporaryState);
-          newState.fullscreenPromptResponse = false;
-          return newState;
-        });
       }
       setPromptingFullscreen(false);
     };
@@ -297,11 +236,6 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
         newState.fullscreenPermission = 'prompt';
         return newState;
       });
-      setTemporaryState((oldTemporaryState) => {
-        const newState = Object.assign(newTemporaryState(), oldTemporaryState);
-        newState.fullscreenPromptResponse = false;
-        return newState;
-      });
       setPromptingFullscreen(false);
     };
 
@@ -309,11 +243,6 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
       setPersistedState((oldPersistedState) => {
         const newState = Object.assign(newPersistedState(), oldPersistedState);
         newState.fullscreenPermission = 'never';
-        return newState;
-      });
-      setTemporaryState((oldTemporaryState) => {
-        const newState = Object.assign(newTemporaryState(), oldTemporaryState);
-        newState.fullscreenPromptResponse = false;
         return newState;
       });
       setPromptingFullscreen(false);
@@ -384,16 +313,6 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
       return;
     }
 
-    // not reliable: depends on user gesture
-    // if (temporaryState?.fullscreenPromptResponse) {
-    //   goFullscreen();
-    //   return;
-    // }
-
-    if (temporaryState?.fullscreenPromptResponse === false) {
-      return;
-    }
-
     if (persistedState?.fullscreenPermission === 'always') {
       goFullscreen();
       return;
@@ -407,7 +326,6 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
   }, [
     fullscreen,
     wantsFullscreen,
-    temporaryState?.fullscreenPromptResponse,
     persistedState?.fullscreenPermission,
     windowSize,
     goFullscreen,
@@ -427,11 +345,6 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
         }
         return newState;
       });
-      setTemporaryState((oldTemporaryState) => {
-        const newState = Object.assign(newTemporaryState(), oldTemporaryState);
-        newState.fullscreenPromptResponse = true;
-        return newState;
-      });
     }
   }, [goFullscreen]);
 
@@ -445,11 +358,6 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
         if (newState.fullscreenPermission === 'always') {
           newState.fullscreenPermission = 'prompt';
         }
-        return newState;
-      });
-      setTemporaryState((oldTemporaryState) => {
-        const newState = Object.assign(newTemporaryState(), oldTemporaryState);
-        newState.fullscreenPromptResponse = true;
         return newState;
       });
     }
