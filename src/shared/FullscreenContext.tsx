@@ -170,13 +170,18 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
   }, [persistedState]);
 
   useEffect(() => {
-    const onFullscreenChange = () => {
-      setFullscreen(!!document.fullscreenElement);
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const recheckFullscreen = () => {
+      setFullscreen(mediaQuery.matches || !!document.fullscreenElement);
     };
 
-    onFullscreenChange();
-    document.addEventListener('fullscreenchange', onFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+    recheckFullscreen();
+    document.addEventListener('fullscreenchange', recheckFullscreen);
+    mediaQuery.addEventListener('change', recheckFullscreen);
+    return () => {
+      document.removeEventListener('fullscreenchange', recheckFullscreen);
+      mediaQuery.removeEventListener('change', recheckFullscreen);
+    };
   }, []);
 
   const goFullscreen = useCallback(async (): Promise<boolean> => {
@@ -314,6 +319,10 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
     }
 
     if (!wantsFullscreen) {
+      if (matchMedia('(display-mode: standalone)').matches) {
+        return;
+      }
+
       exitFullscreen();
       return;
     }
