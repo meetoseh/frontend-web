@@ -112,6 +112,7 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
   const [promptingFullscreen, setPromptingFullscreen] = useState<boolean>(false);
   const fullscreenIsForced = useRef<boolean>(false);
   const attemptedFullscreen = useRef<boolean>(false);
+  const [promptResponse, setPromptResponse] = useState<boolean | null>(null);
   const windowSize = useWindowSize();
 
   const addFullscreenReason = useCallback((uid?: string | undefined): string => {
@@ -226,6 +227,9 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
           newState.fullscreenPermission = 'prompt';
           return newState;
         });
+        setPromptResponse(true);
+      } else {
+        setPromptResponse(false);
       }
       setPromptingFullscreen(false);
     };
@@ -236,6 +240,7 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
         newState.fullscreenPermission = 'prompt';
         return newState;
       });
+      setPromptResponse(false);
       setPromptingFullscreen(false);
     };
 
@@ -245,6 +250,7 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
         newState.fullscreenPermission = 'never';
         return newState;
       });
+      setPromptResponse(false);
       setPromptingFullscreen(false);
     };
 
@@ -313,6 +319,10 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
       return;
     }
 
+    if (promptResponse === false) {
+      return;
+    }
+
     if (persistedState?.fullscreenPermission === 'always') {
       goFullscreen();
       return;
@@ -330,6 +340,7 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
     windowSize,
     goFullscreen,
     exitFullscreen,
+    promptResponse,
     promptingFullscreen,
   ]);
 
