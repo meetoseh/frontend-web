@@ -609,9 +609,9 @@ export const Settings = () => {
         </div>
         <div className={styles.smallLinks}>
           <div className={styles.smallLinkContainer}>
-            <button type="button" className={styles.smallLink} onClick={boundShowNotYetImplemented}>
+            <a href="https://www.oseh.com/privacy" className={styles.smallLink}>
               Privacy Policy
-            </button>
+            </a>
           </div>
 
           <div className={styles.smallLinkContainer}>
