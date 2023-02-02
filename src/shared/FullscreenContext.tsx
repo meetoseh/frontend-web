@@ -174,6 +174,7 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
       setFullscreen(!!document.fullscreenElement);
     };
 
+    onFullscreenChange();
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
@@ -315,7 +316,8 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
       return;
     }
 
-    if (attemptedFullscreen.current || fullscreenIsForced.current) {
+    if (attemptedFullscreen.current || fullscreenIsForced.current || fullscreen) {
+      setPromptingFullscreen(false);
       return;
     }
 
