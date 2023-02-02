@@ -480,7 +480,7 @@ export const DailyEventView = ({
             </div>
             <div className={styles.headerTextContainer}>
               <div className={styles.subheader}>
-                Hi {loginContext.userAttributes?.name ?? ''} 👋
+                Hi {loginContext.userAttributes?.givenName ?? ''} 👋
               </div>
               <div className={styles.header}>Choose today's journey</div>
             </div>
@@ -570,15 +570,15 @@ export const DailyEventView = ({
         <div className={styles.chooseForMeContainer}>
           {error && <ErrorBlock>{error}</ErrorBlock>}
           {event.access.startRandom ? (
-            <Button
+            <button
               type="button"
-              variant="filled"
+              className={styles.chooseForMeButton}
               disabled={!event.access.startRandom || startingJourney}
               onClick={onChooseForMe}>
               {event.journeys.some((j) => j.access.start)
                 ? 'Choose For Me'
                 : 'Start Your Free Class'}
-            </Button>
+            </button>
           ) : (
             <>
               <a href="/upgrade" className={styles.upgradeLink}>
