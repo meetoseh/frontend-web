@@ -7,6 +7,33 @@
   position: relative;
 }
 
+.closeButtonContainer {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: 100%;
+  z-index: 1;
+}
+
+.closeButtonInnerContainer {
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: row-reverse;
+  padding-right: 16px;
+}
+
+.close {
+  composes: unstyled from '../../shared/buttons.module.css';
+}
+
+.closeIcon {
+  composes: icon from '../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('./icons/close.svg');
+}
+
 .innerContainer {
   width: 100%;
   max-width: 438px;

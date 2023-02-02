@@ -1,5 +1,4 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '../../shared/forms/Button';
 import { LoginContext } from '../../shared/LoginContext';
 import { MyProfilePicture } from '../../shared/MyProfilePicture';
 import { OsehImage } from '../../shared/OsehImage';
@@ -12,6 +11,7 @@ import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
 import { JourneyRef, journeyRefKeyMap } from '../journey/JourneyAndJourneyStartShared';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
+import { FullscreenContext } from '../../shared/FullscreenContext';
 
 type DailyEventViewProps = {
   /**
@@ -47,6 +47,7 @@ export const DailyEventView = ({
   setJourney,
 }: DailyEventViewProps): ReactElement => {
   const loginContext = useContext(LoginContext);
+  const fullscreenContext = useContext(FullscreenContext);
   const [loadedImagesByUID, setLoadedImagesByUID] = useState<{ [uid: string]: boolean }>({});
   const [carouselOrder, setCarouselOrder] = useState<number[]>([]);
   const [activeJourney, setActiveJourney] = useState<string>('');
@@ -466,6 +467,19 @@ export const DailyEventView = ({
 
   return (
     <div className={styles.container} ref={containerRef}>
+      {fullscreenContext.fullscreen ? (
+        <div className={styles.closeButtonContainer}>
+          <div className={styles.closeButtonInnerContainer}>
+            <button
+              type="button"
+              className={styles.close}
+              onClick={fullscreenContext.exitFullscreen}>
+              <div className={styles.closeIcon} />
+              <div className={assistiveStyles.srOnly}>Close</div>
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className={styles.innerContainer}>
         <a href="/settings" className={styles.headerLink}>
           <div className={styles.headerContainer}>

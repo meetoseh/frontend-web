@@ -17,12 +17,15 @@ import {
 import { useFonts } from '../shared/lib/useFonts';
 import { JourneyPostScreen } from './journey/JourneyPostScreen';
 import { JourneyShareScreen } from './journey/JourneyShareScreen';
+import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenContext';
 
 export default function UserApp(): ReactElement {
   return (
     <LoginProvider>
       <ModalProvider>
-        <UserAppInner />
+        <FullscreenProvider>
+          <UserAppInner />
+        </FullscreenProvider>
       </ModalProvider>
     </LoginProvider>
   );
@@ -37,6 +40,7 @@ const requiredFonts = [
 
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
+  const fullscreenContext = useContext(FullscreenContext);
   const [desiredState, setDesiredState] = useState<
     'current-daily-event' | 'journey' | 'start-journey' | 'post-journey' | 'share-journey'
   >('current-daily-event');
@@ -183,6 +187,14 @@ const UserAppInner = (): ReactElement => {
     requestNameLoaded,
     handlingCheckout,
   ]);
+
+  useEffect(() => {
+    const uid = fullscreenContext.addFullscreenReason.bind(undefined)();
+
+    return () => {
+      fullscreenContext.removeFullscreenReason.bind(undefined)(uid);
+    };
+  }, [fullscreenContext.addFullscreenReason, fullscreenContext.removeFullscreenReason]);
 
   const wrappedSetJourney = useCallback((journey: JourneyRef) => {
     setJourneyLoaded(false);
