@@ -190,9 +190,16 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
           navigationUI: 'hide',
         });
       } else if ((document.documentElement as any)['webkitRequestFullscreen']) {
-        await (document.documentElement as any)['webkitRequestFullscreen']({
+        const result = (document.documentElement as any)['webkitRequestFullscreen']({
           navigationUI: 'hide',
         });
+        if (result instanceof Promise) {
+          await result;
+        } else {
+          // Partial support: we don't get to know when they provided an answer; assume
+          // success
+          return true;
+        }
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
       return !!document.fullscreenElement;
