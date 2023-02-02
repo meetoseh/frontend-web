@@ -185,9 +185,15 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
       if (document.fullscreenElement) {
         return true;
       }
-      await document.documentElement.requestFullscreen({
-        navigationUI: 'hide',
-      });
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen({
+          navigationUI: 'hide',
+        });
+      } else if ((document.documentElement as any)['webkitRequestFullscreen']) {
+        await (document.documentElement as any)['webkitRequestFullscreen']({
+          navigationUI: 'hide',
+        });
+      }
       await new Promise((resolve) => setTimeout(resolve, 100));
       return !!document.fullscreenElement;
     } catch (e) {
@@ -280,7 +286,8 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
     if (
       !window.document ||
       !document.documentElement ||
-      !document.documentElement.requestFullscreen
+      (!document.documentElement.requestFullscreen &&
+        !(document.documentElement as any)['webkitRequestFullscreen'])
     ) {
       return;
     }
@@ -309,7 +316,7 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
     }
 
     // don't fullscreen on large screens it doesn't help
-    if (windowSize.width > 600 && windowSize.height > 900) {
+    if (windowSize.width > 600 && windowSize.height > 844) {
       if (fullscreen) {
         exitFullscreen();
       }
