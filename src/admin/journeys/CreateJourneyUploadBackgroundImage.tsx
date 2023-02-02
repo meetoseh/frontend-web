@@ -269,8 +269,8 @@ export const CreateJourneyUploadBackgroundImage = ({
         </ol>
 
         <p>
-          The minimum resolution is 1920x1920, to accomodate 1920x1080 desktop and 1080x1920 share
-          to instagram. The highest quality available image should be uploaded to minimize
+          The minimum resolution is 1920x2745, to accomodate 1920x1080 desktop and 1242x2745 3x
+          mobile portrait mode. The highest quality available image should be uploaded to minimize
           compression artifacts.
         </p>
       </div>
