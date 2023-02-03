@@ -33,12 +33,14 @@ export const TestLogin = (): ReactElement => {
           throw response;
         }
 
-        const data: { id_token: string; refresh_token: string } = await response.json();
+        const data: { id_token: string; refresh_token: string; onboard: boolean } =
+          await response.json();
         window.location.href =
           '/#' +
           new URLSearchParams({
             id_token: data.id_token,
             refresh_token: data.refresh_token,
+            ...(data.onboard ? { onboard: '1' } : {}),
           }).toString();
       } catch (e) {
         console.error(e);

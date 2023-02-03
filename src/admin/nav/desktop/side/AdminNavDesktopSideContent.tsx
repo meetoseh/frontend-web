@@ -58,6 +58,12 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/dev_journey"
             active={currentPath === '/admin/dev_journey'}
           />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconIntroductoryJourneys}
+            text="Introductory Journeys"
+            url="/admin/journeys/intro"
+            active={currentPath === '/admin/journeys/intro'}
+          />
         </div>
         <div className={styles.userCardContainer}>
           <MyProfilePicture />
