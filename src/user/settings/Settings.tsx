@@ -39,10 +39,6 @@ export const Settings = () => {
   const [preloadedInvite, setPreloadedInvite] = useState<NewUserDailyEventInvite | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
 
-  const boundShowNotYetImplemented = useCallback(() => {
-    setError(<>That's not implemented yet, but we're working on it!</>);
-  }, []);
-
   const boundShowDeleteConfirmInitialPrompt = useCallback(() => {
     setShowDeleteConfirmInitialPrompt(true);
   }, []);
@@ -615,9 +611,9 @@ export const Settings = () => {
           </div>
 
           <div className={styles.smallLinkContainer}>
-            <button type="button" className={styles.smallLink} onClick={boundShowNotYetImplemented}>
+            <a href="https://www.oseh.com/terms" className={styles.smallLink}>
               Terms & Conditions
-            </button>
+            </a>
           </div>
 
           {havePro ? (
