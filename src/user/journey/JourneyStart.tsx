@@ -76,7 +76,7 @@ export const JourneyStart = ({ journey, shared, onStart }: JourneyStartProps): R
         setError(err);
       }
     },
-    [loginContext]
+    [loginContext, journey.uid]
   );
 
   useEffect(() => {
@@ -123,7 +123,7 @@ export const JourneyStart = ({ journey, shared, onStart }: JourneyStartProps): R
         </ModalWrapper>
       );
     }
-  }, [invite]);
+  }, [invite, journey.category, loginContext, modalContext.setModals]);
 
   return (
     <div className={styles.container} ref={containerRef}>

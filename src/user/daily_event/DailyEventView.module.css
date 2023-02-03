@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   position: fixed;
   left: 0;
   top: 0;
@@ -38,22 +39,25 @@
 }
 
 .innerContainer {
+  padding: 0;
   width: 100%;
-  max-width: 438px;
-  padding: 0 0 0 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
 }
 
 .headerLink {
-  position: absolute;
-  top: 24px;
-  left: 40px;
-  width: calc(100% - 40px);
   display: flex;
   justify-content: flex-start;
   align-items: center;
   cursor: pointer;
-  z-index: 1;
   text-decoration: none;
+  max-width: 438px;
+  width: 100%;
+  padding: 24px 0 0 26px;
+  margin: 0 auto;
 }
 
 .headerContainer {
@@ -63,18 +67,9 @@
   align-items: center;
 }
 
-@media screen and (min-height: 750px) {
-  .headerLink {
-    top: calc(50% - 320px);
-  }
-}
-
-@media screen and (min-width: 992px) {
-  .headerLink {
-    left: calc(50% - 200px);
-    width: auto;
-    justify-content: center;
-  }
+.headerProfileOuterContainer {
+  padding: 4px;
+  margin-right: 15px;
 }
 
 .headerProfileContainer {
@@ -83,7 +78,6 @@
   border-radius: 50%;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.82);
-  margin-right: 15px;
 }
 
 .subheader {
@@ -105,34 +99,20 @@
 }
 
 .journeyCarouselContainer {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
   overflow-x: hidden;
 
   display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-@media screen and (min-height: 720px) and (max-height: 750px) {
-  .journeyCarouselContainer {
-    padding-bottom: 30px;
-  }
-}
-
-@media screen and (max-height: 629px) {
-  .journeyCarouselContainer {
-    padding-bottom: 40px;
-  }
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .journeyCarousel {
   display: flex;
   flex-flow: row nowrap;
-  margin-left: -20px;
+  justify-content: flex-start;
+  align-items: flex-end;
+
   transition: transform 0.35s ease-in-out;
 
   -webkit-user-select: none;
@@ -146,16 +126,10 @@
 
 .journeyContainer {
   composes: unstyled from '../../shared/buttons.module.css';
-  margin-left: 20px;
   box-shadow: 0px 4px 4px 4px rgba(0, 0, 0, 0.1);
   border-radius: 20px;
   overflow: hidden;
-  width: 264px;
-  height: 450px;
-  margin-bottom: -14px;
-  /* 4px for box shadow, 10px to split the active "pop" evenly */
-  margin-top: 0;
-  transition: margin 0.35s ease-in-out;
+  transition: transform 0.35s ease-in-out;
   position: relative;
   text-decoration: none;
 }
@@ -205,13 +179,13 @@
 
 .journeyInfoContainer {
   position: absolute;
-  top: 0;
+  top: 60%;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 40%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: stretch;
   padding: 0 20px;
 }
@@ -249,21 +223,15 @@
   text-align: center;
 }
 
-.active {
-  margin-top: -21px;
-}
-
 .chooseForMeContainer {
-  position: absolute;
-  top: calc(50% + 235px);
-  left: 0;
   width: 100%;
   display: flex;
   flex-flow: column;
   align-items: center;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
-.upgradeLink,
 .chooseForMeButton {
   composes: unstyled from '../../shared/buttons.module.css';
   text-decoration: none;
@@ -288,46 +256,27 @@
   letter-spacing: 0.25px;
 }
 
-.upgradeChooseForMeText {
-  margin: 24px auto 0 auto;
+.upgradeLink {
+  composes: unstyled from '../../shared/buttons.module.css';
+  text-decoration: none;
   color: white;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  height: 56px;
+  width: 100%;
+  background: none;
+  box-shadow: none;
+  border: 2px solid white;
+  border-radius: 100px;
+  max-width: 360px;
+
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 12px;
-  line-height: 20px;
-  text-align: center;
-  letter-spacing: 0.15px;
-  max-width: 240px;
-}
-
-@media screen and (min-height: 750px) {
-  .chooseForMeContainer {
-    top: calc(50% + 300px);
-  }
-}
-
-@media screen and (max-height: 719px) {
-  .journeyContainer {
-    width: 198px;
-    height: 334px;
-    position: relative;
-  }
-
-  .journeyInfoContainer {
-    position: absolute;
-    display: block;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .chooseForMeContainer {
-    top: unset;
-    bottom: 20px;
-  }
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
 }

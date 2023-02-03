@@ -119,7 +119,7 @@ export const CurrentDailyEventLoader = ({
         setError(err);
       }
     }
-  }, [loginContext, jwtIsExpired, dailyEvent]);
+  }, [loginContext, jwtIsExpired, dailyEvent, setJourney]);
 
   useEffect(() => {
     if (dailyEvent === null) {
