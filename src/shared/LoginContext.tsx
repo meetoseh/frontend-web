@@ -278,6 +278,12 @@ const isTokenFresh = (token: TokenResponseConfig): boolean => {
   return claims.exp * 1000 > minExpTime;
 };
 
+/**
+ * Determines if it's possible to refresh the id token in the given response
+ *
+ * @param token The token to check
+ * @returns True if the token is refreshable, false otherwise
+ */
 const isRefreshable = (token: TokenResponseConfig): boolean => {
   if (token.refreshToken === null) {
     return false;
@@ -300,6 +306,13 @@ const isRefreshable = (token: TokenResponseConfig): boolean => {
   return refreshable;
 };
 
+/**
+ * Attempts to refresh the given tokens, returning the new tokens on success
+ * and rejecting the promise on failure.
+ *
+ * @param oldTokens The tokens to refresh
+ * @returns The new tokens
+ */
 const refreshTokens = async (oldTokens: TokenResponseConfig): Promise<TokenResponseConfig> => {
   const response = await apiFetch(
     '/api/1/oauth/refresh',
@@ -324,6 +337,97 @@ const refreshTokens = async (oldTokens: TokenResponseConfig): Promise<TokenRespo
     idToken: data.id_token,
     refreshToken: data.refresh_token,
   };
+};
+
+/**
+ * web-only; determines the appropriate event and state key to use for
+ * checking visibility, if one exists
+ */
+const getVisibilityKeys = (): {
+  visibilityChange: string;
+  hidden: string & keyof Document;
+} | null => {
+  let visibilityEventKey: string | null = null;
+  let visibilityStateKey: keyof Document | null = null;
+  for (let [stateKey, eventKey] of [
+    ['hidden', 'visibilitychange'],
+    ['webkitHidden', 'webkitvisibilitychange'],
+    ['mozHidden', 'mozvisibilitychange'],
+    ['msHidden', 'msvisibilitychange'],
+  ]) {
+    if (stateKey in document) {
+      visibilityEventKey = eventKey;
+      visibilityStateKey = stateKey as keyof Document;
+      return {
+        visibilityChange: visibilityEventKey,
+        hidden: visibilityStateKey,
+      };
+    }
+  }
+  return null;
+};
+
+/**
+ * Determines if it's possible to check if the tab is active / we're in the
+ * foreground, or some good enough proxy.
+ *
+ * @returns True if we can check if we're in the foreground, false otherwise
+ */
+const canCheckForegrounded = async () => {
+  return getVisibilityKeys() !== null;
+};
+
+/**
+ * Checks if we're currently foregrounded. The behavior of this function
+ * if canCheckForegrounded returns false is undefined.
+ *
+ * @returns True if we're foregrounded, false otherwise
+ */
+const isForegrounded = async () => {
+  const keys = getVisibilityKeys();
+  if (keys === null) {
+    throw new Error('Cannot check foregrounded state');
+  }
+
+  return !document[keys.hidden];
+};
+
+type ForegroundChangedIdentifier = () => void;
+
+/**
+ * Adds the given listener to be called when the foregrounded state changes.
+ * The behavior of this function if canCheckForegrounded returns false is
+ * undefined.
+ *
+ * @param listener The listener to add
+ * @returns The thing to pass to removeForegroundChangedListener to remove
+ */
+const addForegroundChangedListener = async (
+  listener: () => void
+): Promise<ForegroundChangedIdentifier> => {
+  const keys = getVisibilityKeys();
+  if (keys === null) {
+    throw new Error('Cannot check foregrounded state');
+  }
+
+  document.addEventListener(keys.visibilityChange, listener);
+  return listener;
+};
+
+/**
+ * Removes the given listener from the foregrounded state change listeners.
+ * The behavior of this function if canCheckForegrounded returns false is
+ * undefined.
+ *
+ * @param listener The listener to remove
+ */
+const removeForegroundChangedListener = async (listener: ForegroundChangedIdentifier) => {
+  const keys = getVisibilityKeys();
+  if (keys === null) {
+    throw new Error('Cannot check foregrounded state');
+  }
+
+  document.removeEventListener(keys.visibilityChange, listener);
 };
 
 /**
@@ -466,23 +570,8 @@ export const LoginProvider = ({
   }, []);
 
   useEffect(() => {
-    let visibilityEventKey: string | null = null;
-    let visibilityStateKey: keyof Document | null = null;
-    for (let [stateKey, eventKey] of [
-      ['hidden', 'visibilitychange'],
-      ['webkitHidden', 'webkitvisibilitychange'],
-      ['mozHidden', 'mozvisibilitychange'],
-      ['msHidden', 'msvisibilitychange'],
-    ]) {
-      if (stateKey in document) {
-        visibilityEventKey = eventKey;
-        visibilityStateKey = stateKey as keyof Document;
-        break;
-      }
-    }
-
     let timeout: NodeJS.Timeout | null = null;
-    let visibilityHandler: (() => void) | null = null;
+    let visibilityHandler: ForegroundChangedIdentifier | null = null;
     if (authTokens !== null) {
       const idenClaimsB64 = authTokens.idToken.split('.')[1];
       const idenClaimsJson = Buffer.from(idenClaimsB64, 'base64').toString('utf8');
@@ -505,7 +594,7 @@ export const LoginProvider = ({
       }
 
       if (visibilityHandler !== null) {
-        document.removeEventListener(visibilityEventKey!, visibilityHandler);
+        removeForegroundChangedListener(visibilityHandler);
       }
     };
 
@@ -516,18 +605,15 @@ export const LoginProvider = ({
 
       timeout = null;
       if (visibilityHandler !== null) {
-        document.removeEventListener(visibilityEventKey!, visibilityHandler);
+        removeForegroundChangedListener(visibilityHandler);
         visibilityHandler = null;
       }
 
-      if (
-        visibilityStateKey !== null &&
-        visibilityEventKey !== null &&
-        document[visibilityStateKey]
-      ) {
-        visibilityHandler = onExpired;
-        document.addEventListener(visibilityEventKey, visibilityHandler);
-        return;
+      if (await canCheckForegrounded()) {
+        if (!(await isForegrounded())) {
+          visibilityHandler = await addForegroundChangedListener(onExpired);
+          return;
+        }
       }
 
       await acquireLockAndHandleExpired();
