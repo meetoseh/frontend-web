@@ -21,6 +21,11 @@ export type JourneyBackgroundImage = {
   blurredImageFile: OsehImageRef;
 
   /**
+   * A reference to the darkened image file
+   */
+  darkenedImageFile: OsehImageRef;
+
+  /**
    * When the image file was first created
    */
   imageFileCreatedAt: Date;

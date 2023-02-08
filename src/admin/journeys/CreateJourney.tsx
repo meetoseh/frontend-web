@@ -47,6 +47,9 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
   const [backgroundImage, setBackgroundImage] = useState<JourneyBackgroundImage | null>(null);
   const [showAddBackgroundImageModal, setShowAddBackgroundImageModal] = useState(false);
   const [showChooseBackgroundImageModal, setShowChooseBackgroundImageModal] = useState(false);
+  const [backgroundImagePreviewType, setBackgroundImagePreviewType] = useState<
+    'original' | 'darkened' | 'blurred'
+  >('darkened');
   const [subcategory, setSubcategory] = useState<JourneySubcategory | null>(null);
   const [subcategoryQuery, setSubcategoryQuery] = useState('');
   const [instructor, setInstructor] = useState<Instructor | null>(null);
@@ -200,6 +203,18 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
     );
   }, [showAddBackgroundImageModal, modalContext.setModals]);
 
+  const onBackgroundImagePreviewTypeChanged = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const type = e.target.value;
+      if (type !== 'original' && type !== 'darkened' && type !== 'blurred') {
+        throw new Error(`Invalid preview type: ${type}`);
+      }
+
+      setBackgroundImagePreviewType(type);
+    },
+    []
+  );
+
   const onSubcategorySelected = useCallback((subcat: JourneySubcategory) => {
     setSubcategory(subcat);
     setSubcategoryQuery('');
@@ -209,6 +224,15 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
     setInstructor(instr);
     setInstructorQuery('');
   }, []);
+
+  const previewImage =
+    backgroundImage === null
+      ? null
+      : {
+          original: backgroundImage.imageFile,
+          darkened: backgroundImage.darkenedImageFile,
+          blurred: backgroundImage.blurredImageFile,
+        }[backgroundImagePreviewType];
 
   return (
     <CrudCreateBlock>
@@ -250,59 +274,53 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
           )}
         </CrudFormElement>
         <CrudFormElement title="Background Image">
-          {backgroundImage !== null ? (
-            <div className={styles.selectedContainer}>
-              <div>
-                <OsehImage
-                  uid={backgroundImage.imageFile.uid}
-                  jwt={backgroundImage.imageFile.jwt}
-                  displayWidth={180}
-                  displayHeight={368}
-                  alt="Mobile Preview"
-                />
+          {previewImage !== null ? (
+            <>
+              <div className={styles.previewTypeContainer}>
+                <select
+                  className={styles.previewType}
+                  value={backgroundImagePreviewType}
+                  onChange={onBackgroundImagePreviewTypeChanged}>
+                  <option value="original">Original</option>
+                  <option value="darkened">Darkened</option>
+                  <option value="blurred">Blurred</option>
+                </select>
               </div>
-              <div>
-                <OsehImage
-                  uid={backgroundImage.imageFile.uid}
-                  jwt={backgroundImage.imageFile.jwt}
-                  displayWidth={270}
-                  displayHeight={480}
-                  alt="Share to Instagram Preview"
-                />
+              <div className={styles.selectedContainer}>
+                <div>
+                  <OsehImage
+                    uid={previewImage.uid}
+                    jwt={previewImage.jwt}
+                    displayWidth={180}
+                    displayHeight={368}
+                    alt="Mobile Preview"
+                  />
+                </div>
+                <div>
+                  <OsehImage
+                    uid={previewImage.uid}
+                    jwt={previewImage.jwt}
+                    displayWidth={270}
+                    displayHeight={480}
+                    alt="Share to Instagram Preview"
+                  />
+                </div>
+                <div>
+                  <OsehImage
+                    uid={previewImage.uid}
+                    jwt={previewImage.jwt}
+                    displayWidth={480}
+                    displayHeight={270}
+                    alt="Desktop Preview"
+                  />
+                </div>
+                <div>
+                  <Button type="button" variant="outlined" onClick={() => setBackgroundImage(null)}>
+                    Clear
+                  </Button>
+                </div>
               </div>
-              <div>
-                <OsehImage
-                  uid={backgroundImage.imageFile.uid}
-                  jwt={backgroundImage.imageFile.jwt}
-                  displayWidth={480}
-                  displayHeight={270}
-                  alt="Desktop Preview"
-                />
-              </div>
-              <div>
-                <OsehImage
-                  uid={backgroundImage.blurredImageFile.uid}
-                  jwt={backgroundImage.blurredImageFile.jwt}
-                  displayWidth={180}
-                  displayHeight={368}
-                  alt="Blurred Mobile Preview"
-                />
-              </div>
-              <div>
-                <OsehImage
-                  uid={backgroundImage.blurredImageFile.uid}
-                  jwt={backgroundImage.blurredImageFile.jwt}
-                  displayWidth={480}
-                  displayHeight={270}
-                  alt="Blurred Desktop Preview"
-                />
-              </div>
-              <div>
-                <Button type="button" variant="outlined" onClick={() => setBackgroundImage(null)}>
-                  Clear
-                </Button>
-              </div>
-            </div>
+            </>
           ) : (
             <div className={styles.chooseOrAddContainer}>
               <div>

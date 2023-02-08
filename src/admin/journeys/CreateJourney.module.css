@@ -50,3 +50,13 @@
   border-radius: 50%;
   overflow: hidden;
 }
+
+.previewTypeContainer {
+  margin: 4px 0;
+  width: 100%;
+}
+
+.previewType {
+  composes: sortSelect from '../crud/standard.module.css';
+  max-width: 200px;
+}

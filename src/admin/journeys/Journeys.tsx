@@ -22,6 +22,7 @@ export const keyMap: CrudFetcherKeyMap<Journey> = {
   audio_content: 'audioContent',
   background_image: 'backgroundImage',
   blurred_background_image: 'blurredBackgroundImage',
+  darkened_background_image: 'darkenedBackgroundImage',
   subcategory: (_, val) => ({
     key: 'subcategory',
     value: convertUsingKeymap(val, journeySubcategoryKeyMap),

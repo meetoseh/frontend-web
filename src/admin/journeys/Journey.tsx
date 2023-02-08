@@ -38,6 +38,14 @@ export type Journey = {
   };
 
   /**
+   * A reference to the image file containing the darkened background image for the journey
+   */
+  darkenedBackgroundImage: {
+    uid: string;
+    jwt: string;
+  };
+
+  /**
    * The subcategory of the journey
    */
   subcategory: JourneySubcategory;

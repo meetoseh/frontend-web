@@ -13,6 +13,7 @@ export const path = '/api/1/journeys/background_images/search';
 export const keyMap: CrudFetcherKeyMap<JourneyBackgroundImage> = {
   image_file: 'imageFile',
   blurred_image_file: 'blurredImageFile',
+  darkened_image_file: 'darkenedImageFile',
   image_file_created_at: (_, val) => ({ key: 'imageFileCreatedAt', value: new Date(val * 1000) }),
   uploaded_by_user_sub: 'uploadedByUserSub',
   last_uploaded_at: (_, val) => ({
