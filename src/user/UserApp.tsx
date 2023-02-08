@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { LoginContext, LoginProvider } from '../shared/LoginContext';
 import { ModalProvider } from '../shared/ModalContext';
 import { CurrentDailyEventLoader } from './daily_event/CurrentDailyEventLoader';
@@ -13,11 +13,13 @@ import { JourneyStart } from './journey/JourneyStart';
 import {
   useJourneyAndJourneyStartShared,
   JourneyRef,
+  journeyRefKeyMap,
 } from './journey/JourneyAndJourneyStartShared';
 import { useFonts } from '../shared/lib/useFonts';
 import { JourneyPostScreen } from './journey/JourneyPostScreen';
 import { JourneyShareScreen } from './journey/JourneyShareScreen';
 import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenContext';
+import { convertUsingKeymap } from '../admin/crud/CrudFetcher';
 
 export default function UserApp(): ReactElement {
   return (
@@ -42,7 +44,12 @@ const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const fullscreenContext = useContext(FullscreenContext);
   const [desiredState, setDesiredState] = useState<
-    'current-daily-event' | 'journey' | 'start-journey' | 'post-journey' | 'share-journey'
+    | 'current-daily-event'
+    | 'onboard'
+    | 'journey'
+    | 'start-journey'
+    | 'post-journey'
+    | 'share-journey'
   >('current-daily-event');
   const [needRequestName, setNeedRequestName] = useState(false);
   const [state, setState] = useState<
@@ -146,6 +153,65 @@ const UserAppInner = (): ReactElement => {
     );
   }, [loginContext]);
 
+  const gettingOnboardingJourneyRef = useRef(false);
+  useEffect(() => {
+    if (gettingOnboardingJourneyRef.current) {
+      return;
+    }
+
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    if (desiredState !== 'current-daily-event' && desiredState !== 'onboard') {
+      return;
+    }
+
+    const onboard = desiredState === 'onboard' || localStorage.getItem('onboard') === '1';
+    if (!onboard) {
+      return;
+    }
+
+    setDesiredState('onboard');
+    getOnboardingJourney();
+    return;
+
+    async function getOnboardingJourney() {
+      gettingOnboardingJourneyRef.current = true;
+      try {
+        const response = await apiFetch(
+          '/api/1/users/me/start_introductory_journey',
+          {
+            method: 'POST',
+          },
+          loginContext
+        );
+        if (!response.ok) {
+          throw response;
+        }
+
+        const data = await response.json();
+
+        const journey = convertUsingKeymap(data, journeyRefKeyMap);
+        setJourney(journey);
+        setJourneyLoaded(false);
+        setDesiredState('start-journey');
+      } catch (e) {
+        if (!(e instanceof TypeError)) {
+          console.error('Error getting onboarding journey, falling back to current daily event', e);
+          localStorage.removeItem('onboard');
+          setDesiredState('current-daily-event');
+        } else {
+          console.error(
+            'Error getting onboarding journey; appears as TypeError, assuming page navigation'
+          );
+        }
+      } finally {
+        gettingOnboardingJourneyRef.current = false;
+      }
+    }
+  }, [loginContext, desiredState]);
+
   useEffect(() => {
     if (loginContext.state === 'loading' || !fontsLoaded || handlingCheckout) {
       setState('loading');
@@ -172,6 +238,11 @@ const UserAppInner = (): ReactElement => {
     }
 
     if (['journey', 'start-journey'].indexOf(desiredState) >= 0 && !journeyLoaded) {
+      setState('loading');
+      return;
+    }
+
+    if (desiredState === 'onboard') {
       setState('loading');
       return;
     }

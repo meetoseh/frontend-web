@@ -1,7 +1,7 @@
 import UserApp from './user/UserApp';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AdminApp, AdminRoutes } from './admin/AdminApp';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   extractUserAttributes,
   LoginProvider,
@@ -18,9 +18,12 @@ import { SplashScreen } from './user/splash/SplashScreen';
 import { HandleDailyEventUserInviteScreen } from './user/referral/HandleDailyEventUserInviteScreen';
 
 function App() {
+  const [handlingLogin, setHandlingLogin] = useState(true);
+
   useEffect(() => {
     const fragment = window.location.hash;
     if (fragment === '') {
+      setHandlingLogin(false);
       return;
     }
 
@@ -32,17 +35,26 @@ function App() {
     }
 
     if (!args.has('id_token')) {
+      setHandlingLogin(false);
       return;
     }
 
     const idToken = args.get('id_token');
     const refreshToken = args.get('refresh_token');
+    const onboard = args.get('onboard') === '1';
     if (idToken === null) {
+      setHandlingLogin(false);
       return;
     }
 
     const tokens: TokenResponseConfig = { idToken, refreshToken };
     const userAttributes = extractUserAttributes(tokens);
+
+    if (onboard) {
+      localStorage.setItem('onboard', '1');
+    } else {
+      localStorage.removeItem('onboard');
+    }
 
     (async () => {
       await Promise.all([storeAuthTokens(tokens), storeUserAttributes(userAttributes)]);
@@ -57,6 +69,10 @@ function App() {
       window.location.hash = '';
     })();
   }, []);
+
+  if (handlingLogin) {
+    return <SplashScreen type="wordmark" />;
+  }
 
   return (
     <BrowserRouter>

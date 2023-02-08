@@ -44,6 +44,10 @@ export const JourneyPostScreen = ({
   const [reviewResponse, setReviewResponse] = useState<boolean | null>(null);
 
   useEffect(() => {
+    localStorage.removeItem('onboard');
+  }, []);
+
+  useEffect(() => {
     if (loginContext.state !== 'logged-in') {
       return;
     }
