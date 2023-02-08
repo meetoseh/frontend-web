@@ -12,3 +12,8 @@
   composes: icon from '../../shared/icons.module.css';
   background-image: url('./icons/check.svg');
 }
+
+.delete {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/delete.svg');
+}
