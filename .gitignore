@@ -32,3 +32,4 @@ tmp
 
 # dev
 dev*.bat
+/*.pem

@@ -122,9 +122,16 @@ export type JourneyRef = {
   durationSeconds: number;
 
   /**
-   * The image to show as the background of the journey
+   * The background image to the journey prior to applying filters; we don't use this,
+   * but it's helpful for trying out new features (such as a different darkening/blur
+   * algorithm)
    */
   backgroundImage: OsehImageRef;
+
+  /**
+   * The image to show as the background of the journey
+   */
+  darkenedBackgroundImage: OsehImageRef;
 
   /**
    * The image to show as the blurred version of the background of the journey
@@ -190,6 +197,7 @@ export const journeyRefKeyMap: CrudFetcherKeyMap<JourneyRef> = {
   session_uid: 'sessionUid',
   duration_seconds: 'durationSeconds',
   background_image: 'backgroundImage',
+  darkened_background_image: 'darkenedBackgroundImage',
   blurred_background_image: 'blurredBackgroundImage',
   audio_content: 'audioContent',
   category: (_, val) => ({
@@ -205,10 +213,15 @@ export const journeyRefKeyMap: CrudFetcherKeyMap<JourneyRef> = {
  * to reduce unnecessary network requests.
  */
 export type JourneyAndJourneyStartShared = {
+  /** As if from useWindowSize */
   windowSize: { width: number; height: number };
+  /** This is actually the darkened image, since we don't need the original */
   image: OsehImageState | null;
+  /** If we're still loading the darkened image */
   imageLoading: boolean;
+  /** The blurred image so the share screen comes up quick */
   blurredImage: OsehImageState | null;
+  /** If we're still loading the blurred image */
   blurredImageLoading: boolean;
 };
 
@@ -228,8 +241,8 @@ export const useJourneyAndJourneyStartShared = (
   });
   const [imageLoading, setImageLoading] = useState(true);
   const image = useOsehImageState({
-    uid: journey?.backgroundImage?.uid ?? null,
-    jwt: journey?.backgroundImage?.jwt ?? null,
+    uid: journey?.darkenedBackgroundImage?.uid ?? null,
+    jwt: journey?.darkenedBackgroundImage?.jwt ?? null,
     displayWidth: windowSize.width,
     displayHeight: windowSize.height,
     alt: '',

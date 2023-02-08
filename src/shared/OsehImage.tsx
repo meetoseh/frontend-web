@@ -148,7 +148,7 @@ const USES_WEBP: Promise<boolean> = (async () => {
 })();
 
 /**
- * The required state informaiton to display an oseh image. Useful when you want
+ * The required state information to display an oseh image. Useful when you want
  * to use a single image in multiple places, as the standard OsehImage component
  * will refetch the image state every time
  */
