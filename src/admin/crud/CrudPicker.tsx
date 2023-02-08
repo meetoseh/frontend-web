@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { CrudFetcher, CrudFetcherFilter, CrudFetcherKeyMap, CrudFetcherSort } from './CrudFetcher';
 import styles from './CrudPicker.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
@@ -186,6 +186,13 @@ export function CrudPicker<T extends { uid: string }>({
     };
   }, []);
 
+  const onInputChanged = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setQuery(e.target.value);
+    },
+    [setQuery]
+  );
+
   return (
     <div ref={containerRef} className={`${styles.container} ${styles[`variant-${variant}`]}`}>
       <div className={styles.iconAndInput}>
@@ -197,7 +204,7 @@ export function CrudPicker<T extends { uid: string }>({
           type="text"
           className={styles.input}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={onInputChanged}
           placeholder="Enter a query..."
           disabled={disabled}
           ref={inputRef}

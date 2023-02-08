@@ -1,0 +1,9 @@
+.journeyPickerContainer {
+  margin: 6px 0 24px 0;
+}
+
+.journeyPickedContainer {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+}

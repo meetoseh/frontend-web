@@ -32,6 +32,12 @@ type JourneyPickerProps = {
   filterInEvent?: boolean;
 
   /**
+   * If true, only show journeys that are not already marked introductory
+   * @default false
+   */
+  filterIsIntroductory?: boolean;
+
+  /**
    * If true the picker is disabled
    * @default false
    */
@@ -49,7 +55,11 @@ const sort: CrudFetcherSort = [{ key: 'title', dir: 'asc', before: null, after: 
  * @param query The query to filter by
  * @returns The filter to use
  */
-const generalFilterMaker = (filterInEvent: boolean, query: string): CrudFetcherFilter => {
+const generalFilterMaker = (
+  filterInEvent: boolean,
+  filterIsIntroductory: boolean,
+  query: string
+): CrudFetcherFilter => {
   const res: CrudFetcherFilter = {
     title: {
       operator: 'ilike',
@@ -62,6 +72,12 @@ const generalFilterMaker = (filterInEvent: boolean, query: string): CrudFetcherF
   };
   if (filterInEvent) {
     res.daily_event_uid = {
+      operator: 'eq',
+      value: null,
+    };
+  }
+  if (filterIsIntroductory) {
+    res.introductory_journey_uid = {
       operator: 'eq',
       value: null,
     };
@@ -89,11 +105,12 @@ export const JourneyPicker = ({
   setQuery,
   setSelected,
   filterInEvent = false,
+  filterIsIntroductory = false,
   disabled = false,
 }: JourneyPickerProps): ReactElement => {
   const filterMaker = useMemo(
-    () => generalFilterMaker.bind(undefined, filterInEvent),
-    [filterInEvent]
+    () => generalFilterMaker.bind(undefined, filterInEvent, filterIsIntroductory),
+    [filterInEvent, filterIsIntroductory]
   );
   return (
     <CrudPicker
