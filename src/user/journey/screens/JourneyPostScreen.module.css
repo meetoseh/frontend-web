@@ -51,14 +51,14 @@
 }
 
 .close {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
 }
 
 .closeIcon {
-  composes: icon from '../../shared/icons.module.css';
+  composes: icon from '../../../shared/icons.module.css';
   width: 24px;
   height: 24px;
-  background-image: url('./icons/close.svg');
+  background-image: url('../icons/close.svg');
 }
 
 .primaryContainer {
@@ -134,7 +134,7 @@
 
 .reviewUp,
 .reviewDown {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
   width: 32px;
   height: 32px;
   opacity: 50%;
@@ -145,11 +145,11 @@
 }
 
 .reviewUp {
-  background-image: url('./icons/reviewUp.svg');
+  background-image: url('../icons/reviewUp.svg');
 }
 
 .reviewDown {
-  background-image: url('./icons/reviewUp.svg');
+  background-image: url('../icons/reviewUp.svg');
   transform: scale(-1);
 }
 
@@ -158,7 +158,7 @@
 }
 
 .button {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
   text-decoration: none;
   color: white;
 

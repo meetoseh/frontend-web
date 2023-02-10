@@ -6,20 +6,13 @@ import { LoginApp } from './login/LoginApp';
 import { SplashScreen } from './splash/SplashScreen';
 import '../assets/fonts.css';
 import styles from './UserApp.module.css';
-import { Journey } from './journey/Journey';
 import { RequestNameForm } from './login/RequestNameForm';
 import { apiFetch } from '../shared/ApiConstants';
-import { JourneyStart } from './journey/JourneyStart';
-import {
-  useJourneyAndJourneyStartShared,
-  JourneyRef,
-  journeyRefKeyMap,
-} from './journey/JourneyAndJourneyStartShared';
+import { JourneyRef, journeyRefKeyMap } from './journey/models/JourneyRef';
 import { useFonts } from '../shared/lib/useFonts';
-import { JourneyPostScreen } from './journey/JourneyPostScreen';
-import { JourneyShareScreen } from './journey/JourneyShareScreen';
 import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenContext';
 import { convertUsingKeymap } from '../admin/crud/CrudFetcher';
+import { JourneyRouter } from './journey/JourneyRouter';
 
 export default function UserApp(): ReactElement {
   return (
@@ -43,38 +36,19 @@ const requiredFonts = [
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const fullscreenContext = useContext(FullscreenContext);
-  const [desiredState, setDesiredState] = useState<
-    | 'current-daily-event'
-    | 'onboard'
-    | 'journey'
-    | 'start-journey'
-    | 'post-journey'
-    | 'share-journey'
-  >('current-daily-event');
+  const [desiredState, setDesiredState] = useState<'current-daily-event' | 'onboard' | 'journey'>(
+    'current-daily-event'
+  );
   const [needRequestName, setNeedRequestName] = useState(false);
   const [state, setState] = useState<
-    | 'loading'
-    | 'current-daily-event'
-    | 'request-name'
-    | 'login'
-    | 'journey'
-    | 'start-journey'
-    | 'post-journey'
-    | 'share-journey'
+    'loading' | 'current-daily-event' | 'request-name' | 'login' | 'journey'
   >('loading');
   const fontsLoaded = useFonts(requiredFonts);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
   const [currentDailyEventLoaded, setCurrentDailyEventLoaded] = useState(false);
   const [journey, setJourney] = useState<JourneyRef | null>(null);
-  const [journeyLoaded, setJourneyLoaded] = useState(false);
-  const [startJourney, setStartJourney] = useState<((this: void) => void) | null>(null);
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
-  const journeyAndJourneyStartShared = useJourneyAndJourneyStartShared(journey);
-
-  const setStartJourneyWithFunc = useCallback((start: ((this: void) => void) | null) => {
-    setStartJourney(() => start);
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -194,8 +168,7 @@ const UserAppInner = (): ReactElement => {
 
         const journey = convertUsingKeymap(data, journeyRefKeyMap);
         setJourney(journey);
-        setJourneyLoaded(false);
-        setDesiredState('start-journey');
+        setDesiredState('journey');
       } catch (e) {
         if (!(e instanceof TypeError)) {
           console.error('Error getting onboarding journey, falling back to current daily event', e);
@@ -237,11 +210,6 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
-    if (['journey', 'start-journey'].indexOf(desiredState) >= 0 && !journeyLoaded) {
-      setState('loading');
-      return;
-    }
-
     if (desiredState === 'onboard') {
       setState('loading');
       return;
@@ -253,7 +221,6 @@ const UserAppInner = (): ReactElement => {
     desiredState,
     currentDailyEventLoaded,
     fontsLoaded,
-    journeyLoaded,
     needRequestName,
     requestNameLoaded,
     handlingCheckout,
@@ -268,28 +235,14 @@ const UserAppInner = (): ReactElement => {
   }, [fullscreenContext.addFullscreenReason, fullscreenContext.removeFullscreenReason]);
 
   const wrappedSetJourney = useCallback((journey: JourneyRef) => {
-    setJourneyLoaded(false);
     setJourney(journey);
-    setDesiredState('start-journey');
-  }, []);
-
-  const gotoPostJourney = useCallback(() => {
-    setDesiredState('post-journey');
-  }, []);
-
-  const gotoJourneyShare = useCallback(() => {
-    setDesiredState('share-journey');
+    setDesiredState('journey');
   }, []);
 
   const onJourneyPostFinished = useCallback(() => {
     setJourney(null);
     setDesiredState('current-daily-event');
   }, []);
-
-  const onUserInitiatedStartJourney = useCallback(() => {
-    startJourney!();
-    setDesiredState('journey');
-  }, [startJourney]);
 
   return (
     <div className={styles.container}>
@@ -310,44 +263,8 @@ const UserAppInner = (): ReactElement => {
           />
         </div>
       ) : null}
-      {desiredState === 'start-journey' && journey !== null && startJourney !== null ? (
-        <div className={state !== 'start-journey' ? styles.displayNone : ''}>
-          <JourneyStart
-            journey={journey}
-            shared={journeyAndJourneyStartShared}
-            onStart={onUserInitiatedStartJourney}
-          />
-        </div>
-      ) : null}
-      {['journey', 'start-journey'].indexOf(desiredState) >= 0 && journey !== null ? (
-        <div className={state !== 'journey' ? styles.displayNone : ''}>
-          <Journey
-            setLoaded={setJourneyLoaded}
-            shared={journeyAndJourneyStartShared}
-            journey={journey}
-            doStart={setStartJourneyWithFunc}
-            onFinished={gotoPostJourney}
-          />
-        </div>
-      ) : null}
-      {desiredState === 'post-journey' && journey !== null ? (
-        <div className={state !== 'post-journey' ? styles.displayNone : ''}>
-          <JourneyPostScreen
-            journey={journey}
-            shared={journeyAndJourneyStartShared}
-            onShare={gotoJourneyShare}
-            onReturn={onJourneyPostFinished}
-          />
-        </div>
-      ) : null}
-      {desiredState === 'share-journey' && journey !== null ? (
-        <div className={state !== 'share-journey' ? styles.displayNone : ''}>
-          <JourneyShareScreen
-            journey={journey}
-            shared={journeyAndJourneyStartShared}
-            onReturn={onJourneyPostFinished}
-          />
-        </div>
+      {desiredState === 'journey' && journey !== null ? (
+        <JourneyRouter journey={journey} onFinished={onJourneyPostFinished} />
       ) : null}
     </div>
   );

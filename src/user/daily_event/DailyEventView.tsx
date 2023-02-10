@@ -18,7 +18,7 @@ import { apiFetch } from '../../shared/ApiConstants';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
-import { JourneyRef, journeyRefKeyMap } from '../journey/JourneyAndJourneyStartShared';
+import { JourneyRef, journeyRefKeyMap } from '../journey/models/JourneyRef';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { FullscreenContext } from '../../shared/FullscreenContext';
 

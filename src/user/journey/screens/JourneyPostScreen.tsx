@@ -1,43 +1,18 @@
 import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { OsehImageFromState } from '../../shared/OsehImage';
-import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
+import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
+import { OsehImageFromState } from '../../../shared/OsehImage';
 import styles from './JourneyPostScreen.module.css';
-import assistiveStyles from '../../shared/assistive.module.css';
-import { LoginContext } from '../../shared/LoginContext';
-import { apiFetch } from '../../shared/ApiConstants';
-
-type JourneyPostScreenProps = {
-  /**
-   * The journey that was just finished.
-   */
-  journey: JourneyRef;
-
-  /**
-   * The shared information we forward through a journey to prevent refetching
-   * the same data.
-   */
-  shared: JourneyAndJourneyStartShared;
-
-  /**
-   * The function to call when the user wants to go to the share screen for
-   * this journey
-   */
-  onShare: (this: void) => void;
-
-  /**
-   * The function to call when the user wants to return to the current daily
-   * event screen
-   */
-  onReturn: (this: void) => void;
-};
+import assistiveStyles from '../../../shared/assistive.module.css';
+import { LoginContext } from '../../../shared/LoginContext';
+import { apiFetch } from '../../../shared/ApiConstants';
+import { JourneyScreenProps } from '../models/JourneyScreenProps';
 
 export const JourneyPostScreen = ({
   journey,
   shared,
-  onShare,
-  onReturn,
-}: JourneyPostScreenProps): ReactElement => {
+  setScreen,
+  onJourneyFinished,
+}: JourneyScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [error, setError] = useState<ReactElement | null>(null);
   const [streak, setStreak] = useState<number>(-1);
@@ -163,9 +138,9 @@ export const JourneyPostScreen = ({
   const doShare = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      onShare();
+      setScreen('share');
     },
-    [onShare]
+    [setScreen]
   );
 
   return (
@@ -177,7 +152,7 @@ export const JourneyPostScreen = ({
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
         <div className={styles.closeButtonContainer}>
           <div className={styles.closeButtonInnerContainer}>
-            <button type="button" className={styles.close} onClick={onReturn}>
+            <button type="button" className={styles.close} onClick={onJourneyFinished}>
               <div className={styles.closeIcon} />
               <div className={assistiveStyles.srOnly}>Close</div>
             </button>

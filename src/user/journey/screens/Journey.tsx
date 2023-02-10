@@ -1,50 +1,17 @@
-import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useFullHeight } from '../../shared/hooks/useFullHeight';
-import { LoginContext } from '../../shared/LoginContext';
-import { OsehImageFromState } from '../../shared/OsehImage';
-import { useJoinLeave } from './hooks/useJoinLeave';
-import { useJourneyTime } from './hooks/useJourneyTime';
-import { useProfilePictures } from './hooks/useProfilePictures';
-import { useStats } from './hooks/useStats';
+import { ReactElement, useContext, useEffect, useRef } from 'react';
+import { useFullHeight } from '../../../shared/hooks/useFullHeight';
+import { LoginContext } from '../../../shared/LoginContext';
+import { OsehImageFromState } from '../../../shared/OsehImage';
+import { useJoinLeave } from '../hooks/useJoinLeave';
+import { useJourneyTime } from '../hooks/useJourneyTime';
+import { useProfilePictures } from '../hooks/useProfilePictures';
+import { useStats } from '../hooks/useStats';
 import styles from './Journey.module.css';
-import assistiveStyles from '../../shared/assistive.module.css';
-import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
-import { JourneyAudio } from './JourneyAudio';
-import { JourneyLikes } from './JourneyLikes';
-import { JourneyProfilePictures } from './JourneyProfilePictures';
-import { JourneyPrompt } from './JourneyPrompt';
-
-type JourneyProps = {
-  /**
-   * The journey to show
-   */
-  journey: JourneyRef;
-
-  /**
-   * Shared information between us and the previous screen to reduce
-   * redundant requests
-   */
-  shared: JourneyAndJourneyStartShared;
-
-  /**
-   * Called when the loaded state of the journey changes. The journey
-   * should not be started until it's loaded.
-   */
-  setLoaded: (loaded: boolean) => void;
-
-  /**
-   * Called with a function that can be used to start the journey. This
-   * must be called in a privileged context, i.e., immediately after
-   * a user interaction. May be unavailable if already started or not
-   * yet loaded.
-   */
-  doStart: (this: void, start: ((this: void) => void) | null) => void;
-
-  /**
-   * Called when the journey finishes
-   */
-  onFinished: () => void;
-};
+import assistiveStyles from '../../../shared/assistive.module.css';
+import { JourneyLikes } from '../components/JourneyLikes';
+import { JourneyProfilePictures } from '../components/JourneyProfilePictures';
+import { JourneyPrompt } from '../components/JourneyPrompt';
+import { JourneyScreenProps } from '../models/JourneyScreenProps';
 
 /**
  * Takes the meta information about a journey returned from any of the endpoints
@@ -57,10 +24,9 @@ type JourneyProps = {
 export const Journey = ({
   journey,
   shared,
-  setLoaded,
-  doStart,
-  onFinished,
-}: JourneyProps): ReactElement => {
+  setScreen,
+  onJourneyFinished,
+}: JourneyScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const journeyTime = useJourneyTime(0, true);
   const profilePictures = useProfilePictures({
@@ -84,13 +50,6 @@ export const Journey = ({
     journeyTime,
     loginContext,
   });
-  const [audioLoaded, setAudioLoaded] = useState(false);
-  const [playAudio, setPlayAudio] = useState<((this: void) => Promise<void>) | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  const setPlayAudioWithFunc = useCallback((play: ((this: void) => Promise<void>) | null) => {
-    setPlayAudio(() => play);
-  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -105,7 +64,7 @@ export const Journey = ({
       }
 
       if (oldTime < journey.durationSeconds * 1000 && newTime >= journey.durationSeconds * 1000) {
-        onFinished();
+        onJourneyFinished();
         unmount();
       }
     };
@@ -127,34 +86,7 @@ export const Journey = ({
       }
     };
     return unmount;
-  }, [journeyTime.onTimeChanged, journey.durationSeconds, onFinished]);
-
-  useEffect(() => {
-    if (isLoaded) {
-      return;
-    }
-
-    if (!shared.imageLoading && !shared.blurredImageLoading && audioLoaded && playAudio !== null) {
-      doStart(() => {
-        playAudio();
-        journeyTime.setPaused.bind(undefined)(false);
-        doStart(null);
-      });
-      setIsLoaded(true);
-    }
-  }, [
-    isLoaded,
-    shared.imageLoading,
-    shared.blurredImageLoading,
-    audioLoaded,
-    playAudio,
-    doStart,
-    journeyTime.setPaused,
-  ]);
-
-  useEffect(() => {
-    setLoaded(isLoaded);
-  }, [isLoaded, setLoaded]);
+  }, [journeyTime.onTimeChanged, journey.durationSeconds, onJourneyFinished]);
 
   return (
     <div className={styles.container} ref={containerRef}>
@@ -163,7 +95,7 @@ export const Journey = ({
       </div>
       <div className={styles.closeButtonContainer}>
         <div className={styles.closeButtonInnerContainer}>
-          <button type="button" className={styles.close} onClick={onFinished}>
+          <button type="button" className={styles.close} onClick={onJourneyFinished}>
             <div className={styles.closeIcon} />
             <div className={assistiveStyles.srOnly}>Close</div>
           </button>
@@ -200,11 +132,6 @@ export const Journey = ({
           </div>
         </div>
       </div>
-      <JourneyAudio
-        audioContent={journey.audioContent}
-        setLoaded={setAudioLoaded}
-        doPlay={setPlayAudioWithFunc}
-      />
     </div>
   );
 };

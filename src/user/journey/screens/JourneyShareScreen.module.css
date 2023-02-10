@@ -51,14 +51,14 @@
 }
 
 .close {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
 }
 
 .closeIcon {
-  composes: icon from '../../shared/icons.module.css';
+  composes: icon from '../../../shared/icons.module.css';
   width: 24px;
   height: 24px;
-  background-image: url('./icons/close.svg');
+  background-image: url('../icons/close.svg');
 }
 
 .primaryContainer {
@@ -124,8 +124,8 @@
 }
 
 .soundWave {
-  composes: icon from '../../shared/icons.module.css';
-  background-image: url('./icons/sound-wave.svg');
+  composes: icon from '../../../shared/icons.module.css';
+  background-image: url('../icons/sound-wave.svg');
   width: 87.5px;
   height: 42px;
 }
@@ -146,7 +146,7 @@
 }
 
 .button {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
   text-decoration: none;
   color: white;
 
@@ -174,7 +174,7 @@
 }
 
 .secondaryButton {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
   text-decoration: none;
   color: white;
 

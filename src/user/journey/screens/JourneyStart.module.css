@@ -43,7 +43,7 @@
 }
 
 .primaryButton {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
   height: 56px;
   width: 100%;
   background: #446266;
@@ -67,7 +67,7 @@
 }
 
 .button {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
   height: 56px;
   width: 100%;
   background: white;

@@ -1,11 +1,11 @@
 import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
-import { JourneyTime } from './hooks/useJourneyTime';
-import { easeIn, easeInOut } from '../../shared/lib/Bezier';
-import '../../assets/fonts.css';
+import { JourneyTime } from '../hooks/useJourneyTime';
+import { easeIn, easeInOut } from '../../../shared/lib/Bezier';
+import '../../../assets/fonts.css';
 import styles from './JourneyLikes.module.css';
-import { kFormatter } from '../../shared/lib/kFormatter';
-import { apiFetch } from '../../shared/ApiConstants';
-import { LoginContextValue } from '../../shared/LoginContext';
+import { kFormatter } from '../../../shared/lib/kFormatter';
+import { apiFetch } from '../../../shared/ApiConstants';
+import { LoginContextValue } from '../../../shared/LoginContext';
 
 type JourneyLikesProps = {
   /**

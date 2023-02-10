@@ -67,14 +67,14 @@
 }
 
 .close {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
 }
 
 .closeIcon {
-  composes: icon from '../../shared/icons.module.css';
+  composes: icon from '../../../shared/icons.module.css';
   width: 24px;
   height: 24px;
-  background-image: url('./icons/close.svg');
+  background-image: url('../icons/close.svg');
 }
 
 @media screen and (max-height: 724px) {

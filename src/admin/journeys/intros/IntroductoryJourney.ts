@@ -1,6 +1,6 @@
 import { Journey } from '../Journey';
 import { convertUsingKeymap, CrudFetcherKeyMap } from '../../crud/CrudFetcher';
-import { journeyRefKeyMap } from '../../../user/journey/JourneyAndJourneyStartShared';
+import { journeyRefKeyMap } from '../../../user/journey/models/JourneyRef';
 
 /**
  * An introductory journey is a journey that is shown to a user when they first

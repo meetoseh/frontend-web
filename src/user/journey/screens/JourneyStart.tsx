@@ -1,35 +1,15 @@
 import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { useFullHeight } from '../../shared/hooks/useFullHeight';
-import { LoginContext } from '../../shared/LoginContext';
-import { ModalContext, addModalWithCallbackToRemove } from '../../shared/ModalContext';
-import { ModalWrapper } from '../../shared/ModalWrapper';
-import { OsehImageFromState } from '../../shared/OsehImage';
-import { InviteFallbackPrompt } from '../referral/InviteFallbackPrompt';
-import { getDailyEventInvite } from '../referral/lib/getDailyEventInvite';
-import { NewUserDailyEventInvite } from '../referral/models/NewUserDailyEventInvite';
-import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
+import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
+import { useFullHeight } from '../../../shared/hooks/useFullHeight';
+import { LoginContext } from '../../../shared/LoginContext';
+import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/ModalContext';
+import { ModalWrapper } from '../../../shared/ModalWrapper';
+import { OsehImageFromState } from '../../../shared/OsehImage';
+import { InviteFallbackPrompt } from '../../referral/InviteFallbackPrompt';
+import { getDailyEventInvite } from '../../referral/lib/getDailyEventInvite';
+import { NewUserDailyEventInvite } from '../../referral/models/NewUserDailyEventInvite';
+import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import styles from './JourneyStart.module.css';
-
-type JourneyStartProps = {
-  /**
-   * The journey the user will be starting
-   */
-  journey: JourneyRef;
-
-  /**
-   * Shared state between us and the journey to reduce the number of
-   * redundant requests
-   */
-  shared: JourneyAndJourneyStartShared;
-
-  /**
-   * The function to call when the user wants to start the journey. This
-   * will exclusively be called from a privileged context, i.e., immediately
-   * after a user interaction.
-   */
-  onStart: () => void;
-};
 
 /**
  * Shows a screen allowing the user to perform an interaction to start the
@@ -38,7 +18,7 @@ type JourneyStartProps = {
  * This is useful for elevating to a privileged context, which is required
  * for starting the journey audio.
  */
-export const JourneyStart = ({ journey, shared, onStart }: JourneyStartProps): ReactElement => {
+export const JourneyStart = ({ journey, shared, setScreen }: JourneyScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -50,9 +30,9 @@ export const JourneyStart = ({ journey, shared, onStart }: JourneyStartProps): R
   const onSkipClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      onStart();
+      setScreen('journey');
     },
-    [onStart]
+    [setScreen]
   );
 
   const onPracticeWithAFriendClick = useCallback(

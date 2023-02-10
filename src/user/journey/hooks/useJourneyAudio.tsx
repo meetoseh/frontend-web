@@ -1,52 +1,67 @@
-import { ReactElement, useEffect, useRef } from 'react';
-import { ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { OsehContentRef, useOsehContent } from '../../shared/OsehContent';
+import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { OsehContentRef, useOsehContent } from '../../../shared/OsehContent';
 
-type JourneyAudioProps = {
+export type JourneyAudio = {
   /**
-   * The audio content for the journey
+   * A function that can be used to play the audio, if the audio is ready to
+   * be played, otherwise null. Note that play() is privileged, meaning that
+   * it must be called _immediately_ after a user interaction, after the audio
+   * is loaded, or it will fail.
    */
-  audioContent: OsehContentRef;
-
-  /**
-   * Called when the audio is ready to play. Note that play() is privileged,
-   * meaning that it must be called _immediately_ after a user interaction,
-   * after the audio is loaded, or it will fail.
-   *
-   * @param loaded Whether the audio is loaded
-   */
-  setLoaded: (this: void, loaded: boolean) => void;
+  play: ((this: void) => Promise<void>) | null;
 
   /**
-   * Called with a function that can be used to play the audio after a
-   * user interaction, starting from the beginning. Note that it is
-   * privileged, so there can be no delay between the user interaction
-   * and the call to play()
-   *
-   * @param play A function that can be called to play the audio in
-   *   a privileged context. May reject if not privileged.
+   * A convenience boolean which is true if the audio is ready to be played.
+   * This is equivalent to (play !== null), but more semantically meaningful.
    */
-  doPlay: (this: void, play: ((this: void) => Promise<void>) | null) => void;
+  loaded: boolean;
+
+  /**
+   * If an error occurred and this will never finish loading, this will be
+   * an element describing the error. Otherwise, this will be null.
+   */
+  error: ReactElement | null;
 };
 
 /**
- * Plays the audio for the journey in the background, without controls. Shows
- * an error if the audio can't be played.
+ * Handles preparing the given audio content as indicated by the given
+ * content ref to be played.
  */
-export const JourneyAudio = ({
-  audioContent,
-  setLoaded,
-  doPlay,
-}: JourneyAudioProps): ReactElement => {
-  const { webExport, error } = useOsehContent(audioContent);
-  const ref = useRef<HTMLAudioElement | null>(null);
+export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAudio => {
+  const { webExport, error } = useOsehContent(audioContent ?? { uid: null, jwt: null });
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [play, setPlayRaw] = useState<((this: void) => Promise<void>) | null>(null);
+
+  // convenience function for using setPlay; setPlay(() => {}) doesn't work
+  // as expected since it will actually be treated as the functional variant
+  // of setPlay, which is not what we want
+  const setPlaySafe = useCallback((play: ((this: void) => Promise<void>) | null) => {
+    setPlayRaw(() => play);
+  }, []);
 
   useEffect(() => {
-    if (webExport === null || ref.current === null) {
+    if (webExport === null) {
+      if (audioRef.current !== null) {
+        audioRef.current = null;
+        setPlaySafe(null);
+      }
       return;
     }
 
-    const audio = ref.current;
+    let aud = audioRef.current;
+    if (aud !== null && aud.src !== webExport.url) {
+      audioRef.current = null;
+      aud = null;
+    }
+
+    if (aud === null) {
+      aud = new Audio();
+      aud.preload = 'auto';
+      aud.src = webExport.url;
+      audioRef.current = aud;
+    }
+
+    const audio = aud;
 
     let active = true;
     const onCancel: (() => void)[] = [];
@@ -64,8 +79,7 @@ export const JourneyAudio = ({
     return unmount;
 
     async function manageAudio() {
-      setLoaded(false);
-      doPlay(null);
+      setPlaySafe(null);
       if (!audio.paused) {
         audio.pause();
       }
@@ -178,20 +192,17 @@ export const JourneyAudio = ({
         return;
       }
 
-      doPlay(() => audio.play());
-      setLoaded(true);
+      setPlaySafe(() => audio.play());
       unmount();
     }
-  }, [webExport, doPlay, setLoaded]);
+  }, [setPlaySafe, webExport]);
 
-  return (
-    <>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
-      {webExport !== null ? (
-        <audio ref={ref} preload="auto">
-          <source src={webExport.url} type="audio/mp4" />
-        </audio>
-      ) : null}
-    </>
+  return useMemo(
+    () => ({
+      play,
+      loaded: play !== null,
+      error,
+    }),
+    [play, error]
   );
 };

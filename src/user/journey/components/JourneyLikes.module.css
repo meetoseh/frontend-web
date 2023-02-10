@@ -1,13 +1,13 @@
 .heart {
-  composes: icon from '../../shared/icons.module.css';
-  background-image: url('./icons/heart.svg');
+  composes: icon from '../../../shared/icons.module.css';
+  background-image: url('../icons/heart.svg');
   width: 20px;
   height: 18px;
 }
 
 .ourHeart {
-  composes: icon from '../../shared/icons.module.css';
-  background-image: url('./icons/our-heart.svg');
+  composes: icon from '../../../shared/icons.module.css';
+  background-image: url('../icons/our-heart.svg');
   width: 20px;
   height: 18px;
 }
@@ -39,7 +39,7 @@
 }
 
 .button {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../shared/buttons.module.css';
   display: flex;
   flex-direction: column;
   justify-content: center;

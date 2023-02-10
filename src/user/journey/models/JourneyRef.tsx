@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { OsehImageRef, OsehImageState, useOsehImageState } from '../../shared/OsehImage';
-import { OsehContentRef } from '../../shared/OsehContent';
-import { CrudFetcherKeyMap } from '../../admin/crud/CrudFetcher';
+import { CrudFetcherKeyMap } from '../../../admin/crud/CrudFetcher';
+import { OsehContentRef } from '../../../shared/OsehContent';
+import { OsehImageRef } from '../../../shared/OsehImage';
 
 /**
  * A prompt where we show a number spinner and the user selects
@@ -206,67 +204,4 @@ export const journeyRefKeyMap: CrudFetcherKeyMap<JourneyRef> = {
       externalName: val.external_name,
     },
   }),
-};
-
-/**
- * Describes some state that is shared between journey and journey start,
- * to reduce unnecessary network requests.
- */
-export type JourneyAndJourneyStartShared = {
-  /** As if from useWindowSize */
-  windowSize: { width: number; height: number };
-  /** This is actually the darkened image, since we don't need the original */
-  image: OsehImageState | null;
-  /** If we're still loading the darkened image */
-  imageLoading: boolean;
-  /** The blurred image so the share screen comes up quick */
-  blurredImage: OsehImageState | null;
-  /** If we're still loading the blurred image */
-  blurredImageLoading: boolean;
-};
-
-/**
- * Creates the initial journey & journey start shared state
- */
-export const useJourneyAndJourneyStartShared = (
-  journey: JourneyRef | null
-): JourneyAndJourneyStartShared => {
-  const windowSize = useWindowSize();
-  const [shared, setShared] = useState<JourneyAndJourneyStartShared>({
-    image: null,
-    imageLoading: true,
-    windowSize,
-    blurredImage: null,
-    blurredImageLoading: true,
-  });
-  const [imageLoading, setImageLoading] = useState(true);
-  const image = useOsehImageState({
-    uid: journey?.darkenedBackgroundImage?.uid ?? null,
-    jwt: journey?.darkenedBackgroundImage?.jwt ?? null,
-    displayWidth: windowSize.width,
-    displayHeight: windowSize.height,
-    alt: '',
-    setLoading: setImageLoading,
-  });
-  const [blurredImageLoading, setBlurredImageLoading] = useState(true);
-  const blurredImage = useOsehImageState({
-    uid: journey?.blurredBackgroundImage?.uid ?? null,
-    jwt: journey?.blurredBackgroundImage?.jwt ?? null,
-    displayWidth: windowSize.width,
-    displayHeight: windowSize.height,
-    alt: '',
-    setLoading: setBlurredImageLoading,
-  });
-
-  useEffect(() => {
-    setShared({
-      image,
-      imageLoading,
-      blurredImage,
-      blurredImageLoading,
-      windowSize,
-    });
-  }, [image, imageLoading, blurredImage, blurredImageLoading, windowSize]);
-
-  return shared;
 };

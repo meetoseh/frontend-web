@@ -1,6 +1,6 @@
 import { convertUsingKeymap, CrudFetcherKeyMap } from '../../../admin/crud/CrudFetcher';
 import { DailyEvent, keyMap as dailyEventKeyMap } from '../../daily_event/DailyEvent';
-import { JourneyRef, journeyRefKeyMap } from '../../journey/JourneyAndJourneyStartShared';
+import { JourneyRef, journeyRefKeyMap } from '../../journey/models/JourneyRef';
 
 /**
  * Describes the interpreted response from the server when redeeming a user

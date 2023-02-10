@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useRef, useState } from 'react';
-import { HistoricalEvents, useHistoricalEventCallback } from './hooks/useHistoricalEvents';
-import { LiveEvents, useLiveEventCallback } from './hooks/useLiveEvents';
+import { HistoricalEvents, useHistoricalEventCallback } from '../hooks/useHistoricalEvents';
+import { LiveEvents, useLiveEventCallback } from '../hooks/useLiveEvents';
 import {
   JourneyEvent,
   JoinData,
@@ -8,11 +8,11 @@ import {
   NumericPromptResponseData,
   ColorPromptResponseData,
   WordPromptResponseData,
-} from './models/JourneyEvent';
+} from '../models/JourneyEvent';
 import styles from './JourneyChat.module.css';
-import { OsehImage } from '../../shared/OsehImage';
-import { OrderedDictionary } from '../../shared/lib/OrderedDictionary';
-import { ColorPrompt, Prompt, WordPrompt } from './JourneyAndJourneyStartShared';
+import { OsehImage } from '../../../shared/OsehImage';
+import { OrderedDictionary } from '../../../shared/lib/OrderedDictionary';
+import { ColorPrompt, Prompt, WordPrompt } from '../models/JourneyRef';
 
 type JourneyChatProps = {
   /**

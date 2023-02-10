@@ -1,41 +1,22 @@
 import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
-import { JourneyAndJourneyStartShared, JourneyRef } from './JourneyAndJourneyStartShared';
 import styles from './JourneyShareScreen.module.css';
-import assistiveStyles from '../../shared/assistive.module.css';
-import { OsehImage, OsehImageFromState } from '../../shared/OsehImage';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { NewUserDailyEventInvite } from '../referral/models/NewUserDailyEventInvite';
-import { getDailyEventInvite } from '../referral/lib/getDailyEventInvite';
-import { LoginContext } from '../../shared/LoginContext';
-import { addModalWithCallbackToRemove, ModalContext } from '../../shared/ModalContext';
-import { ModalWrapper } from '../../shared/ModalWrapper';
-import { InviteFallbackPrompt } from '../referral/InviteFallbackPrompt';
-import { useOsehContent } from '../../shared/OsehContent';
-
-type JourneyShareScreenProps = {
-  /**
-   * The journey that was just finished.
-   */
-  journey: JourneyRef;
-
-  /**
-   * The shared information we forward through a journey to prevent refetching
-   * the same data.
-   */
-  shared: JourneyAndJourneyStartShared;
-
-  /**
-   * The function to call when the user wants to return to the current daily
-   * event screen
-   */
-  onReturn: (this: void) => void;
-};
+import assistiveStyles from '../../../shared/assistive.module.css';
+import { OsehImage, OsehImageFromState } from '../../../shared/OsehImage';
+import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
+import { NewUserDailyEventInvite } from '../../referral/models/NewUserDailyEventInvite';
+import { getDailyEventInvite } from '../../referral/lib/getDailyEventInvite';
+import { LoginContext } from '../../../shared/LoginContext';
+import { addModalWithCallbackToRemove, ModalContext } from '../../../shared/ModalContext';
+import { ModalWrapper } from '../../../shared/ModalWrapper';
+import { InviteFallbackPrompt } from '../../referral/InviteFallbackPrompt';
+import { useOsehContent } from '../../../shared/OsehContent';
+import { JourneyScreenProps } from '../models/JourneyScreenProps';
 
 export const JourneyShareScreen = ({
   journey,
   shared,
-  onReturn,
-}: JourneyShareScreenProps): ReactElement => {
+  onJourneyFinished,
+}: JourneyScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const shareable = useOsehContent({
@@ -208,7 +189,7 @@ export const JourneyShareScreen = ({
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
         <div className={styles.closeButtonContainer}>
           <div className={styles.closeButtonInnerContainer}>
-            <button type="button" className={styles.close} onClick={onReturn}>
+            <button type="button" className={styles.close} onClick={onJourneyFinished}>
               <div className={styles.closeIcon} />
               <div className={assistiveStyles.srOnly}>Close</div>
             </button>

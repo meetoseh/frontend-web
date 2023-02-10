@@ -1,10 +1,10 @@
 import { ReactElement } from 'react';
-import { Prompt } from './JourneyAndJourneyStartShared';
-import { JourneyPromptProps } from './models/JourneyPromptProps';
-import { ColorPrompt } from './prompts/ColorPrompt';
-import { NumericJourneyPrompt } from './prompts/NumericJourneyPrompt';
-import { PressJourneyPrompt } from './prompts/PressJourneyPrompt';
-import { WordPrompt } from './prompts/WordPrompt';
+import { Prompt } from '../models/JourneyRef';
+import { JourneyPromptProps } from '../models/JourneyPromptProps';
+import { ColorPrompt } from '../prompts/ColorPrompt';
+import { NumericJourneyPrompt } from '../prompts/NumericJourneyPrompt';
+import { PressJourneyPrompt } from '../prompts/PressJourneyPrompt';
+import { WordPrompt } from '../prompts/WordPrompt';
 
 const PROMPT_STYLE_TO_COMPONENT: Record<
   Prompt['style'],

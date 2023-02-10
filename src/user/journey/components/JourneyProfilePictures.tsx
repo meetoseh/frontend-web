@@ -1,7 +1,7 @@
 import { ReactElement, useMemo } from 'react';
-import { OsehImage, OsehImageRef } from '../../shared/OsehImage';
-import { ProfilePictures } from './hooks/useProfilePictures';
-import '../../assets/fonts.css';
+import { OsehImage, OsehImageRef } from '../../../shared/OsehImage';
+import { ProfilePictures } from '../hooks/useProfilePictures';
+import '../../../assets/fonts.css';
 import styles from './JourneyProfilePictures.module.css';
 
 type JourneyProfilePicturesProps = {
