@@ -1,4 +1,12 @@
-import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  CSSProperties,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { JourneyPromptProps } from '../models/JourneyPromptProps';
 import styles from './WordPrompt.module.css';
@@ -26,7 +34,7 @@ export const WordPrompt = ({
   const wordRows: string[][] = useMemo(() => {
     const words = prompt.options;
     if (words.length <= 3) {
-      return [words];
+      return words.map((w) => [w]);
     }
 
     const columns = Math.ceil(words.length / 2);
@@ -44,6 +52,18 @@ export const WordPrompt = ({
     }
     return rows;
   }, [prompt.options]);
+
+  const wordRowHeight: number = useMemo(() => {
+    const rowHeight = 54;
+    const rowGap = 32;
+    return wordRows.length * rowHeight + (wordRows.length - 1) * rowGap;
+  }, [wordRows]);
+
+  const wordsContainerStyle: CSSProperties = useMemo(() => {
+    return {
+      maxHeight: `${wordRowHeight}px`,
+    };
+  }, [wordRowHeight]);
 
   const onChooseWord = useCallback(
     async (word: string) => {
@@ -198,35 +218,62 @@ export const WordPrompt = ({
     const percentageResponses = wordActive.map((count) =>
       totalResponses === 0 ? 0 : count / totalResponses
     );
+    // TODO: debug
+    percentageResponses[0] = 0.5;
 
-    return wordRows.map((row, rowIndex) => (
-      <div key={rowIndex} className={styles.wordRow}>
-        {row.map((word, wordIndex) => (
-          <button
-            key={wordIndex}
-            className={`${styles.word} ${
-              activeIndex !== null && word === prompt.options[activeIndex] ? styles.wordActive : ''
-            }`}
-            onClick={(e) => {
-              e.preventDefault();
-              onChooseWord(word);
-            }}>
-            <div
-              className={styles.wordInner}
-              style={{
-                height: `${percentageResponses[rowIndex * row.length + wordIndex] * 100}%`,
-              }}></div>
-            <div className={styles.wordText}>{word}</div>
-          </button>
-        ))}
-      </div>
-    ));
+    return wordRows.map((row, rowIndex) => {
+      return (
+        <div key={rowIndex} className={styles.wordRow}>
+          {row.map((word, wordIndex) => {
+            const isActive = activeIndex !== null && word === prompt.options[activeIndex];
+            return (
+              <button
+                key={wordIndex}
+                className={`${styles.word} ${isActive ? styles.wordActive : ''}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onChooseWord(word);
+                }}>
+                <div
+                  className={styles.wordInner}
+                  style={{
+                    width: `${percentageResponses[rowIndex * row.length + wordIndex] * 100}%`,
+                  }}></div>
+                <div className={styles.wordInput}>
+                  <div className={styles.wordCheck}>
+                    <div className={isActive ? styles.checked : styles.unchecked}></div>
+                  </div>
+                  <div className={styles.wordText}>{word}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      );
+    });
   }, [wordRows, onChooseWord, stats.wordActive, activeIndex, prompt.options, fakingMove]);
 
+  const containerStyle: CSSProperties = useMemo(() => {
+    const subtitleHeight = 28;
+    const subtitlePromptGap = 5;
+    const titleHeight = 32;
+    const titleResponseGap = 40;
+    return {
+      flexBasis: `${
+        subtitleHeight + subtitlePromptGap + titleHeight + titleResponseGap + wordRowHeight
+      }px`,
+    };
+  }, [wordRowHeight]);
+
   return (
-    <div className={styles.container}>
-      <div className={styles.prompt}>{prompt.text}</div>
-      <div className={styles.wordsContainer}>{buttons}</div>
+    <div className={styles.container} style={containerStyle}>
+      <div className={styles.subtitleAndPrompt}>
+        <div className={styles.promptSubtitle}>Class Poll</div>
+        <div className={styles.prompt}>{prompt.text}</div>
+      </div>
+      <div className={styles.wordsContainer} style={wordsContainerStyle}>
+        {buttons}
+      </div>
     </div>
   );
 };

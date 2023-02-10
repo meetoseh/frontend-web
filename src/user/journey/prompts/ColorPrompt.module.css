@@ -3,8 +3,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 54vh;
-  max-height: 568px;
 }
 
 .prompt {
@@ -75,14 +73,4 @@
 
 .color:not(:first-child) {
   margin-left: 32px;
-}
-
-@media screen and (max-height: 724px) {
-  .prompt {
-    margin-bottom: 32px;
-  }
-
-  .container {
-    height: calc(54vh - 32px);
-  }
 }

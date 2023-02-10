@@ -3,8 +3,6 @@
   flex-direction: column;
   align-items: stretch;
   justify-content: space-around;
-  height: 54vh;
-  max-height: 568px;
 }
 
 @media screen and (min-height: 876px) {
@@ -34,6 +32,7 @@
   justify-content: flex-start;
   width: 100%;
   overflow-x: hidden;
+  margin: 32px 0;
 }
 
 .carouselItemsContainer {
@@ -118,14 +117,4 @@
   font-size: 16px;
   color: white;
   padding-bottom: 60px;
-}
-
-@media screen and (max-height: 724px) {
-  .promptText {
-    padding-top: 0;
-  }
-
-  .overallStatsContainer {
-    padding-bottom: 0;
-  }
 }

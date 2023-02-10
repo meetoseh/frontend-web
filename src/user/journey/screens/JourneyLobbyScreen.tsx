@@ -29,13 +29,13 @@ export const JourneyLobbyScreen = ({
   const profilePictures = useProfilePictures({
     journeyUid: journey.uid,
     journeyJwt: journey.jwt,
-    journeyDurationSeconds: journey.durationSeconds,
+    journeyLobbyDurationSeconds: journey.lobbyDurationSeconds,
     journeyTime,
   });
   const stats = useStats({
     journeyUid: journey.uid,
     journeyJwt: journey.jwt,
-    journeyDurationSeconds: journey.durationSeconds,
+    journeyLobbyDurationSeconds: journey.lobbyDurationSeconds,
     journeyPrompt: journey.prompt,
     journeyTime,
   });
@@ -111,18 +111,16 @@ export const JourneyLobbyScreen = ({
               {Math.max(Math.ceil(journey.lobbyDurationSeconds - coarsenedJourneyTime), 0)}
             </div>
           </div>
-          <div className={styles.promptContainer}>
-            <JourneyPrompt
-              journeyUid={journey.uid}
-              journeyJwt={journey.jwt}
-              journeyDurationSeconds={journey.durationSeconds}
-              journeyTime={journeyTime}
-              sessionUid={journey.sessionUid}
-              prompt={journey.prompt}
-              stats={stats}
-              loginContext={loginContext}
-            />
-          </div>
+          <JourneyPrompt
+            journeyUid={journey.uid}
+            journeyJwt={journey.jwt}
+            journeyDurationSeconds={journey.durationSeconds}
+            journeyTime={journeyTime}
+            sessionUid={journey.sessionUid}
+            prompt={journey.prompt}
+            stats={stats}
+            loginContext={loginContext}
+          />
           <div className={styles.profilePicturesContainer}>
             <JourneyProfilePictures pictures={profilePictures} users={stats.users} />
           </div>

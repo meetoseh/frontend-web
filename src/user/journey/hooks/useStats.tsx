@@ -17,7 +17,7 @@ type StatsKwargs = {
   /**
    * The duration of the journey in seconds
    */
-  journeyDurationSeconds: number;
+  journeyLobbyDurationSeconds: number;
 
   /**
    * The prompt for the journey, used to initialize stats
@@ -99,7 +99,7 @@ type AugmentedJourneyStats = JourneyStats & {
 export const useStats = ({
   journeyUid,
   journeyJwt,
-  journeyDurationSeconds,
+  journeyLobbyDurationSeconds,
   journeyPrompt,
   journeyTime,
 }: StatsKwargs): JourneyStats => {
@@ -354,7 +354,7 @@ export const useStats = ({
 
           binWidth = firstBin.binWidth;
           fromBin = Math.max(Math.floor(journeyTime.time.current / (binWidth * 1000)), 0);
-          fetchedLastBin = journeyDurationSeconds <= binWidth;
+          fetchedLastBin = journeyLobbyDurationSeconds <= binWidth;
           if (fromBin === 0) {
             availableStats.set(0, firstBin);
             nextBin = 1;
@@ -404,7 +404,7 @@ export const useStats = ({
 
           availableStats.set(nextBin, stats);
           nextBin += 1;
-          fetchedLastBin = journeyDurationSeconds <= nextBin * binWidth;
+          fetchedLastBin = journeyLobbyDurationSeconds <= nextBin * binWidth;
           informListenersOnNewStats();
         } catch (e) {
           console.error(e);
@@ -533,7 +533,7 @@ export const useStats = ({
         }
       };
 
-      while (active && journeyTime.time.current <= journeyDurationSeconds * 1000) {
+      while (active && journeyTime.time.current <= journeyLobbyDurationSeconds * 1000) {
         const easeFromBin = Math.max(Math.floor(journeyTime.time.current / (binWidth * 1000)), 0);
         const easeToBin = easeFromBin + 1;
         const progress = Math.max(
@@ -592,7 +592,7 @@ export const useStats = ({
   }, [
     journeyUid,
     journeyJwt,
-    journeyDurationSeconds,
+    journeyLobbyDurationSeconds,
     journeyPrompt,
     journeyTime.onTimeChanged,
     journeyTime.time,
