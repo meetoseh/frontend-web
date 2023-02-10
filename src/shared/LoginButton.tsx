@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect } from 'react';
 import { LoginContext } from './LoginContext';
 
-const LOGIN_URL = process.env.REACT_APP_LOGIN_URL;
+const LOGIN_URL = '/login';
 
 /**
  * Creates a component which shows a login button (if the user is not logged in)
