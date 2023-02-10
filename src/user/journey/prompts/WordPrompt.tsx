@@ -218,8 +218,6 @@ export const WordPrompt = ({
     const percentageResponses = wordActive.map((count) =>
       totalResponses === 0 ? 0 : count / totalResponses
     );
-    // TODO: debug
-    percentageResponses[0] = 0.5;
 
     return wordRows.map((row, rowIndex) => {
       return (

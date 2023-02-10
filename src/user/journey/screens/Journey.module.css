@@ -88,6 +88,69 @@
   background-image: url('../icons/close.svg');
 }
 
+.audioControlsContainer {
+  position: absolute;
+  bottom: 96px;
+  left: 24px;
+  right: 24px;
+}
+
+.audioControlsInnerContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.audioProgressContainer {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  height: 5px;
+  background: #8a9a9d;
+  width: 100%;
+  z-index: 2;
+}
+.audioProgress {
+  height: 5px;
+  background: #76d7e6;
+}
+
+.audioProgressCircle {
+  margin-left: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #76d7e6;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control_visible {
+  opacity: 100%;
+}
+
+.control_hiding,
+.control_hidden {
+  display: none;
+}
+
+@media not (prefers-reduced-motion) {
+  .control_hiding {
+    display: flex;
+    opacity: 0;
+  }
+
+  .control {
+    transition: opacity 0.35s ease-in;
+  }
+}
+
 @media screen and (max-height: 724px) {
   .content {
     justify-content: center;
