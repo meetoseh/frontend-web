@@ -44,6 +44,8 @@ const defaultColors = [
   '#762ca7',
   '#fe98bf',
 ];
+
+const defaultWords = ['Pretty Anxious', 'Weirdly Okay', 'Doing Great'];
 /**
  * Shows the necessary crud components for a user to select a prompt,
  * including options based on the prompt style.
@@ -63,7 +65,7 @@ export const AdminJourneyPromptPicker = ({
       if (newStyle === 'numeric') {
         setPrompt({
           style: 'numeric',
-          text: prompt.text,
+          text: 'How are you feeling?',
           min: 1,
           max: 10,
           step: 1,
@@ -71,23 +73,23 @@ export const AdminJourneyPromptPicker = ({
       } else if (newStyle === 'word') {
         setPrompt({
           style: 'word',
-          text: prompt.text,
+          text: 'How are you feeling?',
           options: [],
         });
       } else if (newStyle === 'color') {
         setPrompt({
           style: 'color',
-          text: prompt.text,
+          text: 'How are you feeling?',
           colors: [],
         });
       } else {
         setPrompt({
           style: 'press',
-          text: prompt.text,
+          text: 'Press and hold',
         });
       }
     },
-    [prompt.style, prompt.text, setPrompt]
+    [prompt.style, setPrompt]
   );
 
   useEffect(() => {
@@ -111,7 +113,7 @@ export const AdminJourneyPromptPicker = ({
       setPromptValid(
         prompt.options.length > 1 &&
           prompt.options.length <= 8 &&
-          !prompt.options.some((o) => o.length < 1 || o.length > 8) &&
+          !prompt.options.some((o) => o.length < 1 || o.length > 32) &&
           new Set(prompt.options).size === prompt.options.length
       );
     } else if (prompt.style === 'color') {
@@ -199,7 +201,7 @@ export const AdminJourneyPromptPicker = ({
                         return { ...p, options: newOptions };
                       });
                     }}
-                    html5Validation={{ required: '', maxlength: '8' }}
+                    html5Validation={{ required: '', maxlength: '32' }}
                   />
 
                   <div className={styles.removeOptionContainer}>
@@ -235,7 +237,10 @@ export const AdminJourneyPromptPicker = ({
                         return p;
                       }
 
-                      return { ...p, options: [...p.options, ''] };
+                      return {
+                        ...p,
+                        options: [...p.options, defaultWords[p.options.length] ?? ''],
+                      };
                     });
                   }}>
                   Add Option

@@ -8,10 +8,17 @@ type ButtonProps = {
   type: 'button' | 'submit';
 
   /**
+   * True for the button to fill the width of the container,
+   * false for a reasonable default width
+   * @default false
+   */
+  fullWidth?: boolean;
+
+  /**
    * The variant of the button
    * @default 'filled'
    */
-  variant?: 'filled' | 'outlined' | 'link' | 'link-small';
+  variant?: 'filled' | 'outlined' | 'link' | 'link-small' | 'link-white';
 
   /**
    * If the button is disabled
@@ -30,6 +37,7 @@ type ButtonProps = {
 export const Button = ({
   type,
   children,
+  fullWidth = false,
   variant = 'filled',
   disabled = false,
   onClick = undefined,
@@ -39,7 +47,7 @@ export const Button = ({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`${styles.button} ${styles[variant]}`}>
+      className={`${styles.button} ${styles[variant]} ${fullWidth ? styles.fullWidth : ''}`}>
       {children}
     </button>
   );

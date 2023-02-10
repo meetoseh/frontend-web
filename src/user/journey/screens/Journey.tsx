@@ -1,16 +1,8 @@
-import { ReactElement, useContext, useEffect, useRef } from 'react';
+import { ReactElement, useCallback, useEffect, useRef } from 'react';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
-import { LoginContext } from '../../../shared/LoginContext';
 import { OsehImageFromState } from '../../../shared/OsehImage';
-import { useJoinLeave } from '../hooks/useJoinLeave';
-import { useJourneyTime } from '../hooks/useJourneyTime';
-import { useProfilePictures } from '../hooks/useProfilePictures';
-import { useStats } from '../hooks/useStats';
 import styles from './Journey.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
-import { JourneyLikes } from '../components/JourneyLikes';
-import { JourneyProfilePictures } from '../components/JourneyProfilePictures';
-import { JourneyPrompt } from '../components/JourneyPrompt';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 
 /**
@@ -21,72 +13,39 @@ import { JourneyScreenProps } from '../models/JourneyScreenProps';
  * to the user, while they are allowed to engage via the prompt and a "like"
  * button.
  */
-export const Journey = ({
-  journey,
-  shared,
-  setScreen,
-  onJourneyFinished,
-}: JourneyScreenProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
-  const journeyTime = useJourneyTime(0, true);
-  const profilePictures = useProfilePictures({
-    journeyUid: journey.uid,
-    journeyJwt: journey.jwt,
-    journeyDurationSeconds: journey.durationSeconds,
-    journeyTime,
-  });
-  const stats = useStats({
-    journeyUid: journey.uid,
-    journeyJwt: journey.jwt,
-    journeyDurationSeconds: journey.durationSeconds,
-    journeyPrompt: journey.prompt,
-    journeyTime,
-  });
-  useJoinLeave({
-    journeyUid: journey.uid,
-    journeyJwt: journey.jwt,
-    sessionUid: journey.sessionUid,
-    journeyDurationSeconds: journey.durationSeconds,
-    journeyTime,
-    loginContext,
-  });
-
+export const Journey = ({ journey, shared, setScreen }: JourneyScreenProps): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize: shared.windowSize });
 
   useEffect(() => {
-    let active = true;
+    const audio = shared.audio?.audioRef?.current;
+    if (!audio) {
+      return;
+    }
 
-    const onJourneyTimeChanged = (oldTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
-      if (!active) {
-        return;
-      }
-
-      if (oldTime < journey.durationSeconds * 1000 && newTime >= journey.durationSeconds * 1000) {
-        onJourneyFinished();
-        unmount();
-      }
+    const handler = () => {
+      setScreen('post');
     };
 
-    const predictedIndex = journeyTime.onTimeChanged.current.length;
-    journeyTime.onTimeChanged.current.push(onJourneyTimeChanged);
+    if (audio.ended) {
+      handler();
+      return;
+    }
 
-    const unmount = () => {
-      if (!active) {
-        return;
-      }
-
-      active = false;
-      for (let i = predictedIndex; i >= 0; i--) {
-        if (journeyTime.onTimeChanged.current[i] === onJourneyTimeChanged) {
-          journeyTime.onTimeChanged.current.splice(i, 1);
-          break;
-        }
-      }
+    audio.addEventListener('ended', handler);
+    return () => {
+      audio.removeEventListener('ended', handler);
     };
-    return unmount;
-  }, [journeyTime.onTimeChanged, journey.durationSeconds, onJourneyFinished]);
+  }, [shared.audio, setScreen]);
+
+  const gotoPost = useCallback(() => {
+    if (shared.audio?.stop) {
+      shared.audio.stop();
+    }
+
+    setScreen('post');
+  }, [setScreen, shared.audio]);
 
   return (
     <div className={styles.container} ref={containerRef}>
@@ -95,7 +54,7 @@ export const Journey = ({
       </div>
       <div className={styles.closeButtonContainer}>
         <div className={styles.closeButtonInnerContainer}>
-          <button type="button" className={styles.close} onClick={onJourneyFinished}>
+          <button type="button" className={styles.close} onClick={gotoPost}>
             <div className={styles.closeIcon} />
             <div className={assistiveStyles.srOnly}>Close</div>
           </button>
@@ -103,33 +62,8 @@ export const Journey = ({
       </div>
       <div className={styles.innerContainer}>
         <div className={styles.content}>
-          <div className={styles.profilePicturesContainer}>
-            <JourneyProfilePictures pictures={profilePictures} users={stats.users} />
-          </div>
-          <div className={styles.promptContainer}>
-            <JourneyPrompt
-              journeyUid={journey.uid}
-              journeyJwt={journey.jwt}
-              journeyDurationSeconds={journey.durationSeconds}
-              journeyTime={journeyTime}
-              sessionUid={journey.sessionUid}
-              prompt={journey.prompt}
-              stats={stats}
-              loginContext={loginContext}
-            />
-          </div>
-          <div className={styles.chatAndLikesContainer}>
-            <div className={styles.likesContainer}>
-              <JourneyLikes
-                journeyUid={journey.uid}
-                journeyJwt={journey.jwt}
-                sessionUid={journey.sessionUid}
-                journeyTime={journeyTime}
-                likes={stats.likes}
-                loginContext={loginContext}
-              />
-            </div>
-          </div>
+          <div className={styles.title}>{journey.title}</div>
+          <div className={styles.instructor}>{journey.instructor.name}</div>
         </div>
       </div>
     </div>

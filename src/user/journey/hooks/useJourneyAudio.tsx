@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactElement, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { OsehContentRef, useOsehContent } from '../../../shared/OsehContent';
 
 export type JourneyAudio = {
@@ -11,6 +11,11 @@ export type JourneyAudio = {
   play: ((this: void) => Promise<void>) | null;
 
   /**
+   * A function that can be used to stop the audio, if the audio is playing.
+   */
+  stop: ((this: void) => Promise<void>) | null;
+
+  /**
    * A convenience boolean which is true if the audio is ready to be played.
    * This is equivalent to (play !== null), but more semantically meaningful.
    */
@@ -21,6 +26,12 @@ export type JourneyAudio = {
    * an element describing the error. Otherwise, this will be null.
    */
   error: ReactElement | null;
+
+  /**
+   * A reference to the underlying audio element, if it has been created.
+   * This is useful for more advanced use cases.
+   */
+  audioRef: RefObject<HTMLAudioElement | null>;
 };
 
 /**
@@ -31,6 +42,7 @@ export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAud
   const { webExport, error } = useOsehContent(audioContent ?? { uid: null, jwt: null });
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [play, setPlayRaw] = useState<((this: void) => Promise<void>) | null>(null);
+  const [stop, setStopRaw] = useState<((this: void) => Promise<void>) | null>(null);
 
   // convenience function for using setPlay; setPlay(() => {}) doesn't work
   // as expected since it will actually be treated as the functional variant
@@ -39,11 +51,16 @@ export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAud
     setPlayRaw(() => play);
   }, []);
 
+  const setStopSafe = useCallback((stop: ((this: void) => Promise<void>) | null) => {
+    setStopRaw(() => stop);
+  }, []);
+
   useEffect(() => {
     if (webExport === null) {
       if (audioRef.current !== null) {
         audioRef.current = null;
         setPlaySafe(null);
+        setStopSafe(null);
       }
       return;
     }
@@ -80,6 +97,7 @@ export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAud
 
     async function manageAudio() {
       setPlaySafe(null);
+      setStopSafe(null);
       if (!audio.paused) {
         audio.pause();
       }
@@ -193,16 +211,19 @@ export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAud
       }
 
       setPlaySafe(() => audio.play());
+      setStopSafe(async () => audio.pause());
       unmount();
     }
-  }, [setPlaySafe, webExport]);
+  }, [setPlaySafe, setStopSafe, webExport]);
 
   return useMemo(
     () => ({
       play,
+      stop,
       loaded: play !== null,
       error,
+      audioRef,
     }),
-    [play, error]
+    [play, stop, error]
   );
 };

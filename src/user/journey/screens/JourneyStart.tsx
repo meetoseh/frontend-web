@@ -1,4 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Button } from '../../../shared/forms/Button';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
 import { LoginContext } from '../../../shared/LoginContext';
@@ -30,9 +31,10 @@ export const JourneyStart = ({ journey, shared, setScreen }: JourneyScreenProps)
   const onSkipClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
+      shared.audio!.play!();
       setScreen('journey');
     },
-    [setScreen]
+    [setScreen, shared.audio]
   );
 
   const onPracticeWithAFriendClick = useCallback(
@@ -112,18 +114,20 @@ export const JourneyStart = ({ journey, shared, setScreen }: JourneyScreenProps)
       <div className={styles.innerContainer}>
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
         <div className={styles.content}>
-          <div className={styles.practiceWithAFriendContainer}>
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={onPracticeWithAFriendClick}>
-              Practice with a Friend
-            </button>
-          </div>
+          <div className={styles.title}>You&rsquo;re Class is Ready</div>
           <div className={styles.skipForNowContainer}>
-            <button type="button" className={styles.button} onClick={onSkipClick}>
-              Skip for Now
-            </button>
+            <Button type="button" fullWidth={true} onClick={onSkipClick}>
+              Let&rsquo;s Go
+            </Button>
+          </div>
+          <div className={styles.practiceWithAFriendContainer}>
+            <Button
+              type="button"
+              variant="link-white"
+              fullWidth={true}
+              onClick={onPracticeWithAFriendClick}>
+              Invite a Friend
+            </Button>
           </div>
         </div>
       </div>

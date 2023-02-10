@@ -120,6 +120,11 @@ export type JourneyRef = {
   durationSeconds: number;
 
   /**
+   * The duration of the journey lobby in seconds
+   */
+  lobbyDurationSeconds: number;
+
+  /**
    * The background image to the journey prior to applying filters; we don't use this,
    * but it's helpful for trying out new features (such as a different darkening/blur
    * algorithm)
@@ -194,6 +199,7 @@ export type JourneyRef = {
 export const journeyRefKeyMap: CrudFetcherKeyMap<JourneyRef> = {
   session_uid: 'sessionUid',
   duration_seconds: 'durationSeconds',
+  lobby_duration_seconds: 'lobbyDurationSeconds',
   background_image: 'backgroundImage',
   darkened_background_image: 'darkenedBackgroundImage',
   blurred_background_image: 'blurredBackgroundImage',

@@ -5,6 +5,7 @@ import { useJourneyShared } from './hooks/useJourneyShared';
 import { JourneyRef } from './models/JourneyRef';
 import { JourneyScreenProps } from './models/JourneyScreenProps';
 import { Journey } from './screens/Journey';
+import { JourneyLobbyScreen } from './screens/JourneyLobbyScreen';
 import { JourneyPostScreen } from './screens/JourneyPostScreen';
 import { JourneyShareScreen } from './screens/JourneyShareScreen';
 import { JourneyStart } from './screens/JourneyStart';
@@ -21,10 +22,10 @@ type JourneyRouterProps = {
   onFinished: () => void;
 };
 
-export type JourneyRouterScreenId = 'start' | 'journey' | 'post' | 'share';
+export type JourneyRouterScreenId = 'lobby' | 'start' | 'journey' | 'post' | 'share';
 
 export const JourneyRouter = ({ journey, onFinished }: JourneyRouterProps): ReactElement => {
-  const [screen, setScreen] = useState<JourneyRouterScreenId>('start');
+  const [screen, setScreen] = useState<JourneyRouterScreenId>('lobby');
   const sharedState = useJourneyShared(journey);
   const screenProps: JourneyScreenProps = useMemo(() => {
     return {
@@ -39,7 +40,15 @@ export const JourneyRouter = ({ journey, onFinished }: JourneyRouterProps): Reac
     return <ErrorBlock>{sharedState.audio.error}</ErrorBlock>;
   }
 
-  if (sharedState.imageLoading || !sharedState.audio?.loaded) {
+  if (sharedState.imageLoading) {
+    return <SplashScreen />;
+  }
+
+  if (screen === 'lobby') {
+    return <JourneyLobbyScreen {...screenProps} />;
+  }
+
+  if (!sharedState.audio?.loaded) {
     return <SplashScreen />;
   }
 
@@ -62,6 +71,11 @@ export const JourneyRouter = ({ journey, onFinished }: JourneyRouterProps): Reac
   if (screen === 'share') {
     return <JourneyShareScreen {...screenProps} />;
   }
+  return handleUnknownScreen(screen);
+};
 
+// used to tell the type system that this should never happen;
+// notice how if you remove a case above, you'll get a compile error
+const handleUnknownScreen = (screen: never): never => {
   throw new Error(`Unknown journey screen ${screen}`);
 };

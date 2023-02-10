@@ -17,9 +17,9 @@ type JoinLeaveKwargs = {
    */
   sessionUid: string;
   /**
-   * The duration of the journey in seconds
+   * The duration of the journey lobby in seconds
    */
-  journeyDurationSeconds: number;
+  journeyLobbyDurationSeconds: number;
   /**
    * The current journey time, so we know when to post the events at
    */
@@ -32,13 +32,13 @@ type JoinLeaveKwargs = {
 
 /**
  * Sends a join event when the journey time crosses over zero, and a leave
- * event when unmounted or the journey time crosses over the journey duration
+ * event when unmounted or the journey time crosses over the journey lobby duration
  */
 export const useJoinLeave = ({
   journeyUid,
   journeyJwt,
   sessionUid,
-  journeyDurationSeconds,
+  journeyLobbyDurationSeconds,
   journeyTime,
   loginContext,
 }: JoinLeaveKwargs) => {
@@ -134,7 +134,7 @@ export const useJoinLeave = ({
 
     let active = true;
     const onTimeChanged = (lastTime: DOMHighResTimeStamp, newTime: DOMHighResTimeStamp) => {
-      if (newTime < journeyDurationSeconds * 1000) {
+      if (newTime < journeyLobbyDurationSeconds * 1000) {
         return;
       }
 
@@ -163,7 +163,7 @@ export const useJoinLeave = ({
 
       if (joined.current && !left.current) {
         left.current = true;
-        createLeaveEvent(Math.min(journeyTime.time.current, journeyDurationSeconds * 1000));
+        createLeaveEvent(Math.min(journeyTime.time.current, journeyLobbyDurationSeconds * 1000));
       }
 
       window.removeEventListener('beforeunload', unmount);
@@ -209,7 +209,7 @@ export const useJoinLeave = ({
     journeyUid,
     journeyJwt,
     sessionUid,
-    journeyDurationSeconds,
+    journeyLobbyDurationSeconds,
     journeyTime.onTimeChanged,
     journeyTime.time,
     loginContext,
