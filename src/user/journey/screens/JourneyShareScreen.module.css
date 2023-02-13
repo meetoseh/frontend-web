@@ -31,7 +31,7 @@
   align-items: center;
   padding: 24px;
   width: 100%;
-  max-width: 410px;
+  max-width: 390px;
 }
 
 .closeButtonContainer {
@@ -141,7 +141,7 @@
 }
 
 .shareToStoriesContainer {
-  width: calc(100% - 48px);
+  width: 100%;
   margin-top: 60px;
 }
 
@@ -169,8 +169,8 @@
 }
 
 .shareClassLinkContainer {
-  width: calc(100% - 48px);
-  margin-top: 48px;
+  width: 100%;
+  margin-top: 32px;
 }
 
 .secondaryButton {
@@ -202,5 +202,44 @@
   }
   .shareClassLinkContainer {
     margin-top: 16px;
+  }
+}
+
+@media (max-width: 389px), (max-height: 843px) {
+  /* about 77% smaller */
+  .previewContainer {
+    width: 208px;
+    height: 357px;
+  }
+
+  .previewHeader {
+    margin: 28px 19px 97px 19px;
+  }
+
+  .previewTitle {
+    font-size: 14px;
+    line-height: 19px;
+    margin-bottom: 3px;
+  }
+
+  .previewInstructor {
+    font-size: 9px;
+    line-height: 12px;
+    margin-bottom: 12px;
+  }
+
+  .soundWaveContainer {
+    margin-bottom: 110px;
+  }
+
+  .soundWave {
+    width: 67px;
+    height: 32px;
+  }
+
+  .previewFooter {
+    margin-left: 19px;
+    font-size: 9px;
+    line-height: 12px;
   }
 }

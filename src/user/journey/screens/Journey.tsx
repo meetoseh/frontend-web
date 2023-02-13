@@ -145,7 +145,10 @@ export const Journey = ({ journey, shared, setScreen }: JourneyScreenProps): Rea
           </div>
         </div>
       </div>
-      <div className={styles.innerContainer}>
+      <div
+        className={`${styles.innerContainer} ${styles.control} ${
+          styles['control_' + controlsVisibility]
+        }`}>
         <div className={styles.content}>
           <div className={styles.title}>{journey.title}</div>
           <div className={styles.instructor}>{journey.instructor.name}</div>

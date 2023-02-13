@@ -113,7 +113,7 @@
 }
 .audioProgress {
   height: 5px;
-  background: #76d7e6;
+  background: #446266;
 }
 
 .audioProgressCircle {
@@ -121,7 +121,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #76d7e6;
+  background: #446266;
 }
 
 .control {

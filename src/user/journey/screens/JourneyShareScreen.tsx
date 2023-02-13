@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styles from './JourneyShareScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { OsehImage, OsehImageFromState } from '../../../shared/OsehImage';
@@ -11,6 +11,7 @@ import { ModalWrapper } from '../../../shared/ModalWrapper';
 import { InviteFallbackPrompt } from '../../referral/InviteFallbackPrompt';
 import { useOsehContent } from '../../../shared/OsehContent';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
+import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 
 export const JourneyShareScreen = ({
   journey,
@@ -29,6 +30,7 @@ export const JourneyShareScreen = ({
   const [invite, setInvite] = useState<NewUserDailyEventInvite | null>(null);
   const [tryInvite, setTryInvite] = useState(false);
   const [nativeShare, setNativeShare] = useState<File | null>(null);
+  const windowSize = useWindowSize();
 
   const doNativeShare = useCallback(async () => {
     if (shareable.webExport === null || journey.sample === null) {
@@ -180,6 +182,14 @@ export const JourneyShareScreen = ({
     }
   }, [nativeShare, modalContext.setModals]);
 
+  const previewSize: { width: number; height: number } = useMemo(() => {
+    if (windowSize.width >= 390 && windowSize.height >= 844) {
+      return { width: 270, height: 470 };
+    }
+
+    return { width: 208, height: 357 };
+  }, [windowSize]);
+
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
@@ -202,8 +212,8 @@ export const JourneyShareScreen = ({
               <OsehImage
                 uid={journey.backgroundImage.uid}
                 jwt={journey.backgroundImage.jwt}
-                displayWidth={270}
-                displayHeight={470}
+                displayWidth={previewSize.width}
+                displayHeight={previewSize.height}
                 alt="preview"
               />
             </div>
