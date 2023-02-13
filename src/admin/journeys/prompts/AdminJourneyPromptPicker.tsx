@@ -79,7 +79,7 @@ export const AdminJourneyPromptPicker = ({
       } else if (newStyle === 'color') {
         setPrompt({
           style: 'color',
-          text: 'How are you feeling?',
+          text: 'What color are you feeling?',
           colors: [],
         });
       } else {
@@ -201,7 +201,7 @@ export const AdminJourneyPromptPicker = ({
                         return { ...p, options: newOptions };
                       });
                     }}
-                    html5Validation={{ required: '', maxlength: '32' }}
+                    html5Validation={{ required: '', maxLength: '32' }}
                   />
 
                   <div className={styles.removeOptionContainer}>

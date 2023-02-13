@@ -252,10 +252,10 @@ export const WordPrompt = ({
   }, [wordRows, onChooseWord, stats.wordActive, activeIndex, prompt.options, fakingMove]);
 
   const containerStyle: CSSProperties = useMemo(() => {
-    const subtitleHeight = 28;
-    const subtitlePromptGap = 5;
-    const titleHeight = 32;
-    const titleResponseGap = 40;
+    const subtitleHeight = 12;
+    const subtitlePromptGap = 13;
+    const titleHeight = 22;
+    const titleResponseGap = 32;
     return {
       flexBasis: `${
         subtitleHeight + subtitlePromptGap + titleHeight + titleResponseGap + wordRowHeight

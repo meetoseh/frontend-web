@@ -115,7 +115,11 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
       </div>
       <div className={styles.innerContainer}>
         <div className={styles.primaryContainer}>
-          <div className={styles.title}>Sign in with your social account</div>
+          <div className={styles.title}>
+            Sign in with
+            <br />
+            your social account
+          </div>
           <div className={styles.signInWithGoogleContainer}>
             <a className={styles.signInWithGoogle} href={googleUrl}>
               <span className={styles.signInWithGoogleIcon}></span>

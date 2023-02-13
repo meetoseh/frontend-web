@@ -29,9 +29,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px;
+  padding: 100px 24px 24px 24px;
   width: 100%;
-  max-width: 410px;
+  max-width: 438px;
+  max-height: 684px;
+  height: 100%;
 }
 
 .closeButtonContainer {
@@ -65,27 +67,35 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: stretch;
+  justify-content: flex-start;
   width: 100%;
+  height: 100%;
 }
 
 .title {
-  max-width: 244px;
-  margin: 0 auto 32px auto;
+  max-width: 260px;
+  margin: 0 auto;
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 18px;
-  line-height: 32px;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
   text-align: center;
   color: white;
+}
+
+.titleStreakSpacer {
+  width: 100%;
+  flex-shrink: 1;
+  flex-basis: 41px;
+  min-height: 0;
 }
 
 .streak {
   display: block;
   margin: 0 auto;
   text-align: center;
-  margin-bottom: 80px;
 }
 
 .streakNumber {
@@ -93,26 +103,32 @@
   font-style: normal;
   font-weight: 300;
   font-size: 100px;
-  line-height: 100px;
+  line-height: 100%;
   color: white;
-  margin-bottom: -5px;
 }
 
 .streakUnit {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 300;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 51px;
   color: white;
+}
+
+.streakReviewSpacer {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 80px;
 }
 
 .reviewText {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 18px;
-  line-height: 32px;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
   text-align: center;
   max-width: 244px;
   width: 100%;
@@ -125,7 +141,7 @@
   flex-flow: row nowrap;
   justify-content: center;
   align-items: center;
-  margin-bottom: 100px;
+  margin-bottom: 60px;
 }
 
 .reviewUp {

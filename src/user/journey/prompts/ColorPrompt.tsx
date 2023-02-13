@@ -227,7 +227,10 @@ export const ColorPrompt = ({
 
   return (
     <div className={styles.container}>
-      <div className={styles.prompt}>{prompt.text}</div>
+      <div className={styles.subtitleAndPrompt}>
+        <div className={styles.promptSubtitle}>Class Poll</div>
+        <div className={styles.prompt}>{prompt.text}</div>
+      </div>
       <div className={styles.colorsContainer}>{buttons}</div>
     </div>
   );

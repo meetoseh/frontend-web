@@ -39,7 +39,7 @@ type CrudDropdownProps<T extends { uid: string }> = {
   /**
    * Used to set the selected value when the user clicks on an item
    */
-  setSelected: (this: void, item: T) => void;
+  setSelected: (this: void, item: T | null) => void;
 
   /**
    * Whether the dropdown is disabled or not
@@ -209,7 +209,7 @@ export function CrudDropdown<T extends { uid: string }>({
           return;
         }
         setItems(newItems);
-        setChoice(newItems.length > 0 ? newItems[0] : null);
+        setChoice(null);
         setFetchedItems(true);
       } catch (e) {
         if (!active) {
@@ -267,12 +267,26 @@ export function CrudDropdown<T extends { uid: string }>({
   );
 
   const options = useMemo(() => {
-    return items.map((item) => (
+    const res = items.map((item) => (
       <option key={item.uid} value={item.uid}>
         {component(item)}
       </option>
     ));
-  }, [items, component]);
+
+    if (choice === null) {
+      res.unshift(
+        <option key="_crud_dropdown__select_one" value="_crud_dropdown__select_one" disabled>
+          Select one
+        </option>
+      );
+    }
+
+    return res;
+  }, [items, component, choice]);
+
+  useEffect(() => {
+    setSelected(choice);
+  }, [choice, setSelected]);
 
   return (
     <div ref={containerRef} className={`${styles.container} ${styles[`variant-${variant}`]}`}>
@@ -283,9 +297,8 @@ export function CrudDropdown<T extends { uid: string }>({
         </div>
         <select
           className={styles.input}
-          value={choice?.uid}
+          value={choice?.uid || '_crud_dropdown__select_one'}
           onChange={onSelectChange}
-          placeholder="Select one..."
           disabled={disabled}
           ref={selectRef}>
           {options}

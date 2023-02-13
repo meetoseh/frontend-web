@@ -9,20 +9,20 @@
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-style: normal;
-  font-size: 16px;
-  line-height: 28px;
+  font-size: 12px;
+  line-height: 100%;
   letter-spacing: 0.25px;
   text-align: center;
   color: white;
-  margin-bottom: 5px;
+  margin-bottom: 13px;
 }
 
 .prompt {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
-  font-weight: 400;
+  font-weight: 300;
   font-size: 22px;
-  line-height: 32px;
+  line-height: 100%;
   color: white;
 }
 
@@ -36,8 +36,7 @@
   -moz-user-select: none;
   -webkit-user-select: none;
   user-select: none;
-  padding-left: 52px;
-  padding-right: 52px;
+  padding: 0 24px;
 }
 
 .wordRow {

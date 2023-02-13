@@ -245,7 +245,7 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
     setInstructorQuery('');
   }, []);
 
-  const onJourneySubcategorySelected = useCallback((subcat: JourneySubcategory) => {
+  const onJourneySubcategorySelected = useCallback((subcat: JourneySubcategory | null) => {
     setNewSubcategory(subcat);
     setSubcategoryQuery('');
   }, []);

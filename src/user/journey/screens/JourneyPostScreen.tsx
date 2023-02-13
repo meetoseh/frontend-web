@@ -167,12 +167,14 @@ export const JourneyPostScreen = ({
               : ''}
             , you're on a roll
           </div>
+          <div className={styles.titleStreakSpacer} />
           <div className={styles.streak}>
             <div className={styles.streakNumber}>
               {streak.toLocaleString(undefined, { useGrouping: true })}
             </div>
             <div className={styles.streakUnit}>day streak</div>
           </div>
+          <div className={styles.streakReviewSpacer} />
           <div className={styles.reviewContainer}>
             <div className={styles.reviewText}>Do you want to see more classes like this?</div>
             <div className={styles.reviewButtons}>

@@ -30,31 +30,31 @@
   flex-direction: column;
   align-items: center;
   padding: 24px;
+  width: 100%;
 }
 
 .primaryContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
-}
-
-.primaryContainer > * {
-  margin-bottom: 40px;
+  margin-bottom: 60px;
+  width: 100%;
 }
 
 .title {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
-  font-weight: 400;
-  font-size: 24px;
+  font-weight: 300;
+  font-size: 22px;
   line-height: 32px;
   text-align: center;
   color: white;
+  margin-bottom: 40px;
 }
 
 .signInWithGoogleContainer {
   width: 100%;
+  margin-bottom: 32px;
 }
 
 .signInWithGoogle {
@@ -87,10 +87,11 @@
 .signInWithGoogleText {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
-  font-weight: 600;
+  font-weight: 400;
   font-size: 16px;
   line-height: 16px;
-  padding-top: 1px;
+  padding-top: 2px;
+  letter-spacing: 0.25px;
   color: white;
 }
 
@@ -128,22 +129,23 @@
 .signInWithAppleText {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
-  font-weight: 600;
+  font-weight: 400;
   font-size: 16px;
   line-height: 16px;
-  padding-top: 1px;
+  letter-spacing: 0.25px;
+  padding-top: 2px;
   color: white;
 }
 
 .legalText {
-  max-width: 258px;
+  max-width: 210px;
   text-align: center;
 
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: 12px;
-  line-height: 22px;
+  line-height: 20px;
   letter-spacing: 0.15px;
   color: white;
 }

@@ -12,6 +12,9 @@ import assistiveStyles from '../../../shared/assistive.module.css';
 import styles from './JourneyLobbyScreen.module.css';
 import { JourneyPrompt } from '../components/JourneyPrompt';
 import { JourneyProfilePictures } from '../components/JourneyProfilePictures';
+import { useWindowSize } from '../../../shared/hooks/useWindowSize';
+
+const profilePicturesRequiredHeight = 844;
 
 /**
  * Shows the screen for the lobby prior to the actual class, where the user
@@ -26,11 +29,14 @@ export const JourneyLobbyScreen = ({
 }: JourneyScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const journeyTime = useJourneyTime(0, false);
+  const windowSize = useWindowSize();
+  const profilePicturesEnabled = windowSize.height >= profilePicturesRequiredHeight;
   const profilePictures = useProfilePictures({
     journeyUid: journey.uid,
     journeyJwt: journey.jwt,
     journeyLobbyDurationSeconds: journey.lobbyDurationSeconds,
     journeyTime,
+    enabled: profilePicturesEnabled,
   });
   const stats = useStats({
     journeyUid: journey.uid,
@@ -121,10 +127,12 @@ export const JourneyLobbyScreen = ({
             stats={stats}
             loginContext={loginContext}
           />
+        </div>
+        {profilePicturesEnabled && (
           <div className={styles.profilePicturesContainer}>
             <JourneyProfilePictures pictures={profilePictures} users={stats.users} />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

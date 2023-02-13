@@ -22,7 +22,7 @@ type JourneySubcategoryPickerProps = {
    * update the query if desired.
    * @param item The item selected
    */
-  setSelected: (this: void, item: JourneySubcategory) => void;
+  setSelected: (this: void, item: JourneySubcategory | null) => void;
 };
 
 /**

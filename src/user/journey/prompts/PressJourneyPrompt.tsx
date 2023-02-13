@@ -15,7 +15,6 @@ export const PressJourneyPrompt = ({
   journeyJwt,
   sessionUid,
   prompt,
-  journeyDurationSeconds,
   stats,
   journeyTime,
   loginContext,
@@ -134,7 +133,8 @@ export const PressJourneyPrompt = ({
 
   return (
     <div className={styles.container}>
-      <div className={styles.promptContainer}>
+      <div className={styles.subtitleAndPrompt}>
+        <div className={styles.promptSubtitle}>Class Activity</div>
         <div className={styles.prompt}>{prompt.text}</div>
       </div>
       <div className={styles.buttonContainer}>

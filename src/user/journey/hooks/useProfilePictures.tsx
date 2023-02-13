@@ -35,6 +35,12 @@ type ProfilePictureKwargs = {
    * certain profile pictures should be shown
    */
   journeyTime: JourneyTime;
+
+  /**
+   * Whether we're actually enabled or not. Profile pictures are usually
+   * removed to save screen space on mobile devices not in fullscreen mode.
+   */
+  enabled?: boolean;
 };
 
 /**
@@ -49,12 +55,17 @@ export const useProfilePictures = ({
   journeyJwt,
   journeyLobbyDurationSeconds,
   journeyTime,
+  enabled = true,
 }: ProfilePictureKwargs): ProfilePictures => {
   const loginContext = useContext(LoginContext);
   const [pictures, setPictures] = useState<OsehImageRef[]>([]);
   const coarsenedTime = useCoarseTime(journeyTime, 2000, -250, true);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const journeyTime = coarsenedTime * 2;
     if (journeyTime >= journeyLobbyDurationSeconds) {
       return;
@@ -116,7 +127,7 @@ export const useProfilePictures = ({
         }
       }
     }
-  }, [coarsenedTime, journeyUid, journeyJwt, journeyLobbyDurationSeconds, loginContext]);
+  }, [coarsenedTime, journeyUid, journeyJwt, journeyLobbyDurationSeconds, loginContext, enabled]);
 
   return { pictures };
 };

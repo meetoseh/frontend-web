@@ -215,7 +215,7 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
     []
   );
 
-  const onSubcategorySelected = useCallback((subcat: JourneySubcategory) => {
+  const onSubcategorySelected = useCallback((subcat: JourneySubcategory | null) => {
     setSubcategory(subcat);
     setSubcategoryQuery('');
   }, []);
