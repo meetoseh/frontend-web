@@ -95,7 +95,7 @@ export const RequestNameForm = ({ setLoaded }: RequestNameFormProps): ReactEleme
             disabled={saving}
             inputStyle={'white'}
             onChange={setFirstName}
-            html5Validation={{ required: '', 'min-length': '1', 'max-length': '255' }}
+            html5Validation={{ required: true, minLength: 1, maxLength: 255 }}
           />
           <TextInput
             label="Last Name"
@@ -104,7 +104,7 @@ export const RequestNameForm = ({ setLoaded }: RequestNameFormProps): ReactEleme
             disabled={saving}
             inputStyle={'white'}
             onChange={setLastName}
-            html5Validation={{ required: '', 'min-length': '1', 'max-length': '255' }}
+            html5Validation={{ required: true, minLength: 1, maxLength: 255 }}
           />
 
           {error && <ErrorBlock>{error}</ErrorBlock>}

@@ -54,11 +54,13 @@
 
 .help {
   padding: 4px 16px 0 16px;
+  color: #191c1d;
+
+  font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-size: 12px;
   line-height: 22px;
   letter-spacing: 0.15px;
-  color: #191c1d;
 }
 
 .white .label,
@@ -66,17 +68,21 @@
   color: white;
 }
 
-.white .input {
+.white .input,
+.error-white .input {
   color: white;
   border-color: white;
 }
 
 .error .label,
-.error .help {
+.error .help,
+.error-white .label,
+.error-white .help {
   color: #ba1a1a;
 }
 
-.error .input {
+.error .input,
+.error-white .input {
   border-color: #ba1a1a;
 }
 
@@ -92,6 +98,18 @@
 .disabled .input {
   color: #3f484a;
   border-color: #3f484a;
+}
+
+/* Chrome, Safari, Edge, Opera */
+.hideNumberSpinner input::-webkit-outer-spin-button,
+.hideNumberSpinner input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+.hideNumberSpinner input[type='number'] {
+  -moz-appearance: textfield;
 }
 
 @media not (prefers-reduced-motion) {

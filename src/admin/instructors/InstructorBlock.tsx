@@ -249,7 +249,7 @@ export const InstructorBlock = ({
             help="Display name for journey cards"
             disabled={false}
             inputStyle="normal"
-            html5Validation={{ required: '' }}
+            html5Validation={{ required: true }}
           />
           <CrudFormElement title="Picture">
             <div className={styles.editPictureContainer}>

@@ -33,3 +33,4 @@ tmp
 # dev
 dev*.bat
 /*.pem
+/start.bat

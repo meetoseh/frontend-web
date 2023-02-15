@@ -124,7 +124,7 @@ export const JourneySubcategoryBlock = ({
             disabled={saving}
             help={null}
             inputStyle={'normal'}
-            html5Validation={{ required: '' }}
+            html5Validation={{ required: true }}
           />
           <TextInput
             label="External Name"
@@ -133,7 +133,7 @@ export const JourneySubcategoryBlock = ({
             disabled={saving}
             help={null}
             inputStyle={'normal'}
-            html5Validation={{ required: '' }}
+            html5Validation={{ required: true }}
           />
 
           {error && <ErrorBlock>{error}</ErrorBlock>}

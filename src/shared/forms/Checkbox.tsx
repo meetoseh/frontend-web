@@ -22,6 +22,12 @@ type CheckboxProps = {
    * @default false
    */
   disabled?: boolean;
+
+  /**
+   * The style of the checkbox
+   * @default 'normal'
+   */
+  checkboxStyle?: 'white' | 'normal';
 };
 
 /**
@@ -32,10 +38,13 @@ export const Checkbox = ({
   setValue,
   label,
   disabled = false,
+  checkboxStyle = 'normal',
 }: CheckboxProps): ReactElement => {
   return (
     <div
-      className={`${styles.container} ${disabled ? styles.disabled : styles.enabled}`}
+      className={`${styles.container} ${disabled ? styles.disabled : styles.enabled} ${
+        styles['style_' + checkboxStyle]
+      }`}
       onClick={(e) => {
         if (e.target instanceof HTMLInputElement) {
           return;

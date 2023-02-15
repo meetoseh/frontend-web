@@ -85,7 +85,7 @@ export const CreateJourneySubcategory = ({
           disabled={saving}
           inputStyle="normal"
           onChange={setInternalName}
-          html5Validation={{ required: '' }}
+          html5Validation={{ required: true }}
         />
         <TextInput
           label="External Name"
@@ -94,7 +94,7 @@ export const CreateJourneySubcategory = ({
           disabled={saving}
           inputStyle="normal"
           onChange={setExternalName}
-          html5Validation={{ required: '' }}
+          html5Validation={{ required: true }}
         />
         {error && <ErrorBlock>{error}</ErrorBlock>}
         <div className={styles.submitContainer}>

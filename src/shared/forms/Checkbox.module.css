@@ -64,3 +64,7 @@
 .disabled .label {
   cursor: not-allowed;
 }
+
+.style_white .label {
+  color: white;
+}

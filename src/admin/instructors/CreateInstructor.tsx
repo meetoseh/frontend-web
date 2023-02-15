@@ -82,7 +82,7 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
             setName(name);
             setError(null);
           }}
-          html5Validation={{ required: '' }}
+          html5Validation={{ required: true }}
         />
         {error && <ErrorBlock>{error}</ErrorBlock>}
         <div className={styles.buttonContainer}>

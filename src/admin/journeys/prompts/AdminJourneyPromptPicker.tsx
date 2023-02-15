@@ -148,7 +148,7 @@ export const AdminJourneyPromptPicker = ({
         disabled={false}
         inputStyle="normal"
         onChange={(v) => setPrompt((p) => ({ ...p, text: v }))}
-        html5Validation={{ required: '' }}
+        html5Validation={{ required: true }}
       />
 
       {prompt.style === 'numeric' && (
@@ -160,7 +160,7 @@ export const AdminJourneyPromptPicker = ({
             disabled={false}
             inputStyle="normal"
             onChange={(v) => setPrompt((p) => ({ ...p, min: v === '' ? NaN : parseInt(v, 10) }))}
-            html5Validation={{ required: '' }}
+            html5Validation={{ required: true }}
             type="number"
           />
           <TextInput
@@ -170,7 +170,7 @@ export const AdminJourneyPromptPicker = ({
             disabled={false}
             inputStyle="normal"
             onChange={(v) => setPrompt((p) => ({ ...p, max: v === '' ? NaN : parseInt(v, 10) }))}
-            html5Validation={{ required: '' }}
+            html5Validation={{ required: true }}
             type="number"
           />
 
@@ -201,7 +201,7 @@ export const AdminJourneyPromptPicker = ({
                         return { ...p, options: newOptions };
                       });
                     }}
-                    html5Validation={{ required: '', maxLength: '32' }}
+                    html5Validation={{ required: true, maxLength: 32 }}
                   />
 
                   <div className={styles.removeOptionContainer}>
@@ -274,7 +274,7 @@ export const AdminJourneyPromptPicker = ({
                         return { ...p, colors: newColors };
                       });
                     }}
-                    html5Validation={{ required: '' }}
+                    html5Validation={{ required: true }}
                   />
 
                   {color.length === 7 &&

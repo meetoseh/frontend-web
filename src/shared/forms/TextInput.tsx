@@ -26,7 +26,7 @@ type TextInputProps = {
   /**
    * Ignored when disabled - configures the style of the input
    */
-  inputStyle: 'white' | 'normal' | 'error';
+  inputStyle: 'white' | 'normal' | 'error' | 'error-white';
 
   /**
    * Called when the value of the input changes
@@ -36,7 +36,7 @@ type TextInputProps = {
   /**
    * Any additional props for html5 validation, such as min, max, required, etc.
    */
-  html5Validation: Record<string, string> | null;
+  html5Validation: React.InputHTMLAttributes<HTMLInputElement> | null;
 
   /**
    * The type of input. Generally only text-like inputs will work, like number,
@@ -50,6 +50,12 @@ type TextInputProps = {
    * If specified, called with a function that can be used to focus the input
    */
   doFocus?: ((focuser: (this: void) => void) => void) | null;
+
+  /**
+   * If true, the number spinner will be hidden for number inputs
+   * @default false
+   */
+  hideNumberSpinner?: boolean;
 };
 
 /**
@@ -65,6 +71,7 @@ export const TextInput = ({
   html5Validation,
   type = 'text',
   doFocus = null,
+  hideNumberSpinner = false,
 }: TextInputProps): ReactElement => {
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -121,7 +128,7 @@ export const TextInput = ({
     <div
       className={`${styles.container} ${styles[inputStyle]} ${
         value === '' && !focused ? styles.empty : styles.filledOrFocused
-      } ${disabled ? styles.disabled : ''}`}>
+      } ${disabled ? styles.disabled : ''} ${hideNumberSpinner ? styles.hideNumberSpinner : ''}`}>
       <div className={styles.labelAndInput}>
         <div ref={labelRef} className={styles.label}>
           {label}

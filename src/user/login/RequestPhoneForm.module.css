@@ -1,0 +1,77 @@
+.container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+}
+
+.imageContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.content {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 40px;
+}
+
+@media screen and (max-width: 439px) {
+  .content {
+    padding: 0 24px;
+  }
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 32px;
+  text-align: center;
+  flex: 1 0 100%;
+  color: white;
+}
+
+.form {
+  width: 100%;
+}
+
+.phoneNumberContainer,
+.codeContainer {
+  margin-top: 40px;
+  width: 100%;
+}
+
+.getNotifiedContainer {
+  margin-top: 24px;
+  width: 100%;
+}
+
+.errorContainer {
+  margin-top: 32px;
+}
+
+.submitContainer {
+  margin-top: 60px;
+  width: 100%;
+}
+
+.skipContainer {
+  margin-top: 20px;
+}
