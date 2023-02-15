@@ -13,6 +13,7 @@ import { useFonts } from '../shared/lib/useFonts';
 import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenContext';
 import { convertUsingKeymap } from '../admin/crud/CrudFetcher';
 import { JourneyRouter } from './journey/JourneyRouter';
+import { RequestPhoneForm } from './login/RequestPhoneForm';
 
 export default function UserApp(): ReactElement {
   return (
@@ -40,14 +41,16 @@ const UserAppInner = (): ReactElement => {
     'current-daily-event'
   );
   const [needRequestName, setNeedRequestName] = useState(false);
+  const [needRequestPhone, setNeedRequestPhone] = useState(false);
   const [state, setState] = useState<
-    'loading' | 'current-daily-event' | 'request-name' | 'login' | 'journey'
+    'loading' | 'current-daily-event' | 'request-name' | 'request-phone' | 'login' | 'journey'
   >('loading');
   const fontsLoaded = useFonts(requiredFonts);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
   const [currentDailyEventLoaded, setCurrentDailyEventLoaded] = useState(false);
   const [journey, setJourney] = useState<JourneyRef | null>(null);
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
+  const [requestPhoneLoaded, setRequestPhoneLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
 
   useEffect(() => {
@@ -127,6 +130,18 @@ const UserAppInner = (): ReactElement => {
     );
   }, [loginContext]);
 
+  useEffect(() => {
+    const skipped = localStorage.getItem('skip-request-phone') === '1';
+    if (skipped) {
+      setNeedRequestPhone(false);
+      return;
+    }
+
+    setNeedRequestPhone(
+      loginContext.state === 'logged-in' && loginContext.userAttributes?.phoneNumber === null
+    );
+  }, [loginContext]);
+
   const gettingOnboardingJourneyRef = useRef(false);
   useEffect(() => {
     if (gettingOnboardingJourneyRef.current) {
@@ -200,6 +215,15 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
+    if (needRequestPhone) {
+      if (!requestPhoneLoaded) {
+        setState('loading');
+      } else {
+        setState('request-phone');
+      }
+      return;
+    }
+
     if (desiredState === 'current-daily-event' && loginContext.state === 'logged-out') {
       setState('login');
       return;
@@ -224,15 +248,25 @@ const UserAppInner = (): ReactElement => {
     needRequestName,
     requestNameLoaded,
     handlingCheckout,
+    needRequestPhone,
+    requestPhoneLoaded,
   ]);
 
   useEffect(() => {
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
     const uid = fullscreenContext.addFullscreenReason.bind(undefined)();
 
     return () => {
       fullscreenContext.removeFullscreenReason.bind(undefined)(uid);
     };
-  }, [fullscreenContext.addFullscreenReason, fullscreenContext.removeFullscreenReason]);
+  }, [
+    fullscreenContext.addFullscreenReason,
+    fullscreenContext.removeFullscreenReason,
+    loginContext.state,
+  ]);
 
   const wrappedSetJourney = useCallback((journey: JourneyRef) => {
     setJourney(journey);
@@ -244,6 +278,15 @@ const UserAppInner = (): ReactElement => {
     setDesiredState('current-daily-event');
   }, []);
 
+  const onRequestPhoneSkipped = useCallback(() => {
+    localStorage.setItem('skip-request-phone', '1');
+    setNeedRequestPhone(false);
+  }, []);
+
+  const onRequestPhoneFinished = useCallback(() => {
+    setNeedRequestPhone(false);
+  }, []);
+
   return (
     <div className={styles.container}>
       {state === 'loading' && !flashWhiteInsteadOfSplash ? (
@@ -253,6 +296,15 @@ const UserAppInner = (): ReactElement => {
       {needRequestName ? (
         <div className={state !== 'request-name' ? styles.displayNone : ''}>
           <RequestNameForm setLoaded={setRequestNameLoaded} />
+        </div>
+      ) : null}
+      {needRequestPhone ? (
+        <div className={state !== 'request-phone' ? styles.displayNone : ''}>
+          <RequestPhoneForm
+            setLoaded={setRequestPhoneLoaded}
+            onSkipped={onRequestPhoneSkipped}
+            onFinished={onRequestPhoneFinished}
+          />
         </div>
       ) : null}
       {desiredState === 'current-daily-event' && !handlingCheckout ? (
