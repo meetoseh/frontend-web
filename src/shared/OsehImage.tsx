@@ -172,6 +172,11 @@ export type OsehImageState = {
    * The alt text for the image
    */
   alt: string;
+
+  /**
+   * True if the image is loading, false otherwise
+   */
+  loading: boolean;
 };
 
 /**
@@ -487,6 +492,7 @@ export const useOsehImageState = ({
       alt,
       displayWidth,
       displayHeight,
+      loading: uid === null || downloadedItem?.localUrl === null,
     };
-  }, [downloadedItem?.localUrl, alt, displayWidth, displayHeight]);
+  }, [downloadedItem?.localUrl, alt, displayWidth, displayHeight, uid]);
 };
