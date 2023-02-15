@@ -261,11 +261,11 @@ export const RequestPhoneForm = ({
 
               <div className={styles.getNotifiedContainer}>
                 <Checkbox
-                  label="Get notified about new content"
+                  label="You agree to receive text messages from Oseh. Message and data rates may apply. Approximately 1 message per day."
                   value={recieveNotifs}
                   setValue={setRecieveNotifs}
                   disabled={saving}
-                  checkboxStyle={'white'}
+                  checkboxStyle={'whiteSmallText'}
                 />
               </div>
 

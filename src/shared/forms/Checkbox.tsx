@@ -27,7 +27,7 @@ type CheckboxProps = {
    * The style of the checkbox
    * @default 'normal'
    */
-  checkboxStyle?: 'white' | 'normal';
+  checkboxStyle?: 'white' | 'normal' | 'whiteSmallText';
 };
 
 /**
