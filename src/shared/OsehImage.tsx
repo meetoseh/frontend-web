@@ -81,6 +81,24 @@ type PlaylistItem = {
   sizeBytes: number;
 };
 
+const playlistItemsEqual = (a: PlaylistItem | null, b: PlaylistItem | null): boolean => {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === null || b === null) {
+    return false;
+  }
+
+  return (
+    a.url === b.url &&
+    a.format === b.format &&
+    a.width === b.width &&
+    a.height === b.height &&
+    a.sizeBytes === b.sizeBytes
+  );
+};
+
 type Playlist = {
   /**
    * The uid of the image file this playlist is for, so we don't refetch the image
@@ -93,6 +111,48 @@ type Playlist = {
    * the lists are sorted by size, ascending.
    */
   items: { [format: string]: PlaylistItem[] };
+};
+
+const playlistsEqual = (a: Playlist | null, b: Playlist | null): boolean => {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === null || b === null) {
+    return false;
+  }
+
+  if (a.uid !== b.uid) {
+    return false;
+  }
+
+  const aKeys = Object.keys(a.items);
+  const bKeys = Object.keys(b.items);
+
+  if (aKeys.length !== bKeys.length) {
+    return false;
+  }
+
+  for (const key of aKeys) {
+    if (!bKeys.includes(key)) {
+      return false;
+    }
+
+    const aItems = a.items[key];
+    const bItems = b.items[key];
+
+    if (aItems.length !== bItems.length) {
+      return false;
+    }
+
+    for (let i = 0; i < aItems.length; i++) {
+      if (!playlistItemsEqual(aItems[i], bItems[i])) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 };
 
 /**
@@ -177,6 +237,23 @@ export type OsehImageState = {
    * True if the image is loading, false otherwise
    */
   loading: boolean;
+};
+
+type DownloadedItem = {
+  localUrl: string;
+  remoteUrl: string;
+};
+
+const downloadedItemsEqual = (a: DownloadedItem | null, b: DownloadedItem | null): boolean => {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === null || b === null) {
+    return false;
+  }
+
+  return a.localUrl === b.localUrl && a.remoteUrl === b.remoteUrl;
 };
 
 /**
@@ -315,36 +392,119 @@ export const OsehImageFromState = ({
  *
  * @returns The state of the image which can be used by OsehImageFromState
  */
-export const useOsehImageState = ({
-  uid,
-  jwt,
-  displayWidth,
-  displayHeight,
-  alt,
-  isPublic = false,
-  setLoading = null,
-}: OsehImageProps): OsehImageState => {
-  const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [publicJwt, setPublicJwt] = useState<string | null>(null);
-  const [item, setItem] = useState<PlaylistItem | null>(null);
-  const [downloadedItem, setDownloadedItem] = useState<{
-    localUrl: string;
-    remoteUrl: string;
-  } | null>(null);
+export const useOsehImageState = (props: OsehImageProps): OsehImageState => {
+  return useOsehImageStates([props])[0];
+};
 
+/**
+ * A variant of useOsehImageState that can be used to load multiple images
+ * in a single effect. This is useful when the number of images being loaded
+ * may change, but the images still need to be reused. This will only reload
+ * the images that actually change.
+ *
+ * Returns the image states in the order of the items array. Items with no
+ * uid will be stuck loading.
+ */
+export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] => {
+  const [playlists, setPlaylists] = useState<{ [uid: string]: Playlist | null }>({});
+  const [publicJwts, setPublicJwts] = useState<{ [uid: string]: string | null }>({});
+  const [items, setItems] = useState<{ [uid: string]: PlaylistItem | null }>({});
+  const [downloadedItems, setDownloadedItems] = useState<{
+    [uid: string]: DownloadedItem | null;
+  }>({});
+
+  /**
+   * Handles setting playlists and public jwts
+   */
   useEffect(() => {
-    if (uid === null) {
-      setPlaylist(null);
-      return;
-    }
-
     let alive = true;
-    fetchPlaylist();
+    fetchPlaylists();
     return () => {
       alive = false;
     };
 
-    async function fetchPlaylist() {
+    async function fetchPlaylists() {
+      const currentUids = new Set(images.map((img) => img.uid).filter((uid) => uid !== null));
+      const newPlaylists: { [uid: string]: Playlist | null } = Object.assign({}, playlists);
+      const newPublicJwts: { [uid: string]: string | null } = Object.assign({}, publicJwts);
+
+      let madeAnyChanges = false;
+
+      Object.keys(newPlaylists).forEach((uid) => {
+        if (!currentUids.has(uid)) {
+          madeAnyChanges = true;
+          delete newPlaylists[uid];
+        }
+      });
+      Object.keys(newPublicJwts).forEach((uid) => {
+        if (!currentUids.has(uid)) {
+          madeAnyChanges = true;
+          delete newPublicJwts[uid];
+        }
+      });
+
+      const promises: Promise<void>[] = [];
+      images.forEach((img) => {
+        const imgUid = img.uid;
+        if (imgUid === null) {
+          return;
+        }
+
+        const currentPlaylist = newPlaylists[imgUid] ?? null;
+        madeAnyChanges ||= newPlaylists[imgUid] !== currentPlaylist;
+        newPlaylists[imgUid] = currentPlaylist;
+
+        const currentPublicJwt = newPublicJwts[imgUid] ?? null;
+        madeAnyChanges ||= newPublicJwts[imgUid] !== currentPublicJwt;
+        newPublicJwts[imgUid] = currentPublicJwt;
+
+        const currentIsPublic = !!img.isPublic;
+
+        promises.push(
+          fetchPlaylist(
+            img.uid,
+            img.jwt,
+            currentPlaylist,
+            currentIsPublic,
+            currentPublicJwt,
+            (jwt) => {
+              madeAnyChanges ||= newPublicJwts[imgUid] !== jwt;
+              newPublicJwts[imgUid] = jwt;
+            },
+            (playlist) => {
+              madeAnyChanges ||= !playlistsEqual(newPlaylists[imgUid], playlist);
+              newPlaylists[imgUid] = playlist;
+            }
+          )
+        );
+      });
+
+      await Promise.all(promises);
+      if (!alive) {
+        return;
+      }
+
+      if (!madeAnyChanges) {
+        return;
+      }
+
+      setPlaylists(newPlaylists);
+      setPublicJwts(newPublicJwts);
+    }
+
+    async function fetchPlaylist(
+      uid: string | null,
+      jwt: string | null,
+      playlist: Playlist | null,
+      isPublic: boolean,
+      publicJwt: string | null,
+      setPublicJwt: (jwt: string | null) => void,
+      setPlaylist: (playlist: Playlist | null) => void
+    ) {
+      if (!alive) {
+        return;
+      }
+
       if (playlist?.uid === uid) {
         return;
       }
@@ -381,26 +541,85 @@ export const useOsehImageState = ({
       }
       setPlaylist(data);
     }
-  }, [uid, jwt, playlist?.uid, isPublic]);
+  }, [images, playlists, publicJwts]);
 
+  /**
+   * Handles selecting items
+   */
   useEffect(() => {
-    if (playlist === null) {
-      setItem(null);
-      return;
-    }
-
     let alive = true;
-    selectItem();
+    selectItems();
     return () => {
       alive = false;
     };
 
-    async function selectItem() {
-      const usesWebp = await USES_WEBP;
+    async function selectItems() {
+      const currentUids = new Set(Object.keys(playlists));
+      const displaySizes = new Map<string, { width: number; height: number }>();
+
+      for (const img of images) {
+        if (img.uid === null) {
+          continue;
+        }
+        displaySizes.set(img.uid, {
+          width: img.displayWidth,
+          height: img.displayHeight,
+        });
+      }
+
+      const newItems: { [uid: string]: PlaylistItem | null } = Object.assign({}, items);
+      let madeAnyChanges = false;
+
+      Object.keys(newItems).forEach((uid) => {
+        if (!currentUids.has(uid)) {
+          madeAnyChanges = true;
+          delete newItems[uid];
+        }
+      });
+
+      const promises: Promise<void>[] = [];
+      Object.entries(playlists).forEach(([uid, playlist]) => {
+        const displaySize = displaySizes.get(uid);
+
+        if (newItems[uid] === undefined) {
+          madeAnyChanges = true;
+          newItems[uid] = null;
+        }
+
+        if (displaySize === undefined) {
+          madeAnyChanges ||= newItems[uid] !== null;
+          newItems[uid] = null;
+          return;
+        }
+
+        promises.push(
+          selectItem(playlist, displaySize.width, displaySize.height, (item) => {
+            madeAnyChanges ||= !playlistItemsEqual(newItems[uid], item);
+            newItems[uid] = item;
+          })
+        );
+      });
+
+      await Promise.all(promises);
       if (!alive) {
         return;
       }
+      if (!madeAnyChanges) {
+        return;
+      }
+
+      setItems(newItems);
+    }
+
+    async function selectItem(
+      playlist: Playlist | null,
+      displayWidth: number,
+      displayHeight: number,
+      setItem: (item: PlaylistItem | null) => void
+    ) {
+      const usesWebp = await USES_WEBP;
       if (playlist === null) {
+        setItem(null);
         return;
       }
 
@@ -438,16 +657,86 @@ export const useOsehImageState = ({
 
       setItem(bestItem);
     }
-  }, [playlist, displayWidth, displayHeight]);
+  }, [images, items, playlists]);
 
+  /**
+   * Manages downloading the items
+   */
   useEffect(() => {
     let active = true;
-    fetchItemUrl();
+    fetchItemUrls();
     return () => {
       active = false;
     };
 
-    async function fetchItemUrl() {
+    async function fetchItemUrls() {
+      const currentUids = new Set(Object.keys(items));
+      const newDownloadedItems: { [uid: string]: DownloadedItem | null } = Object.assign(
+        {},
+        downloadedItems
+      );
+      const jwtsByUid = new Map<string, string | null>();
+      for (const img of images) {
+        if (img.uid === null) {
+          continue;
+        }
+        jwtsByUid.set(img.uid, img.jwt);
+      }
+
+      let madeAnyChanges = false;
+      Object.keys(newDownloadedItems).forEach((uid) => {
+        if (!currentUids.has(uid)) {
+          madeAnyChanges = true;
+          delete newDownloadedItems[uid];
+        }
+      });
+
+      const promises: Promise<void>[] = [];
+      Object.entries(items).forEach(([uid, item]) => {
+        if (item === null) {
+          madeAnyChanges ||= newDownloadedItems[uid] !== null;
+          newDownloadedItems[uid] = null;
+          return;
+        }
+
+        if (newDownloadedItems[uid] === undefined) {
+          madeAnyChanges = true;
+          newDownloadedItems[uid] = null;
+        }
+
+        promises.push(
+          fetchItemUrl(
+            item,
+            publicJwts[uid],
+            jwtsByUid.get(uid) ?? null,
+            downloadedItems[uid],
+            (downloadedItem) => {
+              madeAnyChanges ||= !downloadedItemsEqual(newDownloadedItems[uid], downloadedItem);
+              newDownloadedItems[uid] = downloadedItem;
+            }
+          )
+        );
+      });
+
+      await Promise.all(promises);
+      if (!active) {
+        return;
+      }
+
+      if (!madeAnyChanges) {
+        return;
+      }
+
+      setDownloadedItems(newDownloadedItems);
+    }
+
+    async function fetchItemUrl(
+      item: PlaylistItem,
+      publicJwt: string | null,
+      jwt: string | null,
+      downloadedItem: DownloadedItem | null,
+      setDownloadedItem: (item: DownloadedItem | null) => void
+    ) {
       if (item === null) {
         setDownloadedItem(null);
         return;
@@ -478,21 +767,40 @@ export const useOsehImageState = ({
 
       setDownloadedItem({ localUrl: URL.createObjectURL(blob), remoteUrl: item.url });
     }
-  }, [item, jwt, downloadedItem?.remoteUrl, publicJwt]);
-
-  useEffect(() => {
-    if (setLoading !== null) {
-      setLoading(uid === null || downloadedItem === null, uid);
-    }
-  }, [downloadedItem, setLoading, uid]);
+  }, [images, items, downloadedItems, publicJwts]);
 
   return useMemo(() => {
-    return {
-      localUrl: downloadedItem?.localUrl ?? null,
-      alt,
-      displayWidth,
-      displayHeight,
-      loading: uid === null || downloadedItem?.localUrl === null,
-    };
-  }, [downloadedItem?.localUrl, alt, displayWidth, displayHeight, uid]);
+    return images.map((img) => {
+      if (img.uid === null) {
+        return {
+          localUrl: null,
+          alt: img.alt,
+          displayWidth: img.displayWidth,
+          displayHeight: img.displayHeight,
+          loading: true,
+        };
+      }
+
+      const downloadedItem = downloadedItems[img.uid];
+      if (downloadedItem === null || downloadedItem === undefined) {
+        return {
+          localUrl: null,
+          alt: img.alt,
+          displayWidth: img.displayWidth,
+          displayHeight: img.displayHeight,
+          loading: true,
+        };
+      }
+
+      const localUrl = downloadedItem.localUrl ?? null;
+
+      return {
+        localUrl: localUrl,
+        alt: img.alt,
+        displayWidth: img.displayWidth,
+        displayHeight: img.displayHeight,
+        loading: localUrl === null,
+      };
+    });
+  }, [images, downloadedItems]);
 };

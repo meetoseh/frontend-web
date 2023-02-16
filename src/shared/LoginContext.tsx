@@ -9,6 +9,11 @@ import { apiFetch } from './ApiConstants';
  */
 export type UserAttributes = {
   /**
+   * The users unique identifier
+   */
+  sub: string;
+
+  /**
    * The user's email address
    */
   email: string;
@@ -192,6 +197,7 @@ export const extractUserAttributes = (tokenConfig: TokenResponseConfig): UserAtt
   }
 
   return {
+    sub: claims.sub,
     email: claims.email,
     phoneNumber: claims.phone_number || null,
     name: nameClaims.name,
@@ -493,7 +499,7 @@ export const LoginProvider = ({
     };
 
     async function fetchTokens() {
-      const [tokens, attributes] = await Promise.all([
+      const [tokens, rawAttributes] = await Promise.all([
         retrieveAuthTokens(),
         retrieveUserAttributes(),
       ]);
@@ -505,6 +511,17 @@ export const LoginProvider = ({
         setState('logged-out');
         return;
       }
+
+      const attributes = (() => {
+        if (
+          rawAttributes === null ||
+          rawAttributes.sub === undefined ||
+          rawAttributes.sub === null
+        ) {
+          return extractUserAttributes(tokens);
+        }
+        return rawAttributes;
+      })();
 
       if (isTokenFresh(tokens)) {
         setAuthTokens(tokens);
