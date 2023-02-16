@@ -769,6 +769,34 @@ export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] =
     }
   }, [images, items, downloadedItems, publicJwts]);
 
+  /**
+   * Calls isLoading callback if set
+   */
+  useEffect(() => {
+    images.forEach((img) => {
+      if (img.setLoading === null || img.setLoading === undefined) {
+        return;
+      }
+
+      if (img.uid === null) {
+        img.setLoading(true, null);
+        return;
+      }
+
+      const downloadedItem = downloadedItems[img.uid];
+      if (
+        downloadedItem === null ||
+        downloadedItem === undefined ||
+        downloadedItem.localUrl === null
+      ) {
+        img.setLoading(true, img.uid);
+        return;
+      }
+
+      img.setLoading(false, img.uid);
+    });
+  }, [images, downloadedItems]);
+
   return useMemo(() => {
     return images.map((img) => {
       if (img.uid === null) {
