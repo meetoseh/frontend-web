@@ -34,7 +34,6 @@ import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
 import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
 import { InstructorPicker } from '../instructors/InstructorPicker';
-import { cO } from 'chart.js/dist/chunks/helpers.core';
 
 type CreateJourneyProps = {
   /**
