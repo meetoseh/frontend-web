@@ -218,6 +218,7 @@ export const DailyEventCalendarCreate = ({
                 setQuery={setQuery}
                 setSelected={onJourneySelected}
                 filterInEvent={true}
+                filterHasSessions={true}
               />
             </div>
           </div>

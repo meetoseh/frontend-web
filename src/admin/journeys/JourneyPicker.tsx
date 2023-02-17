@@ -38,6 +38,12 @@ type JourneyPickerProps = {
   filterIsIntroductory?: boolean;
 
   /**
+   * If true, only journeys which do not have any sessions will be shown
+   * @default false
+   */
+  filterHasSessions?: boolean;
+
+  /**
    * If true the picker is disabled
    * @default false
    */
@@ -58,6 +64,7 @@ const sort: CrudFetcherSort = [{ key: 'title', dir: 'asc', before: null, after: 
 const generalFilterMaker = (
   filterInEvent: boolean,
   filterIsIntroductory: boolean,
+  filterHasSessions: boolean,
   query: string
 ): CrudFetcherFilter => {
   const res: CrudFetcherFilter = {
@@ -80,6 +87,12 @@ const generalFilterMaker = (
     res.introductory_journey_uid = {
       operator: 'eq',
       value: null,
+    };
+  }
+  if (filterHasSessions) {
+    res.has_sessions = {
+      operator: 'eq',
+      value: false,
     };
   }
   return res;
@@ -106,11 +119,13 @@ export const JourneyPicker = ({
   setSelected,
   filterInEvent = false,
   filterIsIntroductory = false,
+  filterHasSessions = false,
   disabled = false,
 }: JourneyPickerProps): ReactElement => {
   const filterMaker = useMemo(
-    () => generalFilterMaker.bind(undefined, filterInEvent, filterIsIntroductory),
-    [filterInEvent, filterIsIntroductory]
+    () =>
+      generalFilterMaker.bind(undefined, filterInEvent, filterIsIntroductory, filterHasSessions),
+    [filterInEvent, filterIsIntroductory, filterHasSessions]
   );
   return (
     <CrudPicker

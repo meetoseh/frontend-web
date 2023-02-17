@@ -353,6 +353,7 @@ export const DailyEventCalendarEdit = ({
                 setQuery={setQuery}
                 setSelected={onJourneySelected}
                 disabled={savingOrLoading}
+                filterHasSessions={true}
                 filterInEvent={true}
               />
             </div>
