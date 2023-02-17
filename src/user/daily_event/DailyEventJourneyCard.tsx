@@ -1,11 +1,12 @@
-import { ReactElement } from 'react';
+import { ReactElement, useCallback, useState } from 'react';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
 import { LoginContextValue } from '../../shared/LoginContext';
 import { MyProfilePictureState } from '../../shared/MyProfilePicture';
 import { OsehImageFromState, OsehImageState } from '../../shared/OsehImage';
-import { JourneyRef } from '../journey/models/JourneyRef';
 import { DailyEventJourney } from './DailyEvent';
 import styles from './DailyEventJourneyCard.module.css';
+import assistiveStyles from '../../shared/assistive.module.css';
+import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 
 type DailyEventJourneyCardState = {
   /**
@@ -34,12 +35,23 @@ type DailyEventJourneyCardState = {
   profilePicture: MyProfilePictureState;
 
   /**
-   * Called when we receive a ref to the journey that the user should be directed
-   * to
-   *
-   * @param journey The journey that the user should be directed to
+   * How many journeys there are in total
    */
-  setJourney: (this: void, journey: JourneyRef) => void;
+  numberOfJourneys: number;
+
+  /**
+   * The index of this journey within the journeys, in the original
+   * carousel order
+   */
+  journeyIndex: number;
+
+  /**
+   * Called when the user wants to start this journey
+   *
+   * @param journey The journey that should be started. If the promise
+   *   rejects, an error will be shown
+   */
+  onPlay: (this: void, journey: DailyEventJourney) => Promise<void>;
 };
 
 /**
@@ -53,17 +65,34 @@ export const DailyEventJourneyCard = ({
   windowSize,
   background,
   profilePicture,
-  setJourney,
+  numberOfJourneys,
+  journeyIndex,
+  onPlay,
 }: DailyEventJourneyCardState): ReactElement => {
   const containerStyle = useFullHeightStyle({ attribute: 'height', windowSize });
+  const contentStyle = useFullHeightStyle({ attribute: 'height', windowSize });
+  const [error, setError] = useState<ReactElement | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const doPlay = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await onPlay(journey);
+    } catch (e) {
+      setError(await describeError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [onPlay, journey]);
 
   return (
     <div className={styles.container} style={containerStyle}>
       <div className={styles.imageContainer}>
         <OsehImageFromState {...background} />
       </div>
-      <div className={styles.content}>
-        <div className={styles.header}>
+      <div className={styles.content} style={contentStyle}>
+        <a href="/settings" className={styles.header}>
           {profilePicture.state === 'available' && profilePicture.image !== null && (
             <div className={styles.profilePictureContainer}>
               <OsehImageFromState {...profilePicture.image} />
@@ -71,15 +100,32 @@ export const DailyEventJourneyCard = ({
           )}
 
           <div className={styles.headerRight}>
-            <div className={styles.subtitle}>Hi {loginContext.userAttributes!.givenName}</div>
+            <div className={styles.subtitle}>Hi {loginContext.userAttributes!.givenName} 👋</div>
             <div className={styles.title}>Today&rsquo;s Journeys</div>
           </div>
-        </div>
+        </a>
+
+        {journey.access.start && (
+          <div className={styles.playContainer}>
+            <button type="button" className={styles.playButton} onClick={doPlay} disabled={loading}>
+              <div className={assistiveStyles.srOnly}>Play</div>
+              <div className={styles.playIcon} />
+            </button>
+          </div>
+        )}
 
         <div className={styles.body}>
-          <div className={styles.title}>{journey.title}</div>
-          <div className={styles.instructor}>{journey.instructor.name}</div>
-          <div className={styles.description}>{journey.description.text}</div>
+          {error && <ErrorBlock>{error}</ErrorBlock>}
+          <div className={styles.info}>
+            <div className={styles.infoTitle}>{journey.title}</div>
+            <div className={styles.instructor}>{journey.instructor.name}</div>
+            <div className={styles.description}>{journey.description.text}</div>
+          </div>
+          <div className={styles.dots}>
+            {Array.from({ length: numberOfJourneys }, (_, i) => (
+              <div key={i} className={i === journeyIndex ? styles.dotSelected : styles.dot} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

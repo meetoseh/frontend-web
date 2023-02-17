@@ -8,14 +8,16 @@ import {
   useRef,
   useState,
 } from 'react';
+import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
+import { apiFetch } from '../../shared/ApiConstants';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { shuffle } from '../../shared/lib/shuffle';
 import { LoginContext } from '../../shared/LoginContext';
 import { useMyProfilePictureState } from '../../shared/MyProfilePicture';
 import { useOsehImageStates } from '../../shared/OsehImage';
-import { JourneyRef } from '../journey/models/JourneyRef';
-import { DailyEvent } from './DailyEvent';
+import { JourneyRef, journeyRefKeyMap } from '../journey/models/JourneyRef';
+import { DailyEvent, DailyEventJourney } from './DailyEvent';
 import { DailyEventJourneyCard } from './DailyEventJourneyCard';
 import styles from './NewDailyEventView.module.css';
 
@@ -92,6 +94,15 @@ export const DailyEventView = ({
   const renderedCarouselOrder = useRef<CarouselOrder | null>(null);
   const rerenderCallbacks = useRef<(() => void)[]>([]);
 
+  const originalShuffle: number[] = useMemo(() => {
+    const order: number[] = [];
+    for (let i = 0; i < event.journeys.length; i++) {
+      order.push(i);
+    }
+    shuffle(order);
+    return order;
+  }, [event.journeys.length]);
+
   /**
    * The cards arranged in carousel order. It would be preferable to split
    * this into two values - one with the order and one with the cards - but
@@ -114,10 +125,42 @@ export const DailyEventView = ({
     );
   }, [setLoading, cardBackgrounds, carouselOrderIsNull, profilePicture.state]);
 
+  const onPlay = useCallback(
+    async (journey: DailyEventJourney) => {
+      const response = await apiFetch(
+        '/api/1/daily_events/start_specific',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            daily_event_uid: event.uid,
+            daily_event_jwt: event.jwt,
+            journey_uid: journey.uid,
+          }),
+        },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const dataRaw = await response.json();
+      const data = convertUsingKeymap(dataRaw, journeyRefKeyMap);
+      setJourney(data);
+    },
+    [setJourney, loginContext, event.uid, event.jwt]
+  );
+
   /**
    * The cards that we are showing in the order of the original event.
    */
   const cards: ReactElement[] = useMemo(() => {
+    const originalIdxToShuffleIdx = new Map<number, number>();
+    for (let i = 0; i < originalShuffle.length; i++) {
+      originalIdxToShuffleIdx.set(originalShuffle[i], i);
+    }
+
     return event.journeys.map((j, idx) => {
       return (
         <DailyEventJourneyCard
@@ -126,25 +169,31 @@ export const DailyEventView = ({
           windowSize={windowSize}
           background={cardBackgrounds[idx]}
           profilePicture={profilePicture}
-          setJourney={setJourney}
+          numberOfJourneys={event.journeys.length}
+          journeyIndex={originalIdxToShuffleIdx.get(idx)!}
+          onPlay={onPlay}
         />
       );
     });
-  }, [event.journeys, cardBackgrounds, windowSize, setJourney, profilePicture, loginContext]);
+  }, [
+    event.journeys,
+    cardBackgrounds,
+    windowSize,
+    profilePicture,
+    loginContext,
+    originalShuffle,
+    onPlay,
+  ]);
 
   /**
    * Whenever the cards change, we need to update the carousel order
    */
   useEffect(() => {
-    const order: number[] = [];
-    for (let i = 0; i < cards.length; i++) {
-      order.push(i);
-    }
-    shuffle(order);
+    const order: number[] = originalShuffle;
 
     const cardsInOrder = order.map((i) => cards[i]);
     setCarouselOrder({ indices: order, cards: cardsInOrder });
-  }, [cards]);
+  }, [originalShuffle, cards]);
 
   const transitionLock = useRef(false);
 
