@@ -274,6 +274,7 @@ const UserAppInner = (): ReactElement => {
   }, []);
 
   const onJourneyPostFinished = useCallback(() => {
+    localStorage.removeItem('onboard');
     setJourney(null);
     setDesiredState('current-daily-event');
   }, []);
