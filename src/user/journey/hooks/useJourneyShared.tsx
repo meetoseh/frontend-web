@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { useOsehImageState } from '../../../shared/OsehImage';
 import { JourneyRef } from '../models/JourneyRef';
@@ -18,36 +18,50 @@ export const useJourneyShared = (journey: JourneyRef | null): JourneyShared => {
     blurredImageLoading: true,
     audio: null,
   });
-  const [imageLoading, setImageLoading] = useState(true);
-  const image = useOsehImageState({
-    uid: journey?.darkenedBackgroundImage?.uid ?? null,
-    jwt: journey?.darkenedBackgroundImage?.jwt ?? null,
-    displayWidth: windowSize.width,
-    displayHeight: windowSize.height,
-    alt: '',
-    setLoading: setImageLoading,
-  });
-  const [blurredImageLoading, setBlurredImageLoading] = useState(true);
-  const blurredImage = useOsehImageState({
-    uid: journey?.blurredBackgroundImage?.uid ?? null,
-    jwt: journey?.blurredBackgroundImage?.jwt ?? null,
-    displayWidth: windowSize.width,
-    displayHeight: windowSize.height,
-    alt: '',
-    setLoading: setBlurredImageLoading,
-  });
+  const imageProps = useMemo(
+    () => ({
+      uid: journey?.darkenedBackgroundImage?.uid ?? null,
+      jwt: journey?.darkenedBackgroundImage?.jwt ?? null,
+      displayWidth: windowSize.width,
+      displayHeight: windowSize.height,
+      alt: '',
+    }),
+    [
+      journey?.darkenedBackgroundImage?.uid,
+      journey?.darkenedBackgroundImage?.jwt,
+      windowSize.width,
+      windowSize.height,
+    ]
+  );
+  const image = useOsehImageState(imageProps);
+  const blurredImageProps = useMemo(
+    () => ({
+      uid: journey?.blurredBackgroundImage?.uid ?? null,
+      jwt: journey?.blurredBackgroundImage?.jwt ?? null,
+      displayWidth: windowSize.width,
+      displayHeight: windowSize.height,
+      alt: '',
+    }),
+    [
+      journey?.blurredBackgroundImage?.uid,
+      journey?.blurredBackgroundImage?.jwt,
+      windowSize.width,
+      windowSize.height,
+    ]
+  );
+  const blurredImage = useOsehImageState(blurredImageProps);
   const audio = useJourneyAudio(journey?.audioContent ?? null);
 
   useEffect(() => {
     setShared({
       image,
-      imageLoading,
+      imageLoading: image.loading,
       blurredImage,
-      blurredImageLoading,
+      blurredImageLoading: blurredImage.loading,
       windowSize,
       audio,
     });
-  }, [image, imageLoading, blurredImage, blurredImageLoading, windowSize, audio]);
+  }, [image, blurredImage, windowSize, audio]);
 
   return shared;
 };

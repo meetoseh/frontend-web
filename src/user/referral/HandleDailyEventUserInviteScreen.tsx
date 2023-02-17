@@ -45,16 +45,18 @@ const Inner = ({ code }: { code: string }): ReactElement => {
   const loginContext = useContext(LoginContext);
   const fontsLoaded = useFonts(requiredFonts);
   const windowSize = useWindowSize();
-  const [imageLoading, setImageLoading] = useState(true);
-  const imageState = useOsehImageState({
-    uid: 'oseh_if_-i-Qff8gqHyMZRb1r_5WMQ',
-    jwt: null,
-    displayWidth: windowSize.width,
-    displayHeight: windowSize.height,
-    alt: '',
-    isPublic: true,
-    setLoading: setImageLoading,
-  });
+  const imageProps = useMemo(
+    () => ({
+      uid: 'oseh_if_-i-Qff8gqHyMZRb1r_5WMQ',
+      jwt: null,
+      displayWidth: windowSize.width,
+      displayHeight: windowSize.height,
+      alt: '',
+      isPublic: true,
+    }),
+    [windowSize.width, windowSize.height]
+  );
+  const imageState = useOsehImageState(imageProps);
   const [redeemed, setRedeemed] = useState<RedeemedUserDailyEventInvite | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
 
@@ -128,7 +130,7 @@ const Inner = ({ code }: { code: string }): ReactElement => {
   if (error !== null) {
     return <ErrorBlock>{error}</ErrorBlock>;
   }
-  if (!fontsLoaded || loginContext.state === 'loading' || imageLoading) {
+  if (!fontsLoaded || loginContext.state === 'loading' || imageState.loading) {
     return <SplashScreen type="wordmark" />;
   }
   if (loginContext.state === 'logged-out') {

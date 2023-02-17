@@ -2,6 +2,7 @@ import {
   CSSProperties,
   ReactElement,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -10,6 +11,8 @@ import {
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { shuffle } from '../../shared/lib/shuffle';
+import { LoginContext } from '../../shared/LoginContext';
+import { useMyProfilePictureState } from '../../shared/MyProfilePicture';
 import { useOsehImageStates } from '../../shared/OsehImage';
 import { JourneyRef } from '../journey/models/JourneyRef';
 import { DailyEvent } from './DailyEvent';
@@ -56,6 +59,7 @@ export const DailyEventView = ({
   setLoading,
   setJourney,
 }: DailyEventViewProps): ReactElement => {
+  const loginContext = useContext(LoginContext);
   const windowSize = useWindowSize();
   const [animatingToward, setAnimatingToward] = useState<'left' | 'right' | null>(null);
   const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
@@ -75,6 +79,11 @@ export const DailyEventView = ({
     [event.journeys, windowSize.width, windowSize.height]
   );
   const cardBackgrounds = useOsehImageStates(cardBackgroundProps);
+  const profilePicture = useMyProfilePictureState({
+    loginContext,
+    displayWidth: 48,
+    displayHeight: 48,
+  });
 
   const renderedAnimatingToward = useRef<'left' | 'right' | null>(animatingToward);
   const renderedAnimatingTowardCard = useRef<ReactElement | null>(null);
@@ -94,12 +103,16 @@ export const DailyEventView = ({
 
   const carouselOrderIsNull = carouselOrder === null;
   /**
-   * We're loading while any journeys are loading or the carousel order
-   * hasn't been selected yet
+   * We're loading while any journeys are loading, the carousel order
+   * hasn't been selected yet, or the profile picture is loading
    */
   useEffect(() => {
-    setLoading(cardBackgrounds.some((i) => i.loading) || carouselOrderIsNull);
-  }, [setLoading, cardBackgrounds, carouselOrderIsNull]);
+    setLoading(
+      cardBackgrounds.some((i) => i.loading) ||
+        carouselOrderIsNull ||
+        profilePicture.state === 'loading'
+    );
+  }, [setLoading, cardBackgrounds, carouselOrderIsNull, profilePicture.state]);
 
   /**
    * The cards that we are showing in the order of the original event.
@@ -108,13 +121,16 @@ export const DailyEventView = ({
     return event.journeys.map((j, idx) => {
       return (
         <DailyEventJourneyCard
+          loginContext={loginContext}
           journey={j}
           windowSize={windowSize}
           background={cardBackgrounds[idx]}
+          profilePicture={profilePicture}
+          setJourney={setJourney}
         />
       );
     });
-  }, [event.journeys, cardBackgrounds, windowSize]);
+  }, [event.journeys, cardBackgrounds, windowSize, setJourney, profilePicture, loginContext]);
 
   /**
    * Whenever the cards change, we need to update the carousel order

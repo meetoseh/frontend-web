@@ -121,7 +121,7 @@ type MyProfilePictureStateProps = {
   displayHeight: number;
 };
 
-type MyProfilePictureState = {
+export type MyProfilePictureState = {
   /**
    * The current state of the profile picture
    */
@@ -145,27 +145,36 @@ export const useMyProfilePictureState = ({
   displayHeight,
 }: MyProfilePictureStateProps): MyProfilePictureState => {
   const [imgRef, setImgRef] = useState<{ sub: string; img: OsehImageRef } | null>(null);
-  const [loadingImageRefFailed, setLoadingImageRefFailed] = useState(false);
-  const img = useOsehImageState({
-    uid: imgRef?.img?.uid ?? null,
-    jwt: imgRef?.img?.jwt ?? null,
-    displayWidth,
-    displayHeight,
-    alt: 'Profile',
-  });
+  const [loadingImageRefFailed, setLoadingImageRefFailed] = useState<string | null>(null);
+  const imgArgs = useMemo(
+    () => ({
+      uid: imgRef?.img?.uid ?? null,
+      jwt: imgRef?.img?.jwt ?? null,
+      displayWidth,
+      displayHeight,
+      alt: 'Profile',
+    }),
+    [imgRef?.img?.uid, imgRef?.img?.jwt, displayWidth, displayHeight]
+  );
+  const img = useOsehImageState(imgArgs);
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in') {
       setImgRef(null);
+      return;
     }
 
-    if (imgRef !== null && imgRef.sub === loginContext.userAttributes?.sub) {
+    const userSub = loginContext.userAttributes!.sub;
+
+    if (imgRef !== null && imgRef.sub === userSub) {
+      return;
+    }
+
+    if (loadingImageRefFailed !== null && loadingImageRefFailed === userSub) {
       return;
     }
 
     let active = true;
-    setLoadingImageRefFailed(false);
-    setImgRef(null);
     getImageRef();
     return () => {
       active = false;
@@ -186,7 +195,7 @@ export const useMyProfilePictureState = ({
             if (retryCounter < 1) {
               setTimeout(getImageRef.bind(undefined, retryCounter + 1), 10000);
             } else {
-              setLoadingImageRefFailed(true);
+              setLoadingImageRefFailed(userSub);
             }
             return;
           }
@@ -196,7 +205,7 @@ export const useMyProfilePictureState = ({
             return;
           }
           console.error("Couldn't fetch profile picture", response, text);
-          setLoadingImageRefFailed(true);
+          setLoadingImageRefFailed(userSub);
           return;
         }
 
@@ -207,10 +216,11 @@ export const useMyProfilePictureState = ({
         setImgRef({ sub: loginContext.userAttributes!.sub, img: data });
       } catch (e) {
         console.error("Couldn't fetch profile picture", e);
-        setLoadingImageRefFailed(true);
+        setImgRef(null);
+        setLoadingImageRefFailed(userSub);
       }
     }
-  }, [loginContext, imgRef]);
+  }, [loginContext, imgRef, loadingImageRefFailed]);
 
   return useMemo(() => {
     if (loadingImageRefFailed) {

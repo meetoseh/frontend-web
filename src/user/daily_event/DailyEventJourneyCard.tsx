@@ -1,10 +1,18 @@
 import { ReactElement } from 'react';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
+import { LoginContextValue } from '../../shared/LoginContext';
+import { MyProfilePictureState } from '../../shared/MyProfilePicture';
 import { OsehImageFromState, OsehImageState } from '../../shared/OsehImage';
+import { JourneyRef } from '../journey/models/JourneyRef';
 import { DailyEventJourney } from './DailyEvent';
 import styles from './DailyEventJourneyCard.module.css';
 
 type DailyEventJourneyCardState = {
+  /**
+   * Information about the authenticated user
+   */
+  loginContext: LoginContextValue;
+
   /**
    * The journey that is being shown
    */
@@ -19,6 +27,19 @@ type DailyEventJourneyCardState = {
    * The background image state
    */
   background: OsehImageState;
+
+  /**
+   * The profile picture to show
+   */
+  profilePicture: MyProfilePictureState;
+
+  /**
+   * Called when we receive a ref to the journey that the user should be directed
+   * to
+   *
+   * @param journey The journey that the user should be directed to
+   */
+  setJourney: (this: void, journey: JourneyRef) => void;
 };
 
 /**
@@ -27,9 +48,12 @@ type DailyEventJourneyCardState = {
  * showing these cards is extremely coupled to this components implementation
  */
 export const DailyEventJourneyCard = ({
+  loginContext,
   journey,
   windowSize,
   background,
+  profilePicture,
+  setJourney,
 }: DailyEventJourneyCardState): ReactElement => {
   const containerStyle = useFullHeightStyle({ attribute: 'height', windowSize });
 
@@ -39,7 +63,19 @@ export const DailyEventJourneyCard = ({
         <OsehImageFromState {...background} />
       </div>
       <div className={styles.content}>
-        <div className={styles.header}></div>
+        <div className={styles.header}>
+          {profilePicture.state === 'available' && profilePicture.image !== null && (
+            <div className={styles.profilePictureContainer}>
+              <OsehImageFromState {...profilePicture.image} />
+            </div>
+          )}
+
+          <div className={styles.headerRight}>
+            <div className={styles.subtitle}>Hi {loginContext.userAttributes!.givenName}</div>
+            <div className={styles.title}>Today&rsquo;s Journeys</div>
+          </div>
+        </div>
+
         <div className={styles.body}>
           <div className={styles.title}>{journey.title}</div>
           <div className={styles.instructor}>{journey.instructor.name}</div>

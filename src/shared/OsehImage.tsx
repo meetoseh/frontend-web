@@ -393,7 +393,8 @@ export const OsehImageFromState = ({
  * @returns The state of the image which can be used by OsehImageFromState
  */
 export const useOsehImageState = (props: OsehImageProps): OsehImageState => {
-  return useOsehImageStates([props])[0];
+  const memodProps = useMemo(() => [props], [props]);
+  return useOsehImageStates(memodProps)[0];
 };
 
 /**
