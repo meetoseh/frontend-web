@@ -307,7 +307,7 @@ export const RequestPhoneForm = ({
                   inputStyle={'white'}
                   onChange={setCode}
                   type="number"
-                  html5Validation={{ required: true, min: 100000, max: 999999 }}
+                  html5Validation={{ required: true, min: 0, max: 999999 }}
                   hideNumberSpinner={true}
                 />
               </div>
