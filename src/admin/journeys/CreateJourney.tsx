@@ -1,4 +1,12 @@
-import { MouseEvent, ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import {
+  MouseEvent,
+  ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { Button } from '../../shared/forms/Button';
 import { LoginContext } from '../../shared/LoginContext';
 import { ModalContext, addModalWithCallbackToRemove } from '../../shared/ModalContext';
@@ -26,6 +34,7 @@ import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
 import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
 import { InstructorPicker } from '../instructors/InstructorPicker';
+import { cO } from 'chart.js/dist/chunks/helpers.core';
 
 type CreateJourneyProps = {
   /**
@@ -60,6 +69,7 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
   const [promptValid, setPromptValid] = useState(true);
   const [error, setError] = useState<ReactElement | null>(null);
   const [saving, setSaving] = useState(false);
+  const [createErrorCollapsed, setCreateErrorCollapsed] = useState(true);
 
   useEffect(() => {
     if (showAddAudioContentModal && loginContext.state !== 'logged-in') {
@@ -233,6 +243,39 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
           darkened: backgroundImage.darkenedImageFile,
           blurred: backgroundImage.blurredImageFile,
         }[backgroundImagePreviewType];
+
+  const cantCreateReasons = useMemo(() => {
+    const result = [];
+    if (audioContent === null) {
+      result.push('Audio content is not selected');
+    }
+    if (backgroundImage === null) {
+      result.push('Background image is not selected');
+    }
+    if (subcategory === null) {
+      result.push('Subcategory is not selected');
+    }
+    if (instructor === null) {
+      result.push('Instructor is not selected');
+    }
+    if (title === '') {
+      result.push('Title is empty');
+    }
+    if (description === '') {
+      result.push('Description is empty');
+    }
+    if (description.length > 255) {
+      result.push('Description is too long');
+    }
+    if (!promptValid) {
+      result.push('Prompt is invalid');
+    }
+    return result;
+  }, [audioContent, backgroundImage, subcategory, instructor, title, description, promptValid]);
+
+  const onCreateErrorCollapsedClicked = useCallback(() => {
+    setCreateErrorCollapsed((c) => !c);
+  }, []);
 
   return (
     <CrudCreateBlock>
@@ -426,21 +469,33 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
             type="button"
             variant="filled"
             onClick={create}
-            disabled={
-              audioContent === null ||
-              backgroundImage === null ||
-              subcategory === null ||
-              instructor === null ||
-              title === '' ||
-              title.length > 45 ||
-              description === '' ||
-              description.length > 255 ||
-              !promptValid ||
-              saving
-            }>
+            disabled={cantCreateReasons.length > 0 || saving}>
             Create
           </Button>
         </div>
+        {cantCreateReasons.length > 0 && createErrorCollapsed && (
+          <div className={styles.createErrorCollapsedContainer}>
+            <Button type="button" variant="link-small" onClick={onCreateErrorCollapsedClicked}>
+              Confused?
+            </Button>
+          </div>
+        )}
+        {cantCreateReasons.length > 0 && !createErrorCollapsed && (
+          <div className={styles.createErrorContainer}>
+            <div className={styles.hideCreateErrorContainer}>
+              <Button type="button" variant="link-small" onClick={onCreateErrorCollapsedClicked}>
+                Hide
+              </Button>
+            </div>
+            <div className={styles.createErrorReasonsContainer}>
+              {cantCreateReasons.map((reason, index) => (
+                <div key={index} className={styles.createErrorReasonContainer}>
+                  {reason}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </CrudCreateBlock>
   );
