@@ -7,6 +7,10 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .currentContainer {

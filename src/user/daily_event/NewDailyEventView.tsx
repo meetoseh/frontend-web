@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import TinyGesture from 'tinygesture';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
@@ -303,20 +304,17 @@ export const DailyEventView = ({
   }, [handleTransition]);
 
   /**
-   * Handles arrow keys for navigating the carousel. Uses CSS transition
-   * for animating which is often gpu-accelerated.
+   * Handles arrow keys/scroll wheel for navigating the carousel. Uses CSS
+   * transition for animating which is often gpu-accelerated.
    */
   useEffect(() => {
-    let timeout: NodeJS.Timeout | null = null;
     let active = true;
     window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('wheel', onWheel);
     return () => {
       active = false;
+      window.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKeyDown);
-      if (timeout !== null) {
-        clearTimeout(timeout);
-        timeout = null;
-      }
     };
 
     function onKeyDown(event: KeyboardEvent) {
@@ -330,7 +328,102 @@ export const DailyEventView = ({
         transitionRight();
       }
     }
+
+    function onWheel(event: WheelEvent) {
+      if (!active) {
+        return;
+      }
+
+      event.preventDefault();
+      if (event.deltaX === 0 && event.deltaY === 0) {
+        return;
+      }
+
+      if (event.deltaX < 0 || (event.deltaX === 0 && event.deltaY < 0)) {
+        transitionLeft();
+      } else {
+        transitionRight();
+      }
+    }
   }, [transitionLeft, transitionRight]);
+
+  // Handles gestures for navigating the carousel. Uses javascript for panning
+  // and CSS transition when the gesture is complete.
+  useEffect(() => {
+    const gesture = new TinyGesture(document.body);
+
+    let rerenderHandler: (() => void) | null = null;
+
+    const onNextRender = (cb: () => void) => {
+      if (rerenderHandler !== null) {
+        rerenderHandler = cb;
+        return;
+      }
+
+      rerenderHandler = cb;
+      requestAnimationFrame(() => {
+        if (!active) {
+          return;
+        }
+
+        const handler = rerenderHandler;
+        rerenderHandler = null;
+        if (handler !== null) {
+          handler();
+        }
+      });
+    };
+
+    const withTransitionLockIfImmediatelyAvailable = (cb: () => void) => {
+      if (transitionLock.current) {
+        return;
+      }
+
+      transitionLock.current = true;
+      try {
+        cb();
+      } finally {
+        transitionLock.current = false;
+      }
+    };
+
+    let active = true;
+    gesture.on('panmove', (event) => {
+      onNextRender(() => {
+        if (
+          gesture.swipingDirection === 'horizontal' &&
+          gesture.touchMoveX !== null &&
+          gesture.touchMoveX !== 0
+        ) {
+          if (gesture.touchMoveX < 0) {
+            transitionLeft();
+          } else {
+            transitionRight();
+          }
+          return;
+        }
+
+        if (
+          gesture.swipingDirection === 'pre-horizontal' &&
+          gesture.touchMoveX !== null &&
+          gesture.touchMoveX !== 0
+        ) {
+          const moveX = gesture.touchMoveX;
+          withTransitionLockIfImmediatelyAvailable(() => {
+            setAnimatingToward(moveX < 0 ? 'left' : 'right');
+            const newTransform = `translateX(${moveX}px)`;
+            setActiveContainerStyle(
+              Object.assign({}, fullHeightStyle, { transform: newTransform })
+            );
+          });
+        }
+      });
+    });
+    return () => {
+      rerenderHandler = null;
+      gesture.destroy();
+    };
+  }, [transitionLeft, transitionRight, fullHeightStyle]);
 
   if (carouselOrder === null) {
     return <></>;
