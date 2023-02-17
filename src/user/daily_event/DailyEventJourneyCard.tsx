@@ -7,6 +7,7 @@ import { DailyEventJourney } from './DailyEvent';
 import styles from './DailyEventJourneyCard.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { Button } from '../../shared/forms/Button';
 
 type DailyEventJourneyCardState = {
   /**
@@ -46,10 +47,17 @@ type DailyEventJourneyCardState = {
   journeyIndex: number;
 
   /**
-   * Called when the user wants to start this journey
+   * A callback to start a random class if the user can start a random class in
+   * the daily event, false otherwise. If the promise rejects, an error will be
+   * shown
+   */
+  startRandom: ((this: void) => Promise<void>) | null;
+
+  /**
+   * Called when the user wants to start this journey. If the promise
+   * rejects, an error will be shown
    *
-   * @param journey The journey that should be started. If the promise
-   *   rejects, an error will be shown
+   * @param journey The journey that should be started.
    */
   onPlay: (this: void, journey: DailyEventJourney) => Promise<void>;
 };
@@ -67,6 +75,7 @@ export const DailyEventJourneyCard = ({
   profilePicture,
   numberOfJourneys,
   journeyIndex,
+  startRandom,
   onPlay,
 }: DailyEventJourneyCardState): ReactElement => {
   const containerStyle = useFullHeightStyle({ attribute: 'height', windowSize });
@@ -85,6 +94,23 @@ export const DailyEventJourneyCard = ({
       setLoading(false);
     }
   }, [onPlay, journey]);
+
+  const doStartRandom = useCallback(async () => {
+    if (startRandom === null) {
+      setError(<>You have already taken your daily class of the day.</>);
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+    try {
+      await startRandom();
+    } catch (e) {
+      setError(await describeError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [startRandom]);
 
   return (
     <div className={styles.container} style={containerStyle}>
@@ -126,6 +152,31 @@ export const DailyEventJourneyCard = ({
               <div key={i} className={i === journeyIndex ? styles.dotSelected : styles.dot} />
             ))}
           </div>
+          {!journey.access.start && startRandom !== null && (
+            <div className={styles.free}>
+              <Button type="button" onClick={doStartRandom} fullWidth={true} disabled={loading}>
+                Start Your Free Class
+              </Button>
+
+              <a href="/upgrade" className={styles.freeDescription}>
+                To be able to choose your journey
+                <div style={{ lineBreak: 'strict' }}>
+                  upgrade to <strong>Oseh+</strong>
+                </div>
+              </a>
+            </div>
+          )}
+
+          {!journey.access.start && startRandom === null && (
+            <div className={styles.free}>
+              <a href="/upgrade" className={styles.freeDescription}>
+                To take more classes each day{' '}
+                <div style={{ lineBreak: 'strict' }}>
+                  upgrade to <strong>Oseh+</strong>
+                </div>
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>

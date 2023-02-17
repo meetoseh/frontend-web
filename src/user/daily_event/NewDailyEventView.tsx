@@ -153,6 +153,35 @@ export const DailyEventView = ({
     [setJourney, loginContext, event.uid, event.jwt]
   );
 
+  const onStartRandom: ((this: void) => Promise<void>) | null = useMemo(() => {
+    if (!event.access.startRandom) {
+      return null;
+    }
+
+    return async () => {
+      const response = await apiFetch(
+        '/api/1/daily_events/start_random',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            uid: event.uid,
+            jwt: event.jwt,
+          }),
+        },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const dataRaw = await response.json();
+      const data = convertUsingKeymap(dataRaw, journeyRefKeyMap);
+      setJourney(data);
+    };
+  }, [loginContext, setJourney, event.access.startRandom, event.uid, event.jwt]);
+
   /**
    * The cards that we are showing in the order of the original event.
    */
@@ -172,12 +201,14 @@ export const DailyEventView = ({
           profilePicture={profilePicture}
           numberOfJourneys={event.journeys.length}
           journeyIndex={originalIdxToShuffleIdx.get(idx)!}
+          startRandom={onStartRandom}
           onPlay={onPlay}
         />
       );
     });
   }, [
     event.journeys,
+    onStartRandom,
     cardBackgrounds,
     windowSize,
     profilePicture,
@@ -197,6 +228,40 @@ export const DailyEventView = ({
   }, [originalShuffle, cards]);
 
   const transitionLock = useRef(false);
+
+  /**
+   * Waits until the predicate is true, checking once per render
+   */
+  const waitUntil = useCallback((pred: () => boolean): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      let active = true;
+      const timeout = setTimeout(() => {
+        if (!active) {
+          return;
+        }
+
+        active = false;
+        console.log('bad waitUntil predicate:', pred);
+        reject('Timed out waiting for predicate to be true');
+      }, 1000);
+      const onRerender = () => {
+        if (!active) {
+          return;
+        }
+
+        if (pred()) {
+          clearTimeout(timeout);
+          active = false;
+          requestAnimationFrame(() => resolve());
+          return;
+        }
+
+        rerenderCallbacks.current.push(onRerender);
+      };
+
+      rerenderCallbacks.current.push(onRerender);
+    });
+  }, []);
 
   const handleTransition = useCallback(
     async (dir: 'left' | 'right', transform: string, rotateOrder: () => void) => {
@@ -241,26 +306,8 @@ export const DailyEventView = ({
         setForcedCard(null);
         await waitUntil(() => renderedForcedCard.current === null);
       }
-
-      /**
-       * Waits 1 rerender at a time until the predicate is true, then resolves
-       */
-      function waitUntil(pred: () => boolean): Promise<void> {
-        return new Promise<void>((resolve) => {
-          const onRerender = () => {
-            if (pred()) {
-              requestAnimationFrame(() => resolve());
-              return;
-            }
-
-            rerenderCallbacks.current.push(onRerender);
-          };
-
-          rerenderCallbacks.current.push(onRerender);
-        });
-      }
     },
-    [fullHeightStyle]
+    [fullHeightStyle, waitUntil]
   );
 
   /**
@@ -374,21 +421,21 @@ export const DailyEventView = ({
       });
     };
 
-    const withTransitionLockIfImmediatelyAvailable = (cb: () => void) => {
+    const withTransitionLockIfImmediatelyAvailable = async (cb: () => void | Promise<void>) => {
       if (transitionLock.current) {
         return;
       }
 
       transitionLock.current = true;
       try {
-        cb();
+        await cb();
       } finally {
         transitionLock.current = false;
       }
     };
 
     let active = true;
-    gesture.on('panmove', (event) => {
+    gesture.on('panmove', () => {
       onNextRender(() => {
         if (
           gesture.swipingDirection === 'horizontal' &&
@@ -409,21 +456,47 @@ export const DailyEventView = ({
           gesture.touchMoveX !== 0
         ) {
           const moveX = gesture.touchMoveX;
-          withTransitionLockIfImmediatelyAvailable(() => {
+          withTransitionLockIfImmediatelyAvailable(async () => {
             setAnimatingToward(moveX < 0 ? 'left' : 'right');
             const newTransform = `translateX(${moveX}px)`;
             setActiveContainerStyle(
               Object.assign({}, fullHeightStyle, { transform: newTransform })
             );
+            await waitUntil(() => renderedActiveContainerStyle.current.transform === newTransform);
           });
         }
+      });
+    });
+    gesture.on('panend', () => {
+      onNextRender(() => {
+        withTransitionLockIfImmediatelyAvailable(async () => {
+          setActiveContainerStyle(
+            Object.assign({}, renderedActiveContainerStyle.current, {
+              transition: 'transform 0.35s ease-in-out',
+            })
+          );
+          await waitUntil(() => !!renderedActiveContainerStyle.current.transition);
+          setActiveContainerStyle(
+            Object.assign({}, fullHeightStyle, { transition: 'transform: 0.35s ease-in-out' })
+          );
+
+          await waitUntil(() => !renderedActiveContainerStyle.current.transform);
+          await new Promise((resolve) => setTimeout(resolve, 350));
+          setAnimatingToward(null);
+          setActiveContainerStyle(fullHeightStyle);
+          await waitUntil(
+            () =>
+              !renderedActiveContainerStyle.current.transition &&
+              renderedAnimatingToward.current === null
+          );
+        });
       });
     });
     return () => {
       rerenderHandler = null;
       gesture.destroy();
     };
-  }, [transitionLeft, transitionRight, fullHeightStyle]);
+  }, [transitionLeft, transitionRight, fullHeightStyle, waitUntil]);
 
   if (carouselOrder === null) {
     return <></>;

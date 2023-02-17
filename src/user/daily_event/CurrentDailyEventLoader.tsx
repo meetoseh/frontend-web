@@ -5,7 +5,7 @@ import styles from './CurrentDailyEventLoader.module.css';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
-import { DailyEventView } from './DailyEventView';
+import { DailyEventView } from './NewDailyEventView';
 import { JourneyRef } from '../journey/models/JourneyRef';
 import { Buffer } from 'buffer';
 import { RedeemedUserDailyEventInvite } from '../referral/models/RedeemedUserDailyEventInvite';
