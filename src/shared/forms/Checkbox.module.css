@@ -57,6 +57,7 @@
   line-height: 24px;
   letter-spacing: 0.25px;
   margin-left: 8px;
+  color: black;
 }
 
 .style_whiteSmallText .label {
@@ -75,8 +76,7 @@
   cursor: not-allowed;
 }
 
-.style_white,
-.style_whiteSmallText,
-.label {
+.style_white .label,
+.style_whiteSmallText .label {
   color: white;
 }
