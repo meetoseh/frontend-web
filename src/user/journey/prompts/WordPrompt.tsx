@@ -251,23 +251,52 @@ export const WordPrompt = ({
     });
   }, [wordRows, onChooseWord, stats.wordActive, activeIndex, prompt.options, fakingMove]);
 
+  const [titleHeight, setTitleHeight] = useState<number>(32);
+  const titleRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const title = titleRef.current;
+    if (title === null || title === undefined) {
+      return;
+    }
+
+    const onSizeChanged = () => {
+      setTitleHeight(title.clientHeight);
+    };
+
+    onSizeChanged();
+    if (window.ResizeObserver) {
+      const resizeObserver = new ResizeObserver(onSizeChanged);
+      resizeObserver.observe(title);
+      return () => {
+        resizeObserver.disconnect();
+      };
+    } else {
+      window.addEventListener('resize', onSizeChanged);
+      return () => {
+        window.removeEventListener('resize', onSizeChanged);
+      };
+    }
+  }, [prompt.text]);
+
   const containerStyle: CSSProperties = useMemo(() => {
     const subtitleHeight = 12;
     const subtitlePromptGap = 13;
-    const titleHeight = 22;
-    const titleResponseGap = 32;
+    const titleResponseGap = 27;
+
     return {
       flexBasis: `${
         subtitleHeight + subtitlePromptGap + titleHeight + titleResponseGap + wordRowHeight
       }px`,
     };
-  }, [wordRowHeight]);
+  }, [wordRowHeight, titleHeight]);
 
   return (
     <div className={styles.container} style={containerStyle}>
       <div className={styles.subtitleAndPrompt}>
         <div className={styles.promptSubtitle}>Class Poll</div>
-        <div className={styles.prompt}>{prompt.text}</div>
+        <div className={styles.prompt} ref={titleRef}>
+          {prompt.text}
+        </div>
       </div>
       <div className={styles.wordsContainer} style={wordsContainerStyle}>
         {buttons}

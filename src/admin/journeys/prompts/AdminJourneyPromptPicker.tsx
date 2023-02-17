@@ -97,7 +97,7 @@ export const AdminJourneyPromptPicker = ({
       return;
     }
 
-    if (prompt.text.length < 1 || prompt.text.length > 45) {
+    if (prompt.text.length < 1 || prompt.text.length > 75) {
       setPromptValid(false);
       return;
     }

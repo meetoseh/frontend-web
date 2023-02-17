@@ -24,9 +24,10 @@
 .prompt {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
-  font-weight: 300;
+  font-weight: 400;
   font-size: 22px;
-  line-height: 100%;
+  line-height: 32px;
+  text-align: center;
   color: white;
 }
 
