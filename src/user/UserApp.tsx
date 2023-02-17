@@ -316,7 +316,7 @@ const UserAppInner = (): ReactElement => {
           />
         </div>
       ) : null}
-      {desiredState === 'journey' && journey !== null ? (
+      {state === 'journey' && journey !== null ? (
         <JourneyRouter journey={journey} onFinished={onJourneyPostFinished} />
       ) : null}
     </div>

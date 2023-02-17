@@ -11,6 +11,7 @@ import {
 import TinyGesture from 'tinygesture';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { apiFetch } from '../../shared/ApiConstants';
+import { FullscreenContext } from '../../shared/FullscreenContext';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { shuffle } from '../../shared/lib/shuffle';
@@ -21,6 +22,7 @@ import { JourneyRef, journeyRefKeyMap } from '../journey/models/JourneyRef';
 import { DailyEvent, DailyEventJourney } from './DailyEvent';
 import { DailyEventJourneyCard } from './DailyEventJourneyCard';
 import styles from './NewDailyEventView.module.css';
+import assistiveStyles from '../../shared/assistive.module.css';
 
 type DailyEventViewProps = {
   /**
@@ -63,6 +65,7 @@ export const DailyEventView = ({
   setJourney,
 }: DailyEventViewProps): ReactElement => {
   const loginContext = useContext(LoginContext);
+  const fullscreenContext = useContext(FullscreenContext);
   const windowSize = useWindowSize();
   const [animatingToward, setAnimatingToward] = useState<'left' | 'right' | null>(null);
   const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
@@ -519,6 +522,19 @@ export const DailyEventView = ({
   if (forcedCard !== null) {
     return (
       <div className={styles.container} style={fullHeightStyle}>
+        {fullscreenContext.fullscreen ? (
+          <div className={styles.closeButtonContainer}>
+            <div className={styles.closeButtonInnerContainer}>
+              <button
+                type="button"
+                className={styles.close}
+                onClick={fullscreenContext.exitFullscreen}>
+                <div className={styles.closeIcon} />
+                <div className={assistiveStyles.srOnly}>Close</div>
+              </button>
+            </div>
+          </div>
+        ) : null}
         <div className={styles.currentContainer} style={fullHeightStyle}>
           {forcedCard}
         </div>
@@ -528,6 +544,20 @@ export const DailyEventView = ({
 
   return (
     <div className={styles.container} style={fullHeightStyle}>
+      {fullscreenContext.fullscreen ? (
+        <div className={styles.closeButtonContainer}>
+          <div className={styles.closeButtonInnerContainer}>
+            <button
+              type="button"
+              className={styles.close}
+              onClick={fullscreenContext.exitFullscreen}>
+              <div className={styles.closeIcon} />
+              <div className={assistiveStyles.srOnly}>Close</div>
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {animatingToward === 'left' && (
         <div className={styles.nextContainer}>
           {carouselOrder.cards[carouselOrder.cards.length - 1]}
