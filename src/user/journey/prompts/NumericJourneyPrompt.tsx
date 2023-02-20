@@ -260,7 +260,10 @@ export const NumericJourneyPrompt = ({
 
   return (
     <div className={styles.container}>
-      <div className={styles.promptText}>{prompt.text}</div>
+      <div className={styles.subtitleAndPrompt}>
+        <div className={styles.promptSubtitle}>Class Poll</div>
+        <div className={styles.prompt}>{prompt.text}</div>
+      </div>
       <div className={styles.carouselContainer} ref={carouselRef}>
         <div
           className={`${styles.carouselItemsContainer} ${

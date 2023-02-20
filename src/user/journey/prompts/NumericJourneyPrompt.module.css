@@ -5,25 +5,30 @@
   justify-content: space-around;
 }
 
-@media screen and (min-height: 876px) {
-  .container {
-    height: 560px;
-  }
+.subtitleAndPrompt {
+  margin-bottom: 32px;
 }
 
-.promptText {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.promptSubtitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 100%;
+  letter-spacing: 0.25px;
+  text-align: center;
+  color: white;
+  margin-bottom: 13px;
+}
+
+.prompt {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: 22px;
   line-height: 32px;
-  color: white;
-  width: 100%;
-  padding-top: 40px;
   text-align: center;
+  color: white;
 }
 
 .carouselContainer {
@@ -33,7 +38,7 @@
   justify-content: flex-start;
   width: 100%;
   overflow-x: hidden;
-  margin: 32px 0;
+  margin-bottom: 32px;
 }
 
 .carouselItemsContainer {
@@ -117,5 +122,4 @@
   font-weight: 300;
   font-size: 16px;
   color: white;
-  padding-bottom: 60px;
 }

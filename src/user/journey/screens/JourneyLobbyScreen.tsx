@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useRef } from 'react';
+import { CSSProperties, ReactElement, useContext, useEffect, useMemo, useRef } from 'react';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
 import { LoginContext } from '../../../shared/LoginContext';
 import { OsehImageFromState } from '../../../shared/OsehImage';
@@ -14,7 +14,7 @@ import { JourneyPrompt } from '../components/JourneyPrompt';
 import { JourneyProfilePictures } from '../components/JourneyProfilePictures';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 
-const profilePicturesRequiredHeight = 844;
+const profilePicturesRequiredHeight = 633;
 
 /**
  * Shows the screen for the lobby prior to the actual class, where the user
@@ -96,6 +96,52 @@ export const JourneyLobbyScreen = ({
 
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize: shared.windowSize });
 
+  const countdownStyle: CSSProperties = useMemo(() => {
+    if (windowSize.height < 633) {
+      return { marginTop: '47px' };
+    }
+
+    if (windowSize.height >= 844) {
+      return { marginTop: '80px' };
+    }
+
+    // scale from 47px to 80px margin-top
+    const progress = (windowSize.height - 633) / (844 - 633);
+    const marginTop = 47 + progress * (80 - 47);
+
+    return {
+      marginTop: `${marginTop}px`,
+    };
+  }, [windowSize]);
+
+  const countdownTitleStyle: CSSProperties = useMemo(() => {
+    if (windowSize.height < 633 || windowSize.height >= 844) {
+      return {};
+    }
+
+    // scale from 8px to 24px margin-bottom
+    const progress = (windowSize.height - 633) / (844 - 633);
+    const marginBottom = 8 + progress * (24 - 8);
+
+    return {
+      marginBottom: `${marginBottom}px`,
+    };
+  }, [windowSize]);
+
+  const profilePicturesContainerStyle = useMemo(() => {
+    if (windowSize.height < 633 || windowSize.height >= 844 || !profilePicturesEnabled) {
+      return {};
+    }
+
+    // scale from 32px to 50px margin-top
+    const progress = (windowSize.height - 633) / (844 - 633);
+    const marginTop = 32 + progress * (50 - 32);
+
+    return {
+      marginTop: `${marginTop}px`,
+    };
+  }, [windowSize, profilePicturesEnabled]);
+
   return (
     <div ref={containerRef} className={styles.container}>
       <div className={styles.backgroundImageContainer}>
@@ -111,8 +157,10 @@ export const JourneyLobbyScreen = ({
       </div>
       <div className={styles.innerContainer}>
         <div className={styles.content}>
-          <div className={styles.countdown}>
-            <div className={styles.countdownTitle}>Class is almost ready</div>
+          <div className={styles.countdown} style={countdownStyle}>
+            <div className={styles.countdownTitle} style={countdownTitleStyle}>
+              Class is almost ready
+            </div>
             <div className={styles.countdownText}>
               {Math.max(Math.ceil(journey.lobbyDurationSeconds - coarsenedJourneyTime), 0)}
             </div>
@@ -129,7 +177,7 @@ export const JourneyLobbyScreen = ({
           />
         </div>
         {profilePicturesEnabled && (
-          <div className={styles.profilePicturesContainer}>
+          <div className={styles.profilePicturesContainer} style={profilePicturesContainerStyle}>
             <JourneyProfilePictures pictures={profilePictures} users={stats.users} />
           </div>
         )}

@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import { apiFetch } from '../../../shared/ApiConstants';
+import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { JourneyPromptProps } from '../models/JourneyPromptProps';
 import styles from './WordPrompt.module.css';
 
@@ -25,6 +26,7 @@ export const WordPrompt = ({
     throw new Error('Invalid prompt style');
   }
 
+  const windowSize = useWindowSize();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   // we want pressing the button to immediately react, but stats won't come in
@@ -53,11 +55,28 @@ export const WordPrompt = ({
     return rows;
   }, [prompt.options]);
 
+  const rowGap: number = useMemo(() => {
+    if (windowSize.height <= 633) {
+      return 18;
+    }
+
+    if (windowSize.height > 844) {
+      return 32;
+    }
+
+    // scale from 18 to 32
+    const progress = (windowSize.height - 633) / (844 - 633);
+    return Math.floor(18 + progress * (32 - 18));
+  }, [windowSize]);
+
   const wordRowHeight: number = useMemo(() => {
     const rowHeight = 54;
-    const rowGap = 32;
     return wordRows.length * rowHeight + (wordRows.length - 1) * rowGap;
-  }, [wordRows]);
+  }, [wordRows, rowGap]);
+
+  const gapStyle: CSSProperties = useMemo(() => {
+    return { marginTop: `${rowGap}px` };
+  }, [rowGap]);
 
   const wordsContainerStyle: CSSProperties = useMemo(() => {
     return {
@@ -221,7 +240,10 @@ export const WordPrompt = ({
 
     return wordRows.map((row, rowIndex) => {
       return (
-        <div key={rowIndex} className={styles.wordRow}>
+        <div
+          key={rowIndex}
+          className={styles.wordRow}
+          style={rowIndex !== 0 ? gapStyle : undefined}>
           {row.map((word, wordIndex) => {
             const isActive = activeIndex !== null && word === prompt.options[activeIndex];
             return (
@@ -249,7 +271,7 @@ export const WordPrompt = ({
         </div>
       );
     });
-  }, [wordRows, onChooseWord, stats.wordActive, activeIndex, prompt.options, fakingMove]);
+  }, [wordRows, onChooseWord, stats.wordActive, activeIndex, prompt.options, fakingMove, gapStyle]);
 
   const [titleHeight, setTitleHeight] = useState<number>(32);
   const titleRef = useRef<HTMLDivElement>(null);
