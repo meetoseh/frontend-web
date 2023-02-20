@@ -384,7 +384,6 @@ export const DailyEventView = ({
         return;
       }
 
-      event.preventDefault();
       if (event.deltaX === 0 && event.deltaY === 0) {
         return;
       }
