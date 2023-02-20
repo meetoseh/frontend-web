@@ -4,9 +4,9 @@ import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/LoginContext';
-import { OsehImage } from '../../shared/OsehImage';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { CrudFormElement } from '../crud/CrudFormElement';
+import { CompactJourney } from '../journeys/CompactJourney';
 import { Journey } from '../journeys/Journey';
 import { JourneyPicker } from '../journeys/JourneyPicker';
 import { keyMap } from '../journeys/Journeys';
@@ -309,24 +309,7 @@ export const DailyEventCalendarEdit = ({
                   return (
                     <div className={styles.journeyContainer} key={journey.uid}>
                       <div className={styles.journey}>
-                        <div className={styles.journeyTitle}>{journey.title}</div>
-                        <div className={styles.journeyBy}>by</div>
-                        <div className={styles.journeyInstructor}>
-                          {journey.instructor.picture && (
-                            <div className={styles.journeyInstructorPictureContainer}>
-                              <OsehImage
-                                jwt={journey.instructor.picture.jwt}
-                                uid={journey.instructor.picture.uid}
-                                displayWidth={60}
-                                displayHeight={60}
-                                alt="profile"
-                              />
-                            </div>
-                          )}
-                          <div className={styles.journeyInstructorName}>
-                            {journey.instructor.name}
-                          </div>
-                        </div>
+                        <CompactJourney journey={journey} />
                       </div>
                       <div className={styles.journeyRemoveButtonContainer}>
                         <Button
