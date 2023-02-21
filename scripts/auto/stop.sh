@@ -19,6 +19,10 @@ done
 
 echo "nginx stopped successfully"
 
+echo "clearing nginx logs"
+echo "" > /home/ec2-user/logs/access.log
+echo "" > /home/ec2-user/logs/error.log
+
 stop_updater() {
   if [ -f updater.lock ]
   then
