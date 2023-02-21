@@ -73,7 +73,9 @@ export const JourneyStart = ({
 
     const shareData = {
       url: invite.url,
-      text: `Let's do a ${journey.category.externalName.toLowerCase()} class together on Oseh.`,
+      text: isOnboarding
+        ? "Join Oseh so we can do mindfulness journey's together."
+        : `Let's do a ${journey.category.externalName.toLowerCase()} class together on Oseh.`,
     };
 
     let fallbackShare =
@@ -108,7 +110,7 @@ export const JourneyStart = ({
         </ModalWrapper>
       );
     }
-  }, [invite, journey.category, loginContext, modalContext.setModals]);
+  }, [invite, journey.category, loginContext, modalContext.setModals, isOnboarding]);
 
   return (
     <div className={styles.container} ref={containerRef}>

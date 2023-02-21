@@ -109,7 +109,9 @@ export const JourneyShareScreen = ({
 
     const shareData = {
       url: invite.url,
-      text: `Let's do a ${journey.category.externalName.toLowerCase()} class together on Oseh.`,
+      text: isOnboarding
+        ? "Join Oseh so we can do mindfulness journey's together."
+        : `Let's do a ${journey.category.externalName.toLowerCase()} class together on Oseh.`,
     };
 
     let fallbackShare =
@@ -144,7 +146,14 @@ export const JourneyShareScreen = ({
         </ModalWrapper>
       );
     }
-  }, [invite, tryInvite, modalContext.setModals, journey.category.externalName, loginContext]);
+  }, [
+    invite,
+    tryInvite,
+    modalContext.setModals,
+    journey.category.externalName,
+    loginContext,
+    isOnboarding,
+  ]);
 
   useEffect(() => {
     if (nativeShare === null) {
@@ -242,7 +251,7 @@ export const JourneyShareScreen = ({
               onClick={doShareClassLink}
               disabled={invite === null}
               type="button">
-              Share Class Link with Friends
+              {isOnboarding ? 'Share Oseh with Friends' : 'Share Class Link with Friends'}
             </button>
           </div>
         </div>
