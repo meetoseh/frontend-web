@@ -5,6 +5,10 @@
   justify-content: space-around;
 }
 
+.subtitleAndPrompt {
+  padding: 0 24px;
+}
+
 .promptSubtitle {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
