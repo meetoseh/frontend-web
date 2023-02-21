@@ -108,9 +108,7 @@ export const JourneyShareScreen = ({
 
     const shareData = {
       url: invite.url,
-      text: `Let's do a ${journey.category.externalName.toLowerCase()} class together on Oseh. ${
-        invite.url
-      }`,
+      text: `Let's do a ${journey.category.externalName.toLowerCase()} class together on Oseh.`,
     };
 
     let fallbackShare =
