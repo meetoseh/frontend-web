@@ -6,6 +6,7 @@ import assistiveStyles from '../../../shared/assistive.module.css';
 import { LoginContext } from '../../../shared/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
+import { SplashScreen } from '../../splash/SplashScreen';
 
 export const JourneyPostScreen = ({
   journey,
@@ -142,6 +143,10 @@ export const JourneyPostScreen = ({
     },
     [setScreen]
   );
+
+  if (streak === -1) {
+    return <SplashScreen />;
+  }
 
   return (
     <div className={styles.container}>
