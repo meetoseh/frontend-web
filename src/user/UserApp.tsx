@@ -49,6 +49,7 @@ const UserAppInner = (): ReactElement => {
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
   const [currentDailyEventLoaded, setCurrentDailyEventLoaded] = useState(false);
   const [journey, setJourney] = useState<JourneyRef | null>(null);
+  const [journeyIsOnboarding, setJourneyIsOnboarding] = useState(false);
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
   const [requestPhoneLoaded, setRequestPhoneLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
@@ -183,6 +184,7 @@ const UserAppInner = (): ReactElement => {
 
         const journey = convertUsingKeymap(data, journeyRefKeyMap);
         setJourney(journey);
+        setJourneyIsOnboarding(true);
         setDesiredState('journey');
       } catch (e) {
         if (!(e instanceof TypeError)) {
@@ -270,12 +272,14 @@ const UserAppInner = (): ReactElement => {
 
   const wrappedSetJourney = useCallback((journey: JourneyRef) => {
     setJourney(journey);
+    setJourneyIsOnboarding(false);
     setDesiredState('journey');
   }, []);
 
   const onJourneyPostFinished = useCallback(() => {
     localStorage.removeItem('onboard');
     setJourney(null);
+    setJourneyIsOnboarding(false);
     setDesiredState('current-daily-event');
   }, []);
 
@@ -317,7 +321,11 @@ const UserAppInner = (): ReactElement => {
         </div>
       ) : null}
       {state === 'journey' && journey !== null ? (
-        <JourneyRouter journey={journey} onFinished={onJourneyPostFinished} />
+        <JourneyRouter
+          journey={journey}
+          onFinished={onJourneyPostFinished}
+          isOnboarding={journeyIsOnboarding}
+        />
       ) : null}
     </div>
   );

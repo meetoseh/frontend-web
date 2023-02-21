@@ -24,4 +24,9 @@ export type JourneyScreenProps = {
    * the home screen.
    */
   onJourneyFinished: () => void;
+
+  /**
+   * True if this is an onboarding journey, false otherwise.
+   */
+  isOnboarding: boolean;
 };

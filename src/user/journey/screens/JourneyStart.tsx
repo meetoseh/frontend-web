@@ -19,7 +19,12 @@ import styles from './JourneyStart.module.css';
  * This is useful for elevating to a privileged context, which is required
  * for starting the journey audio.
  */
-export const JourneyStart = ({ journey, shared, setScreen }: JourneyScreenProps): ReactElement => {
+export const JourneyStart = ({
+  journey,
+  shared,
+  setScreen,
+  isOnboarding,
+}: JourneyScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -50,7 +55,7 @@ export const JourneyStart = ({ journey, shared, setScreen }: JourneyScreenProps)
       try {
         const invite = await getDailyEventInvite({
           loginContext,
-          journeyUid: journey.uid,
+          journeyUid: isOnboarding ? null : journey.uid,
         });
         setInvite(invite);
       } catch (e) {
@@ -58,7 +63,7 @@ export const JourneyStart = ({ journey, shared, setScreen }: JourneyScreenProps)
         setError(err);
       }
     },
-    [loginContext, journey.uid]
+    [loginContext, journey.uid, isOnboarding]
   );
 
   useEffect(() => {

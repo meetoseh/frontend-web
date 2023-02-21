@@ -20,11 +20,20 @@ type JourneyRouterProps = {
    * The function to call when the user is done with the journey.
    */
   onFinished: () => void;
+
+  /**
+   * True if this is an onboarding journey, false otherwise.
+   */
+  isOnboarding: boolean;
 };
 
 export type JourneyRouterScreenId = 'lobby' | 'start' | 'journey' | 'post' | 'share';
 
-export const JourneyRouter = ({ journey, onFinished }: JourneyRouterProps): ReactElement => {
+export const JourneyRouter = ({
+  journey,
+  onFinished,
+  isOnboarding,
+}: JourneyRouterProps): ReactElement => {
   const [screen, setScreen] = useState<JourneyRouterScreenId>('lobby');
   const sharedState = useJourneyShared(journey);
   const screenProps: JourneyScreenProps = useMemo(() => {
@@ -33,8 +42,9 @@ export const JourneyRouter = ({ journey, onFinished }: JourneyRouterProps): Reac
       shared: sharedState,
       setScreen,
       onJourneyFinished: onFinished,
+      isOnboarding,
     };
-  }, [journey, sharedState, onFinished]);
+  }, [journey, sharedState, onFinished, isOnboarding]);
 
   if (sharedState?.audio?.error !== null && sharedState?.audio?.error !== undefined) {
     return <ErrorBlock>{sharedState.audio.error}</ErrorBlock>;

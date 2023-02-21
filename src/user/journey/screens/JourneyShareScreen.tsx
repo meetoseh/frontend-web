@@ -17,6 +17,7 @@ export const JourneyShareScreen = ({
   journey,
   shared,
   onJourneyFinished,
+  isOnboarding,
 }: JourneyScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
@@ -78,7 +79,7 @@ export const JourneyShareScreen = ({
       try {
         const invite = await getDailyEventInvite({
           loginContext,
-          journeyUid: journey.uid,
+          journeyUid: isOnboarding ? null : journey.uid,
         });
         if (!active) {
           return;
@@ -95,7 +96,7 @@ export const JourneyShareScreen = ({
         setError(err);
       }
     }
-  }, [loginContext, invite, journey.uid]);
+  }, [loginContext, invite, journey.uid, isOnboarding]);
 
   const doShareClassLink = useCallback(async () => {
     setTryInvite(true);
