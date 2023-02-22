@@ -660,8 +660,17 @@ export const LoginProvider = ({
           const refreshed = await refreshTokens(authTokens);
           wrappedSetAuthTokens(refreshed);
         } catch (e) {
-          console.error('error refreshing tokens: ', e);
-          wrappedSetAuthTokens(null);
+          // it's possible we were raced to refresh it by another tab; let's try
+          // waiting a few seconds and checking if the local storage got updated
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          const storedTokens = await retrieveAuthTokens();
+          if (storedTokens !== null && isTokenFresh(storedTokens)) {
+            console.log('recovered from refresh tokens race');
+            wrappedSetAuthTokens(storedTokens);
+          } else {
+            console.error('failed to refresh tokens', e);
+            wrappedSetAuthTokens(null);
+          }
         }
       } else {
         wrappedSetAuthTokens(null);
