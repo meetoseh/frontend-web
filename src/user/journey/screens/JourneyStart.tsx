@@ -121,7 +121,7 @@ export const JourneyStart = ({
       <div className={styles.innerContainer}>
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
         <div className={styles.content}>
-          <div className={styles.title}>You&rsquo;re Class is Ready</div>
+          <div className={styles.title}>Your Class is Ready</div>
           <div className={styles.skipForNowContainer}>
             <Button type="button" fullWidth={true} onClick={onSkipClick}>
               Let&rsquo;s Go
