@@ -121,18 +121,9 @@ type MyProfilePictureStateProps = {
   displayHeight: number;
 };
 
-export type MyProfilePictureState = {
-  /**
-   * The current state of the profile picture
-   */
-  state: 'loading' | 'available' | 'unavailable';
-
-  /**
-   * The profile picture, if the state is available, otherwise null
-   */
-  image: OsehImageState | null;
-};
-
+export type MyProfilePictureState =
+  | { state: 'loading' | 'unavailable'; image: null }
+  | { state: 'available'; image: OsehImageState };
 /**
  * Acts as a react hook for finding, selecting, and downloading the
  * current users profile picture.
@@ -192,8 +183,9 @@ export const useMyProfilePictureState = ({
         }
         if (!response.ok) {
           if (response.status === 404) {
-            if (retryCounter < 1) {
-              setTimeout(getImageRef.bind(undefined, retryCounter + 1), 10000);
+            const data = await response.json();
+            if (data.type !== 'not_available' && retryCounter < 2) {
+              setTimeout(getImageRef.bind(undefined, retryCounter + 1), 2500);
             } else {
               setLoadingImageRefFailed(userSub);
             }
