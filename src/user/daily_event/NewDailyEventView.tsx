@@ -224,6 +224,7 @@ export const DailyEventView = ({
    * Whenever the cards change, we need to update the carousel order
    */
   useEffect(() => {
+    console.log('carousel order being updated');
     const order: number[] = originalShuffle;
 
     const cardsInOrder = order.map((i) => cards[i]);
@@ -268,19 +269,17 @@ export const DailyEventView = ({
 
   const handleTransition = useCallback(
     async (dir: 'left' | 'right', transform: string, rotateOrder: () => void) => {
+      if (transitionLock.current) {
+        return;
+      }
       console.log(
         'handleTransition',
         dir,
-        '; transitionLock.current=',
-        transitionLock.current,
         'going to',
         renderedAnimatingTowardCard.current,
         'from',
         renderedCarouselOrder.current?.cards[0]
       );
-      if (transitionLock.current) {
-        return;
-      }
 
       transitionLock.current = true;
       try {
@@ -318,6 +317,10 @@ export const DailyEventView = ({
         );
         setForcedCard(null);
         await waitUntil(() => renderedForcedCard.current === null);
+        console.log(
+          'add the end of the transition, now at',
+          renderedCarouselOrder.current?.cards[0]
+        );
       }
     },
     [fullHeightStyle, waitUntil]
