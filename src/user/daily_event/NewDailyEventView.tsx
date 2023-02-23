@@ -189,6 +189,16 @@ export const DailyEventView = ({
    * The cards that we are showing in the order of the original event.
    */
   const cards: ReactElement[] = useMemo(() => {
+    console.log('card elements being (re)created:', [
+      event.journeys,
+      onStartRandom,
+      cardBackgrounds,
+      windowSize,
+      profilePicture,
+      loginContext,
+      originalShuffle,
+      onPlay,
+    ]);
     const originalIdxToShuffleIdx = new Map<number, number>();
     for (let i = 0; i < originalShuffle.length; i++) {
       originalIdxToShuffleIdx.set(originalShuffle[i], i);
