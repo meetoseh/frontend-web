@@ -268,18 +268,28 @@ export const DailyEventView = ({
 
   const handleTransition = useCallback(
     async (dir: 'left' | 'right', transform: string, rotateOrder: () => void) => {
+      console.log(
+        'handleTransition',
+        dir,
+        '; transitionLock.current=',
+        transitionLock.current,
+        'going to',
+        renderedAnimatingTowardCard.current,
+        'from',
+        renderedCarouselOrder.current?.cards[0]
+      );
       if (transitionLock.current) {
         return;
       }
 
       transitionLock.current = true;
       try {
-        await doTransitionLeft();
+        await doTransition();
       } finally {
         transitionLock.current = false;
       }
 
-      async function doTransitionLeft() {
+      async function doTransition() {
         setAnimatingToward(dir);
         setActiveContainerStyle(
           Object.assign({}, fullHeightStyle, {
