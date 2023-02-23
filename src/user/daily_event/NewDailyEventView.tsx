@@ -98,6 +98,10 @@ export const DailyEventView = ({
   const renderedCarouselOrder = useRef<CarouselOrder | null>(null);
   const rerenderCallbacks = useRef<(() => void)[]>([]);
 
+  useEffect(() => {
+    console.log('new daily event view being remounted');
+  }, []);
+
   const originalShuffle: number[] = useMemo(() => {
     const order: number[] = [];
     for (let i = 0; i < event.journeys.length; i++) {
