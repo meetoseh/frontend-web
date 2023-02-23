@@ -98,10 +98,6 @@ export const DailyEventView = ({
   const renderedCarouselOrder = useRef<CarouselOrder | null>(null);
   const rerenderCallbacks = useRef<(() => void)[]>([]);
 
-  useEffect(() => {
-    console.log('new daily event view being remounted');
-  }, []);
-
   const originalShuffle: number[] = useMemo(() => {
     const order: number[] = [];
     for (let i = 0; i < event.journeys.length; i++) {
@@ -193,16 +189,6 @@ export const DailyEventView = ({
    * The cards that we are showing in the order of the original event.
    */
   const cards: ReactElement[] = useMemo(() => {
-    console.log('card elements being (re)created:', [
-      event.journeys,
-      onStartRandom,
-      cardBackgrounds,
-      windowSize,
-      profilePicture,
-      loginContext,
-      originalShuffle,
-      onPlay,
-    ]);
     const originalIdxToShuffleIdx = new Map<number, number>();
     for (let i = 0; i < originalShuffle.length; i++) {
       originalIdxToShuffleIdx.set(originalShuffle[i], i);
@@ -238,7 +224,6 @@ export const DailyEventView = ({
    * Whenever the cards change, we need to update the carousel order
    */
   useEffect(() => {
-    console.log('carousel order being updated');
     const order: number[] = originalShuffle;
 
     const cardsInOrder = order.map((i) => cards[i]);
@@ -286,14 +271,6 @@ export const DailyEventView = ({
       if (transitionLock.current) {
         return;
       }
-      console.log(
-        'handleTransition',
-        dir,
-        'going to',
-        renderedAnimatingTowardCard.current,
-        'from',
-        renderedCarouselOrder.current?.cards[0]
-      );
 
       transitionLock.current = true;
       try {
@@ -331,10 +308,6 @@ export const DailyEventView = ({
         );
         setForcedCard(null);
         await waitUntil(() => renderedForcedCard.current === null);
-        console.log(
-          'add the end of the transition, now at',
-          renderedCarouselOrder.current?.cards[0]
-        );
       }
     },
     [fullHeightStyle, waitUntil]
