@@ -19,9 +19,21 @@ export const useWindowSize = (): { width: number; height: number } => {
       }
 
       timeout = null;
-      setWindowSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
+      setWindowSize((oldWindowSize) => {
+        // on ios when you swipe down the window size gets slightly larger
+        // for a short time. We want to not cause useEffects to trigger
+        // when this happens
+
+        if (
+          window.innerWidth === oldWindowSize.width &&
+          window.innerHeight === oldWindowSize.height
+        ) {
+          return oldWindowSize;
+        }
+        return {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        };
       });
     };
 
