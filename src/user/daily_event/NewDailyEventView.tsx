@@ -244,7 +244,7 @@ export const DailyEventView = ({
         }
 
         active = false;
-        console.log('bad waitUntil predicate:', pred);
+        console.log('bad waitUntil predicate:', pred, '; is now true? ', pred());
         reject('Timed out waiting for predicate to be true');
       }, 1000);
       const onRerender = () => {
