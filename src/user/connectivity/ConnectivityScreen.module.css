@@ -1,0 +1,28 @@
+.container {
+  font-family: 'Open Sans', sans-serif;
+  padding: 24px;
+}
+
+.header {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  color: '#333';
+  margin-bottom: 12px;
+}
+.description {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.15px;
+  margin-left: 12px;
+  margin-bottom: 24px;
+}
+
+.debugInfo {
+  padding-left: 18px;
+}
+
+.debugInfo > li {
+  margin-bottom: 8px;
+}

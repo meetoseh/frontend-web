@@ -16,6 +16,7 @@ import { Settings } from './user/settings/Settings';
 import { ModalProvider } from './shared/ModalContext';
 import { SplashScreen } from './user/splash/SplashScreen';
 import { HandleDailyEventUserInviteScreen } from './user/referral/HandleDailyEventUserInviteScreen';
+import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -101,6 +102,7 @@ function App() {
         </Route>
         <Route path="/dev_login" element={<TestLogin />} />
         <Route path="/login" element={<LoginApp redirectUrl="/" />} />
+        <Route path="/connectivity" element={<ConnectivityScreen />} />
         <Route path="/splash" element={<SplashScreen />} />
         <Route path="/splash-alt" element={<SplashScreen type="wordmark" />} />
         <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />
