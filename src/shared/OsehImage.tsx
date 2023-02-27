@@ -505,6 +505,35 @@ const selectBestItem = (
 };
 
 /**
+ * Determines the best size to use for the given playlist when we want
+ * to render an image at the given logical size and pixel ratio,
+ * then uses that to determine the best item to use. This is a pixel-ratio
+ * aware variant of selectBestItem, as it's often better to downgrade pixel
+ * ratios rather than using an image which is too small.
+ */
+const selectBestItemUsingPixelRatio = ({
+  playlist,
+  usesWebp,
+  logical,
+  preferredPixelRatio,
+}: {
+  playlist: Playlist;
+  usesWebp: boolean;
+  logical: { width: number; height: number };
+  preferredPixelRatio: number;
+}): PlaylistItem => {
+  let pixelRatio = preferredPixelRatio;
+  while (true) {
+    const want = { width: logical.width * pixelRatio, height: logical.height * pixelRatio };
+    const item = selectBestItem(playlist, usesWebp, want);
+    if (pixelRatio <= 1 || (item.width >= want.width && item.height >= want.height)) {
+      return item;
+    }
+    pixelRatio = Math.max(1, pixelRatio - 1);
+  }
+};
+
+/**
  * Downloads the given playlist item. Returns a rejected promise if
  * there is a network error or the server returns a non-200 status code.
  *
@@ -713,12 +742,13 @@ export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] =
           return;
         }
 
-        const want = {
-          width: props.displayWidth * devicePixelRatio,
-          height: props.displayHeight * devicePixelRatio,
-        };
         const old = newBestItems.get(uid) ?? null;
-        const bestItem = selectBestItem(playlist.playlist, usesWebp, want);
+        const bestItem = selectBestItemUsingPixelRatio({
+          playlist: playlist.playlist,
+          logical: { width: props.displayWidth, height: props.displayHeight },
+          usesWebp,
+          preferredPixelRatio: devicePixelRatio,
+        });
         if (old === null || old.jwt !== playlist.jwt || !playlistItemsEqual(old.item, bestItem)) {
           newBestItems.set(uid, { item: bestItem, jwt: playlist.jwt });
           madeChanges = true;
