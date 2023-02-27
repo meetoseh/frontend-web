@@ -594,12 +594,7 @@ const selectBestItemUsingPixelRatio = ({
   }
 };
 
-/**
- * Crops the image at the given url to the given size, returning
- * a promise which resolves to a url where the cropped image can
- * be downloaded.
- */
-const cropImage = async (
+const cropImageUnsafe = async (
   src: string,
   cropTo: { width: number; height: number }
 ): Promise<string> => {
@@ -647,6 +642,26 @@ const cropImage = async (
     };
     img.src = src;
   });
+};
+
+/**
+ * Crops the image at the given url to the given size, returning
+ * a promise which resolves to a url where the cropped image can
+ * be downloaded.
+ *
+ * Unlike cropImageUnsafe, which shouldn't be used directly, if
+ * something goes wrong this returns the original image url.
+ */
+const cropImage = async (
+  src: string,
+  cropTo: { width: number; height: number }
+): Promise<string> => {
+  try {
+    return await cropImageUnsafe(src, cropTo);
+  } catch (e) {
+    console.error('Error cropping image', e);
+    return src;
+  }
 };
 
 /**
