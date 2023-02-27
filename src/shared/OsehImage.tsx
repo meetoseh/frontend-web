@@ -300,6 +300,13 @@ type DownloadedItem = {
   localUrl: string;
 
   /**
+   * If the local version is actually a cropped version of the remote version,
+   * this is the local url where the original remote version can be accessed
+   * in case we need to crop it differently.
+   */
+  originalLocalUrl: string;
+
+  /**
    * The URI we fetched the resource from, primarily for avoiding
    * refetching the same resource
    */
@@ -324,6 +331,7 @@ const downloadedItemsEqual = (a: DownloadedItem | null, b: DownloadedItem | null
 
   return (
     a.localUrl === b.localUrl &&
+    a.originalLocalUrl === b.originalLocalUrl &&
     a.remoteUrl === b.remoteUrl &&
     (a.croppedTo === b.croppedTo ||
       (a.croppedTo !== undefined &&
@@ -672,6 +680,7 @@ const downloadItem = async (
     return {
       remoteUrl: item.url,
       localUrl: cropped,
+      originalLocalUrl: url,
       croppedTo: opts.cropTo,
     };
   }
@@ -679,6 +688,7 @@ const downloadItem = async (
   return {
     remoteUrl: item.url,
     localUrl: url,
+    originalLocalUrl: url,
   };
 };
 
@@ -907,8 +917,29 @@ export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] =
       item: PlaylistItemWithJWTAndCropSize,
       old: DownloadedItem | null
     ): Promise<DownloadedItem> {
-      if (old !== null && old.remoteUrl === item.item.url) {
+      if (
+        old !== null &&
+        old.remoteUrl === item.item.url &&
+        cropToEqual(old.croppedTo, item.cropTo)
+      ) {
         return old;
+      }
+
+      if (old !== null && old.remoteUrl === item.item.url) {
+        if (item.cropTo === undefined) {
+          return {
+            remoteUrl: item.item.url,
+            localUrl: old.originalLocalUrl,
+            originalLocalUrl: old.originalLocalUrl,
+          };
+        }
+        const recropped = await cropImage(old.originalLocalUrl, item.cropTo);
+        return {
+          remoteUrl: item.item.url,
+          localUrl: recropped,
+          originalLocalUrl: old.originalLocalUrl,
+          croppedTo: item.cropTo,
+        };
       }
 
       return downloadItem(item.item, item.jwt, { cropTo: item.cropTo });
