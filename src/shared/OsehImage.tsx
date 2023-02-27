@@ -105,7 +105,34 @@ const playlistItemsEqual = (a: PlaylistItem | null, b: PlaylistItem | null): boo
   );
 };
 
-type PlaylistItemWithJWT = { item: PlaylistItem; jwt: string };
+type PlaylistItemWithJWTAndCropSize = {
+  item: PlaylistItem;
+  jwt: string;
+  cropTo?: { width: number; height: number };
+};
+
+/**
+ * Determines if two crop sizes are equal. If either is undefined, they are
+ * considered equal if the other is undefined.
+ *
+ * @param a The first crop size
+ * @param b The second crop size
+ * @returns True if the crop sizes are equal, false otherwise
+ */
+const cropToEqual = (
+  a?: { width: number; height: number },
+  b?: { width: number; height: number }
+): boolean => {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === undefined || b === undefined) {
+    return false;
+  }
+
+  return a.width === b.width && a.height === b.height;
+};
 
 type Playlist = {
   /**
@@ -277,6 +304,13 @@ type DownloadedItem = {
    * refetching the same resource
    */
   remoteUrl: string;
+
+  /**
+   * If the local version is actually a cropped version of the remote version,
+   * this is the size we cropped the remote version to. We always crop to the
+   * center and this is never greater than the remote version on either axis.
+   */
+  croppedTo?: { width: number; height: number };
 };
 
 const downloadedItemsEqual = (a: DownloadedItem | null, b: DownloadedItem | null): boolean => {
@@ -288,7 +322,15 @@ const downloadedItemsEqual = (a: DownloadedItem | null, b: DownloadedItem | null
     return false;
   }
 
-  return a.localUrl === b.localUrl && a.remoteUrl === b.remoteUrl;
+  return (
+    a.localUrl === b.localUrl &&
+    a.remoteUrl === b.remoteUrl &&
+    (a.croppedTo === b.croppedTo ||
+      (a.croppedTo !== undefined &&
+        b.croppedTo !== undefined &&
+        a.croppedTo.width === b.croppedTo.width &&
+        a.croppedTo.height === b.croppedTo.height))
+  );
 };
 
 /**
@@ -521,16 +563,82 @@ const selectBestItemUsingPixelRatio = ({
   usesWebp: boolean;
   logical: { width: number; height: number };
   preferredPixelRatio: number;
-}): PlaylistItem => {
+}): { item: PlaylistItem; cropTo?: { width: number; height: number } } => {
   let pixelRatio = preferredPixelRatio;
   while (true) {
     const want = { width: logical.width * pixelRatio, height: logical.height * pixelRatio };
     const item = selectBestItem(playlist, usesWebp, want);
-    if (pixelRatio <= 1 || (item.width >= want.width && item.height >= want.height)) {
-      return item;
+
+    const satisfactorilyLarge = item.width >= want.width && item.height >= want.height;
+    if (pixelRatio === preferredPixelRatio && satisfactorilyLarge) {
+      return { item };
+    }
+    if (satisfactorilyLarge) {
+      return {
+        item,
+        cropTo: { width: want.width, height: want.height },
+      };
+    }
+    if (pixelRatio <= 1) {
+      return { item };
     }
     pixelRatio = Math.max(1, pixelRatio - 1);
   }
+};
+
+/**
+ * Crops the image at the given url to the given size, returning
+ * a promise which resolves to a url where the cropped image can
+ * be downloaded.
+ */
+const cropImage = async (
+  src: string,
+  cropTo: { width: number; height: number }
+): Promise<string> => {
+  const usesWebp = await USES_WEBP;
+  const format = usesWebp ? 'image/webp' : 'image/png';
+  return new Promise<string>((resolve, reject) => {
+    const img = new Image();
+    img.onerror = reject;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = cropTo.width;
+      canvas.height = cropTo.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx === null) {
+        reject(new Error('Could not get 2d context from canvas'));
+        return;
+      }
+      const imgWidth = img.naturalWidth;
+      const imgHeight = img.naturalHeight;
+      const leftCrop = Math.floor((imgWidth - cropTo.width) / 2);
+      const topCrop = Math.floor((imgHeight - cropTo.height) / 2);
+
+      ctx.drawImage(
+        img,
+        leftCrop,
+        topCrop,
+        cropTo.width,
+        cropTo.height,
+        0,
+        0,
+        cropTo.width,
+        cropTo.height
+      );
+      canvas.toBlob(
+        (blob) => {
+          if (blob === null) {
+            reject(new Error('Could not convert canvas to blob'));
+            return;
+          }
+          resolve(URL.createObjectURL(blob));
+        },
+        format,
+        1
+      );
+    };
+    img.src = src;
+  });
 };
 
 /**
@@ -539,9 +647,16 @@ const selectBestItemUsingPixelRatio = ({
  *
  * @param item The item to download
  * @param jwt The JWT to use to authenticate the request
+ * @param opts.cropTo If specified, the downloaded image will be cropped to the given size.
+ *   This is useful for when we are intentionally rendering an image at a lowered pixel ratio,
+ *   as by default most browsers will instead stretch the image (which looks terrible).
  * @returns The downloaded item
  */
-const downloadItem = async (item: PlaylistItem, jwt: string): Promise<DownloadedItem> => {
+const downloadItem = async (
+  item: PlaylistItem,
+  jwt: string,
+  opts?: { cropTo?: { width: number; height: number } }
+): Promise<DownloadedItem> => {
   const response = await fetch(item.url, {
     headers: { Authorization: `bearer ${jwt}` },
   });
@@ -551,6 +666,15 @@ const downloadItem = async (item: PlaylistItem, jwt: string): Promise<Downloaded
 
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
+
+  if (opts !== undefined && opts.cropTo !== undefined) {
+    const cropped = await cropImage(url, opts.cropTo);
+    return {
+      remoteUrl: item.url,
+      localUrl: cropped,
+      croppedTo: opts.cropTo,
+    };
+  }
 
   return {
     remoteUrl: item.url,
@@ -621,7 +745,9 @@ export const useOsehImageState = (props: OsehImageProps): OsehImageState => {
  */
 export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] => {
   const [playlists, setPlaylists] = useState<Map<string, PlaylistWithJWT>>(new Map());
-  const [bestItems, setBestItems] = useState<Map<string, PlaylistItemWithJWT>>(new Map());
+  const [bestItems, setBestItems] = useState<Map<string, PlaylistItemWithJWTAndCropSize>>(
+    new Map()
+  );
   const [downloadedItems, setDownloadedItems] = useState<Map<string, DownloadedItem>>(new Map());
 
   const uidsToImages = useMemo(() => {
@@ -749,8 +875,17 @@ export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] =
           usesWebp,
           preferredPixelRatio: devicePixelRatio,
         });
-        if (old === null || old.jwt !== playlist.jwt || !playlistItemsEqual(old.item, bestItem)) {
-          newBestItems.set(uid, { item: bestItem, jwt: playlist.jwt });
+        if (
+          old === null ||
+          old.jwt !== playlist.jwt ||
+          !playlistItemsEqual(old.item, bestItem.item) ||
+          !cropToEqual(old.cropTo, bestItem.cropTo)
+        ) {
+          newBestItems.set(uid, {
+            item: bestItem.item,
+            cropTo: bestItem.cropTo,
+            jwt: playlist.jwt,
+          });
           madeChanges = true;
         }
       });
@@ -769,14 +904,14 @@ export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] =
     };
 
     async function fetchDownloadedItem(
-      item: PlaylistItemWithJWT,
+      item: PlaylistItemWithJWTAndCropSize,
       old: DownloadedItem | null
     ): Promise<DownloadedItem> {
       if (old !== null && old.remoteUrl === item.item.url) {
         return old;
       }
 
-      return downloadItem(item.item, item.jwt);
+      return downloadItem(item.item, item.jwt, { cropTo: item.cropTo });
     }
 
     async function fetchDownloadedItems() {
