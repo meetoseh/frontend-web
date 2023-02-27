@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 /**
  * Determines when the JWT expires
  *
