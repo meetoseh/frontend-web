@@ -24,11 +24,16 @@ type CreateJourneyUploadBackgroundImageProps = {
   onUploaded: (this: void, image: JourneyBackgroundImage) => void;
 };
 
+const minWidth = 2560;
+const minHeight = 2745;
+
 export const CreateJourneyUploadBackgroundImage = ({
   onUploaded,
 }: CreateJourneyUploadBackgroundImageProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [file, setFile] = useState<File | null>(null);
+  const [fileSize, setFileSize] = useState<{ width: number; height: number } | null>(null);
+  const [fileLargeEnough, setFileLargeEnough] = useState<boolean | null>(null);
   const [uploadState, setUploadState] = useState<
     'picking-file' | 'preparing' | 'uploading' | 'processing'
   >('picking-file');
@@ -43,7 +48,7 @@ export const CreateJourneyUploadBackgroundImage = ({
     };
 
     async function uploadFile() {
-      if (file === null) {
+      if (file === null || !fileLargeEnough) {
         return;
       }
 
@@ -239,7 +244,42 @@ export const CreateJourneyUploadBackgroundImage = ({
       setError(<>Timed out waiting for processing to complete. Contact support.</>);
       setUploadState('picking-file');
     }
-  }, [file, loginContext, onUploaded]);
+  }, [file, fileLargeEnough, loginContext, onUploaded]);
+
+  useEffect(() => {
+    let active = true;
+    checkFileSize().catch((e) => {
+      console.error(e);
+      if (active) {
+        setFileLargeEnough(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+
+    async function checkFileSize() {
+      setFileLargeEnough(null);
+      setFileSize(null);
+      if (file === null) {
+        return;
+      }
+
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const res = new Image();
+        res.onload = () => resolve(res);
+        res.onerror = reject;
+        res.src = URL.createObjectURL(file);
+      });
+
+      if (!active) {
+        return;
+      }
+
+      setFileLargeEnough(img.naturalWidth >= minWidth && img.naturalHeight >= minHeight);
+      setFileSize({ width: img.naturalWidth, height: img.naturalHeight });
+    }
+  }, [file]);
 
   return uploadState === 'picking-file' ? (
     <div className={styles.container}>
@@ -269,9 +309,9 @@ export const CreateJourneyUploadBackgroundImage = ({
         </ol>
 
         <p>
-          The minimum resolution is 1920x2745, to accomodate 1920x1080 desktop and 1242x2745 3x
-          mobile portrait mode. The highest quality available image should be uploaded to minimize
-          compression artifacts.
+          The minimum resolution is {minWidth}x{minHeight}, to accomodate 2560x1600 desktop (mac
+          13.3in) and 1242x2745 3x mobile portrait mode. The highest quality available image should
+          be uploaded to minimize compression artifacts.
         </p>
       </div>
 
@@ -287,6 +327,17 @@ export const CreateJourneyUploadBackgroundImage = ({
           }}
         />
       </div>
+      {file !== null && fileLargeEnough === false && (
+        <div className={styles.help} style={{ color: 'red' }}>
+          The file is too small. The minimum resolution is {minWidth}x{minHeight}.
+          {fileSize !== null && (
+            <>
+              {' '}
+              Your file is {fileSize.width}x{fileSize.height}
+            </>
+          )}
+        </div>
+      )}
     </div>
   ) : (
     <div className={styles.container}>
