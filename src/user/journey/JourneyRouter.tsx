@@ -1,5 +1,6 @@
-import { ReactElement, useMemo, useState } from 'react';
+import { ReactElement, useEffect, useMemo, useState } from 'react';
 import { ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { getJwtExpiration } from '../../shared/lib/getJwtExpiration';
 import { SplashScreen } from '../splash/SplashScreen';
 import { useJourneyShared } from './hooks/useJourneyShared';
 import { JourneyRef } from './models/JourneyRef';
@@ -45,6 +46,28 @@ export const JourneyRouter = ({
       isOnboarding,
     };
   }, [journey, sharedState, onFinished, isOnboarding]);
+
+  useEffect(() => {
+    const expireTime = getJwtExpiration(journey.jwt);
+    if (expireTime <= Date.now()) {
+      onFinished();
+      return;
+    }
+
+    let active = true;
+    const timeout = setTimeout(handleExpiration, expireTime - Date.now());
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+
+    function handleExpiration() {
+      if (!active) {
+        return;
+      }
+      onFinished();
+    }
+  }, [journey.jwt, onFinished]);
 
   if (sharedState?.audio?.error !== null && sharedState?.audio?.error !== undefined) {
     return <ErrorBlock>{sharedState.audio.error}</ErrorBlock>;
