@@ -243,7 +243,10 @@ export const RequestPhoneForm = ({
       <div className={styles.content}>
         {step === 'number' && (
           <>
-            <div className={styles.title}>What's is your number?</div>
+            <div className={styles.title}>Oseh is way better with notifications</div>
+            <div className={styles.subtitle}>
+              The only way to know when to take a class is to enter your phone number below.
+            </div>
             <form className={styles.form} onSubmit={onStartPhone}>
               <div className={styles.phoneNumberContainer}>
                 <TextInput
