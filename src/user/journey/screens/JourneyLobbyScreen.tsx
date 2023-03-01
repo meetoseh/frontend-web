@@ -1,4 +1,12 @@
-import { CSSProperties, ReactElement, useContext, useEffect, useMemo, useRef } from 'react';
+import {
+  CSSProperties,
+  ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
 import { LoginContext } from '../../../shared/LoginContext';
 import { OsehImageFromState } from '../../../shared/OsehImage';
@@ -142,6 +150,10 @@ export const JourneyLobbyScreen = ({
     };
   }, [windowSize, profilePicturesEnabled]);
 
+  const gotoStart = useCallback(() => {
+    setScreen('start');
+  }, [setScreen]);
+
   return (
     <div ref={containerRef} className={styles.container}>
       <div className={styles.backgroundImageContainer}>
@@ -149,7 +161,7 @@ export const JourneyLobbyScreen = ({
       </div>
       <div className={styles.closeButtonContainer}>
         <div className={styles.closeButtonInnerContainer}>
-          <button type="button" className={styles.close} onClick={onJourneyFinished}>
+          <button type="button" className={styles.close} onClick={gotoStart}>
             <div className={styles.closeIcon} />
             <div className={assistiveStyles.srOnly}>Close</div>
           </button>
