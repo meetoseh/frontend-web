@@ -51,3 +51,25 @@
 .nextContainer {
   width: 100%;
 }
+
+.teachingSwipe {
+  animation: teachSwipe 2s ease-in-out infinite;
+}
+
+@keyframes teachSwipe {
+  0% {
+    transform: translateX(0px);
+  }
+  25% {
+    transform: translateX(10vw);
+  }
+  50% {
+    transform: translateX(0px);
+  }
+  75% {
+    transform: translateX(-10vw);
+  }
+  100% {
+    transform: translateX(0px);
+  }
+}

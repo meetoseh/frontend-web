@@ -97,6 +97,10 @@ export const DailyEventView = ({
   const renderedForcedCard = useRef<ReactElement | null>(forcedCard);
   const renderedCarouselOrder = useRef<CarouselOrder | null>(null);
   const rerenderCallbacks = useRef<(() => void)[]>([]);
+  const [seenSwipe, setSeenSwipe] = useState(() => {
+    return localStorage.getItem('daily_event-NewDailyEventView-seenSwipe') === 'true';
+  });
+  const [teachingSwipe, setTeachingSwipe] = useState<'behind-left' | 'behind-right' | false>(false);
 
   const originalShuffle: number[] = useMemo(() => {
     const order: number[] = [];
@@ -271,6 +275,8 @@ export const DailyEventView = ({
       if (transitionLock.current) {
         return;
       }
+      setSeenSwipe(true);
+      localStorage.setItem('daily_event-NewDailyEventView-seenSwipe', 'true');
 
       transitionLock.current = true;
       try {
@@ -396,6 +402,9 @@ export const DailyEventView = ({
     }
   }, [transitionLeft, transitionRight]);
 
+  const teachingSwipeRef = useRef(teachingSwipe);
+  teachingSwipeRef.current = teachingSwipe;
+
   // Handles gestures for navigating the carousel. Uses javascript for panning
   // and CSS transition when the gesture is complete.
   useEffect(() => {
@@ -438,6 +447,9 @@ export const DailyEventView = ({
 
     let active = true;
     gesture.on('panmove', () => {
+      if (teachingSwipeRef.current) {
+        setTeachingSwipe(false);
+      }
       onNextRender(() => {
         if (
           gesture.swipingDirection === 'horizontal' &&
@@ -500,6 +512,48 @@ export const DailyEventView = ({
     };
   }, [transitionLeft, transitionRight, fullHeightStyle, waitUntil]);
 
+  // Turns on teachingSwipe for 2s every 30s until they swipe, starting after 2s
+  useEffect(() => {
+    if (seenSwipe) {
+      return;
+    }
+
+    let active = true;
+    let timeout: NodeJS.Timeout = setTimeout(teach, 2000);
+    setTeachingSwipe(false);
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+
+    function teach() {
+      if (!active) {
+        return;
+      }
+
+      setTeachingSwipe('behind-right');
+      timeout = setTimeout(switchToBehindLeft, 1000);
+    }
+
+    function switchToBehindLeft() {
+      if (!active) {
+        return;
+      }
+
+      setTeachingSwipe('behind-left');
+      timeout = setTimeout(stopTeaching, 1000);
+    }
+
+    function stopTeaching() {
+      if (!active) {
+        return;
+      }
+
+      setTeachingSwipe(false);
+      setTimeout(teach, 30000);
+    }
+  }, [seenSwipe]);
+
   if (carouselOrder === null) {
     return <></>;
   }
@@ -517,6 +571,29 @@ export const DailyEventView = ({
   const cpRerenderCallbacks = rerenderCallbacks.current;
   rerenderCallbacks.current = [];
   cpRerenderCallbacks.forEach((cb) => cb());
+
+  if (teachingSwipe) {
+    return (
+      <div className={styles.container} style={fullHeightStyle}>
+        <div className={styles.nextContainer}>
+          {carouselOrder.cards[carouselOrder.cards.length - 1]}
+        </div>
+        {teachingSwipe === 'behind-left' && (
+          <div className={styles.nextContainer}>
+            {carouselOrder.cards[carouselOrder.cards.length - 1]}
+          </div>
+        )}
+        {teachingSwipe === 'behind-right' && (
+          <div className={styles.nextContainer}>{carouselOrder.cards[1]}</div>
+        )}
+        <div
+          className={`${styles.currentContainer} ${styles.teachingSwipe}`}
+          style={activeContainerStyle}>
+          {carouselOrder.cards[0]}
+        </div>
+      </div>
+    );
+  }
 
   if (forcedCard !== null) {
     return (
