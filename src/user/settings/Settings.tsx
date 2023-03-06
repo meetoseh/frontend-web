@@ -77,6 +77,32 @@ export const Settings = () => {
         );
 
         if (!response.ok) {
+          if (!force && response.status === 409) {
+            const body: {
+              type:
+                | 'has_active_stripe_subscription'
+                | 'has_active_ios_subscription'
+                | 'has_active_google_subscription'
+                | 'has_active_promotional_subscription';
+            } = await response.json();
+            if (body.type === 'has_active_stripe_subscription') {
+              setShowDeleteConfirmStripePrompt(true);
+              return;
+            } else if (body.type === 'has_active_ios_subscription') {
+              setShowDeleteConfirmApplePrompt(true);
+              return;
+            } else if (body.type === 'has_active_google_subscription') {
+              setShowDeleteConfirmGooglePrompt(true);
+              return;
+            } else if (body.type === 'has_active_promotional_subscription') {
+              setShowDeleteConfirmPromoPrompt(true);
+              return;
+            } else {
+              console.log('Unknown conflict type', body.type);
+              setError(<>E_A7015: Contact hi@oseh.com for assistance.</>);
+              return;
+            }
+          }
           throw response;
         }
 
