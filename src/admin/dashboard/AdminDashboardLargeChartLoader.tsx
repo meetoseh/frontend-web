@@ -245,7 +245,18 @@ const RetentionDetails = ({
   retentionRate,
 }: RetentionDetailsProps): ReactElement => {
   const [from, setFrom] = useState<Date>(() => {
-    return new Date(labels[0]);
+    // if any dates have a non-zero number of retained/unretained, that's our first date,
+    // otherwise we start at the first date
+
+    const firstNonZeroIndex = labels.findIndex((_, i) => {
+      return retained[i] > 0 || unretained[i] > 0;
+    });
+
+    if (firstNonZeroIndex === -1) {
+      return new Date(labels[0]);
+    }
+
+    return new Date(labels[firstNonZeroIndex]);
   });
 
   const [to, setTo] = useState<Date>(() => {
@@ -268,7 +279,7 @@ const RetentionDetails = ({
     }
 
     return retained.slice(fromIndex, toIndex + 1).reduce((a, b) => a + b, 0);
-  }, [from, to, retained]);
+  }, [fromIndex, toIndex, retained]);
 
   const totalUnretained = useMemo(() => {
     if (fromIndex >= toIndex || fromIndex === -1 || toIndex === -1) {
@@ -276,7 +287,7 @@ const RetentionDetails = ({
     }
 
     return unretained.slice(fromIndex, toIndex + 1).reduce((a, b) => a + b, 0);
-  }, [from, to, unretained]);
+  }, [fromIndex, toIndex, unretained]);
 
   return (
     <div className={styles.retentionDetailsContainer}>
@@ -343,7 +354,7 @@ const RetentionDetails = ({
                     <td>{label}</td>
                     <td>{retained[fromIndex + index]}</td>
                     <td>{unretained[fromIndex + index]}</td>
-                    <td>{retentionRate[fromIndex + index]}%</td>
+                    <td>{(retentionRate[fromIndex + index] * 100).toFixed(2)}%</td>
                   </tr>
                 );
               })}
