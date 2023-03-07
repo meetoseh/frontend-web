@@ -18,7 +18,7 @@ type ButtonProps = {
    * The variant of the button
    * @default 'filled'
    */
-  variant?: 'filled' | 'outlined' | 'link' | 'link-small' | 'link-white';
+  variant?: 'filled' | 'outlined' | 'link' | 'link-small' | 'link-white' | 'link-small-upper';
 
   /**
    * If the button is disabled

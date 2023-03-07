@@ -89,8 +89,6 @@ export const AdminDashboardSmallChart = ({
     gradient.addColorStop(1 - 100.0 / chart.height, 'rgba(255, 255, 255, 0.4)');
     gradient.addColorStop(1, 'rgba(255, 255, 255, 0.4)');
 
-    console.log('adding fill');
-
     setDataset({
       label: name,
       data: values,

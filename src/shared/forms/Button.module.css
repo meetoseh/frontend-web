@@ -24,12 +24,12 @@
 }
 
 .link,
-.link-small {
+.link-small,
+.link-small-upper {
   background: transparent;
   color: #446266;
   border: none;
 }
-
 .link-white {
   background: transparent;
   color: white;
@@ -38,6 +38,12 @@
 
 .link-small {
   padding: 0;
+}
+
+.link-small-upper {
+  text-transform: uppercase;
+  font-size: 12px;
+  padding: 5px;
 }
 
 .button:hover {
@@ -50,6 +56,7 @@
 
 .link:hover,
 .link-small:hover,
+.link-small-upper:hover,
 .link-white:hover {
   color: #708f94;
   border: none;
@@ -64,7 +71,8 @@
 }
 
 .link:active,
-.link-small:active {
+.link-small:active,
+.link-small-upper:active {
   color: #1a383c;
   border: none;
 }
@@ -80,6 +88,7 @@
 
 .link:focus-visible,
 .link-small:focus-visible,
+.link-small-upper:focus-visible,
 .link-white:focus-visible {
   border: none;
   outline: 3px solid #708f94;
@@ -97,6 +106,7 @@
 
 .link:disabled,
 .link-small:disabled,
+.link-small-upper:disabled,
 .link-white:disabled {
   border: none;
   color: #3f484a;

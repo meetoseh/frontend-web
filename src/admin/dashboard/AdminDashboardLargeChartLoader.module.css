@@ -22,3 +22,91 @@
   line-height: 56px;
   color: #c2c2c2;
 }
+
+.retentionDetailsContainer {
+  max-width: 720px;
+}
+
+.retentionDetailsTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 16px;
+  font-weight: 500;
+  color: #160808;
+}
+
+.retentionDetailsBody {
+  margin-top: 16px;
+}
+
+.retentionDetailsInput {
+  width: 100%;
+  padding: 6px 12px;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  margin-top: 8px;
+}
+
+.retentionDetailsSummaryContainer {
+  margin-top: 24px;
+}
+
+.retentionDetailsSummaryTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 16px;
+  font-weight: 400;
+}
+
+.retentionDetailsSummaryItem {
+  margin: 4px 0 4px 0.5em;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+.retentionDetailsTableContainer {
+  margin-top: 40px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.retentionDetailsTable {
+  border-collapse: collapse;
+  margin: 25px 0;
+  font-size: 0.9em;
+  font-family: 'Open Sans', sans-serif;
+  min-width: 400px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.retentionDetailsTable thead tr {
+  background-color: #446266;
+  color: #ffffff;
+  text-align: left;
+}
+
+.retentionDetailsTable th,
+.retentionDetailsTable td {
+  padding: 12px 15px;
+}
+
+.retentionDetailsTable tbody tr {
+  border-bottom: 1px solid #dbd7d7;
+}
+
+.retentionDetailsTable tbody tr:nth-of-type(even) {
+  background-color: #f2f2f3;
+}
+
+.retentionDetailsTable tbody tr:last-of-type {
+  border-bottom: 2px solid #446266;
+}
+
+.retentionDetailsTable tbody tr.active-row {
+  font-weight: bold;
+  color: #446266;
+}

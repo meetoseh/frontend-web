@@ -15,6 +15,7 @@ import Popup from 'reactjs-popup';
 import '../../assets/fonts.css';
 import styles from './AdminDashboardLargeChart.module.css';
 import iconStyles from './icons.module.css';
+import { Button } from '../../shared/forms/Button';
 
 Chart.register(
   LineController,
@@ -48,6 +49,12 @@ export type AdminDashboardLargeChartItem = {
    * The values corresponding to the labels
    */
   values: number[];
+
+  /**
+   * If specified, additional tooling for the chart. Typically this is used to
+   * e.g., calculate averages over a range.
+   */
+  help?: () => void;
 };
 
 export type AdminDashboardLargeChartMonthlyItem = AdminDashboardLargeChartItem & {
@@ -144,75 +151,84 @@ export const AdminDashboardLargeChart = ({
   return (
     <div className={styles.container}>
       <div className={styles.titleContainer}>
-        <div className={styles.primaryTitleContainer}>
-          <div className={styles.primaryTitle}>{primaryChart.name}</div>
-          <Popup
-            trigger={
-              <div className={styles.moreContainer}>
-                <span className={iconStyles.more}></span>
+        <div className={styles.primaryTitleRow}>
+          <div className={styles.primaryTitleContainer}>
+            <div className={styles.primaryTitle}>{primaryChart.name}</div>
+            <Popup
+              trigger={
+                <div className={styles.moreContainer}>
+                  <span className={iconStyles.more}></span>
+                </div>
+              }
+              position="right top"
+              on="click"
+              closeOnDocumentClick
+              mouseLeaveDelay={300}
+              mouseEnterDelay={0}
+              arrow={false}>
+              <div className={styles.popupContainer}>
+                <div className={styles.popupTitle}>Daily Charts</div>
+                {dailyCharts.map((chart) => (
+                  <button
+                    key={chart.identifier}
+                    type="button"
+                    className={`${styles.popupItem} ${
+                      selectedDailyCharts.includes(chart) ? styles.popupItemSelected : ''
+                    }`}
+                    onClick={() => {
+                      if (selectedDailyCharts.includes(chart)) {
+                        setSelectedDailyCharts((sel) => sel.filter((c) => c !== chart));
+                      } else {
+                        setSelectedDailyCharts((sel) => sel.concat(chart));
+                      }
+                    }}>
+                    <div className={styles.popupItemCheckboxContainer}>
+                      <span
+                        className={`${styles.checkbox} ${
+                          selectedDailyCharts.includes(chart)
+                            ? iconStyles.checkboxChecked
+                            : iconStyles.checkboxUnchecked
+                        }`}></span>
+                    </div>
+                    <div className={styles.popupItemName}>{chart.name}</div>
+                  </button>
+                ))}
+                <div className={styles.popupTitle}>Monthly Charts</div>
+                {monthlyCharts.map((chart) => (
+                  <button
+                    key={chart.identifier}
+                    type="button"
+                    className={`${styles.popupItem} ${
+                      selectedMonthlyCharts.includes(chart) ? styles.popupItemSelected : ''
+                    }`}
+                    onClick={() => {
+                      if (selectedMonthlyCharts.includes(chart)) {
+                        setSelectedMonthlyCharts(selectedMonthlyCharts.filter((c) => c !== chart));
+                      } else {
+                        setSelectedMonthlyCharts(selectedMonthlyCharts.concat(chart));
+                      }
+                    }}>
+                    <div className={styles.popupItemCheckboxContainer}>
+                      <span
+                        className={`${styles.checkbox} ${
+                          selectedMonthlyCharts.includes(chart)
+                            ? iconStyles.checkboxChecked
+                            : iconStyles.checkboxUnchecked
+                        }`}></span>
+                    </div>
+                    <div className={styles.popupItemName}>{chart.name}</div>
+                  </button>
+                ))}
               </div>
-            }
-            position="right top"
-            on="click"
-            closeOnDocumentClick
-            mouseLeaveDelay={300}
-            mouseEnterDelay={0}
-            arrow={false}>
-            <div className={styles.popupContainer}>
-              <div className={styles.popupTitle}>Daily Charts</div>
-              {dailyCharts.map((chart) => (
-                <button
-                  key={chart.identifier}
-                  type="button"
-                  className={`${styles.popupItem} ${
-                    selectedDailyCharts.includes(chart) ? styles.popupItemSelected : ''
-                  }`}
-                  onClick={() => {
-                    if (selectedDailyCharts.includes(chart)) {
-                      setSelectedDailyCharts((sel) => sel.filter((c) => c !== chart));
-                    } else {
-                      setSelectedDailyCharts((sel) => sel.concat(chart));
-                    }
-                  }}>
-                  <div className={styles.popupItemCheckboxContainer}>
-                    <span
-                      className={`${styles.checkbox} ${
-                        selectedDailyCharts.includes(chart)
-                          ? iconStyles.checkboxChecked
-                          : iconStyles.checkboxUnchecked
-                      }`}></span>
-                  </div>
-                  <div className={styles.popupItemName}>{chart.name}</div>
-                </button>
-              ))}
-              <div className={styles.popupTitle}>Monthly Charts</div>
-              {monthlyCharts.map((chart) => (
-                <button
-                  key={chart.identifier}
-                  type="button"
-                  className={`${styles.popupItem} ${
-                    selectedMonthlyCharts.includes(chart) ? styles.popupItemSelected : ''
-                  }`}
-                  onClick={() => {
-                    if (selectedMonthlyCharts.includes(chart)) {
-                      setSelectedMonthlyCharts(selectedMonthlyCharts.filter((c) => c !== chart));
-                    } else {
-                      setSelectedMonthlyCharts(selectedMonthlyCharts.concat(chart));
-                    }
-                  }}>
-                  <div className={styles.popupItemCheckboxContainer}>
-                    <span
-                      className={`${styles.checkbox} ${
-                        selectedMonthlyCharts.includes(chart)
-                          ? iconStyles.checkboxChecked
-                          : iconStyles.checkboxUnchecked
-                      }`}></span>
-                  </div>
-                  <div className={styles.popupItemName}>{chart.name}</div>
-                </button>
-              ))}
+            </Popup>
+          </div>
+          {primaryChart.help && (
+            <div className={styles.helpContainer}>
+              <Button type="button" variant="link-small-upper" onClick={primaryChart.help}>
+                Details
+              </Button>
             </div>
-          </Popup>
+          )}
         </div>
         {selectedDailyCharts.length + selectedMonthlyCharts.length > 1 ? (
           <div className={styles.secondaryTitle}>

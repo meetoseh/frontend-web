@@ -6,10 +6,18 @@
   padding: 20px;
 }
 
+.primaryTitleRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .primaryTitleContainer {
   display: flex;
   gap: 4px;
   align-items: center;
+  justify-content: flex-start;
 }
 
 .primaryTitle {
