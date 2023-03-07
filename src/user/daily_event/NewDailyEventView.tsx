@@ -56,6 +56,43 @@ type CarouselOrder = {
 const TRANSITION_TIME_MS = 500;
 
 /**
+ * Category external names which some people really like, but others really dislike.
+ * This is contrasted with categories which tend not to illicit negative reactions
+ */
+const DIVISIVE_CATEGORIES = new Set(['Instrumental', 'Poetry']);
+
+/**
+ * Performs a biased shuffling of the cards in the journey, preferring to
+ * move content that can be more divisive to anything but the front card.
+ *
+ * @param journeys The journeys to produce an ordering of
+ * @returns The indices of the journeys in the order they should be shown
+ */
+const createJourneyShuffle = (journeys: DailyEventJourney[]): number[] => {
+  if (journeys.length === 0) {
+    return [];
+  }
+
+  const result: number[] = [];
+  for (let i = 0; i < journeys.length; i++) {
+    result.push(i);
+  }
+  shuffle(result);
+
+  if (DIVISIVE_CATEGORIES.has(journeys[result[0]].category.externalName)) {
+    const firstNonDivisive = result.findIndex(
+      (i) => !DIVISIVE_CATEGORIES.has(journeys[i].category.externalName)
+    );
+    if (firstNonDivisive !== -1) {
+      const tmp = result[0];
+      result[0] = result[firstNonDivisive];
+      result[firstNonDivisive] = tmp;
+    }
+  }
+  return result;
+};
+
+/**
  * Shows the specified daily event and allows the user to take actions as
  * appropriate for the indicated access level
  */
@@ -102,14 +139,10 @@ export const DailyEventView = ({
   });
   const [teachingSwipe, setTeachingSwipe] = useState<'behind-left' | 'behind-right' | false>(false);
 
-  const originalShuffle: number[] = useMemo(() => {
-    const order: number[] = [];
-    for (let i = 0; i < event.journeys.length; i++) {
-      order.push(i);
-    }
-    shuffle(order);
-    return order;
-  }, [event.journeys.length]);
+  const originalShuffle: number[] = useMemo(
+    () => createJourneyShuffle(event.journeys),
+    [event.journeys]
+  );
 
   /**
    * The cards arranged in carousel order. It would be preferable to split

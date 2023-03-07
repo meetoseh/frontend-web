@@ -11,7 +11,7 @@ import {
 import { LoginContext } from '../../shared/LoginContext';
 import { MyProfilePicture } from '../../shared/MyProfilePicture';
 import { OsehImage } from '../../shared/OsehImage';
-import { DailyEvent } from './DailyEvent';
+import { DailyEvent, DailyEventJourney } from './DailyEvent';
 import styles from './DailyEventView.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { apiFetch } from '../../shared/ApiConstants';
@@ -21,6 +21,7 @@ import { useFullHeight } from '../../shared/hooks/useFullHeight';
 import { JourneyRef, journeyRefKeyMap } from '../journey/models/JourneyRef';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { FullscreenContext } from '../../shared/FullscreenContext';
+import { shuffle } from '../../shared/lib/shuffle';
 
 type DailyEventViewProps = {
   /**
@@ -44,6 +45,43 @@ type DailyEventViewProps = {
    * @param journey The journey that the user should be directed to
    */
   setJourney: (this: void, journey: JourneyRef) => void;
+};
+
+/**
+ * Category external names which some people really like, but others really dislike.
+ * This is contrasted with categories which tend not to illicit negative reactions
+ */
+const DIVISIVE_CATEGORIES = new Set(['Instrumental', 'Poetry']);
+
+/**
+ * Performs a biased shuffling of the cards in the journey, preferring to
+ * move content that can be more divisive to anything but the front card.
+ *
+ * @param journeys The journeys to produce an ordering of
+ * @returns The indices of the journeys in the order they should be shown
+ */
+const createJourneyShuffle = (journeys: DailyEventJourney[]): number[] => {
+  if (journeys.length === 0) {
+    return [];
+  }
+
+  const result: number[] = [];
+  for (let i = 0; i < journeys.length; i++) {
+    result.push(i);
+  }
+  shuffle(result);
+
+  if (DIVISIVE_CATEGORIES.has(journeys[result[0]].category.externalName)) {
+    const firstNonDivisive = result.findIndex(
+      (i) => !DIVISIVE_CATEGORIES.has(journeys[i].category.externalName)
+    );
+    if (firstNonDivisive !== -1) {
+      const tmp = result[0];
+      result[0] = result[firstNonDivisive];
+      result[firstNonDivisive] = tmp;
+    }
+  }
+  return result;
 };
 
 /**
@@ -98,17 +136,10 @@ export const DailyEventView = ({
   }, [event.journeys, loadedImagesByUID, setLoading]);
 
   useEffect(() => {
-    const newCarouselOrder = event.journeys
-      .map((_, i) => ({ i, sort: Math.random() }))
-      .sort((a, b) => a.sort - b.sort)
-      .map((o) => o.i);
+    const newCarouselOrder = createJourneyShuffle(event.journeys);
 
     setCarouselOrder(newCarouselOrder);
-    setActiveJourney(
-      event.journeys.length > 0
-        ? event.journeys[newCarouselOrder[Math.floor(newCarouselOrder.length / 2)]].uid
-        : ''
-    );
+    setActiveJourney(event.journeys.length > 0 ? event.journeys[0].uid : '');
   }, [event.journeys]);
 
   const onImageSetLoading = useCallback((loading: boolean, uid: string | null) => {
