@@ -23,12 +23,44 @@ export class Callbacks<T> {
   private lookup: Map<(event: T) => void, CallbackNode<T>>;
 
   /**
+   * If call() is currently be executed, i.e., we're in the middle
+   * of firing callbacks, if call() gets executed again we will
+   * cancel the previous call to avoid the following situation:
+   *
+   * Suppose there are three listeners, A, B, C, in that order.
+   *
+   * First call(I) is called, which calls A(I), then B(I), but then
+   * B(I) calls call(II). Without extra logic, that would call A(II),
+   * then B(II), then C(II), then finally C(I). That means callback
+   * C saw II before I, which is not what we want.
+   *
+   * When the event uses and old/current style, the event which is
+   * calling from a callback needs to be careful to use the
+   * replaceCall method rather than the call method (we will enforce
+   * this), as there will be a split perspective - for callbacks prior
+   * to the one doing the replacing, their "old" event is the "current"
+   * event, and for callbacks after the one doing the replacing, their
+   * "old" event is the "old" event.
+   */
+  private calling: boolean;
+  /**
+   * Should always be null unless calling; if specified, it means the call
+   * has been replaced and the old call should call this function with
+   * the callbacks that it has already called. The last item in alreadyCalled
+   * is assumed to be the callback that replaced the call, and it will be
+   * skipped
+   */
+  private callReplacedBy: ((alreadyCalled: ((event: T) => void)[]) => void) | null;
+
+  /**
    * Initializes an empty list of callbacks
    */
   constructor() {
     this.head = null;
     this.tail = null;
     this.lookup = new Map();
+    this.calling = false;
+    this.callReplacedBy = null;
   }
 
   /**
@@ -112,21 +144,122 @@ export class Callbacks<T> {
   }
 
   /**
-   * Calls each callback in the list with the given event. If
-   * callbacks are modified during the iteration, the modifications
+   * Calls each callback in the list with the given event. If, while
+   * this is being done, callbacks are added or removed, the changes
    * will not be reflected in the iteration.
+   *
+   * Furthermore, if, while this is being done, call() gets called again
+   * and error will be raised as the operation is ambiguous in many common
+   * contexts. Instead, replaceCall() should be used when trying to call
+   * call() from a callback.
+   *
    * @param event the event to pass to each callback
    */
   call(event: T): void {
-    const toCall = [];
+    if (this.calling) {
+      throw new Error('Cannot call call() while call() is already executing. Use replaceCall()');
+    }
+
+    const callbacks = [];
     let node = this.head;
     while (node !== null) {
-      toCall.push(node.callback);
+      callbacks.push(node.callback);
       node = node.next;
     }
 
-    for (const callback of toCall) {
-      callback(event);
+    this.calling = true;
+    let i = 0;
+    while (i < callbacks.length && this.callReplacedBy === null) {
+      callbacks[i](event);
+      i++;
+    }
+    this.calling = false;
+
+    if (this.callReplacedBy !== null) {
+      const replacedBy = this.callReplacedBy;
+      this.callReplacedBy = null;
+      replacedBy(callbacks.slice(0, i));
+    }
+  }
+
+  /**
+   * A variant of call() that can be called from a callback. It will
+   * invoke all callbacks which are still in the list and have been
+   * called so far with the first event, and all callbacks which are
+   * still in the list and have not been called so far with the second
+   * event.
+   *
+   * It's strongly recommended that this only be called once by a callback.
+   * If called multiple times, only the last call will be honored.
+   */
+  replaceCall(forPreviousCallbacksEvent: T, forLaterCallbacksEvent: T): void {
+    if (!this.calling) {
+      throw new Error('Cannot call replaceCall() while call() is not executing');
+    }
+
+    this.callReplacedBy = this._doReplaceCall.bind(
+      this,
+      forPreviousCallbacksEvent,
+      forLaterCallbacksEvent
+    );
+  }
+
+  _doReplaceCall(
+    forPreviousCallbacksEvent: T,
+    forLaterCallbacksEvent: T,
+    alreadyCalled: ((event: T) => void)[]
+  ): void {
+    const previousCallbacks = [];
+    const nextCallbacks = [];
+
+    const alreadyCalledSet = new Set(alreadyCalled);
+
+    let node = this.head;
+    while (node !== null) {
+      if (alreadyCalledSet.has(node.callback)) {
+        previousCallbacks.push(node.callback);
+      } else {
+        nextCallbacks.push(node.callback);
+      }
+      node = node.next;
+    }
+
+    this.calling = true;
+    this.callReplacedBy = null as ((alreadyCalled: ((event: T) => void)[]) => void) | null;
+    let i = 0;
+    while (i < previousCallbacks.length && this.callReplacedBy === null) {
+      if (previousCallbacks[i] === alreadyCalled[alreadyCalled.length - 1]) {
+        i++;
+        continue;
+      }
+
+      previousCallbacks[i](forPreviousCallbacksEvent);
+      i++;
+    }
+    if (this.callReplacedBy !== null) {
+      /* We can't support this without a very complicated replaceCall signature */
+      this.calling = false;
+      this.callReplacedBy = null;
+      throw new Error(
+        'callbacks replaceCall() on replaced call prior to processing previous callbacks'
+      );
+    }
+
+    i = 0;
+    while (i < nextCallbacks.length && this.callReplacedBy === null) {
+      nextCallbacks[i](forLaterCallbacksEvent);
+      i++;
+    }
+    this.calling = false;
+
+    if (
+      (this.callReplacedBy as ((alreadyCalled: ((event: T) => void)[]) => void) | null) !== null
+    ) {
+      const replacedBy = this.callReplacedBy as unknown as (
+        alreadyCalled: ((event: T) => void)[]
+      ) => void;
+      this.callReplacedBy = null;
+      replacedBy(previousCallbacks.slice().concat(nextCallbacks.slice(0, i)));
     }
   }
 

@@ -21,6 +21,8 @@ import { LoginContext, LoginContextValue } from '../../../shared/LoginContext';
 import { useJoinLeave } from '../hooks/useJoinLeave';
 import { useProfilePictures } from '../hooks/useProfilePictures';
 import { ProfilePictures } from './ProfilePictures';
+import { useOnFinished } from '../hooks/useOnFinished';
+import { PromptTitle } from './PromptTitle';
 
 type WordPromptProps = {
   /**
@@ -43,6 +45,12 @@ type WordPromptProps = {
    * If specified, a countdown is displayed using the given props.
    */
   countdown?: CountdownTextConfig;
+
+  /**
+   * If specified, a subtitle is displayed with the given contents,
+   * e.g., "Class Poll".
+   */
+  subtitle?: string;
 };
 
 const unfilledColor: [number, number, number, number] = [68 / 255, 98 / 255, 102 / 255, 0.4];
@@ -53,6 +61,7 @@ export const WordPrompt = ({
   onFinished,
   onResponse,
   countdown,
+  subtitle,
 }: WordPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'word') {
     throw new Error('WordPrompt must be given a word prompt');
@@ -67,25 +76,7 @@ export const WordPrompt = ({
   const loginContext = useContext(LoginContext);
   useJoinLeave({ prompt: intPrompt, promptTime });
   useStoreEvents(intPrompt, promptTime, selection, loginContext);
-
-  useEffect(() => {
-    const promptDurationMs = intPrompt.durationSeconds * 1000;
-    if (promptTime.time.current >= promptDurationMs) {
-      onFinished();
-      return;
-    }
-
-    const promise = waitUntilUsingPromptTimeCancelable(
-      promptTime,
-      (event) => event.current >= promptDurationMs
-    );
-    promise.promise
-      .then(() => {
-        onFinished();
-      })
-      .catch(() => {});
-    return () => promise.cancel();
-  }, [promptTime, intPrompt, onFinished]);
+  useOnFinished(intPrompt, promptTime, onFinished);
 
   const boundFilledWidthGetterSetters: {
     get: () => number;
@@ -154,10 +145,7 @@ export const WordPrompt = ({
     <div className={styles.container}>
       {countdown && <CountdownText promptTime={promptTime} prompt={intPrompt} {...countdown} />}
       <div className={styles.prompt}>
-        <div className={styles.promptInfo}>
-          <div className={styles.subtitle}>Class Poll</div>
-          <div className={styles.title}>{prompt.text}</div>
-        </div>
+        <PromptTitle text={prompt.text} subtitle={subtitle} />
         <div className={styles.options}>
           {prompt.options.map((option, idx) => {
             return (
@@ -472,7 +460,7 @@ const useFakeMove = (
         changed = true;
       }
 
-      if (info.loweringIndex !== null && info.raisingIndex !== null) {
+      if (info.loweringIndex === null && info.raisingIndex === null) {
         info = null;
         changed = true;
       }
@@ -483,13 +471,26 @@ const useFakeMove = (
     }
 
     function updateDeltas() {
+      if (info === null) {
+        if (fakeMove.current === null) {
+          return;
+        }
+        const old = fakeMove.current;
+        fakeMove.current = null;
+        onFakeMoveChanged.current.call({
+          old,
+          current: null,
+        });
+        return;
+      }
+
       const deltas = [];
       const wordActive = stats.stats.current.wordActive;
       if (wordActive) {
         for (let i = 0; i < wordActive.length; i++) {
-          if (info?.loweringIndex === i) {
+          if (info.loweringIndex === i) {
             deltas.push(-1);
-          } else if (info?.raisingIndex === i) {
+          } else if (info.raisingIndex === i) {
             deltas.push(1);
           } else {
             deltas.push(0);
@@ -551,11 +552,14 @@ const useStoreEvents = (
           promptTime,
           (event) => event.current > lastEventAt || eventCounter !== id
         );
-        cancelers.add(() => promise.cancel());
+        const doCancel = () => promise.cancel();
+        cancelers.add(doCancel);
         try {
           await promise.promise;
         } catch (e) {
           return;
+        } finally {
+          cancelers.remove(doCancel);
         }
         if (eventCounter !== id) {
           return;

@@ -2,6 +2,7 @@ import { ReactElement } from 'react';
 import { ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownTextConfig } from './CountdownText';
+import { NumericPrompt } from './NumericPrompt';
 import { WordPrompt } from './WordPrompt';
 
 type InteractivePromptRouterProps = {
@@ -28,6 +29,12 @@ type InteractivePromptRouterProps = {
    * If specified, a countdown is displayed with the given properties.
    */
   countdown?: CountdownTextConfig;
+
+  /**
+   * If specified, a subtitle is displayed in small text above
+   * the prompt, e.g., 'Class Poll'
+   */
+  subtitle?: string;
 };
 
 /**
@@ -39,6 +46,7 @@ export const InteractivePromptRouter = ({
   onFinished,
   onWordPromptResponse,
   countdown,
+  subtitle,
 }: InteractivePromptRouterProps): ReactElement => {
   if (prompt.prompt.style === 'word') {
     return (
@@ -47,6 +55,16 @@ export const InteractivePromptRouter = ({
         onFinished={onFinished}
         onResponse={onWordPromptResponse}
         countdown={countdown}
+        subtitle={subtitle}
+      />
+    );
+  } else if (prompt.prompt.style === 'numeric') {
+    return (
+      <NumericPrompt
+        prompt={prompt}
+        onFinished={onFinished}
+        countdown={countdown}
+        subtitle={subtitle}
       />
     );
   }

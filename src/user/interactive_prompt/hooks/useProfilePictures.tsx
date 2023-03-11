@@ -129,7 +129,13 @@ export const useProfilePictures = ({
     return unmount;
 
     async function getImageRefs() {
-      const lastBin = Math.floor(prompt.durationSeconds / 2);
+      const lastBin = (() => {
+        const res = Math.floor(prompt.durationSeconds / 2);
+        if (res * 2 === prompt.durationSeconds) {
+          return res - 1;
+        }
+        return res;
+      })();
       let currentBin = Math.max(0, Math.floor(promptTime.time.current / 2000));
       let nextBinToLoad = currentBin;
 

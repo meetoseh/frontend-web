@@ -6,34 +6,6 @@
   align-items: stretch;
 }
 
-.subtitle {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-family: 'Open Sans';
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 28px;
-  letter-spacing: 0.25px;
-  color: white;
-}
-
-.title {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-family: 'Open Sans';
-  font-weight: 300;
-  font-size: 22px;
-  line-height: 32px;
-  color: white;
-  padding: 0 24px;
-}
-
 .options {
   margin-top: 36px;
 }

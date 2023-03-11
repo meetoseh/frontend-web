@@ -99,6 +99,7 @@ export const JourneyPrompt = ({
       prompt={interactivePrompt}
       onFinished={onFinished}
       countdown={COUNTDOWN_CONFIG}
+      subtitle="Class Poll"
     />
   );
 };
