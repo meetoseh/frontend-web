@@ -1,6 +1,10 @@
-import { ReactElement, useEffect, useMemo, useState } from 'react';
+import { MutableRefObject, ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import { convertUsingKeymap, CrudFetcherKeyMap } from '../admin/crud/CrudFetcher';
 import { HTTP_API_URL } from './ApiConstants';
+import { Callbacks } from './lib/Callbacks';
+import { CancelablePromise } from './lib/CancelablePromise';
+import { isJWTExpired } from './lib/getJwtExpiration';
+import { LeastRecentlyUsedCache } from './lib/LeastRecentlyUsedCache';
 import { removeUnmatchedKeysFromMap } from './lib/removeUnmatchedKeys';
 
 /**
@@ -14,7 +18,7 @@ export type OsehImageRef = {
   jwt: string;
 };
 
-type OsehImageProps = {
+export type OsehImageProps = {
   /**
    * The uid of the oseh image file. If null, no image is loaded until
    * the uid is set.
@@ -1068,4 +1072,500 @@ export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] =
       };
     });
   }, [images, downloadedItems]);
+};
+
+export type OsehImageStateChangedEvent = {
+  /**
+   * The uid of the image that changed state.
+   */
+  uid: string;
+
+  /**
+   * The previous state of the image, if it previously had state,
+   * otherwise null.
+   */
+  old: OsehImageState | null;
+
+  /**
+   * The current state of the image, null if it is no longer
+   * being handled.
+   */
+  current: OsehImageState | null;
+};
+
+export type ImageStatesRefHandlingChangedEvent = {
+  /**
+   * The uid of the image that is now being handled differently.
+   */
+  uid: string;
+
+  /**
+   * The previous props of the image, if it previously had props,
+   * otherwise null.
+   */
+  old: OsehImageProps | null;
+
+  /**
+   * The current props of the image, null if it is no longer
+   * being handled.
+   */
+  current: OsehImageProps | null;
+};
+
+export type OsehImageStatesRef = {
+  /**
+   * The current state of the images. This should only be be changed by
+   * the useOsehImageStatesRef hook. The key is the image uid.
+   */
+  state: MutableRefObject<Map<string, OsehImageState>>;
+
+  /**
+   * The function that is called by the useOsehImageStatesRef hook when any of the
+   * images change state.
+   */
+  onStateChanged: MutableRefObject<Callbacks<OsehImageStateChangedEvent>>;
+
+  /**
+   * The images that the hook is trying to load. This is never changed by
+   * the useOsehImageStatesRef hook, and whenever it is changed the
+   * person changing it should also call onHandlingChanged.
+   *
+   * The key is the image uid.
+   */
+  handling: MutableRefObject<Map<string, OsehImageProps>>;
+
+  /**
+   * The function that must be called by those using the useOsehImageStatesRef hook
+   * whenever they change the handling ref.
+   */
+  onHandlingChanged: MutableRefObject<Callbacks<ImageStatesRefHandlingChangedEvent>>;
+};
+
+type OsehImageStatesRefProps = {
+  /**
+   * If specified, a least-recently-used cache with this size will be used for
+   * images which got loaded but are no longer used, such that if they are
+   * added to the handling list before they have been evicted from the cache,
+   * they will not need to be reloaded. This is useful for rapidly changing
+   * lists of images, such as a carousel or series of profile pictures.
+   *
+   * Undefined by default, which means no cache will be used. Must be at least
+   * 2 if specified.
+   *
+   * Note that multiple cache keys are used per image - a good rough estimate
+   * is to have this 2x the number of images you want to cache.
+   */
+  cacheSize?: number;
+};
+
+/**
+ * A variant of useOsehImageStates that does not trigger any react state changes,
+ * instead returning a ref to the states and a ref to a callbacks list that can
+ * be used to detect when the state changes.
+ *
+ * The cache is cleared if the cache size is changed.
+ *
+ * This cannot handle rendering the same image multiple times at different
+ * resolutions - if that is necessary, multiple different calls to
+ * useOsehImageStatesRef should be used (once per resolution), or this can be
+ * updated to support it if for some reason we can't predict the resolutions in
+ * advance (would involve making a more complicated key for the state)
+ */
+export const useOsehImageStatesRef = ({
+  cacheSize,
+}: OsehImageStatesRefProps): OsehImageStatesRef => {
+  const state = useRef<Map<string, OsehImageState>>() as MutableRefObject<
+    Map<string, OsehImageState>
+  >;
+  const onStateChanged = useRef<Callbacks<OsehImageStateChangedEvent>>() as MutableRefObject<
+    Callbacks<OsehImageStateChangedEvent>
+  >;
+  const handling = useRef<Map<string, OsehImageProps>>() as MutableRefObject<
+    Map<string, OsehImageProps>
+  >;
+  const onHandlingChanged = useRef<
+    Callbacks<ImageStatesRefHandlingChangedEvent>
+  >() as MutableRefObject<Callbacks<ImageStatesRefHandlingChangedEvent>>;
+
+  if (state.current === undefined) {
+    state.current = new Map();
+  }
+
+  if (onStateChanged.current === undefined) {
+    onStateChanged.current = new Callbacks();
+  }
+
+  if (handling.current === undefined) {
+    handling.current = new Map();
+  }
+
+  if (onHandlingChanged.current === undefined) {
+    onHandlingChanged.current = new Callbacks();
+  }
+
+  useEffect(() => {
+    let active = true;
+    const cancelers = new Callbacks<undefined>();
+    const handlingCancelers = new Map<string, Callbacks<ImageStatesRefHandlingChangedEvent>>();
+    const cache =
+      cacheSize === undefined
+        ? undefined
+        : new LeastRecentlyUsedCache<string, OsehImageState>(cacheSize);
+    const unmount = () => {
+      if (!active) {
+        return;
+      }
+
+      active = false;
+      cancelers.call(undefined);
+      handlingCancelers.forEach((canceler, uid) => {
+        canceler.call({
+          uid,
+          old: handling.current.get(uid) ?? null,
+          current: null,
+        });
+      });
+    };
+    fetchImages();
+    return unmount;
+
+    async function fetchImages() {
+      onHandlingChanged.current.add(handlingChanged);
+      cancelers.add(() => {
+        onHandlingChanged.current.remove(handlingChanged);
+      });
+    }
+
+    async function handlingChanged(event: ImageStatesRefHandlingChangedEvent) {
+      if (!active) {
+        return;
+      }
+
+      if (event.old === null && event.current === null) {
+        return;
+      }
+
+      const usesWebp = await USES_WEBP;
+
+      if (event.old === null && event.current !== null) {
+        const callbacks = new Callbacks<ImageStatesRefHandlingChangedEvent>();
+        handlingCancelers.set(event.uid, callbacks);
+        handleImage(event.current, callbacks, usesWebp);
+        return;
+      }
+
+      if (event.old !== null && event.current !== null) {
+        const callbacks = handlingCancelers.get(event.uid);
+        if (callbacks === undefined) {
+          return;
+        }
+
+        callbacks.call(event);
+        return;
+      }
+
+      if (event.old !== null && event.current === null) {
+        const callbacks = handlingCancelers.get(event.uid);
+        if (callbacks === undefined) {
+          return;
+        }
+
+        callbacks.call(event);
+        handlingCancelers.delete(event.uid);
+        return;
+      }
+    }
+
+    async function handleImage(
+      imageProps: OsehImageProps,
+      callbacks: Callbacks<ImageStatesRefHandlingChangedEvent>,
+      usesWebp: boolean
+    ) {
+      if (imageProps.uid === null) {
+        throw new Error('Image uid must be specified');
+      }
+
+      const cacheKey = `${imageProps.uid}-${imageProps.displayWidth}-${imageProps.displayHeight}`;
+      const cached = cache?.get(cacheKey);
+      if (cached) {
+        reuseImageState(imageProps, callbacks, cached, usesWebp);
+        return;
+      }
+
+      const oldState = state.current.get(imageProps.uid);
+      if (
+        oldState &&
+        !oldState.loading &&
+        oldState.displayWidth === imageProps.displayWidth &&
+        oldState.displayHeight === imageProps.displayHeight
+      ) {
+        reuseImageState(imageProps, callbacks, oldState, usesWebp);
+        return;
+      }
+
+      let curProps: OsehImageProps | null = imageProps;
+      let curState: OsehImageState = {
+        localUrl: null,
+        displayWidth: imageProps.displayWidth,
+        displayHeight: imageProps.displayHeight,
+        alt: imageProps.alt,
+        loading: true,
+      };
+      state.current.set(imageProps.uid, curState);
+      onStateChanged.current.call({
+        uid: imageProps.uid,
+        old: oldState ?? null,
+        current: curState,
+      });
+      const onPropsChanged = (event: ImageStatesRefHandlingChangedEvent) => {
+        if (event.current === null) {
+          curProps = null;
+          callbacks.remove(onPropsChanged);
+        } else {
+          curProps = event.current;
+        }
+      };
+      callbacks.add(onPropsChanged);
+
+      if (imageProps.isPublic) {
+        const playlist = await fetchPublicPlaylist(imageProps.uid);
+        if (curProps === null || !active) {
+          return;
+        }
+
+        callbacks.remove(onPropsChanged);
+        handleUsingPlaylist(curProps, callbacks, playlist.playlist, playlist.jwt, usesWebp);
+      } else {
+        if (imageProps.jwt === null) {
+          throw new Error('Image jwt must be specified for private images');
+        }
+
+        const playlist = await fetchPrivatePlaylist(imageProps.uid, imageProps.jwt);
+        if (curProps === null || !active) {
+          return;
+        }
+
+        callbacks.remove(onPropsChanged);
+        handleUsingPlaylist(curProps, callbacks, playlist, imageProps.jwt, usesWebp);
+      }
+    }
+
+    async function handleUsingPlaylist(
+      initialProps: OsehImageProps,
+      callbacks: Callbacks<ImageStatesRefHandlingChangedEvent>,
+      playlist: Playlist,
+      jwt: string,
+      usesWebp: boolean
+    ) {
+      const cacheKey = `${initialProps.uid}-${initialProps.displayWidth}-${initialProps.displayHeight}`;
+      const cached = cache?.get(cacheKey);
+      if (cached) {
+        // Case 1: This exact export is available in the cache
+        reuseImageState(initialProps, callbacks, cached, usesWebp, playlist, jwt);
+        return;
+      }
+
+      let curProps: OsehImageProps | null = initialProps;
+      const onPropsChanged = (event: ImageStatesRefHandlingChangedEvent) => {
+        if (event.current === null) {
+          curProps = null;
+          callbacks.remove(onPropsChanged);
+        } else {
+          curProps = event.current;
+        }
+      };
+      callbacks.add(onPropsChanged);
+
+      const bestImage = selectBestItemUsingPixelRatio({
+        playlist: playlist,
+        usesWebp,
+        logical: {
+          width: initialProps.displayWidth,
+          height: initialProps.displayHeight,
+        },
+        preferredPixelRatio: devicePixelRatio,
+      });
+
+      const uncroppedCacheKey = `${initialProps.uid}-unc-${bestImage.item.width}-${bestImage.item.height}`;
+      const uncroppedCached = cache?.get(uncroppedCacheKey);
+      let loadedState: OsehImageState;
+      if (uncroppedCached) {
+        // Case 2: We have cached the uncropped version of this image already, though we
+        // may have previously used it either cropped or for a different size (e.g., we
+        // might use a 50x50 image for both 25x25 and 50x50)
+        const uncroppedLocalUrl = uncroppedCached.localUrl;
+        if (uncroppedLocalUrl === null) {
+          throw new Error('Uncropped local url must be defined within cache');
+        }
+        const croppedLocalUrl = bestImage.cropTo
+          ? await cropImage(uncroppedLocalUrl, bestImage.cropTo)
+          : uncroppedLocalUrl;
+        if (!active) {
+          return;
+        }
+        loadedState = {
+          localUrl: croppedLocalUrl,
+          displayWidth: initialProps.displayWidth,
+          displayHeight: initialProps.displayHeight,
+          alt: initialProps.alt,
+          loading: false,
+        };
+      } else {
+        // Case 3: we have to actually download the image
+        const downloaded = await downloadItem(bestImage.item, jwt, { cropTo: bestImage.cropTo });
+        if (!active) {
+          return;
+        }
+
+        const uncroppedLoadedState: OsehImageState = {
+          localUrl: downloaded.originalLocalUrl,
+          displayWidth: bestImage.item.width,
+          displayHeight: bestImage.item.height,
+          alt: initialProps.alt,
+          loading: false,
+        };
+        cache?.add(uncroppedCacheKey, uncroppedLoadedState);
+
+        loadedState = {
+          localUrl: downloaded.localUrl,
+          displayWidth: initialProps.displayWidth,
+          displayHeight: initialProps.displayHeight,
+          alt: initialProps.alt,
+          loading: false,
+        };
+      }
+
+      cache?.add(cacheKey, loadedState);
+      if (curProps === null || !active) {
+        return;
+      }
+
+      if (curProps !== initialProps) {
+        callbacks.remove(onPropsChanged);
+        handleUsingPlaylist(curProps, callbacks, playlist, jwt, usesWebp);
+        return;
+      }
+
+      callbacks.remove(onPropsChanged);
+      reuseImageState(initialProps, callbacks, loadedState, usesWebp, playlist, jwt);
+    }
+
+    function reuseImageState(
+      imageProps: OsehImageProps,
+      callbacks: Callbacks<ImageStatesRefHandlingChangedEvent>,
+      stateToReuse: OsehImageState,
+      usesWebp: boolean,
+      playlist?: Playlist,
+      jwt?: string
+    ) {
+      if (imageProps.uid === null) {
+        throw new Error('Image uid must be specified');
+      }
+
+      const oldState = state.current.get(imageProps.uid) ?? null;
+      if (oldState !== stateToReuse) {
+        state.current.set(imageProps.uid, stateToReuse);
+        onStateChanged.current.call({
+          uid: imageProps.uid,
+          old: oldState,
+          current: stateToReuse,
+        });
+      }
+
+      const onChange = (event: ImageStatesRefHandlingChangedEvent) => {
+        if (event.current === null) {
+          state.current.delete(event.uid);
+          onStateChanged.current.call({
+            uid: event.uid,
+            old: oldState,
+            current: null,
+          });
+        } else {
+          if (
+            event.current.displayWidth === imageProps.displayWidth &&
+            event.current.displayHeight === imageProps.displayHeight
+          ) {
+            return;
+          }
+
+          callbacks.remove(onChange);
+          if (!playlist || !jwt || isJWTExpired(jwt)) {
+            handleImage(event.current, callbacks, usesWebp);
+          } else {
+            handleUsingPlaylist(event.current, callbacks, playlist, jwt, usesWebp);
+          }
+        }
+      };
+      callbacks.add(onChange);
+    }
+  }, [cacheSize]);
+
+  return useMemo(
+    () => ({
+      state,
+      onStateChanged,
+      handling,
+      onHandlingChanged,
+    }),
+    []
+  );
+};
+
+/**
+ * A convenience function which returns a promise that resolves the next
+ * time the image state changes.
+ */
+export const waitUntilNextImageStateUpdate = async (imageStates: OsehImageStatesRef) => {
+  return new Promise<OsehImageStateChangedEvent>((resolve) => {
+    const onChange = (event: OsehImageStateChangedEvent) => {
+      imageStates.onStateChanged.current.remove(onChange);
+      resolve(event);
+    };
+    imageStates.onStateChanged.current.add(onChange);
+  });
+};
+
+/**
+ * A convenience function like waitUntilNextImageStateUpdate, but which is cancelable.
+ */
+export const waitUntilNextImageStateUpdateCancelable = (
+  imageStates: OsehImageStatesRef
+): CancelablePromise<OsehImageStateChangedEvent> => {
+  let active = true;
+  let canceler: () => void = () => {
+    active = false;
+  };
+  const promise = new Promise<OsehImageStateChangedEvent>((resolve, reject) => {
+    if (!active) {
+      reject();
+      return;
+    }
+
+    const onChange = (event: OsehImageStateChangedEvent) => {
+      if (!active) {
+        return;
+      }
+
+      imageStates.onStateChanged.current.remove(onChange);
+      active = false;
+      resolve(event);
+    };
+
+    canceler = () => {
+      if (!active) {
+        return;
+      }
+
+      active = false;
+      imageStates.onStateChanged.current.remove(onChange);
+      reject();
+    };
+
+    imageStates.onStateChanged.current.add(onChange);
+  });
+  return {
+    promise,
+    cancel: () => canceler(),
+    done: () => !active,
+  };
 };

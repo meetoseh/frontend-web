@@ -1,0 +1,11 @@
+.outer {
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.inner {
+  transition: width 0.35s ease;
+}

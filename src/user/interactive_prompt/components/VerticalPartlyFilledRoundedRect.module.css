@@ -1,0 +1,13 @@
+.outer {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+
+  transition: opacity 0.35s ease;
+}
+
+.inner {
+  transition: height 0.35s ease;
+}

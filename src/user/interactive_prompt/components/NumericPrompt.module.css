@@ -1,0 +1,77 @@
+.container {
+  font-size: 32px;
+  font-family: 'Open Sans';
+  color: white;
+}
+
+.prompt {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.carouselContainer {
+  margin-top: 36px;
+}
+
+.item {
+  composes: unstyled from '../../../shared/buttons.module.css';
+
+  position: relative;
+  width: 75px;
+  height: 75px;
+}
+
+.item:not(:first-child) {
+  margin-left: 20px;
+}
+
+.itemBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.itemForeground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 75px;
+  height: 75px;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 34px;
+  color: #191c1d;
+}
+
+.statsContainer {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  color: white;
+  margin-top: 24px;
+}
+
+.statsAmount {
+  margin-left: 0.25em;
+}
+
+.profilePictures {
+  margin-top: 20px;
+  padding: 0 24px;
+}

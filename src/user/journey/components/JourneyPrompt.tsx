@@ -1,30 +1,105 @@
-import { ReactElement } from 'react';
-import { Prompt } from '../models/JourneyRef';
-import { JourneyPromptProps } from '../models/JourneyPromptProps';
-import { ColorPrompt } from '../prompts/ColorPrompt';
-import { NumericJourneyPrompt } from '../prompts/NumericJourneyPrompt';
-import { PressJourneyPrompt } from '../prompts/PressJourneyPrompt';
-import { WordPrompt } from '../prompts/WordPrompt';
+import { ReactElement, useEffect, useState } from 'react';
+import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
+import { apiFetch } from '../../../shared/ApiConstants';
+import { describeError } from '../../../shared/forms/ErrorBlock';
+import { LoginContextValue } from '../../../shared/LoginContext';
+import { CountdownTextConfig } from '../../interactive_prompt/components/CountdownText';
+import { InteractivePromptRouter } from '../../interactive_prompt/components/InteractivePromptRouter';
+import {
+  InteractivePrompt,
+  interactivePromptKeyMap,
+} from '../../interactive_prompt/models/InteractivePrompt';
+import { JourneyRef } from '../models/JourneyRef';
 
-const PROMPT_STYLE_TO_COMPONENT: Record<
-  Prompt['style'],
-  (props: JourneyPromptProps) => ReactElement
-> = {
-  numeric: (props) => <NumericJourneyPrompt {...props} />,
-  word: (props) => <WordPrompt {...props} />,
-  press: (props) => <PressJourneyPrompt {...props} />,
-  color: (props) => <ColorPrompt {...props} />,
+type JourneyPromptProps = {
+  /**
+   * The journey to fetch the prompt for.
+   */
+  journey: JourneyRef;
+
+  /**
+   * The login context to use to fetch the prompt.
+   */
+  loginContext: LoginContextValue;
+
+  /**
+   * The function to call when the user has finished the prompt.
+   */
+  onFinished: () => void;
+};
+
+const COUNTDOWN_CONFIG: CountdownTextConfig = {
+  titleText: 'Class is almost ready',
 };
 
 /**
- * Displays the prompt for a journey, which can be in form of various different
- * styles, graphically and playfully showing how other users are responding to
- * the prompt.
+ * Loads the interactive prompt for a journey and then displays it.
  */
-export const JourneyPrompt = (props: JourneyPromptProps): ReactElement => {
-  if (props.prompt.style in PROMPT_STYLE_TO_COMPONENT) {
-    return PROMPT_STYLE_TO_COMPONENT[props.prompt.style](props);
+export const JourneyPrompt = ({
+  journey,
+  loginContext,
+  onFinished,
+}: JourneyPromptProps): ReactElement => {
+  const [interactivePrompt, setInteractivePrompt] = useState<InteractivePrompt | null>(null);
+  const [error, setError] = useState<ReactElement | null>(null);
+
+  useEffect(() => {
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    let active = true;
+    setError(null);
+    fetchPrompt().catch((e) => {
+      if (active) {
+        console.log('Error fetching prompt: ', e);
+        describeError(e).then((errorElement) => {
+          if (active) {
+            setError(errorElement);
+          }
+        });
+      }
+    });
+    return () => {
+      active = false;
+    };
+
+    async function fetchPrompt() {
+      const response = await apiFetch(
+        '/api/1/journeys/start_interactive_prompt',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            journey_uid: journey.uid,
+            journey_jwt: journey.jwt,
+          }),
+        },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const body = await response.json();
+      const prompt = convertUsingKeymap(body, interactivePromptKeyMap);
+      if (active) {
+        setInteractivePrompt(prompt);
+      }
+    }
+  }, [journey, loginContext]);
+
+  if (interactivePrompt === null) {
+    return error ?? <></>;
   }
 
-  return <></>;
+  return (
+    <InteractivePromptRouter
+      prompt={interactivePrompt}
+      onFinished={onFinished}
+      countdown={COUNTDOWN_CONFIG}
+      subtitle="Class Poll"
+    />
+  );
 };

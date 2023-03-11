@@ -1,0 +1,18 @@
+.outer {
+  position: relative;
+  overflow: hidden;
+
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+}
