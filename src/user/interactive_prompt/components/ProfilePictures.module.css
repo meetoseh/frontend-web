@@ -69,6 +69,8 @@
   align-items: center;
   border-radius: 20px;
   background: white;
+  margin-left: -6px;
+  z-index: 50;
 }
 
 .outerContainer {
