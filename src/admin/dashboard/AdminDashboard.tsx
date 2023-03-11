@@ -17,7 +17,7 @@ export const AdminDashboard = (): ReactElement => {
           iconClassName={iconStyles.totalMembers}
         />
         <AdminDashboardSimpleTopBlock
-          path="/api/1/admin/total_journey_sessions"
+          path="/api/1/admin/total_interactive_prompt_sessions"
           label="Total Views"
           iconClassName={iconStyles.totalViews}
         />

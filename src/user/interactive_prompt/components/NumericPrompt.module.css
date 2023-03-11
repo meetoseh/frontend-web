@@ -67,6 +67,11 @@
   margin-top: 24px;
 }
 
+.statsAmount {
+  margin-left: 0.25em;
+}
+
 .profilePictures {
   margin-top: 20px;
+  padding: 0 24px;
 }

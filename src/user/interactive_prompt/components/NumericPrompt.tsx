@@ -245,7 +245,9 @@ export const NumericPrompt = ({
         <div className={styles.statsContainer}>
           Average: <div className={styles.statsAmount} ref={statsAmountRef} />
         </div>
-        <div className={styles.profilePictures}>
+        <div
+          className={styles.profilePictures}
+          style={{ width: `${carouselInfo.info.current.visibleWidth}px` }}>
           <ProfilePictures profilePictures={profilePictures} />
         </div>
       </div>

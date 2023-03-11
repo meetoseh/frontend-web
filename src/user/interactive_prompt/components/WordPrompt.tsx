@@ -187,7 +187,7 @@ export const WordPrompt = ({
             );
           })}
         </div>
-        <div className={styles.profilePictures}>
+        <div className={styles.profilePictures} style={{ width: `${optionWidth}px` }}>
           <ProfilePictures profilePictures={profilePictures} />
         </div>
       </div>

@@ -8,6 +8,10 @@
 
 .options {
   margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .option {
@@ -74,4 +78,5 @@
 
 .profilePictures {
   margin-top: 20px;
+  align-self: center;
 }
