@@ -141,11 +141,11 @@ const UserAppInner = (): ReactElement => {
   }, [loginContext]);
 
   useEffect(() => {
-    if (needRequestPhone) {
+    if (needRequestPhone || loginContext.userAttributes === null) {
       return;
     }
 
-    const skipped = localStorage.getItem('skip-request-phone') === '1';
+    const skipped = localStorage.getItem('skip-request-phone') === loginContext.userAttributes.sub;
     if (skipped) {
       setNeedRequestPhone(false);
       return;
@@ -157,7 +157,12 @@ const UserAppInner = (): ReactElement => {
   }, [loginContext, needRequestPhone]);
 
   useEffect(() => {
-    const handled = localStorage.getItem('handled-request-notification-time') === '1';
+    if (needRequestNotificationTime || loginContext.userAttributes === null) {
+      return;
+    }
+
+    const handled =
+      localStorage.getItem('handled-request-notification-time') === loginContext.userAttributes.sub;
     if (handled) {
       setNeedRequestNotificationTime(false);
       return;
@@ -190,12 +195,15 @@ const UserAppInner = (): ReactElement => {
       if (active) {
         const needNotif = data.wants_notification_time_prompt;
         if (!needNotif) {
-          localStorage.setItem('handled-request-notification-time', '1');
+          localStorage.setItem(
+            'handled-request-notification-time',
+            loginContext.userAttributes!.sub
+          );
         }
         setNeedRequestNotificationTime(needNotif);
       }
     }
-  }, [loginContext]);
+  }, [loginContext, needRequestNotificationTime]);
 
   const gettingOnboardingJourneyRef = useRef(false);
   useEffect(() => {
@@ -349,9 +357,11 @@ const UserAppInner = (): ReactElement => {
   }, []);
 
   const onRequestPhoneSkipped = useCallback(() => {
-    localStorage.setItem('skip-request-phone', '1');
+    if (loginContext.userAttributes) {
+      localStorage.setItem('skip-request-phone', loginContext.userAttributes.sub);
+    }
     setNeedRequestPhone(false);
-  }, []);
+  }, [loginContext.userAttributes]);
 
   const onRequestPhoneFinished = useCallback((receiveNotifs: boolean) => {
     if (receiveNotifs) {
@@ -363,9 +373,11 @@ const UserAppInner = (): ReactElement => {
   }, []);
 
   const onRequestNotificationTimeFinished = useCallback(() => {
-    localStorage.setItem('handled-request-notification-time', '1');
+    if (loginContext.userAttributes) {
+      localStorage.setItem('handled-request-notification-time', loginContext.userAttributes.sub);
+    }
     setNeedRequestNotificationTime(false);
-  }, []);
+  }, [loginContext.userAttributes]);
 
   return (
     <div className={styles.container}>
