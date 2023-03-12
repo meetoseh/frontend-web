@@ -723,7 +723,28 @@ const downloadItem = async (
  * @returns The element to render
  */
 export const OsehImage = (props: OsehImageProps): ReactElement => {
-  const state = useOsehImageState(props);
+  const memodProps = useMemo(
+    () => ({
+      uid: props.uid,
+      jwt: props.jwt,
+      displayWidth: props.displayWidth,
+      displayHeight: props.displayHeight,
+      alt: props.alt,
+      isPublic: props.isPublic,
+      setLoading: props.setLoading,
+    }),
+    [
+      props.uid,
+      props.jwt,
+      props.displayWidth,
+      props.displayHeight,
+      props.alt,
+      props.isPublic,
+      props.setLoading,
+    ]
+  );
+
+  const state = useOsehImageState(memodProps);
   return <OsehImageFromState {...state} />;
 };
 

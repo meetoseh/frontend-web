@@ -141,6 +141,10 @@ const UserAppInner = (): ReactElement => {
   }, [loginContext]);
 
   useEffect(() => {
+    if (needRequestPhone) {
+      return;
+    }
+
     const skipped = localStorage.getItem('skip-request-phone') === '1';
     if (skipped) {
       setNeedRequestPhone(false);
@@ -150,7 +154,7 @@ const UserAppInner = (): ReactElement => {
     setNeedRequestPhone(
       loginContext.state === 'logged-in' && loginContext.userAttributes?.phoneNumber === null
     );
-  }, [loginContext]);
+  }, [loginContext, needRequestPhone]);
 
   useEffect(() => {
     const handled = localStorage.getItem('handled-request-notification-time') === '1';
@@ -349,7 +353,12 @@ const UserAppInner = (): ReactElement => {
     setNeedRequestPhone(false);
   }, []);
 
-  const onRequestPhoneFinished = useCallback(() => {
+  const onRequestPhoneFinished = useCallback((receiveNotifs: boolean) => {
+    if (receiveNotifs) {
+      localStorage.removeItem('handled-request-notification-time');
+      setNeedRequestNotificationTime(true);
+    }
+
     setNeedRequestPhone(false);
   }, []);
 

@@ -30,7 +30,7 @@ export const RequestNotificationTimeForm = ({
 }: RequestNotificationTimeFormProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [prompt, setPrompt] = useState<InteractivePrompt | null>(null);
-  const [answer, setAnswer] = useState<'morning' | 'afternoon' | 'evening' | null>(null);
+  const [answer, setAnswer] = useState<'morning' | 'afternoon' | 'evening' | 'any'>('any');
   const windowSize = useWindowSize();
   const timezone = useTimezone();
   const imageProps = useMemo<OsehImageProps>(
@@ -114,7 +114,7 @@ export const RequestNotificationTimeForm = ({
   }, [windowSize.width, windowSize.height]);
 
   const handleDone = useCallback(() => {
-    if (loginContext.state !== 'logged-in' || answer === null) {
+    if (loginContext.state !== 'logged-in') {
       return;
     }
 
@@ -155,9 +155,9 @@ export const RequestNotificationTimeForm = ({
           <Button
             type="button"
             fullWidth
-            variant={answer === null ? 'link-white' : 'filled'}
+            variant={answer === 'any' ? 'link-white' : 'filled'}
             onClick={handleDone}>
-            {answer === null ? 'Skip' : 'Continue'}
+            {answer === 'any' ? 'Skip' : 'Continue'}
           </Button>
         </div>
       </div>

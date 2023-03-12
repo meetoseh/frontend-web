@@ -9,6 +9,7 @@ import { OsehImage } from '../../shared/OsehImage';
 import styles from './RequestPhoneForm.module.css';
 import '../../assets/fonts.css';
 import { apiFetch } from '../../shared/ApiConstants';
+import { useTimezone } from '../../shared/hooks/useTimezone';
 
 type RequestPhoneFormProps = {
   /**
@@ -26,7 +27,7 @@ type RequestPhoneFormProps = {
    * Called after we successfully verify a phone number. Instead of this, one
    * call also monitor the userAttributes.phoneNumber attribute for changes.
    */
-  onFinished: () => void;
+  onFinished: (requestedNotifications: boolean) => void;
 };
 
 /**
@@ -50,6 +51,7 @@ export const RequestPhoneForm = ({
   const [focusPhone, setFocusPhone] = useState<(() => void) | null>(null);
   const [errorPhone, setErrorPhone] = useState(false);
   const [verificationUid, setVerificationUid] = useState<string | null>(null);
+  const timezone = useTimezone();
 
   const safeSetFocusPhone = useCallback((focuser: () => void) => {
     setFocusPhone(() => focuser);
@@ -146,6 +148,8 @@ export const RequestPhoneForm = ({
             body: JSON.stringify({
               phone_number: phone,
               receive_notifications: recieveNotifs,
+              timezone,
+              timezone_technique: 'browser',
             }),
           },
           loginContext
@@ -166,7 +170,7 @@ export const RequestPhoneForm = ({
         setSaving(false);
       }
     },
-    [loginContext, phoneFormatCorrect, focusPhone, phone, recieveNotifs]
+    [loginContext, phoneFormatCorrect, focusPhone, phone, recieveNotifs, timezone]
   );
 
   const onVerifyPhone = useCallback(
@@ -201,6 +205,7 @@ export const RequestPhoneForm = ({
           ...loginContext.userAttributes!,
           phoneNumber: phone.replaceAll(/ - /g, ''),
         });
+        onFinished(recieveNotifs);
       } catch (e) {
         console.error(e);
         const err = await describeError(e);
@@ -209,7 +214,7 @@ export const RequestPhoneForm = ({
         setSaving(false);
       }
     },
-    [loginContext, code, phone, verificationUid]
+    [loginContext, code, phone, verificationUid, onFinished, recieveNotifs]
   );
 
   const onSkipPhone = useCallback(
