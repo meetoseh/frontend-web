@@ -52,6 +52,11 @@ type NumericPromptProps = {
    * e.g., "Class Poll".
    */
   subtitle?: string;
+
+  /**
+   * If set to true, the prompt time will not be updated.
+   */
+  paused?: boolean;
 };
 
 const optionWidthPx = 75;
@@ -68,12 +73,13 @@ export const NumericPrompt = ({
   onFinished,
   countdown,
   subtitle,
+  paused,
 }: NumericPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'numeric') {
     throw new Error('NumericPrompt must be given a numeric prompt');
   }
   const prompt = intPrompt.prompt as NumericPromptType;
-  const promptTime = usePromptTime(-250, false);
+  const promptTime = usePromptTime(-250, paused ?? false);
   const stats = useStats({ prompt: intPrompt, promptTime });
   const selection = useSelection();
   const screenSize = useWindowSize();

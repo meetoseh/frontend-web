@@ -35,6 +35,11 @@ type InteractivePromptRouterProps = {
    * the prompt, e.g., 'Class Poll'
    */
   subtitle?: string;
+
+  /**
+   * If set to true, the prompt time will not be updated.
+   */
+  paused?: boolean;
 };
 
 /**
@@ -47,6 +52,7 @@ export const InteractivePromptRouter = ({
   onWordPromptResponse,
   countdown,
   subtitle,
+  paused,
 }: InteractivePromptRouterProps): ReactElement => {
   if (prompt.prompt.style === 'word') {
     return (
@@ -56,6 +62,7 @@ export const InteractivePromptRouter = ({
         onResponse={onWordPromptResponse}
         countdown={countdown}
         subtitle={subtitle}
+        paused={paused}
       />
     );
   } else if (prompt.prompt.style === 'numeric') {
@@ -65,6 +72,7 @@ export const InteractivePromptRouter = ({
         onFinished={onFinished}
         countdown={countdown}
         subtitle={subtitle}
+        paused={paused}
       />
     );
   }

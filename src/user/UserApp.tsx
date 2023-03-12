@@ -14,6 +14,7 @@ import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenConte
 import { convertUsingKeymap } from '../admin/crud/CrudFetcher';
 import { JourneyRouter } from './journey/JourneyRouter';
 import { RequestPhoneForm } from './login/RequestPhoneForm';
+import { RequestNotificationTimeForm } from './login/RequestNotificationTimeForm';
 
 export default function UserApp(): ReactElement {
   return (
@@ -42,8 +43,15 @@ const UserAppInner = (): ReactElement => {
   );
   const [needRequestName, setNeedRequestName] = useState(false);
   const [needRequestPhone, setNeedRequestPhone] = useState(false);
+  const [needRequestNotificationTime, setNeedRequestNotificationTime] = useState(false);
   const [state, setState] = useState<
-    'loading' | 'current-daily-event' | 'request-name' | 'request-phone' | 'login' | 'journey'
+    | 'loading'
+    | 'current-daily-event'
+    | 'request-name'
+    | 'request-phone'
+    | 'request-notification-time'
+    | 'login'
+    | 'journey'
   >('loading');
   const fontsLoaded = useFonts(requiredFonts);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
@@ -52,6 +60,7 @@ const UserAppInner = (): ReactElement => {
   const [journeyIsOnboarding, setJourneyIsOnboarding] = useState(false);
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
   const [requestPhoneLoaded, setRequestPhoneLoaded] = useState(false);
+  const [requestNotificationTimeLoaded, setRequestNotificationTimeLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
 
   useEffect(() => {
@@ -143,6 +152,47 @@ const UserAppInner = (): ReactElement => {
     );
   }, [loginContext]);
 
+  useEffect(() => {
+    const handled = localStorage.getItem('handled-request-notification-time') === '1';
+    if (handled) {
+      setNeedRequestNotificationTime(false);
+      return;
+    }
+
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    let active = true;
+    fetchNeedRequestNotificationTime();
+    return () => {
+      active = false;
+    };
+
+    async function fetchNeedRequestNotificationTime() {
+      const response = await apiFetch(
+        '/api/1/users/me/wants_notification_time_prompt',
+        {
+          method: 'GET',
+        },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      if (active) {
+        const needNotif = data.wants_notification_time_prompt;
+        if (!needNotif) {
+          localStorage.setItem('handled-request-notification-time', '1');
+        }
+        setNeedRequestNotificationTime(needNotif);
+      }
+    }
+  }, [loginContext]);
+
   const gettingOnboardingJourneyRef = useRef(false);
   useEffect(() => {
     if (gettingOnboardingJourneyRef.current) {
@@ -226,6 +276,15 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
+    if (needRequestNotificationTime) {
+      if (!requestNotificationTimeLoaded) {
+        setState('loading');
+      } else {
+        setState('request-notification-time');
+      }
+      return;
+    }
+
     if (desiredState === 'current-daily-event' && loginContext.state === 'logged-out') {
       setState('login');
       return;
@@ -252,6 +311,8 @@ const UserAppInner = (): ReactElement => {
     handlingCheckout,
     needRequestPhone,
     requestPhoneLoaded,
+    needRequestNotificationTime,
+    requestNotificationTimeLoaded,
   ]);
 
   useEffect(() => {
@@ -292,6 +353,11 @@ const UserAppInner = (): ReactElement => {
     setNeedRequestPhone(false);
   }, []);
 
+  const onRequestNotificationTimeFinished = useCallback(() => {
+    localStorage.setItem('handled-request-notification-time', '1');
+    setNeedRequestNotificationTime(false);
+  }, []);
+
   return (
     <div className={styles.container}>
       {state === 'loading' && !flashWhiteInsteadOfSplash ? (
@@ -309,6 +375,15 @@ const UserAppInner = (): ReactElement => {
             setLoaded={setRequestPhoneLoaded}
             onSkipped={onRequestPhoneSkipped}
             onFinished={onRequestPhoneFinished}
+          />
+        </div>
+      ) : null}
+      {needRequestNotificationTime ? (
+        <div className={state !== 'request-notification-time' ? styles.displayNone : ''}>
+          <RequestNotificationTimeForm
+            showing={state === 'request-notification-time'}
+            setLoaded={setRequestNotificationTimeLoaded}
+            onDone={onRequestNotificationTimeFinished}
           />
         </div>
       ) : null}

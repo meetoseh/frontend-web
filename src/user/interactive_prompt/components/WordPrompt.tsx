@@ -51,6 +51,11 @@ type WordPromptProps = {
    * e.g., "Class Poll".
    */
   subtitle?: string;
+
+  /**
+   * If set to true, the prompt time will not be updated.
+   */
+  paused?: boolean;
 };
 
 const unfilledColor: [number, number, number, number] = [68 / 255, 98 / 255, 102 / 255, 0.4];
@@ -62,12 +67,13 @@ export const WordPrompt = ({
   onResponse,
   countdown,
   subtitle,
+  paused,
 }: WordPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'word') {
     throw new Error('WordPrompt must be given a word prompt');
   }
   const prompt = intPrompt.prompt as WordPromptType;
-  const promptTime = usePromptTime(-250, false);
+  const promptTime = usePromptTime(-250, paused ?? false);
   const stats = useStats({ prompt: intPrompt, promptTime });
   const selection = useSelection();
   const screenSize = useWindowSize();
