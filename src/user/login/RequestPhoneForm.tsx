@@ -267,10 +267,9 @@ export const RequestPhoneForm = ({
               </div>
 
               <div className={styles.getNotifiedContainer}>
-                By continuing, you consent to receive marketing text messages (e.g., reminders,
-                offers, and promotions) from Oseh at the number provided, including messages sent by
-                autodialer. Consent is not a condition of joining. Msg & data rates may apply.
-                Approx. 1 message per day. Unsubscribe at any time by replying STOP.{' '}
+                By continuing you agree to receive reminders and marketing offers from Oseh. Msg &
+                data rates may apply. Approx. 1 message per day. Text HELP for help or STOP to
+                cancel. Privacy & Terms of Service.{' '}
                 <a href="https://www.oseh.com/privacy">Privacy Policy</a> &{' '}
                 <a href="https://www.oseh.com/terms">Terms of Service</a>.
               </div>
