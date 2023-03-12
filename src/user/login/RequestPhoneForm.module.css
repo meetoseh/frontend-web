@@ -66,21 +66,34 @@
 
 .phoneNumberContainer,
 .codeContainer {
-  margin-top: 40px;
+  margin-top: 32px;
   width: 100%;
 }
 
 .getNotifiedContainer {
   margin-top: 24px;
   width: 100%;
+
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: 0.25px;
+  color: white;
+  font-weight: 400;
 }
 
-.errorContainer {
+.getNotifiedContainer a {
+  color: white;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.getNotifiedContainer .errorContainer {
   margin-top: 32px;
 }
 
 .submitContainer {
-  margin-top: 60px;
+  margin-top: 20px;
   width: 100%;
 }
 

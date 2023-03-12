@@ -1,6 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Button } from '../../shared/forms/Button';
-import { Checkbox } from '../../shared/forms/Checkbox';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { TextInput } from '../../shared/forms/TextInput';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
@@ -43,7 +42,7 @@ export const RequestPhoneForm = ({
   const windowSize = useWindowSize();
   const [step, setStep] = useState<'number' | 'verify'>('number');
   const [phone, setPhone] = useState('');
-  const [recieveNotifs, setRecieveNotifs] = useState(false);
+  const receiveNotifs = true;
   const [error, setError] = useState<ReactElement | null>(null);
   const [saving, setSaving] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -147,7 +146,7 @@ export const RequestPhoneForm = ({
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify({
               phone_number: phone,
-              receive_notifications: recieveNotifs,
+              receive_notifications: receiveNotifs,
               timezone,
               timezone_technique: 'browser',
             }),
@@ -170,7 +169,7 @@ export const RequestPhoneForm = ({
         setSaving(false);
       }
     },
-    [loginContext, phoneFormatCorrect, focusPhone, phone, recieveNotifs, timezone]
+    [loginContext, phoneFormatCorrect, focusPhone, phone, receiveNotifs, timezone]
   );
 
   const onVerifyPhone = useCallback(
@@ -205,7 +204,7 @@ export const RequestPhoneForm = ({
           ...loginContext.userAttributes!,
           phoneNumber: phone.replaceAll(/ - /g, ''),
         });
-        onFinished(recieveNotifs);
+        onFinished(receiveNotifs);
       } catch (e) {
         console.error(e);
         const err = await describeError(e);
@@ -214,7 +213,7 @@ export const RequestPhoneForm = ({
         setSaving(false);
       }
     },
-    [loginContext, code, phone, verificationUid, onFinished, recieveNotifs]
+    [loginContext, code, phone, verificationUid, onFinished, receiveNotifs]
   );
 
   const onSkipPhone = useCallback(
@@ -268,13 +267,12 @@ export const RequestPhoneForm = ({
               </div>
 
               <div className={styles.getNotifiedContainer}>
-                <Checkbox
-                  label="You agree to receive text messages from Oseh. Message and data rates may apply. Approximately 1 message per day."
-                  value={recieveNotifs}
-                  setValue={setRecieveNotifs}
-                  disabled={saving}
-                  checkboxStyle={'whiteSmallText'}
-                />
+                By continuing, you consent to receive marketing text messages (e.g., reminders,
+                offers, and promotions) from Oseh at the number provided, including messages sent by
+                autodialer. Consent is not a condition of joining. Msg & data rates may apply.
+                Approx. 1 message per day. Unsubscribe at any time by replying STOP.{' '}
+                <a href="https://www.oseh.com/privacy">Privacy Policy</a> &{' '}
+                <a href="https://www.oseh.com/terms">Terms of Service</a>.
               </div>
 
               {error && (
