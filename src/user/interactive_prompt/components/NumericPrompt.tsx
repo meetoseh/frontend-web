@@ -67,6 +67,7 @@ const activeOpacity = 1.0;
 
 const optionUnfilledColor: [number, number, number, number] = [1, 1, 1, 0.5];
 const optionFilledColor: [number, number, number, number] = [1, 1, 1, 1];
+const optionBorderColor = optionFilledColor;
 
 export const NumericPrompt = ({
   prompt: intPrompt,
@@ -241,6 +242,7 @@ export const NumericPrompt = ({
                     borderRadius={Math.max(optionWidthPx / 2, optionHeightPx / 2)}
                     state={infos[optionIndex].get}
                     onStateChanged={infos[optionIndex].callbacks}
+                    border={{ width: 2, color: optionBorderColor }}
                   />
                 </div>
                 <div className={styles.itemForeground}>{option}</div>
