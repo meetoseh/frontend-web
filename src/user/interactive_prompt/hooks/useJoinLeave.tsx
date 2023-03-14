@@ -1,9 +1,10 @@
-import { MutableRefObject, useContext, useEffect, useMemo, useRef } from 'react';
+import { MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { Callbacks } from '../../../shared/lib/Callbacks';
-import { LoginContext } from '../../../shared/LoginContext';
+import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
+import { LoginContext, LoginContextValue } from '../../../shared/LoginContext';
 import { InteractivePrompt } from '../models/InteractivePrompt';
-import { PromptTime, waitUntilUsingPromptTime } from './usePromptTime';
+import { PromptTime, waitUntilUsingPromptTimeCancelable } from './usePromptTime';
 
 /**
  * The information exported from the join/leave hook.
@@ -87,118 +88,155 @@ export const useJoinLeave = ({ prompt, promptTime }: JoinLeaveProps) => {
     infoChangedRef.current = new Callbacks();
   }
 
-  useEffect(() => {
-    if (infoRef.current.joined) {
-      return;
-    }
+  const updateInfo = useCallback((newInfo: JoinLeaveInfo) => {
+    const oldInfo = infoRef.current;
+    infoRef.current = newInfo;
+    infoChangedRef.current.call({ old: oldInfo, current: newInfo });
+  }, []);
 
+  const sendingEventRef = useRef(false);
+  const sendingEventChangedRef = useRef<Callbacks<boolean>>() as MutableRefObject<
+    Callbacks<boolean>
+  >;
+  if (sendingEventChangedRef.current === undefined) {
+    sendingEventChangedRef.current = new Callbacks();
+  }
+
+  useEffect(() => {
     let active = true;
-    const cancelers = new Callbacks<undefined>();
-    const unmount = () => {
-      if (!active) {
-        return;
-      }
+    let cancelers = new Callbacks<undefined>();
+    handleJoin();
+    return () => {
       active = false;
       cancelers.call(undefined);
-      cancelers.clear();
     };
 
-    handleEvents()
-      .catch((e) => {
-        console.error('Error handling join/leave events: ', e);
-        setInfo(Object.assign({}, infoRef.current, { error: e }));
-      })
-      .finally(unmount);
-    return unmount;
-
-    async function handleEvents() {
-      if (infoRef.current.error !== null) {
-        setInfo(Object.assign({}, infoRef.current, { error: null }));
-      }
-
-      let timePrevious: DOMHighResTimeStamp | null = null;
-      await waitUntilUsingPromptTime(promptTime, (event) => {
-        if (event.current >= 0) {
-          timePrevious = Math.max(0, event.old);
-          return true;
-        }
-        return false;
-      });
-      if (timePrevious === null) {
-        throw new Error('timePrevious should not be null');
-      }
-
-      const cancelPromise = new Promise((resolve) => {
-        cancelers.add(resolve);
-      });
-      const eventPromise = sendEvent('join', timePrevious);
-      await Promise.race([cancelPromise, eventPromise]);
+    async function handleJoinInner() {
       if (!active) {
         return;
       }
 
-      setInfo(Object.assign({}, infoRef.current, { joined: true }));
+      if (promptTime.time.current < 0) {
+        const timePromise = waitUntilUsingPromptTimeCancelable(promptTime, (e) => e.current >= 0);
+        timePromise.promise.catch(() => {});
+        const cancelPromise = createCancelablePromiseFromCallbacks(cancelers);
+        cancelPromise.promise.catch(() => {});
+
+        await Promise.race([timePromise.promise, cancelPromise.promise]);
+        timePromise.cancel();
+        cancelPromise.cancel();
+        if (!active) {
+          return;
+        }
+      }
+
+      await waitUntilNotSendingEvent();
+      if (!active) {
+        return;
+      }
+
+      if (!infoRef.current.joined) {
+        sendingEventRef.current = true;
+        sendingEventChangedRef.current.call(true);
+        try {
+          await sendEvent('join', promptTime.time.current, prompt, loginContext);
+          updateInfo(Object.assign({}, infoRef.current, { joined: true }));
+        } catch (e) {
+          updateInfo(Object.assign({}, infoRef.current, { error: e }));
+        } finally {
+          sendingEventRef.current = false;
+          sendingEventChangedRef.current.call(false);
+        }
+      }
+
       let alreadyLeft = false;
-      const onBeforeUnload = () => {
-        if (!alreadyLeft) {
-          alreadyLeft = true;
-          const leftAt = Math.min(prompt.durationSeconds * 1000, promptTime.time.current);
-          sendEvent('leave', leftAt);
+      const endTime = prompt.durationSeconds * 1000;
+
+      await waitUntilNotSendingEvent();
+      if (!active) {
+        return;
+      }
+
+      sendingEventRef.current = true;
+      sendingEventChangedRef.current.call(true);
+
+      const onLeft = async (skipCallbacks: boolean) => {
+        if (alreadyLeft) {
+          return;
+        }
+        alreadyLeft = true;
+        const leftAt = Math.min(endTime, promptTime.time.current);
+        try {
+          await sendEvent('leave', leftAt, prompt, loginContext);
+          if (!skipCallbacks) {
+            updateInfo(Object.assign({}, infoRef.current, { left: true }));
+          }
+        } catch (e) {
+          if (!skipCallbacks) {
+            updateInfo(Object.assign({}, infoRef.current, { error: e }));
+          }
+        } finally {
+          if (!skipCallbacks) {
+            sendingEventRef.current = false;
+            sendingEventChangedRef.current.call(false);
+          }
         }
       };
+
+      const onBeforeUnload = () => {
+        onLeft(true);
+      };
+
       window.addEventListener('beforeunload', onBeforeUnload);
+      cancelers.add(() => {
+        window.removeEventListener('beforeunload', onBeforeUnload);
+      });
 
-      await Promise.race([
-        cancelPromise,
-        waitUntilUsingPromptTime(
-          promptTime,
-          (event) => event.current >= prompt.durationSeconds * 1000
-        ),
-      ]);
-      if (alreadyLeft) {
-        return;
-      }
-      window.removeEventListener('beforeunload', onBeforeUnload);
-
-      alreadyLeft = true;
-      const leftAt = Math.min(prompt.durationSeconds * 1000, promptTime.time.current);
-      await sendEvent('leave', leftAt);
-      if (!active) {
-        return;
-      }
-
-      setInfo(Object.assign({}, infoRef.current, { left: true }));
-    }
-
-    function setInfo(newInfo: JoinLeaveInfo) {
-      const oldInfo = infoRef.current;
-      infoRef.current = newInfo;
-      infoChangedRef.current.call({ old: oldInfo, current: newInfo });
-    }
-
-    async function sendEvent(name: 'join' | 'leave', eventPromptTime: number) {
-      const response = await apiFetch(
-        `/api/1/interactive_prompts/events/${name}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            interactive_prompt_uid: prompt.uid,
-            interactive_prompt_jwt: prompt.jwt,
-            session_uid: prompt.sessionUid,
-            prompt_time: eventPromptTime / 1000.0,
-            data: {},
-          }),
-          keepalive: true,
-        },
-        loginContext
+      const timePromise = waitUntilUsingPromptTimeCancelable(
+        promptTime,
+        (e) => e.current >= endTime
       );
+      timePromise.promise.catch(() => {});
 
-      if (!response.ok) {
-        throw response;
+      const cancelPromise = createCancelablePromiseFromCallbacks(cancelers);
+      cancelPromise.promise.catch(() => {});
+
+      await Promise.race([timePromise.promise, cancelPromise.promise]);
+      timePromise.cancel();
+      cancelPromise.cancel();
+      onLeft(false);
+    }
+
+    async function handleJoin() {
+      if (infoRef.current.error !== null) {
+        updateInfo(Object.assign({}, infoRef.current, { error: null }));
+      }
+
+      try {
+        await handleJoinInner();
+      } catch (e) {
+        if (!infoRef.current.joined) {
+          updateInfo(Object.assign({}, infoRef.current, { error: e }));
+        }
       }
     }
-  }, [prompt, promptTime, loginContext]);
+
+    async function waitUntilNotSendingEvent() {
+      while (sendingEventRef.current) {
+        const changedPromise = createCancelablePromiseFromCallbacks(sendingEventChangedRef.current);
+        changedPromise.promise.catch(() => {});
+        const cancelPromise = createCancelablePromiseFromCallbacks(cancelers);
+        cancelPromise.promise.catch(() => {});
+
+        await Promise.race([changedPromise.promise, cancelPromise.promise]);
+        changedPromise.cancel();
+        cancelPromise.cancel();
+        if (!active) {
+          return;
+        }
+      }
+    }
+  });
 
   return useMemo(
     () => ({
@@ -208,3 +246,31 @@ export const useJoinLeave = ({ prompt, promptTime }: JoinLeaveProps) => {
     []
   );
 };
+
+async function sendEvent(
+  name: 'join' | 'leave',
+  eventPromptTime: number,
+  prompt: InteractivePrompt,
+  loginContext: LoginContextValue
+) {
+  const response = await apiFetch(
+    `/api/1/interactive_prompts/events/${name}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({
+        interactive_prompt_uid: prompt.uid,
+        interactive_prompt_jwt: prompt.jwt,
+        session_uid: prompt.sessionUid,
+        prompt_time: eventPromptTime / 1000.0,
+        data: {},
+      }),
+      keepalive: true,
+    },
+    loginContext
+  );
+
+  if (!response.ok) {
+    throw response;
+  }
+}

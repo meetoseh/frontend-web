@@ -1,33 +1,34 @@
 import { MutableRefObject, ReactElement, useContext, useEffect, useMemo, useRef } from 'react';
-import { PromptTime, PromptTimeEvent, usePromptTime } from '../hooks/usePromptTime';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownText, CountdownTextConfig } from './CountdownText';
-import {
-  FilledWidthChangedEvent,
-  HorizontalPartlyFilledRoundedRect,
-} from './HorizontalPartlyFilledRoundedRect';
-import { WordPrompt as WordPromptType } from '../models/Prompt';
-import styles from './WordPrompt.module.css';
-import { Callbacks } from '../../../shared/lib/Callbacks';
-import { useWindowSize } from '../../../shared/hooks/useWindowSize';
+import styles from './ColorPrompt.module.css';
+import { ColorPrompt as ColorPromptType } from '../models/Prompt';
+import { PromptTime, PromptTimeEvent, usePromptTime } from '../hooks/usePromptTime';
 import { PromptStats, StatsChangedEvent, useStats } from '../hooks/useStats';
-import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext, LoginContextValue } from '../../../shared/LoginContext';
-import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
+import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { useProfilePictures } from '../hooks/useProfilePictures';
+import { LoginContext, LoginContextValue } from '../../../shared/LoginContext';
 import { ProfilePictures } from './ProfilePictures';
+import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
 import { useOnFinished } from '../hooks/useOnFinished';
-import { PromptTitle } from './PromptTitle';
+import { Callbacks } from '../../../shared/lib/Callbacks';
 import {
   SimpleSelectionChangedEvent,
   SimpleSelectionRef,
   useSimpleSelection,
 } from '../hooks/useSimpleSelection';
+import { apiFetch } from '../../../shared/ApiConstants';
 import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
+import {
+  VerticalPartlyFilledRoundedRect,
+  VPFRRState,
+  VPFRRStateChangedEvent,
+} from './VerticalPartlyFilledRoundedRect';
+import { getColor3fFromHex } from '../../../shared/lib/BezierAnimation';
 
-type WordPromptProps = {
+type ColorPromptProps = {
   /**
-   * The prompt to display. Must be a word prompt.
+   * The prompt to display. Must be a color prompt.
    */
   prompt: InteractivePrompt;
 
@@ -35,12 +36,6 @@ type WordPromptProps = {
    * The function to call when the user finishes the prompt.
    */
   onFinished: () => void;
-
-  /**
-   * If specified, the function to call when the user selects a response.
-   * @param response The value of the option the user selected.
-   */
-  onResponse?: (response: string) => void;
 
   /**
    * If specified, a countdown is displayed using the given props.
@@ -59,21 +54,27 @@ type WordPromptProps = {
   paused?: boolean;
 };
 
-const unfilledColor: [number, number, number, number] = [68 / 255, 98 / 255, 102 / 255, 0.4];
-const filledColor: [number, number, number, number] = [68 / 255, 98 / 255, 102 / 255, 0.9];
+const colorInactiveOpacity = 0.4;
+const colorActiveOpacity = 1.0;
 
-export const WordPrompt = ({
+const colorForegroundOpacity = 1.0;
+const colorBackgroundOpacity = 0.4;
+
+/**
+ * Displays an color interactive prompt, where users can select a color and
+ * see what colors other users have selected.
+ */
+export const ColorPrompt = ({
   prompt: intPrompt,
   onFinished,
-  onResponse,
   countdown,
   subtitle,
   paused,
-}: WordPromptProps): ReactElement => {
-  if (intPrompt.prompt.style !== 'word') {
-    throw new Error('WordPrompt must be given a word prompt');
+}: ColorPromptProps): ReactElement => {
+  if (intPrompt.prompt.style !== 'color') {
+    throw new Error('ColorPrompt must be given a color prompt');
   }
-  const prompt = intPrompt.prompt as WordPromptType;
+  const prompt = intPrompt.prompt as ColorPromptType;
   const promptTime = usePromptTime(-250, paused ?? false);
   const stats = useStats({ prompt: intPrompt, promptTime });
   const selection = useSimpleSelection<number>();
@@ -85,159 +86,188 @@ export const WordPrompt = ({
   useStoreEvents(intPrompt, promptTime, selection, joinLeave, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
 
-  const boundFilledWidthGetterSetters: {
-    get: () => number;
-    set: (v: number) => void;
-    callbacks: () => Callbacks<FilledWidthChangedEvent>;
-  }[] = useMemo(() => {
-    return prompt.options.map(() => {
-      let width = 0;
-      const callbacks = new Callbacks<FilledWidthChangedEvent>();
-      return {
-        get: () => width,
-        set: (v: number) => {
-          width = v;
-        },
-        callbacks: () => callbacks,
-      };
-    });
+  const colorsContainerWidth = Math.min(390, Math.min(screenSize.width, 440) - 64);
+  const colorsGapPx = 32;
+  const colorsMaxWidthPx = 48;
+  const colorsHeightPx = 128;
+
+  const colorToIndex = useMemo(() => {
+    const lookup = new Map<string, number>();
+    for (let i = 0; i < prompt.colors.length; i++) {
+      lookup.set(prompt.colors[i], i);
+    }
+    return lookup;
   }, [prompt]);
 
+  const colorRows: string[][] = useMemo(() => {
+    const colors = prompt.colors;
+    if (colors.length <= 4) {
+      return [colors];
+    }
+
+    const columns = Math.ceil(colors.length / 2);
+    const rows: string[][] = [];
+    let row: string[] = [];
+    for (let i = 0; i < colors.length; i++) {
+      row.push(colors[i]);
+      if (row.length === columns) {
+        rows.push(row);
+        row = [];
+      }
+    }
+    if (row.length > 0) {
+      rows.push(row);
+    }
+    return rows;
+  }, [prompt.colors]);
+
+  const rowHeight = (colorsHeightPx - (colorRows.length - 1) * colorsGapPx) / colorRows.length;
+
+  const itemWidth = useMemo(() => {
+    let width = colorsMaxWidthPx;
+
+    for (let rowIndex = 0; rowIndex < colorRows.length; rowIndex++) {
+      const row = colorRows[rowIndex];
+      const naturalWidth = (colorsContainerWidth - (row.length - 1) * colorsGapPx) / row.length;
+      width = Math.min(naturalWidth, colorsMaxWidthPx);
+    }
+
+    return width;
+  }, [colorRows, colorsContainerWidth]);
+
+  const trueColorsWidth = useMemo(() => {
+    const maxItemsPerRow = Math.max(...colorRows.map((row) => row.length));
+    return maxItemsPerRow * itemWidth + (maxItemsPerRow - 1) * colorsGapPx;
+  }, [colorRows, itemWidth]);
+
+  const colorStates = useMemo(() => {
+    const result: {
+      get: () => VPFRRState;
+      set: (state: VPFRRState) => void;
+      callbacks: () => Callbacks<VPFRRStateChangedEvent>;
+    }[] = [];
+    for (let outerIndex = 0; outerIndex < prompt.colors.length; outerIndex++) {
+      (() => {
+        let state: VPFRRState = {
+          opacity: colorInactiveOpacity,
+          filledHeight: 0.5,
+        };
+        const callbacks = new Callbacks<VPFRRStateChangedEvent>();
+
+        result.push({
+          get: () => state,
+          set: (newState) => {
+            const old = state;
+            state = newState;
+            callbacks.call({ old, current: newState });
+          },
+          callbacks: () => callbacks,
+        });
+      })();
+    }
+    return result;
+  }, [prompt]);
+
+  // manages the opacity on the options
   useEffect(() => {
-    let lastCorrectedStats: number[] | null = null;
-    stats.onStatsChanged.current.add(updateWidths);
-    fakeMove.onFakeMoveChanged.current.add(updateWidths);
+    selection.onSelectionChanged.current.add(handleEvent);
     return () => {
-      stats.onStatsChanged.current.remove(updateWidths);
-      fakeMove.onFakeMoveChanged.current.remove(updateWidths);
+      selection.onSelectionChanged.current.remove(handleEvent);
     };
 
-    function updateWidths() {
-      const wordActive = stats.stats.current.wordActive;
-      if (!wordActive) {
+    function handleEvent(event: SimpleSelectionChangedEvent<number>) {
+      if (event.current === event.old) {
         return;
       }
 
-      const correctedStats = correctWithFakeMove(wordActive, fakeMove.fakeMove.current);
-      if (
-        lastCorrectedStats !== null &&
-        lastCorrectedStats.length === correctedStats.length &&
-        lastCorrectedStats.every((v, idx) => v === correctedStats[idx])
-      ) {
+      if (event.old !== null) {
+        colorStates[event.old].set(
+          Object.assign({}, colorStates[event.old].get(), { opacity: colorInactiveOpacity })
+        );
+      }
+      colorStates[event.current].set(
+        Object.assign({}, colorStates[event.current].get(), { opacity: colorActiveOpacity })
+      );
+    }
+  }, [selection, colorStates]);
+
+  // manages the height on the options
+  useEffect(() => {
+    stats.onStatsChanged.current.add(update);
+    fakeMove.onFakeMoveChanged.current.add(update);
+    update();
+    return () => {
+      stats.onStatsChanged.current.remove(update);
+      fakeMove.onFakeMoveChanged.current.remove(update);
+    };
+
+    function update() {
+      if (stats.stats.current.colorActive === null) {
         return;
       }
-      lastCorrectedStats = correctedStats;
-      const totalResponses = correctedStats.reduce((a, b) => a + b, 0);
+
+      const newCorrectedStats = correctWithFakeMove(
+        stats.stats.current.colorActive,
+        fakeMove.fakeMove.current
+      );
+
+      const total = newCorrectedStats.reduce((a, b) => a + b, 0);
       const fractionals =
-        totalResponses === 0
-          ? correctedStats.map(() => 0)
-          : correctedStats.map((v) => v / totalResponses);
-      fractionals.forEach((fractional, idx) => {
-        const old = boundFilledWidthGetterSetters[idx].get();
-        if (old === fractional) {
-          return;
+        total === 0
+          ? newCorrectedStats.map(() => 0)
+          : newCorrectedStats.map((colAmt) => {
+              return colAmt / total;
+            });
+      fractionals.forEach((fractional, index) => {
+        const old = colorStates[index].get();
+
+        if (old.filledHeight !== fractional) {
+          colorStates[index].set(Object.assign({}, old, { filledHeight: fractional }));
         }
-        boundFilledWidthGetterSetters[idx].set(fractional);
-        boundFilledWidthGetterSetters[idx].callbacks().call({
-          old,
-          current: fractional,
-        });
       });
     }
-  }, [stats, fakeMove, boundFilledWidthGetterSetters]);
-
-  const optionWidth = Math.min(390, Math.min(screenSize.width, 440) - 48);
+  }, [stats, fakeMove, colorStates]);
 
   return (
     <div className={styles.container}>
       {countdown && <CountdownText promptTime={promptTime} prompt={intPrompt} {...countdown} />}
       <div className={styles.prompt}>
-        <PromptTitle text={prompt.text} subtitle={subtitle} />
-        <div className={styles.options}>
-          {prompt.options.map((option, idx) => {
-            return (
-              <div key={idx} className={styles.option} style={{ width: optionWidth, height: 54 }}>
-                <div className={styles.optionBackground}>
-                  <HorizontalPartlyFilledRoundedRect
-                    height={54}
-                    width={optionWidth}
-                    unfilledColor={unfilledColor}
-                    borderRadius={10}
-                    filledColor={filledColor}
-                    filledWidth={boundFilledWidthGetterSetters[idx].get}
-                    onFilledWidthChanged={boundFilledWidthGetterSetters[idx].callbacks}
-                  />
-                </div>
+        <div className={styles.colors}>
+          {colorRows.map((row, rowIndex) => (
+            <div key={rowIndex} className={styles.colorRow} style={{ height: `${rowHeight}px` }}>
+              {row.map((color, colIndex) => (
                 <button
-                  className={styles.optionForeground}
-                  style={{ width: optionWidth, height: 54 }}
+                  key={`${color}-${colIndex}`}
+                  className={styles.color}
                   onClick={() => {
-                    if (selection.selection.current === idx) {
+                    const old = selection.selection.current;
+                    const clicked = colorToIndex.get(color)!;
+                    if (old === clicked) {
                       return;
                     }
-
-                    const oldSelection = selection.selection.current;
-                    selection.selection.current = idx;
-                    selection.onSelectionChanged.current.call({
-                      old: oldSelection,
-                      current: idx,
-                    });
-
-                    if (onResponse) {
-                      onResponse(option);
-                    }
-                  }}>
-                  <CheckmarkFromSelection index={idx} selection={selection} />
-                  <div className={styles.optionText}>{option}</div>
+                    selection.selection.current = clicked;
+                    selection.onSelectionChanged.current.call({ old, current: clicked });
+                  }}
+                  style={{ width: `${itemWidth}px` }}>
+                  <VerticalPartlyFilledRoundedRect
+                    height={rowHeight}
+                    width={itemWidth}
+                    unfilledColor={addOpacity(color, colorBackgroundOpacity)}
+                    borderRadius={Math.ceil(Math.min(itemWidth, rowHeight) * 0.1)}
+                    filledColor={addOpacity(color, colorForegroundOpacity)}
+                    state={colorStates[colorToIndex.get(color)!].get}
+                    onStateChanged={colorStates[colorToIndex.get(color)!].callbacks}
+                    border={{ width: 2, color: addOpacity(color, 1.0) }}
+                  />
                 </button>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          ))}
         </div>
-        <div className={styles.profilePictures} style={{ width: `${optionWidth}px` }}>
+        <div className={styles.profilePictures} style={{ width: `${trueColorsWidth}px` }}>
           <ProfilePictures profilePictures={profilePictures} />
         </div>
       </div>
-    </div>
-  );
-};
-
-/**
- * Shows a checkmark which is checked if the selection matches the
- * given index, and unchecked otherwise, without triggering react
- * state updates.
- */
-const CheckmarkFromSelection = ({
-  index,
-  selection,
-}: {
-  index: number;
-  selection: SimpleSelectionRef<number>;
-}): ReactElement => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let isChecked: boolean | null = null;
-    selection.onSelectionChanged.current.add(onEvent);
-    return () => {
-      selection.onSelectionChanged.current.remove(onEvent);
-    };
-
-    function onEvent(event: SimpleSelectionChangedEvent<number>) {
-      const isNowChecked = event.current === index;
-      if (isChecked !== isNowChecked && containerRef.current) {
-        containerRef.current.classList.toggle(styles.checkmarkContainerChecked, isNowChecked);
-      }
-    }
-  }, [index, selection]);
-
-  return (
-    <div
-      ref={containerRef}
-      className={`${styles.checkmarkContainer} ${
-        index === selection.selection.current ? styles.checkmarkContainerChecked : ''
-      }`}>
-      <div className={styles.checkmark} />
     </div>
   );
 };
@@ -246,7 +276,7 @@ type FakeMove = {
   /**
    * The amount that we should modify the stats by prior to presenting
    * them in order to account for the fake move, in index-correspondance
-   * with prompt.options.
+   * with prompt.colors.
    */
   deltas: number[];
 };
@@ -294,7 +324,7 @@ const correctWithFakeMove = (stats: number[], fakeMove: FakeMove | null): number
 
 type _FakeMoveInfo = {
   /**
-   * If we are lowering the value of one option by 1, the index of the option whose
+   * If we are lowering the value of one color by 1, the index of the color whose
    * value we are lowering. Otherwise, null.
    */
   loweringIndex: number | null;
@@ -304,7 +334,7 @@ type _FakeMoveInfo = {
    */
   loweringIndexUpperTrigger: number | null;
   /**
-   * If we are raising the value of one option by 1, the index of the option whose
+   * If we are raising the value of one color by 1, the index of the color whose
    * value we are raising. Otherwise, null.
    */
   raisingIndex: number | null;
@@ -368,12 +398,12 @@ const useFakeMove = (
         loweringIndex: null,
         loweringIndexUpperTrigger: null,
         raisingIndex: event.current,
-        raisingIndexLowerTrigger: (stats.stats.current.wordActive?.[event.current] ?? 0) + 1,
+        raisingIndexLowerTrigger: (stats.stats.current.colorActive?.[event.current] ?? 0) + 1,
         promptTimeToCancel: promptTime.time.current + 1500,
       };
 
       if (event.old) {
-        const oldNum = stats.stats.current.wordActive?.[event.old] ?? 0;
+        const oldNum = stats.stats.current.colorActive?.[event.old] ?? 0;
         if (oldNum > 0) {
           info.loweringIndex = event.old;
           info.loweringIndexUpperTrigger = oldNum - 1;
@@ -404,7 +434,7 @@ const useFakeMove = (
       if (
         info.loweringIndex !== null &&
         info.loweringIndexUpperTrigger !== null &&
-        (event.current.wordActive?.[info.loweringIndex] ?? 0) <= info.loweringIndexUpperTrigger
+        (event.current.colorActive?.[info.loweringIndex] ?? 0) <= info.loweringIndexUpperTrigger
       ) {
         info.loweringIndex = null;
         info.loweringIndexUpperTrigger = null;
@@ -414,7 +444,7 @@ const useFakeMove = (
       if (
         info.raisingIndex !== null &&
         info.raisingIndexLowerTrigger !== null &&
-        (event.current.wordActive?.[info.raisingIndex] ?? 0) >= info.raisingIndexLowerTrigger
+        (event.current.colorActive?.[info.raisingIndex] ?? 0) >= info.raisingIndexLowerTrigger
       ) {
         info.raisingIndex = null;
         info.raisingIndexLowerTrigger = null;
@@ -446,9 +476,9 @@ const useFakeMove = (
       }
 
       const deltas = [];
-      const wordActive = stats.stats.current.wordActive;
-      if (wordActive) {
-        for (let i = 0; i < wordActive.length; i++) {
+      const colorActive = stats.stats.current.colorActive;
+      if (colorActive) {
+        for (let i = 0; i < colorActive.length; i++) {
           if (info.loweringIndex === i) {
             deltas.push(-1);
           } else if (info.raisingIndex === i) {
@@ -492,7 +522,7 @@ const useStoreEvents = (
 ) => {
   const handler = async (index: number, time: number) => {
     await apiFetch(
-      '/api/1/interactive_prompts/events/respond_word_prompt',
+      '/api/1/interactive_prompts/events/respond_color_prompt',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -518,4 +548,17 @@ const useStoreEvents = (
     promptTime,
     callback: handler,
   });
+};
+
+/**
+ * Takes a hex string and converts it to [r, g, b, a] as 0-1 floats by adding
+ * the given opacity
+ *
+ * @param hex The hex string, e.g., #ff0000
+ * @param opacity The opacity, 0-1, e.g., 0.5
+ * @returns [r, g, b, a] as 0-1 floats, e.g., [1, 0, 0, 0.5]
+ */
+const addOpacity = (hex: string, opacity: number): [number, number, number, number] => {
+  const rgb = getColor3fFromHex(hex);
+  return [rgb[0], rgb[1], rgb[2], opacity];
 };

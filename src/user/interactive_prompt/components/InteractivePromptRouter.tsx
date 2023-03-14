@@ -1,6 +1,7 @@
 import { ReactElement } from 'react';
 import { ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { InteractivePrompt } from '../models/InteractivePrompt';
+import { ColorPrompt } from './ColorPrompt';
 import { CountdownTextConfig } from './CountdownText';
 import { NumericPrompt } from './NumericPrompt';
 import { WordPrompt } from './WordPrompt';
@@ -68,6 +69,16 @@ export const InteractivePromptRouter = ({
   } else if (prompt.prompt.style === 'numeric') {
     return (
       <NumericPrompt
+        prompt={prompt}
+        onFinished={onFinished}
+        countdown={countdown}
+        subtitle={subtitle}
+        paused={paused}
+      />
+    );
+  } else if (prompt.prompt.style === 'color') {
+    return (
+      <ColorPrompt
         prompt={prompt}
         onFinished={onFinished}
         countdown={countdown}

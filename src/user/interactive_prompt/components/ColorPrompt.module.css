@@ -1,0 +1,39 @@
+.prompt {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.colors {
+  margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.colorRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.colorRow:not(:first-child) {
+  margin-top: 32px;
+}
+
+.color {
+  composes: unstyled from '../../../shared/buttons.module.css';
+}
+
+.color:not(:first-child) {
+  margin-left: 32px;
+}
+
+.profilePictures {
+  margin-top: 20px;
+  align-self: center;
+}

@@ -6,4 +6,5 @@
   cursor: pointer;
   outline: none;
   appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
