@@ -80,7 +80,7 @@ export const NumericPrompt = ({
     throw new Error('NumericPrompt must be given a numeric prompt');
   }
   const prompt = intPrompt.prompt as NumericPromptType;
-  const promptTime = usePromptTime(-250, paused ?? true);
+  const promptTime = usePromptTime(-250, paused ?? false);
   const stats = useStats({ prompt: intPrompt, promptTime });
   const selection = useSelection();
   const screenSize = useWindowSize();
