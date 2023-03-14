@@ -80,7 +80,7 @@ export const NumericPrompt = ({
     throw new Error('NumericPrompt must be given a numeric prompt');
   }
   const prompt = intPrompt.prompt as NumericPromptType;
-  const promptTime = usePromptTime(-250, paused ?? false);
+  const promptTime = usePromptTime(-250, paused ?? true);
   const stats = useStats({ prompt: intPrompt, promptTime });
   const selection = useSelection();
   const screenSize = useWindowSize();
@@ -239,7 +239,7 @@ export const NumericPrompt = ({
                     width={optionWidthPx}
                     unfilledColor={optionUnfilledColor}
                     filledColor={optionFilledColor}
-                    borderRadius={Math.max(optionWidthPx / 2, optionHeightPx / 2)}
+                    borderRadius={Math.max(optionWidthPx / 3, optionHeightPx / 3)}
                     state={infos[optionIndex].get}
                     onStateChanged={infos[optionIndex].callbacks}
                     border={{ width: 2, color: optionBorderColor }}
