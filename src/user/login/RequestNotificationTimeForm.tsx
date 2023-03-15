@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
@@ -45,6 +45,7 @@ export const RequestNotificationTimeForm = ({
     [windowSize.width, windowSize.height]
   );
   const imageState = useOsehImageState(imageProps);
+  const leavingCallback = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in' || prompt !== null) {
@@ -137,6 +138,11 @@ export const RequestNotificationTimeForm = ({
     onDone();
   }, [loginContext, answer, timezone, onDone]);
 
+  const handleSkip = useCallback(() => {
+    leavingCallback.current?.();
+    handleDone();
+  }, [handleDone]);
+
   return (
     <div className={styles.container} style={containerStyle}>
       <div className={styles.backgroundContainer}>
@@ -149,6 +155,7 @@ export const RequestNotificationTimeForm = ({
             onFinished={handleDone}
             onWordPromptResponse={onWordPromptResponse}
             paused={!showing}
+            leavingCallback={leavingCallback}
           />
         )}
         <div className={styles.continueContainer}>
@@ -156,7 +163,7 @@ export const RequestNotificationTimeForm = ({
             type="button"
             fullWidth
             variant={answer === 'any' ? 'link-white' : 'filled'}
-            onClick={handleDone}>
+            onClick={handleSkip}>
             {answer === 'any' ? 'Skip' : 'Continue'}
           </Button>
         </div>

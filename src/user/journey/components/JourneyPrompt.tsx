@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useState } from 'react';
+import { MutableRefObject, ReactElement, useEffect, useState } from 'react';
 import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { describeError } from '../../../shared/forms/ErrorBlock';
@@ -26,6 +26,14 @@ type JourneyPromptProps = {
    * The function to call when the user has finished the prompt.
    */
   onFinished: () => void;
+
+  /**
+   * The ref to register a leaving callback which must be called before unmounting
+   * the component normally in order to trigger a leave event. Otherwise, a leave
+   * event is only triggered when the prompt finishes normally or the page is
+   * closed (via onbeforeunload)
+   */
+  leavingCallback: MutableRefObject<(() => void) | null>;
 };
 
 const COUNTDOWN_CONFIG: CountdownTextConfig = {
@@ -39,6 +47,7 @@ export const JourneyPrompt = ({
   journey,
   loginContext,
   onFinished,
+  leavingCallback,
 }: JourneyPromptProps): ReactElement => {
   const [interactivePrompt, setInteractivePrompt] = useState<InteractivePrompt | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
@@ -100,6 +109,7 @@ export const JourneyPrompt = ({
       onFinished={onFinished}
       countdown={COUNTDOWN_CONFIG}
       subtitle="Class Poll"
+      leavingCallback={leavingCallback}
     />
   );
 };

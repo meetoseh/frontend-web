@@ -57,6 +57,14 @@ type WordPromptProps = {
    * If set to true, the prompt time will not be updated.
    */
   paused?: boolean;
+
+  /**
+   * The ref to register a leaving callback which must be called before unmounting
+   * the component normally in order to trigger a leave event. Otherwise, a leave
+   * event is only triggered when the prompt finishes normally or the page is
+   * closed (via onbeforeunload)
+   */
+  leavingCallback: MutableRefObject<(() => void) | null>;
 };
 
 const unfilledColor: [number, number, number, number] = [68 / 255, 98 / 255, 102 / 255, 0.4];
@@ -69,6 +77,7 @@ export const WordPrompt = ({
   countdown,
   subtitle,
   paused,
+  leavingCallback,
 }: WordPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'word') {
     throw new Error('WordPrompt must be given a word prompt');
@@ -84,6 +93,10 @@ export const WordPrompt = ({
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
   useStoreEvents(intPrompt, promptTime, selection, joinLeave, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
+
+  leavingCallback.current = () => {
+    joinLeave.leaving.current = true;
+  };
 
   const boundFilledWidthGetterSetters: {
     get: () => number;

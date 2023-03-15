@@ -46,6 +46,12 @@ export type JoinLeave = {
   info: MutableRefObject<JoinLeaveInfo>;
 
   /**
+   * A ref which must be set to true before the component is unmounted in order
+   * to trigger a leave event. Otherwise, we assume the remount is superfluous.
+   */
+  leaving: MutableRefObject<boolean>;
+
+  /**
    * The callbacks to call when the join/leave info changes
    */
   onInfoChanged: MutableRefObject<Callbacks<JoinLeaveChangedEvent>>;
@@ -74,7 +80,7 @@ type JoinLeaveProps = {
  * list is available if you want to be notified when the events are
  * sent.
  */
-export const useJoinLeave = ({ prompt, promptTime }: JoinLeaveProps) => {
+export const useJoinLeave = ({ prompt, promptTime }: JoinLeaveProps): JoinLeave => {
   const loginContext = useContext(LoginContext);
   const infoRef = useRef<JoinLeaveInfo>() as MutableRefObject<JoinLeaveInfo>;
   if (infoRef.current === undefined) {
@@ -87,6 +93,8 @@ export const useJoinLeave = ({ prompt, promptTime }: JoinLeaveProps) => {
   if (infoChangedRef.current === undefined) {
     infoChangedRef.current = new Callbacks();
   }
+
+  const leavingRef = useRef(false);
 
   const updateInfo = useCallback((newInfo: JoinLeaveInfo) => {
     const oldInfo = infoRef.current;
@@ -204,7 +212,10 @@ export const useJoinLeave = ({ prompt, promptTime }: JoinLeaveProps) => {
       await Promise.race([timePromise.promise, cancelPromise.promise]);
       timePromise.cancel();
       cancelPromise.cancel();
-      onLeft(false);
+
+      if (active || (leavingRef.current && !alreadyLeft)) {
+        onLeft(false);
+      }
     }
 
     async function handleJoin() {
@@ -242,6 +253,7 @@ export const useJoinLeave = ({ prompt, promptTime }: JoinLeaveProps) => {
     () => ({
       info: infoRef,
       onInfoChanged: infoChangedRef,
+      leaving: leavingRef,
     }),
     []
   );

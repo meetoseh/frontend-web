@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { MutableRefObject, ReactElement, useCallback, useContext, useRef } from 'react';
 import { LoginContext } from '../../../shared/LoginContext';
 import { OsehImageFromState } from '../../../shared/OsehImage';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
@@ -19,7 +19,15 @@ export const JourneyLobbyScreen = ({
   onJourneyFinished,
 }: JourneyScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
+  const leavingCallback = useRef<(() => void) | null>(null);
+  if (leavingCallback.current === undefined) {
+    leavingCallback.current = null;
+  }
+
   const gotoStart = useCallback(() => {
+    if (leavingCallback.current !== null) {
+      leavingCallback.current();
+    }
     setScreen('start');
   }, [setScreen]);
 
@@ -38,7 +46,12 @@ export const JourneyLobbyScreen = ({
       </div>
       <div className={styles.innerContainer}>
         <div className={styles.content}>
-          <JourneyPrompt journey={journey} loginContext={loginContext} onFinished={gotoStart} />
+          <JourneyPrompt
+            journey={journey}
+            loginContext={loginContext}
+            onFinished={gotoStart}
+            leavingCallback={leavingCallback}
+          />
         </div>
       </div>
     </div>

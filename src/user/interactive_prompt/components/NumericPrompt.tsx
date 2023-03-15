@@ -57,6 +57,14 @@ type NumericPromptProps = {
    * If set to true, the prompt time will not be updated.
    */
   paused?: boolean;
+
+  /**
+   * The ref to register a leaving callback which must be called before unmounting
+   * the component normally in order to trigger a leave event. Otherwise, a leave
+   * event is only triggered when the prompt finishes normally or the page is
+   * closed (via onbeforeunload)
+   */
+  leavingCallback: MutableRefObject<(() => void) | null>;
 };
 
 const optionWidthPx = 75;
@@ -75,6 +83,7 @@ export const NumericPrompt = ({
   countdown,
   subtitle,
   paused,
+  leavingCallback,
 }: NumericPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'numeric') {
     throw new Error('NumericPrompt must be given a numeric prompt');
@@ -87,9 +96,13 @@ export const NumericPrompt = ({
   const fakeMove = useFakeMove(promptTime, stats, selection);
   const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
   const loginContext = useContext(LoginContext);
-  useJoinLeave({ prompt: intPrompt, promptTime });
+  const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
   useStoreEvents(intPrompt, promptTime, selection, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
+
+  leavingCallback.current = () => {
+    joinLeave.leaving.current = true;
+  };
 
   const promptOptions = useMemo<number[]>(() => {
     const res: number[] = [];

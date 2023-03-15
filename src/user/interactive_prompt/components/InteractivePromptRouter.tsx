@@ -1,4 +1,4 @@
-import { ReactElement } from 'react';
+import { MutableRefObject, ReactElement } from 'react';
 import { ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { ColorPrompt } from './ColorPrompt';
@@ -41,6 +41,14 @@ type InteractivePromptRouterProps = {
    * If set to true, the prompt time will not be updated.
    */
   paused?: boolean;
+
+  /**
+   * The ref to register a leaving callback which must be called before unmounting
+   * the component normally in order to trigger a leave event. Otherwise, a leave
+   * event is only triggered when the prompt finishes normally or the page is
+   * closed (via onbeforeunload)
+   */
+  leavingCallback: MutableRefObject<(() => void) | null>;
 };
 
 /**
@@ -54,6 +62,7 @@ export const InteractivePromptRouter = ({
   countdown,
   subtitle,
   paused,
+  leavingCallback,
 }: InteractivePromptRouterProps): ReactElement => {
   if (prompt.prompt.style === 'word') {
     return (
@@ -64,6 +73,7 @@ export const InteractivePromptRouter = ({
         countdown={countdown}
         subtitle={subtitle}
         paused={paused}
+        leavingCallback={leavingCallback}
       />
     );
   } else if (prompt.prompt.style === 'numeric') {
@@ -74,6 +84,7 @@ export const InteractivePromptRouter = ({
         countdown={countdown}
         subtitle={subtitle}
         paused={paused}
+        leavingCallback={leavingCallback}
       />
     );
   } else if (prompt.prompt.style === 'color') {
@@ -84,6 +95,7 @@ export const InteractivePromptRouter = ({
         countdown={countdown}
         subtitle={subtitle}
         paused={paused}
+        leavingCallback={leavingCallback}
       />
     );
   }

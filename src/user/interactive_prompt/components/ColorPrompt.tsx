@@ -25,6 +25,7 @@ import {
   VPFRRStateChangedEvent,
 } from './VerticalPartlyFilledRoundedRect';
 import { getColor3fFromHex } from '../../../shared/lib/BezierAnimation';
+import { PromptTitle } from './PromptTitle';
 
 type ColorPromptProps = {
   /**
@@ -52,6 +53,14 @@ type ColorPromptProps = {
    * If set to true, the prompt time will not be updated.
    */
   paused?: boolean;
+
+  /**
+   * The ref to register a leaving callback which must be called before unmounting
+   * the component normally in order to trigger a leave event. Otherwise, a leave
+   * event is only triggered when the prompt finishes normally or the page is
+   * closed (via onbeforeunload)
+   */
+  leavingCallback: MutableRefObject<(() => void) | null>;
 };
 
 const colorInactiveOpacity = 0.4;
@@ -70,6 +79,7 @@ export const ColorPrompt = ({
   countdown,
   subtitle,
   paused,
+  leavingCallback,
 }: ColorPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'color') {
     throw new Error('ColorPrompt must be given a color prompt');
@@ -85,6 +95,10 @@ export const ColorPrompt = ({
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
   useStoreEvents(intPrompt, promptTime, selection, joinLeave, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
+
+  leavingCallback.current = () => {
+    joinLeave.leaving.current = true;
+  };
 
   const colorsContainerWidth = Math.min(390, Math.min(screenSize.width, 440) - 64);
   const colorsGapPx = 32;
@@ -232,6 +246,7 @@ export const ColorPrompt = ({
     <div className={styles.container}>
       {countdown && <CountdownText promptTime={promptTime} prompt={intPrompt} {...countdown} />}
       <div className={styles.prompt}>
+        <PromptTitle text={prompt.text} subtitle={subtitle} />
         <div className={styles.colors}>
           {colorRows.map((row, rowIndex) => (
             <div key={rowIndex} className={styles.colorRow} style={{ height: `${rowHeight}px` }}>
