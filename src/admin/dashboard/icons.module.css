@@ -36,3 +36,11 @@
   height: 16px;
   background-image: url('./icons/checkbox-unchecked.svg');
 }
+
+.anyNotificationIcon,
+.morningNotificationIcon,
+.afternoonNotificationIcon,
+.eveningNotificationIcon {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/total-members.svg');
+}

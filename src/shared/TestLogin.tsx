@@ -61,7 +61,11 @@ export const TestLogin = (): ReactElement => {
           name="userSub"
           value={userSub}
           onChange={useCallback((e: ChangeEvent<HTMLInputElement>) => {
-            setUserSub(e.target.value);
+            if (e.target.value === 'guest') {
+              setUserSub('guest-' + Math.random().toString(36).substring(2));
+            } else {
+              setUserSub(e.target.value);
+            }
           }, [])}
         />
         <button disabled={loggingIn} type="submit">

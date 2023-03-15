@@ -40,6 +40,13 @@
   gap: 20px;
 }
 
+.centerBlocksContainer {
+  margin-top: 21px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
 @media screen and (max-width: 991px) {
   .centerContainer {
     flex: column nowrap;
