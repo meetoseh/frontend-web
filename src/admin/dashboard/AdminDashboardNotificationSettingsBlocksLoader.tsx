@@ -3,6 +3,7 @@ import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/LoginContext';
 import { AdminDashboardTopBlock } from './AdminDashboardTopBlock';
 import icons from './icons.module.css';
+import styles from './AdminDashboardNotificationSettingsBlocksLoader.module.css';
 
 /**
  * Loads the information that's used in the user notification settings blocks,
@@ -67,16 +68,31 @@ export const AdminDashboardNotificationSettingsBlocksLoader = (): ReactElement =
         iconClassName={icons.morningNotificationIcon}
         value={morningCount + anyCount}
         label={'Morning'}
+        styles={{
+          container: styles.morningNotificationContainer,
+          label: styles.morningNotificationLabel,
+          value: styles.morningNotificationValue,
+        }}
       />
       <AdminDashboardTopBlock
         iconClassName={icons.afternoonNotificationIcon}
         value={afternoonCount}
         label={'Afternoon'}
+        styles={{
+          container: styles.afternoonNotificationContainer,
+          label: styles.afternoonNotificationLabel,
+          value: styles.afternoonNotificationValue,
+        }}
       />
       <AdminDashboardTopBlock
         iconClassName={icons.eveningNotificationIcon}
         value={eveningCount}
         label={'Evening'}
+        styles={{
+          container: styles.eveningNotificationContainer,
+          label: styles.eveningNotificationLabel,
+          value: styles.eveningNotificationValue,
+        }}
       />
     </>
   );

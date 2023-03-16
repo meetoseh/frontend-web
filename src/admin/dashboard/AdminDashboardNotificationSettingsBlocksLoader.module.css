@@ -1,0 +1,38 @@
+.morningNotificationContainer {
+  background-color: rgb(255, 255, 245) !important;
+}
+/* basis: color: rgb(200, 205, 208) !important; */
+/* change: -60 in standard, -120 in the softened one */
+.morningNotificationLabel {
+  color: rgb(140, 145, 88) !important;
+}
+
+/* basis: color: rgba(25, 28, 29) !important; */
+/* change: +40 in standard, -20 in softened one */
+.morningNotificationValue {
+  color: rgb(65, 68, 9) !important;
+}
+
+.afternoonNotificationContainer {
+  background-color: rgb(255, 245, 255) !important;
+}
+
+.afternoonNotificationLabel {
+  color: rgb(140, 85, 148) !important;
+}
+
+.afternoonNotificationValue {
+  color: rgb(65, 8, 69) !important;
+}
+
+.eveningNotificationContainer {
+  background-color: rgb(245, 255, 255) !important;
+}
+
+.eveningNotificationLabel {
+  color: rgb(80, 145, 148) !important;
+}
+
+.eveningNotificationValue {
+  color: rgb(8, 68, 69) !important;
+}
