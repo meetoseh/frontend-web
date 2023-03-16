@@ -96,18 +96,59 @@ export const AdminDashboardLargeChart = ({
   const [chartCounter, setChartCounter] = useState(0);
 
   useEffect(() => {
-    if (!selectedDailyCharts.length && !selectedMonthlyCharts.length) {
+    if (selectedDailyCharts.length === 0 && selectedMonthlyCharts.length === 0) {
       setSelectedDailyCharts([dailyCharts[0]]);
       return;
     }
 
     if (
-      !selectedDailyCharts.some((c) => c.identifier === primaryChart.identifier) &&
-      !selectedMonthlyCharts.some((c) => c.identifier === primaryChart.identifier)
+      !selectedDailyCharts.includes(primaryChart) &&
+      !selectedMonthlyCharts.some((c) => c === primaryChart)
     ) {
       setPrimaryChart(selectedDailyCharts[0] || selectedMonthlyCharts[0]);
     }
   }, [selectedDailyCharts, selectedMonthlyCharts, primaryChart, dailyCharts]);
+
+  useEffect(() => {
+    let newSelDaily = [];
+    let changedSelDaily = false;
+    for (let i = 0; i < selectedDailyCharts.length; i++) {
+      if (!dailyCharts.includes(selectedDailyCharts[i])) {
+        changedSelDaily = true;
+        let matchingIdentifier = dailyCharts.find(
+          (c) => c.identifier === selectedDailyCharts[i].identifier
+        );
+        if (matchingIdentifier !== undefined) {
+          newSelDaily.push(matchingIdentifier);
+        }
+      }
+    }
+
+    if (changedSelDaily) {
+      setSelectedDailyCharts(newSelDaily);
+    }
+  }, [dailyCharts, selectedDailyCharts]);
+
+  useEffect(() => {
+    let newSelMonthly = [];
+    let changedSelMonthly = false;
+
+    for (let i = 0; i < selectedMonthlyCharts.length; i++) {
+      if (!monthlyCharts.includes(selectedMonthlyCharts[i])) {
+        changedSelMonthly = true;
+        let matchingIdentifier = monthlyCharts.find(
+          (c) => c.identifier === selectedMonthlyCharts[i].identifier
+        );
+        if (matchingIdentifier !== undefined) {
+          newSelMonthly.push(matchingIdentifier);
+        }
+      }
+    }
+
+    if (changedSelMonthly) {
+      setSelectedMonthlyCharts(newSelMonthly);
+    }
+  }, [monthlyCharts, selectedMonthlyCharts]);
 
   const data = useMemo(() => {
     setChartCounter((c) => c + 1);
