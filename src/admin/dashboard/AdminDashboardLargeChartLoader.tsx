@@ -11,6 +11,7 @@ import { LoginContext } from '../../shared/LoginContext';
 import { addModalWithCallbackToRemove, ModalContext } from '../../shared/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import { CrudFormElement } from '../crud/CrudFormElement';
+import { AdminDashboardLargeChartPlaceholder } from './AdminDashboardLargeChartPlaceholder';
 
 const DAILY_CHARTS_ORDER = [
   'dau',
@@ -212,11 +213,7 @@ export const AdminDashboardLargeChartLoader = (): ReactElement => {
   return remainingToLoad > 0 ||
     Object.keys(dailyChartsRef.current).length + Object.keys(monthlyChartsRef.current).length ===
       0 ? (
-    <div className={styles.loadingContainer}>
-      <div className={styles.loadingInnerContainer}>
-        <div className={styles.loadingTextContainer}>Loading data...</div>
-      </div>
-    </div>
+    <AdminDashboardLargeChartPlaceholder />
   ) : (
     <AdminDashboardLargeChart
       dailyCharts={DAILY_CHARTS_ORDER.map(

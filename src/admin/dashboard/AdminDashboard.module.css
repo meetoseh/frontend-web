@@ -22,7 +22,9 @@
 .centerContainer {
   margin-top: 21px;
   display: flex;
-  flex-wrap: wrap;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: stretch;
   gap: 20px;
 }
 
@@ -37,13 +39,8 @@
   flex: 0 1 270px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.centerBlocksContainer {
-  margin-top: 21px;
-  display: flex;
-  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
   gap: 20px;
 }
 

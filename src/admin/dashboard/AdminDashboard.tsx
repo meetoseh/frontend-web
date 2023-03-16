@@ -6,8 +6,12 @@ import { AdminDashboardSimpleTopBlock } from './AdminDashboardSimpleTopBlock';
 import { AdminDashboardLargeChartLoader } from './AdminDashboardLargeChartLoader';
 import { AdminDashboardSmallChartLoader } from './AdminDashboardSmallChartLoader';
 import { AdminDashboardNotificationSettingsBlocksLoader } from './AdminDashboardNotificationSettingsBlocksLoader';
+import { useNewUsersChart } from './hooks/useNewUsersChart';
+import { AdminDashboardSecondLargeChartLoader } from './AdminDashboardSecondLargeChartLoader';
 
 export const AdminDashboard = (): ReactElement => {
+  const newUsersChart = useNewUsersChart();
+
   return (
     <div className={styles.container}>
       <div className={styles.titleContainer}>Oseh Dashboard</div>
@@ -38,11 +42,16 @@ export const AdminDashboard = (): ReactElement => {
           <AdminDashboardLargeChartLoader />
         </div>
         <div className={styles.centerRightContainer}>
-          <AdminDashboardSmallChartLoader />
+          <AdminDashboardSmallChartLoader newUsersChart={newUsersChart} />
         </div>
       </div>
-      <div className={styles.centerBlocksContainer}>
+      <div className={styles.topBlocksContainer}>
         <AdminDashboardNotificationSettingsBlocksLoader />
+      </div>
+      <div className={styles.centerContainer}>
+        <div className={styles.centerLeftContainer}>
+          <AdminDashboardSecondLargeChartLoader newUsersChart={newUsersChart} />
+        </div>
       </div>
     </div>
   );

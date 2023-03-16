@@ -167,7 +167,7 @@ export const AdminDashboardLargeChart = ({
               mouseEnterDelay={0}
               arrow={false}>
               <div className={styles.popupContainer}>
-                <div className={styles.popupTitle}>Daily Charts</div>
+                {dailyCharts.length > 0 && <div className={styles.popupTitle}>Daily Charts</div>}
                 {dailyCharts.map((chart) => (
                   <button
                     key={chart.identifier}
@@ -193,7 +193,9 @@ export const AdminDashboardLargeChart = ({
                     <div className={styles.popupItemName}>{chart.name}</div>
                   </button>
                 ))}
-                <div className={styles.popupTitle}>Monthly Charts</div>
+                {monthlyCharts.length > 0 && (
+                  <div className={styles.popupTitle}>Monthly Charts</div>
+                )}
                 {monthlyCharts.map((chart) => (
                   <button
                     key={chart.identifier}
