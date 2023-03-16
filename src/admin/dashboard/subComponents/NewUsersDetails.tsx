@@ -1,8 +1,7 @@
 import { ReactElement, useEffect, useMemo, useState } from 'react';
-import { CrudFormElement } from '../../crud/CrudFormElement';
 import { NewUsersChart } from '../hooks/useNewUsersChart';
-import { DashboardTable } from './DashboardTable';
-import styles from './NewUsersDetails.module.css';
+import { ChartDetails } from './ChartDetails';
+import styles from './ChartDetails.module.css';
 
 type NewUsersDetailsProps = { chart: NewUsersChart };
 
@@ -153,57 +152,34 @@ export const NewUsersDetails = ({ chart }: NewUsersDetailsProps): ReactElement =
   }, [chart, fromIndex, toIndex]);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.title}>New Users Details</div>
-      <div className={styles.dateRange}>
-        <CrudFormElement title="From">
-          <input
-            type="date"
-            className={styles.dateInput}
-            value={from.toISOString().split('T')[0]}
-            onChange={(e) => {
-              if (e.target.valueAsDate) {
-                setFrom(e.target.valueAsDate);
-              }
-            }}
-          />
-        </CrudFormElement>
-        <CrudFormElement title="To">
-          <input
-            type="date"
-            className={styles.dateInput}
-            value={to.toISOString().split('T')[0]}
-            onChange={(e) => {
-              if (e.target.valueAsDate) {
-                setTo(e.target.valueAsDate);
-              }
-            }}
-          />
-        </CrudFormElement>
-      </div>
-      <div className={styles.summary}>
-        <div className={styles.summaryItem}>
-          Between {from.toLocaleString(undefined, dateOptions)} and{' '}
-          {to.toLocaleString(undefined, dateOptions)} there were{' '}
-          <span className={styles.summaryItemValue}>{total} new users</span> - an average of{' '}
-          <span className={styles.summaryItemValue}>{average.toFixed(2)} per day</span>.
+    <ChartDetails
+      title="New Users Details"
+      from={from}
+      to={to}
+      setFrom={setFrom}
+      setTo={setTo}
+      summary={
+        <div className={styles.summary}>
+          <div className={styles.summaryItem}>
+            Between {from.toLocaleString(undefined, dateOptions)} and{' '}
+            {to.toLocaleString(undefined, dateOptions)} there were{' '}
+            <strong>{total} new users</strong> - an average of{' '}
+            <strong>{average.toFixed(2)} per day</strong>.
+          </div>
+          <div className={styles.summaryItem}>
+            The best day was {bestDay[0].toLocaleString(undefined, dateOptions)} with {bestDay[1]}{' '}
+            new users.
+          </div>
+          <div className={styles.summaryItem}>
+            The least-squares regression is{' '}
+            <strong>
+              y = {leastSquaresRegression[0].toFixed(2)}x + {leastSquaresRegression[1].toFixed(2)}
+            </strong>
+            . The root-mean-square deviation is <strong>{error.toFixed(2)}</strong>.
+          </div>
         </div>
-        <div className={styles.summaryItem}>
-          The best day was {bestDay[0].toLocaleString(undefined, dateOptions)} with {bestDay[1]} new
-          users.
-        </div>
-        <div className={styles.summaryItem}>
-          The least-squares regression is{' '}
-          <span className={styles.summaryItemValue}>
-            y = {leastSquaresRegression[0].toFixed(2)}x + {leastSquaresRegression[1].toFixed(2)}
-          </span>
-          . The root-mean-square deviation is{' '}
-          <span className={styles.summaryItemValue}>{error.toFixed(2)}</span>.
-        </div>
-      </div>
-      <div className={styles.tableContainer}>
-        <DashboardTable columnHeaders={tableInfo.columnHeaders} rows={tableInfo.rows} />
-      </div>
-    </div>
+      }
+      table={tableInfo}
+    />
   );
 };

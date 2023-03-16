@@ -5,13 +5,14 @@ import {
   AdminDashboardLargeChartMonthlyItem,
 } from './AdminDashboardLargeChart';
 import '../../assets/fonts.css';
-import styles from './AdminDashboardLargeChartLoader.module.css';
+import detailStyles from './subComponents/ChartDetails.module.css';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/LoginContext';
 import { addModalWithCallbackToRemove, ModalContext } from '../../shared/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
-import { CrudFormElement } from '../crud/CrudFormElement';
 import { AdminDashboardLargeChartPlaceholder } from './AdminDashboardLargeChartPlaceholder';
+import { ChartDetails } from './subComponents/ChartDetails';
+import { DashboardTableProps } from './subComponents/DashboardTable';
 
 const DAILY_CHARTS_ORDER = [
   'dau',
@@ -234,6 +235,13 @@ type RetentionDetailsProps = {
   retentionRate: number[];
 };
 
+const dateOptions: Intl.DateTimeFormatOptions = {
+  timeZone: 'UTC',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+};
+
 const RetentionDetails = ({
   day,
   labels,
@@ -286,79 +294,55 @@ const RetentionDetails = ({
     return unretained.slice(fromIndex, toIndex + 1).reduce((a, b) => a + b, 0);
   }, [fromIndex, toIndex, unretained]);
 
+  const table = useMemo<DashboardTableProps>(() => {
+    return {
+      columnHeaders: ['Date', 'Retained', 'Unretained', 'Retention Rate'],
+      rows: labels.slice(fromIndex, toIndex + 1).map((label, i) => {
+        return [
+          label,
+          retained[fromIndex + i].toString(),
+          unretained[fromIndex + i].toString(),
+          `${(retentionRate[fromIndex + i] * 100).toFixed(2)}%`,
+        ];
+      }),
+    };
+  }, [fromIndex, toIndex, retained, unretained, retentionRate, labels]);
+
   return (
-    <div className={styles.retentionDetailsContainer}>
-      <div className={styles.retentionDetailsTitle}>Details for {day}-day retention</div>
-
-      <div className={styles.retentionDetailsBody}>
-        <CrudFormElement title="From">
-          <input
-            type="date"
-            className={styles.retentionDetailsInput}
-            value={from.toISOString().split('T')[0]}
-            onChange={(e) => setFrom(e.target.valueAsDate ?? new Date(labels[0]))}
-          />
-        </CrudFormElement>
-
-        <CrudFormElement title="To">
-          <input
-            type="date"
-            className={styles.retentionDetailsInput}
-            value={to.toISOString().split('T')[0]}
-            onChange={(e) => setTo(e.target.valueAsDate ?? new Date(labels[labels.length - 1]))}
-          />
-        </CrudFormElement>
-
-        <div className={styles.retentionDetailsSummaryContainer}>
-          <div className={styles.retentionDetailsSummaryTitle}>
-            Between {from.toDateString()} and {to.toDateString()}...
+    <ChartDetails
+      title={`Details for ${day}-day retention`}
+      from={from}
+      to={to}
+      setFrom={setFrom}
+      setTo={setTo}
+      summary={
+        <div className={detailStyles.summary}>
+          <div className={detailStyles.summaryItem}>
+            Between {from.toLocaleString(undefined, dateOptions)} and{' '}
+            {to.toLocaleString(undefined, dateOptions)} there were{' '}
+            <strong>{totalRetained + totalUnretained} new users</strong>
           </div>
-          <div className={styles.retentionDetailsSummaryItem}>
-            {totalRetained + totalUnretained} users signed up
-          </div>
-          <div className={styles.retentionDetailsSummaryItem}>
-            {totalUnretained} users did not take any action more than {day} day
+          <div className={detailStyles.summaryItem}>
+            <strong>{totalUnretained}</strong> users did not take any action more than {day} day
             {day === 1 ? '' : 's'} after sign up
           </div>
-          <div className={styles.retentionDetailsSummaryItem}>
-            {totalRetained} users took at least one action more than {day} day{day === 1 ? '' : 's'}{' '}
-            after sign up
+          <div className={detailStyles.summaryItem}>
+            <strong>{totalRetained}</strong> users took at least one action more than {day} day
+            {day === 1 ? '' : 's'} after sign up
           </div>
-          <div className={styles.retentionDetailsSummaryItem}>
-            {(totalRetained + totalUnretained === 0
-              ? 0
-              : (totalRetained / (totalRetained + totalUnretained)) * 100
-            ).toFixed(2)}
-            % of users took at least one action more than {day} day{day === 1 ? '' : 's'} after sign
-            up
+          <div className={detailStyles.summaryItem}>
+            <strong>
+              {(totalRetained + totalUnretained === 0
+                ? 0
+                : (totalRetained / (totalRetained + totalUnretained)) * 100
+              ).toFixed(2)}
+              % of users
+            </strong>{' '}
+            took at least one action more than {day} day{day === 1 ? '' : 's'} after sign up
           </div>
         </div>
-
-        <div className={styles.retentionDetailsTableContainer}>
-          <table className={styles.retentionDetailsTable}>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Retained</th>
-                <th>Unretained</th>
-                <th>Retention Rate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {labels.slice(fromIndex, toIndex + 1).map((label, index) => {
-                return (
-                  <tr key={label}>
-                    <td>{label}</td>
-                    <td>{retained[fromIndex + index]}</td>
-                    <td>{unretained[fromIndex + index]}</td>
-                    <td>{(retentionRate[fromIndex + index] * 100).toFixed(2)}%</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+      }
+      table={table}
+    />
   );
 };

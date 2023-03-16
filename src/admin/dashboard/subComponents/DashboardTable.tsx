@@ -2,7 +2,7 @@ import { ReactElement, useCallback } from 'react';
 import { Button } from '../../../shared/forms/Button';
 import styles from './DashboardTable.module.css';
 
-type DashboardTableProps = {
+export type DashboardTableProps = {
   columnHeaders: string[];
   rows: string[][];
 };

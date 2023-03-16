@@ -52,10 +52,24 @@
   color: #160808;
 }
 
-.summaryItemValue {
+.summaryItem strong {
   font-weight: 400;
 }
 
 .tableContainer {
   width: 100%;
+}
+
+@media screen and (min-width: 991px) {
+  .dateRange {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .dateRange > * {
+    flex: 1 1 auto;
+  }
 }
