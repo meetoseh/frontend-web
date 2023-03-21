@@ -1,20 +1,66 @@
 import { Journey } from './Journey';
 import styles from './CompactJourney.module.css';
 import { OsehImage } from '../../shared/OsehImage';
-import { ReactElement } from 'react';
+import { ReactElement, useContext, useState, useEffect } from 'react';
+import { LoginContext } from '../../shared/LoginContext';
+import { apiFetch } from '../../shared/ApiConstants';
 
 type CompactJourneyProps = {
   /**
    * The journey to show
    */
   journey: Journey;
+
+  /**
+   * If set to true, this component will fetch and include how many views the journey
+   * has
+   */
+  showViews?: boolean;
 };
 
 /**
  * Shows a journey in a very compact, non-block format. This typically renders as a single
  * line if given at least 250px of width, and is 90px tall in that case.
  */
-export const CompactJourney = ({ journey }: CompactJourneyProps): ReactElement => {
+export const CompactJourney = ({ journey, showViews }: CompactJourneyProps): ReactElement => {
+  const loginContext = useContext(LoginContext);
+  const [views, setViews] = useState<{ journeyUid: string; count: number } | undefined>(undefined);
+
+  useEffect(() => {
+    if (!showViews || views?.journeyUid === journey.uid || loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    let active = true;
+    fetchViews();
+    return () => {
+      active = false;
+    };
+
+    async function fetchViews() {
+      const response = await apiFetch(
+        '/api/1/admin/journey_views?' +
+          new URLSearchParams({ journey_uid: journey.uid }).toString(),
+        {
+          method: 'GET',
+        },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      if (active) {
+        setViews({
+          journeyUid: journey.uid,
+          count: data.views,
+        });
+      }
+    }
+  }, [loginContext, journey.uid, showViews, views]);
+
   return (
     <div className={styles.container}>
       <div className={styles.journeyIconContainer}>
@@ -42,6 +88,12 @@ export const CompactJourney = ({ journey }: CompactJourneyProps): ReactElement =
         )}
 
         <div className={styles.journeyInstructorNameContainer}>{journey.instructor.name}</div>
+
+        {views?.journeyUid === journey.uid && (
+          <div className={styles.journeyViewsContainer}>
+            {views.count} {views.count === 1 ? 'view' : 'views'}
+          </div>
+        )}
       </div>
     </div>
   );

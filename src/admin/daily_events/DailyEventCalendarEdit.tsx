@@ -309,7 +309,7 @@ export const DailyEventCalendarEdit = ({
                   return (
                     <div className={styles.journeyContainer} key={journey.uid}>
                       <div className={styles.journey}>
-                        <CompactJourney journey={journey} />
+                        <CompactJourney journey={journey} showViews />
                       </div>
                       <div className={styles.journeyRemoveButtonContainer}>
                         <Button

@@ -32,3 +32,15 @@
   align-items: center;
   justify-content: center;
 }
+
+.journeyViewsContainer {
+  margin-left: 0.25em;
+}
+
+.journeyViewsContainer::before {
+  content: '(';
+}
+
+.journeyViewsContainer::after {
+  content: ')';
+}
