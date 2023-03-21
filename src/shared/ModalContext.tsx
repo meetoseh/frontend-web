@@ -1,4 +1,11 @@
-import { createContext, Dispatch, ReactElement, SetStateAction, useState } from 'react';
+import {
+  createContext,
+  Dispatch,
+  PropsWithChildren,
+  ReactElement,
+  SetStateAction,
+  useState,
+} from 'react';
 
 export type Modals = { key: string; element: ReactElement }[];
 
@@ -26,7 +33,7 @@ export const ModalContext = createContext<ModalContextValue>({ modals: [], setMo
  * Provides a ModalContext to the children. The modals are placed at the end of
  * of the children, so this should be a fairly high-level component.
  */
-export const ModalProvider = ({ children }: { children: ReactElement }): ReactElement => {
+export const ModalProvider = ({ children }: PropsWithChildren<object>): ReactElement => {
   const [modals, setModals] = useState<Modals>([]);
   return (
     <ModalContext.Provider value={{ modals, setModals }}>

@@ -13,6 +13,7 @@ import {
 } from './models/RedeemedUserDailyEventInvite';
 import styles from './HandleDailyEventUserInviteScreen.module.css';
 import { OsehImageFromState, useOsehImageState } from '../../shared/OsehImage';
+import { useVisitor } from '../../shared/hooks/useVisitor';
 
 /**
  * This screen will redirect to the home screen unless at the invite
@@ -59,10 +60,18 @@ const Inner = ({ code }: { code: string }): ReactElement => {
   const imageState = useOsehImageState(imageProps);
   const [redeemed, setRedeemed] = useState<RedeemedUserDailyEventInvite | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
+  const [wantToReturnHome, setWantToReturnHome] = useState(false);
+  const visitor = useVisitor();
 
   const returnToHome = useCallback(() => {
-    window.location.href = '/';
+    setWantToReturnHome(true);
   }, []);
+
+  useEffect(() => {
+    if (!visitor.loading && wantToReturnHome) {
+      window.location.href = '/';
+    }
+  }, [visitor.loading, wantToReturnHome]);
 
   useEffect(() => {
     let active = true;
@@ -138,6 +147,9 @@ const Inner = ({ code }: { code: string }): ReactElement => {
   }
   if (redeemed === null) {
     return <SplashScreen type="wordmark" />;
+  }
+  if (wantToReturnHome) {
+    return <SplashScreen type="brandmark" />;
   }
 
   return (

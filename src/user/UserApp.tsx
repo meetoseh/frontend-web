@@ -15,10 +15,12 @@ import { convertUsingKeymap } from '../admin/crud/CrudFetcher';
 import { JourneyRouter } from './journey/JourneyRouter';
 import { RequestPhoneForm } from './login/RequestPhoneForm';
 import { RequestNotificationTimeForm } from './login/RequestNotificationTimeForm';
+import { VisitorHandler } from '../shared/hooks/useVisitor';
 
 export default function UserApp(): ReactElement {
   return (
     <LoginProvider>
+      <VisitorHandler />
       <ModalProvider>
         <FullscreenProvider>
           <UserAppInner />

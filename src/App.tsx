@@ -17,6 +17,7 @@ import { ModalProvider } from './shared/ModalContext';
 import { SplashScreen } from './user/splash/SplashScreen';
 import { HandleDailyEventUserInviteScreen } from './user/referral/HandleDailyEventUserInviteScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
+import { VisitorHandler } from './shared/hooks/useVisitor';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -84,6 +85,7 @@ function App() {
           element={
             <LoginProvider>
               <OsehPlusUpgradePrompt setLoaded={() => {}} />
+              <VisitorHandler />
             </LoginProvider>
           }
         />
@@ -91,6 +93,7 @@ function App() {
           path="/settings"
           element={
             <LoginProvider>
+              <VisitorHandler />
               <ModalProvider>
                 <Settings />
               </ModalProvider>
@@ -100,11 +103,51 @@ function App() {
         <Route path="/admin" element={<AdminApp />}>
           {AdminRoutes()}
         </Route>
-        <Route path="/dev_login" element={<TestLogin />} />
-        <Route path="/login" element={<LoginApp redirectUrl="/" />} />
-        <Route path="/connectivity" element={<ConnectivityScreen />} />
-        <Route path="/splash" element={<SplashScreen />} />
-        <Route path="/splash-alt" element={<SplashScreen type="wordmark" />} />
+        <Route
+          path="/dev_login"
+          element={
+            <LoginProvider>
+              <VisitorHandler />
+              <TestLogin />
+            </LoginProvider>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <LoginProvider>
+              <VisitorHandler />
+              <LoginApp redirectUrl="/" />
+            </LoginProvider>
+          }
+        />
+        <Route
+          path="/connectivity"
+          element={
+            <LoginProvider>
+              <VisitorHandler />
+              <ConnectivityScreen />
+            </LoginProvider>
+          }
+        />
+        <Route
+          path="/splash"
+          element={
+            <LoginProvider>
+              <VisitorHandler />
+              <SplashScreen />
+            </LoginProvider>
+          }
+        />
+        <Route
+          path="/splash-alt"
+          element={
+            <LoginProvider>
+              <VisitorHandler />
+              <SplashScreen type="wordmark" />
+            </LoginProvider>
+          }
+        />
         <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />
       </Routes>
     </BrowserRouter>
