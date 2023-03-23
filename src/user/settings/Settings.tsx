@@ -15,6 +15,7 @@ import { apiFetch } from '../../shared/ApiConstants';
 import { NewUserDailyEventInvite } from '../referral/models/NewUserDailyEventInvite';
 import { getDailyEventInvite } from '../referral/lib/getDailyEventInvite';
 import { InviteFallbackPrompt } from '../referral/InviteFallbackPrompt';
+import { SplashScreen } from '../splash/SplashScreen';
 
 /**
  * Shows a basic settings screen for the user. Requires a login context and a modal
@@ -29,7 +30,7 @@ export const Settings = () => {
   const [showDeleteConfirmGooglePrompt, setShowDeleteConfirmGooglePrompt] = useState(false);
   const [showDeleteConfirmStripePrompt, setShowDeleteConfirmStripePrompt] = useState(false);
   const [showDeleteConfirmPromoPrompt, setShowDeleteConfirmPromoPrompt] = useState(false);
-  const [havePro, setHavePro] = useState(false);
+  const [havePro, setHavePro] = useState<boolean | null>(null);
   const [showCancelInitialPrompt, setShowCancelInitialPrompt] = useState(false);
   const [showCancelApplePrompt, setShowCancelApplePrompt] = useState(false);
   const [showCancelPromoPrompt, setShowCancelPromoPrompt] = useState(false);
@@ -594,8 +595,13 @@ export const Settings = () => {
     }
   }, [loginContext]);
 
+  if (error === null && havePro === null) {
+    return <SplashScreen />;
+  }
+
   return (
     <div className={styles.container} style={{ minHeight: `${windowSize.height}px` }}>
+      {error && <ErrorBlock>{error}</ErrorBlock>}
       <div className={styles.closeButtonContainer}>
         <div className={styles.closeButtonInnerContainer}>
           <a href="/" className={styles.close}>
