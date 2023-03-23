@@ -9,6 +9,7 @@ import { AdminDashboardNotificationSettingsBlocksLoader } from './AdminDashboard
 import { useNewUsersChart } from './hooks/useNewUsersChart';
 import { AdminDashboardSecondLargeChartLoader } from './AdminDashboardSecondLargeChartLoader';
 import { AdminDashboardUTMConversionStatsTable } from './AdminDashboardUTMConversionStatsTable';
+import { AdminDashboardViewStatsTable } from './AdminDashboardViewStatsTable';
 
 export const AdminDashboard = (): ReactElement => {
   const newUsersChart = useNewUsersChart();
@@ -56,6 +57,9 @@ export const AdminDashboard = (): ReactElement => {
       </div>
       <div className={styles.centerContainer}>
         <AdminDashboardUTMConversionStatsTable />
+      </div>
+      <div className={styles.centerContainer}>
+        <AdminDashboardViewStatsTable />
       </div>
     </div>
   );

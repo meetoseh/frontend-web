@@ -4,13 +4,14 @@ import styles from './DashboardTable.module.css';
 
 export type DashboardTableProps = {
   columnHeaders: string[];
-  rows: string[][];
+  rows: (string | { csv: string; display: ReactElement })[][];
 };
 
 /**
  * Quotes the given string for CSV, using RFC 4180
  */
-const quoteForCsv = (value: string): string => {
+const quoteForCsv = (item: string | { csv: string; display: ReactElement }): string => {
+  const value = typeof item === 'string' ? item : item.csv;
   let result = '"';
   let insertedUpToExc = 0;
 
@@ -65,7 +66,7 @@ export const DashboardTable = ({ columnHeaders, rows }: DashboardTableProps): Re
           {rows.map((row, index) => (
             <tr key={index}>
               {row.map((cell, index) => (
-                <td key={index}>{cell}</td>
+                <td key={index}>{typeof cell === 'string' ? cell : cell.display}</td>
               ))}
             </tr>
           ))}
