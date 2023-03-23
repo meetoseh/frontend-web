@@ -281,6 +281,12 @@ const isTokenFresh = (token: TokenResponseConfig): boolean => {
   const claimsBase64 = token.idToken.split('.')[1];
   const claimsJson = Buffer.from(claimsBase64, 'base64').toString('utf8');
   const claims = JSON.parse(claimsJson);
+
+  if (claims.iat <= 1679589900) {
+    // tokens with an iat at or below this time were revoked
+    return false;
+  }
+
   return claims.exp * 1000 > minExpTime;
 };
 
@@ -303,6 +309,11 @@ const isRefreshable = (token: TokenResponseConfig): boolean => {
   const refreshClaimsBase64 = token.refreshToken.split('.')[1];
   const refreshClaimsJson = Buffer.from(refreshClaimsBase64, 'base64').toString('utf8');
   const refreshClaims = JSON.parse(refreshClaimsJson);
+
+  if (refreshClaims.iat <= 1679589900) {
+    // tokens with an iat at or below this time were revoked
+    return false;
+  }
 
   const refreshable =
     refreshClaims.exp * 1000 > minExpTime &&
