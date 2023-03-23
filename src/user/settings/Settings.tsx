@@ -301,6 +301,10 @@ export const Settings = () => {
       active = false;
     };
     async function fetchHavePro() {
+      if (loginContext.state === 'loading') {
+        return;
+      }
+
       if (loginContext.state !== 'logged-in') {
         setHavePro(false);
         return;
