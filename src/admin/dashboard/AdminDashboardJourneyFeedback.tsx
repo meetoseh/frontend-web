@@ -71,7 +71,9 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [showingPlaceholder, setShowingPlaceholder] = useState(true);
   const [error, setError] = useState<ReactElement | null>(null);
-  const [date, setDate] = useState(() => new Date(dateToLocaleISODateString(new Date())));
+  const [date, setDate] = useState(
+    () => new Date(dateToLocaleISODateString(new Date(Date.now() - 86400000)))
+  );
   const [data, setData] = useState<Response | null>(null);
   const [tableProps, setTableProps] = useState<{ journey: Journey; table: DashboardTableProps }[]>(
     []
