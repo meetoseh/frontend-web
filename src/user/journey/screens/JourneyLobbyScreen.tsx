@@ -1,4 +1,4 @@
-import { MutableRefObject, ReactElement, useCallback, useContext, useRef } from 'react';
+import { ReactElement, useCallback, useContext, useRef } from 'react';
 import { LoginContext } from '../../../shared/LoginContext';
 import { OsehImageFromState } from '../../../shared/OsehImage';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';

@@ -20,6 +20,13 @@
       "comment": "used for mobile login screen",
       "source": "server_images/login-face-darkened.jpeg",
       "resolutions": "full-bleed"
+    },
+    {
+      "uid": "oseh_if_0ykGW_WatP5-mh-0HRsrNw",
+      "name": "abstract-darkened",
+      "comment": "used for some public interactive prompts, e.g., daily goal",
+      "source": "server_images/oseh_abstract_darken15.jpeg",
+      "resolutions": "full-bleed"
     }
   ]
 }

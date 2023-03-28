@@ -16,6 +16,8 @@ import { JourneyRouter } from './journey/JourneyRouter';
 import { RequestPhoneForm } from './login/RequestPhoneForm';
 import { RequestNotificationTimeForm } from './login/RequestNotificationTimeForm';
 import { VisitorHandler } from '../shared/hooks/useVisitor';
+import { dateToLocaleISODateString } from '../shared/lib/dateToLocaleISODateString';
+import { DailyGoalPrompt } from './daily_goal/DailyGoalPrompt';
 
 export default function UserApp(): ReactElement {
   return (
@@ -43,12 +45,14 @@ const UserAppInner = (): ReactElement => {
   const [desiredState, setDesiredState] = useState<'current-daily-event' | 'onboard' | 'journey'>(
     'current-daily-event'
   );
+  const [needPromptDailyGoal, setNeedPromptDailyGoal] = useState(false);
   const [needRequestName, setNeedRequestName] = useState(false);
   const [needRequestPhone, setNeedRequestPhone] = useState(false);
   const [needRequestNotificationTime, setNeedRequestNotificationTime] = useState(false);
   const [state, setState] = useState<
     | 'loading'
     | 'current-daily-event'
+    | 'request-daily-goal'
     | 'request-name'
     | 'request-phone'
     | 'request-notification-time'
@@ -62,6 +66,7 @@ const UserAppInner = (): ReactElement => {
   const [journeyIsOnboarding, setJourneyIsOnboarding] = useState(false);
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
   const [requestPhoneLoaded, setRequestPhoneLoaded] = useState(false);
+  const [requestDailyGoalLoaded, setRequestDailyGoalLoaded] = useState(false);
   const [requestNotificationTimeLoaded, setRequestNotificationTimeLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
 
@@ -135,6 +140,31 @@ const UserAppInner = (): ReactElement => {
       }
     };
   });
+
+  useEffect(() => {
+    let lastPromptRaw = localStorage.getItem('last-prompt-daily-goal');
+    if (lastPromptRaw === null) {
+      setNeedPromptDailyGoal(true);
+      return;
+    }
+
+    const lastPrompt: { sub: string; at: number; response: string | null } =
+      JSON.parse(lastPromptRaw);
+    if (lastPrompt.sub !== loginContext.userAttributes?.sub) {
+      setNeedPromptDailyGoal(true);
+      return;
+    }
+
+    const currentDate = dateToLocaleISODateString(new Date());
+    const lastPromptDate = dateToLocaleISODateString(new Date(lastPrompt.at));
+
+    if (currentDate !== lastPromptDate) {
+      setNeedPromptDailyGoal(true);
+      return;
+    }
+
+    setNeedPromptDailyGoal(false);
+  }, [loginContext]);
 
   useEffect(() => {
     setNeedRequestName(
@@ -281,6 +311,15 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
+    if (needPromptDailyGoal) {
+      if (!requestDailyGoalLoaded) {
+        setState('loading');
+      } else {
+        setState('request-daily-goal');
+      }
+      return;
+    }
+
     if (needRequestPhone) {
       if (!requestPhoneLoaded) {
         setState('loading');
@@ -327,6 +366,8 @@ const UserAppInner = (): ReactElement => {
     requestPhoneLoaded,
     needRequestNotificationTime,
     requestNotificationTimeLoaded,
+    needPromptDailyGoal,
+    requestDailyGoalLoaded,
   ]);
 
   useEffect(() => {
@@ -381,12 +422,38 @@ const UserAppInner = (): ReactElement => {
     setNeedRequestNotificationTime(false);
   }, [loginContext.userAttributes]);
 
+  const onDailyGoalPromptLoaded = useCallback(() => {
+    setRequestDailyGoalLoaded(true);
+  }, []);
+
+  const onDailyGoalPromptFinished = useCallback(
+    (response: string | null) => {
+      const data: { sub: string; at: number; response: string | null } = {
+        sub: loginContext.userAttributes?.sub || 'not-applicable',
+        at: Date.now(),
+        response,
+      };
+
+      localStorage.setItem('last-prompt-daily-goal', JSON.stringify(data));
+      setNeedPromptDailyGoal(false);
+    },
+    [loginContext.userAttributes?.sub]
+  );
+
   return (
     <div className={styles.container}>
       {state === 'loading' && !flashWhiteInsteadOfSplash ? (
         <SplashScreen type={desiredState === 'current-daily-event' ? 'wordmark' : 'brandmark'} />
       ) : null}
       {state === 'login' ? <LoginApp /> : null}
+      {needPromptDailyGoal ? (
+        <div className={state !== 'request-daily-goal' ? styles.displayNone : ''}>
+          <DailyGoalPrompt
+            onLoaded={onDailyGoalPromptLoaded}
+            onFinished={onDailyGoalPromptFinished}
+          />
+        </div>
+      ) : null}
       {needRequestName ? (
         <div className={state !== 'request-name' ? styles.displayNone : ''}>
           <RequestNameForm setLoaded={setRequestNameLoaded} />
