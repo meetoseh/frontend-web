@@ -1,10 +1,12 @@
 import { ReactElement, useCallback, useEffect, useState } from 'react';
 import '../../assets/fonts.css';
 import styles from './LoginApp.module.css';
+import assistiveStyles from '../../shared/assistive.module.css';
 import { SplashScreen } from '../splash/SplashScreen';
 import { HTTP_API_URL } from '../../shared/ApiConstants';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/OsehImage';
+import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -32,6 +34,7 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
   const windowSize = useWindowSize();
   const [googleUrl, setGoogleUrl] = useState<string | null>(null);
   const [appleUrl, setAppleUrl] = useState<string | null>(null);
+  const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
 
   const getProviderUrl = useCallback(async (provider: string): Promise<string> => {
     if (isDevelopment) {
@@ -105,7 +108,11 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
     <div className={styles.container}>
       <div className={styles.imageContainer}>
         <OsehImage
-          uid="oseh_if_hH68hcmVBYHanoivLMgstg"
+          uid={
+            windowSize.width < 450
+              ? 'oseh_if_ds8R1NIo4ch3pD7vBRT2cg'
+              : 'oseh_if_hH68hcmVBYHanoivLMgstg'
+          }
           jwt={null}
           displayWidth={windowSize.width}
           displayHeight={windowSize.height}
@@ -114,27 +121,32 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
         />
       </div>
       <div className={styles.innerContainer}>
-        <div className={styles.primaryContainer}>
-          <div className={styles.title}>
-            Sign in with
-            <br />
-            your social account
+        <div
+          className={styles.primaryContainer}
+          style={windowSize.width < 450 ? fullHeightStyle : undefined}>
+          <div className={styles.logoAndInfoContainer}>
+            <div className={styles.logoContainer}>
+              <div className={styles.logo} />
+              <div className={assistiveStyles.srOnly}>Oseh</div>
+            </div>
+            <div className={styles.info}>
+              It&rsquo;s time to create a daily mindfulness habit and we are here for it.
+            </div>
           </div>
-          <div className={styles.signInWithGoogleContainer}>
-            <a className={styles.signInWithGoogle} href={googleUrl}>
-              <span className={styles.signInWithGoogleIcon}></span>
-              <span className={styles.signInWithGoogleText}>Continue with Google</span>
-            </a>
+          <div className={styles.signinsContainer}>
+            <div className={styles.signInWithGoogleContainer}>
+              <a className={styles.signInWithGoogle} href={googleUrl}>
+                <span className={styles.signInWithGoogleIcon}></span>
+                <span className={styles.signInWithGoogleText}>Continue with Google</span>
+              </a>
+            </div>
+            <div className={styles.signInWithAppleContainer}>
+              <a className={styles.signInWithApple} href={appleUrl}>
+                <span className={styles.signInWithAppleIcon}></span>
+                <span className={styles.signInWithAppleText}>Continue with Apple</span>
+              </a>
+            </div>
           </div>
-          <div className={styles.signInWithAppleContainer}>
-            <a className={styles.signInWithApple} href={appleUrl}>
-              <span className={styles.signInWithAppleIcon}></span>
-              <span className={styles.signInWithAppleText}>Continue with Apple</span>
-            </a>
-          </div>
-        </div>
-        <div className={styles.legalText}>
-          We won't post to any of your accounts without asking first.
         </div>
       </div>
     </div>
