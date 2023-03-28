@@ -9,6 +9,7 @@ import styles from './RequestPhoneForm.module.css';
 import '../../assets/fonts.css';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useTimezone } from '../../shared/hooks/useTimezone';
+import { combineClasses } from '../../shared/lib/combineClasses';
 
 type RequestPhoneFormProps = {
   /**
@@ -40,7 +41,7 @@ export const RequestPhoneForm = ({
 }: RequestPhoneFormProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const windowSize = useWindowSize();
-  const [step, setStep] = useState<'number' | 'verify'>('number');
+  const [step, setStep] = useState<'number' | 'verify' | 'reward'>('number');
   const [phone, setPhone] = useState('');
   const receiveNotifs = true;
   const [error, setError] = useState<ReactElement | null>(null);
@@ -204,7 +205,7 @@ export const RequestPhoneForm = ({
           ...loginContext.userAttributes!,
           phoneNumber: phone.replaceAll(/ - /g, ''),
         });
-        onFinished(receiveNotifs);
+        setStep('reward');
       } catch (e) {
         console.error(e);
         const err = await describeError(e);
@@ -213,7 +214,15 @@ export const RequestPhoneForm = ({
         setSaving(false);
       }
     },
-    [loginContext, code, phone, verificationUid, onFinished, receiveNotifs]
+    [loginContext, code, phone, verificationUid]
+  );
+
+  const onRewardFinish = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      onFinished(receiveNotifs);
+    },
+    [onFinished, receiveNotifs]
   );
 
   const onSkipPhone = useCallback(
@@ -232,7 +241,7 @@ export const RequestPhoneForm = ({
   }, []);
 
   return (
-    <div className={styles.container}>
+    <div className={combineClasses(styles.container, styles[`container-${step}`])}>
       <div className={styles.imageContainer}>
         <OsehImage
           uid="oseh_if_hH68hcmVBYHanoivLMgstg"
@@ -339,6 +348,23 @@ export const RequestPhoneForm = ({
                 </Button>
               </div>
             </form>
+          </>
+        )}
+        {step === 'reward' && (
+          <>
+            <div className={styles.rewardTitle}>
+              Awesome! You&rsquo;re one step closer to creating a mindfulness habit.
+            </div>
+            {/* https://www.jneurosci.org/content/31/14/5540 */}
+            <div className={styles.rewardFact}>
+              Mindfulness has been associated with the perceived reduction of pain in participants
+              by upwards of 50%.
+            </div>
+            <div className={styles.submitContainer}>
+              <Button type="button" fullWidth onClick={onRewardFinish}>
+                Let&rsquo;s Go
+              </Button>
+            </div>
           </>
         )}
       </div>
