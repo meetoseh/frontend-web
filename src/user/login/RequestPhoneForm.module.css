@@ -128,7 +128,8 @@
     padding-bottom: 32px;
   }
 
-  .container-reward {
+  .container-reward,
+  .container-verify {
     justify-content: center;
   }
 }

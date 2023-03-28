@@ -28,6 +28,12 @@ type RequestPhoneFormProps = {
    * call also monitor the userAttributes.phoneNumber attribute for changes.
    */
   onFinished: (requestedNotifications: boolean) => void;
+
+  /**
+   * If set to false, the final button is disabled, preventing the
+   * user from finishing the form.
+   */
+  readyToFinish?: boolean;
 };
 
 /**
@@ -38,6 +44,7 @@ export const RequestPhoneForm = ({
   setLoaded,
   onSkipped,
   onFinished,
+  readyToFinish,
 }: RequestPhoneFormProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const windowSize = useWindowSize();
@@ -361,7 +368,11 @@ export const RequestPhoneForm = ({
               by upwards of 50%.
             </div>
             <div className={styles.submitContainer}>
-              <Button type="button" fullWidth onClick={onRewardFinish}>
+              <Button
+                type="button"
+                fullWidth
+                onClick={onRewardFinish}
+                disabled={readyToFinish === false}>
                 Let&rsquo;s Go
               </Button>
             </div>

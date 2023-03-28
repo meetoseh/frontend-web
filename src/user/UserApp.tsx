@@ -18,6 +18,8 @@ import { RequestNotificationTimeForm } from './login/RequestNotificationTimeForm
 import { VisitorHandler } from '../shared/hooks/useVisitor';
 import { dateToLocaleISODateString } from '../shared/lib/dateToLocaleISODateString';
 import { DailyGoalPrompt } from './daily_goal/DailyGoalPrompt';
+import { OnboardingJourney } from './login/OnboardingJourney';
+import { OnboardingFinished } from './login/OnboardingFinished';
 
 export default function UserApp(): ReactElement {
   return (
@@ -42,13 +44,15 @@ const requiredFonts = [
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const fullscreenContext = useContext(FullscreenContext);
-  const [desiredState, setDesiredState] = useState<'current-daily-event' | 'onboard' | 'journey'>(
-    'current-daily-event'
-  );
+  const [desiredState, setDesiredState] = useState<
+    'current-daily-event' | 'onboard' | 'journey' | 'onboarding-finished'
+  >('current-daily-event');
   const [needPromptDailyGoal, setNeedPromptDailyGoal] = useState(false);
   const [needRequestName, setNeedRequestName] = useState(false);
   const [needRequestPhone, setNeedRequestPhone] = useState(false);
-  const [needRequestNotificationTime, setNeedRequestNotificationTime] = useState(false);
+  const [needRequestNotificationTime, setNeedRequestNotificationTime] = useState<boolean | null>(
+    null
+  );
   const [state, setState] = useState<
     | 'loading'
     | 'current-daily-event'
@@ -58,12 +62,16 @@ const UserAppInner = (): ReactElement => {
     | 'request-notification-time'
     | 'login'
     | 'journey'
+    | 'onboarding-finished'
   >('loading');
   const fontsLoaded = useFonts(requiredFonts);
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
   const [currentDailyEventLoaded, setCurrentDailyEventLoaded] = useState(false);
   const [journey, setJourney] = useState<JourneyRef | null>(null);
   const [journeyIsOnboarding, setJourneyIsOnboarding] = useState(false);
+  const [playOnboardingJourney, setPlayOnboardingJourney] = useState<(() => Promise<void>) | null>(
+    null
+  );
   const [requestNameLoaded, setRequestNameLoaded] = useState(false);
   const [requestPhoneLoaded, setRequestPhoneLoaded] = useState(false);
   const [requestDailyGoalLoaded, setRequestDailyGoalLoaded] = useState(false);
@@ -329,6 +337,11 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
+    if (needRequestNotificationTime === null) {
+      setState('loading');
+      return;
+    }
+
     if (needRequestNotificationTime) {
       if (!requestNotificationTimeLoaded) {
         setState('loading');
@@ -404,16 +417,27 @@ const UserAppInner = (): ReactElement => {
       localStorage.setItem('skip-request-phone', loginContext.userAttributes.sub);
     }
     setNeedRequestPhone(false);
-  }, [loginContext.userAttributes]);
 
-  const onRequestPhoneFinished = useCallback((receiveNotifs: boolean) => {
-    if (receiveNotifs) {
-      localStorage.removeItem('handled-request-notification-time');
-      setNeedRequestNotificationTime(true);
+    if (desiredState === 'journey' && journeyIsOnboarding && playOnboardingJourney !== null) {
+      playOnboardingJourney();
     }
+  }, [loginContext.userAttributes, desiredState, journeyIsOnboarding, playOnboardingJourney]);
 
-    setNeedRequestPhone(false);
-  }, []);
+  const onRequestPhoneFinished = useCallback(
+    (receiveNotifs: boolean) => {
+      if (receiveNotifs) {
+        localStorage.removeItem('handled-request-notification-time');
+        setNeedRequestNotificationTime(true);
+      }
+
+      setNeedRequestPhone(false);
+
+      if (desiredState === 'journey' && journeyIsOnboarding && playOnboardingJourney !== null) {
+        playOnboardingJourney();
+      }
+    },
+    [desiredState, journeyIsOnboarding, playOnboardingJourney]
+  );
 
   const onRequestNotificationTimeFinished = useCallback(() => {
     if (loginContext.userAttributes) {
@@ -440,6 +464,31 @@ const UserAppInner = (): ReactElement => {
     [loginContext.userAttributes?.sub]
   );
 
+  const onOnboardingJourneyLoaded = useCallback((play: () => Promise<void>) => {
+    setPlayOnboardingJourney(() => play);
+  }, []);
+
+  const onOnboardingJourneyFinished = useCallback(() => {
+    localStorage.removeItem('onboard');
+
+    setJourney(null);
+    setJourneyIsOnboarding(false);
+    setDesiredState('onboarding-finished');
+
+    setPlayOnboardingJourney(null);
+    localStorage.removeItem('skip-request-phone');
+    if (!loginContext.userAttributes?.phoneNumber) {
+      setNeedRequestPhone(true);
+    } else {
+      localStorage.removeItem('handled-request-notification-time');
+      setNeedRequestNotificationTime(null);
+    }
+  }, [loginContext.userAttributes?.phoneNumber]);
+
+  const onOnboardingFinished = useCallback(() => {
+    setDesiredState('current-daily-event');
+  }, []);
+
   return (
     <div className={styles.container}>
       {state === 'loading' && !flashWhiteInsteadOfSplash ? (
@@ -465,6 +514,10 @@ const UserAppInner = (): ReactElement => {
             setLoaded={setRequestPhoneLoaded}
             onSkipped={onRequestPhoneSkipped}
             onFinished={onRequestPhoneFinished}
+            readyToFinish={
+              desiredState !== 'onboard' &&
+              (desiredState !== 'journey' || !journeyIsOnboarding || playOnboardingJourney !== null)
+            }
           />
         </div>
       ) : null}
@@ -485,12 +538,26 @@ const UserAppInner = (): ReactElement => {
           />
         </div>
       ) : null}
-      {state === 'journey' && journey !== null ? (
+      {state === 'journey' && journey !== null && !journeyIsOnboarding ? (
         <JourneyRouter
           journey={journey}
           onFinished={onJourneyPostFinished}
           isOnboarding={journeyIsOnboarding}
         />
+      ) : null}
+      {journey !== null && journeyIsOnboarding ? (
+        <div className={state !== 'journey' ? styles.displayNone : ''}>
+          <OnboardingJourney
+            journey={journey}
+            onLoaded={onOnboardingJourneyLoaded}
+            onFinished={onOnboardingJourneyFinished}
+          />
+        </div>
+      ) : null}
+      {desiredState === 'onboarding-finished' ? (
+        <div className={state !== 'onboarding-finished' ? styles.displayNone : ''}>
+          <OnboardingFinished onFinished={onOnboardingFinished} />
+        </div>
       ) : null}
     </div>
   );
