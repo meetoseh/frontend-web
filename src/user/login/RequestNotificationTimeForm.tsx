@@ -1,16 +1,12 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
+import { usePublicInteractivePrompt } from '../../shared/hooks/usePublicInteractivePrompt';
 import { useTimezone } from '../../shared/hooks/useTimezone';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { LoginContext } from '../../shared/LoginContext';
 import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../shared/OsehImage';
 import { InteractivePromptRouter } from '../interactive_prompt/components/InteractivePromptRouter';
-import {
-  InteractivePrompt,
-  interactivePromptKeyMap,
-} from '../interactive_prompt/models/InteractivePrompt';
 import styles from './RequestNotificationTimeForm.module.css';
 
 type RequestNotificationTimeFormProps = {
@@ -29,7 +25,7 @@ export const RequestNotificationTimeForm = ({
   showing,
 }: RequestNotificationTimeFormProps): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const [prompt, setPrompt] = useState<InteractivePrompt | null>(null);
+  const publicPrompt = usePublicInteractivePrompt({ identifier: 'notification-time' });
   const [answer, setAnswer] = useState<'morning' | 'afternoon' | 'evening' | 'any'>('any');
   const windowSize = useWindowSize();
   const timezone = useTimezone();
@@ -48,52 +44,15 @@ export const RequestNotificationTimeForm = ({
   const leavingCallback = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (loginContext.state !== 'logged-in' || prompt !== null) {
-      return;
+    if (publicPrompt.error !== null) {
+      onDone();
     }
-
-    let active = true;
-    fetchPrompt();
-    return () => {
-      active = false;
-    };
-
-    async function fetchPromptInner() {
-      const response = await apiFetch(
-        '/api/1/users/me/start_notification_time_prompt',
-        {
-          method: 'POST',
-        },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const body = await response.json();
-      const prompt = convertUsingKeymap(body, interactivePromptKeyMap);
-      if (active) {
-        setPrompt(prompt);
-      }
-    }
-
-    async function fetchPrompt() {
-      try {
-        await fetchPromptInner();
-      } catch (e) {
-        if (active) {
-          console.log('Error fetching prompt: ', e);
-          onDone();
-        }
-      }
-    }
-  }, [loginContext, prompt, onDone]);
+  }, [publicPrompt.error, onDone]);
 
   useEffect(() => {
-    const ready = prompt !== null && !imageState.loading;
+    const ready = !publicPrompt.loading && !imageState.loading;
     setLoaded(ready);
-  }, [prompt, imageState.loading, setLoaded]);
+  }, [publicPrompt, imageState.loading, setLoaded]);
 
   const onWordPromptResponse = useCallback((answer: string) => {
     if (answer === 'Morning') {
@@ -149,9 +108,9 @@ export const RequestNotificationTimeForm = ({
         <OsehImageFromState {...imageState} />
       </div>
       <div className={styles.contentContainer}>
-        {prompt && (
+        {publicPrompt.prompt !== null && (
           <InteractivePromptRouter
-            prompt={prompt}
+            prompt={publicPrompt.prompt}
             onFinished={handleDone}
             onWordPromptResponse={onWordPromptResponse}
             paused={!showing}
