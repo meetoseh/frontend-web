@@ -1,5 +1,4 @@
 import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '../../shared/forms/Button';
 import { usePublicInteractivePrompt } from '../../shared/hooks/usePublicInteractivePrompt';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImageFromState } from '../../shared/OsehImage';
@@ -56,7 +55,6 @@ export const OnboardingJourney = ({
     };
   }, [windowSize.width, windowSize.height]);
   const leavingCallback = useRef<(() => void) | null>(null);
-  const [followupPromptResponse, setFollowupPromptResponse] = useState<string | null>(null);
 
   const onFinished = useCallback(() => {
     leavingCallback.current?.();
@@ -118,7 +116,6 @@ export const OnboardingJourney = ({
           <InteractivePromptRouter
             prompt={followupPrompt.prompt}
             onFinished={onFinished}
-            onWordPromptResponse={setFollowupPromptResponse}
             paused={!finishedAudio}
             leavingCallback={leavingCallback}
             finishEarly

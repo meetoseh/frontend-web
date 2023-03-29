@@ -1,6 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
-import { Button } from '../../shared/forms/Button';
 import { usePublicInteractivePrompt } from '../../shared/hooks/usePublicInteractivePrompt';
 import { useTimezone } from '../../shared/hooks/useTimezone';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
@@ -96,11 +95,6 @@ export const RequestNotificationTimeForm = ({
     );
     onDone();
   }, [loginContext, answer, timezone, onDone]);
-
-  const handleSkip = useCallback(() => {
-    leavingCallback.current?.();
-    handleDone();
-  }, [handleDone]);
 
   return (
     <div className={styles.container} style={containerStyle}>

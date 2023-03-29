@@ -342,6 +342,11 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
+    if (desiredState === 'journey' && journeyIsOnboarding) {
+      setState('journey');
+      return;
+    }
+
     if (needRequestNotificationTime === null) {
       setState('loading');
       return;
@@ -381,6 +386,7 @@ const UserAppInner = (): ReactElement => {
     requestNotificationTimeLoaded,
     needPromptDailyGoal,
     requestDailyGoalLoaded,
+    journeyIsOnboarding,
   ]);
 
   useEffect(() => {
