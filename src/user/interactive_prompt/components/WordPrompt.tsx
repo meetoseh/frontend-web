@@ -1,4 +1,12 @@
-import { MutableRefObject, ReactElement, useContext, useEffect, useMemo, useRef } from 'react';
+import {
+  MutableRefObject,
+  ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { PromptTime, PromptTimeEvent, usePromptTime } from '../hooks/usePromptTime';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownText, CountdownTextConfig } from './CountdownText';
@@ -22,8 +30,10 @@ import {
   SimpleSelectionChangedEvent,
   SimpleSelectionRef,
   useSimpleSelection,
+  useSimpleSelectionHasSelection,
 } from '../hooks/useSimpleSelection';
 import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
+import { Button } from '../../../shared/forms/Button';
 
 type WordPromptProps = {
   /**
@@ -59,6 +69,13 @@ type WordPromptProps = {
   paused?: boolean;
 
   /**
+   * If set to true, a more obvious button is included to let the user
+   * move on. The button prominence is reduced until the user answers,
+   * but still more prominent than the default X button.
+   */
+  finishEarly?: boolean;
+
+  /**
    * The ref to register a leaving callback which must be called before unmounting
    * the component normally in order to trigger a leave event. Otherwise, a leave
    * event is only triggered when the prompt finishes normally or the page is
@@ -77,6 +94,7 @@ export const WordPrompt = ({
   countdown,
   subtitle,
   paused,
+  finishEarly,
   leavingCallback,
 }: WordPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'word') {
@@ -86,17 +104,24 @@ export const WordPrompt = ({
   const promptTime = usePromptTime(-250, paused ?? false);
   const stats = useStats({ prompt: intPrompt, promptTime });
   const selection = useSimpleSelection<number>();
+  const hasSelection = useSimpleSelectionHasSelection(selection);
   const screenSize = useWindowSize();
   const fakeMove = useFakeMove(promptTime, stats, selection);
   const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
   const loginContext = useContext(LoginContext);
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
+  const windowSize = useWindowSize();
   useStoreEvents(intPrompt, promptTime, selection, joinLeave, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
 
   leavingCallback.current = () => {
     joinLeave.leaving.current = true;
   };
+
+  const handleSkip = useCallback(() => {
+    leavingCallback.current?.();
+    onFinished();
+  }, [onFinished, leavingCallback]);
 
   const boundFilledWidthGetterSetters: {
     get: () => number;
@@ -164,7 +189,10 @@ export const WordPrompt = ({
   return (
     <div className={styles.container}>
       {countdown && <CountdownText promptTime={promptTime} prompt={intPrompt} {...countdown} />}
-      <div className={styles.prompt}>
+      <div
+        className={styles.prompt}
+        style={!countdown || !finishEarly || windowSize.height > 700 ? {} : { marginTop: '12px' }}>
+        {/* we run out of space with countdown && finishEarly */}
         <PromptTitle text={prompt.text} subtitle={subtitle} />
         <div className={styles.options}>
           {prompt.options.map((option, idx) => {
@@ -207,6 +235,23 @@ export const WordPrompt = ({
             );
           })}
         </div>
+        {finishEarly && (
+          <div
+            className={styles.continueContainer}
+            style={
+              countdown && windowSize.height <= 750
+                ? {}
+                : { paddingTop: '45px', paddingBottom: '60px' }
+            }>
+            <Button
+              type="button"
+              fullWidth
+              variant={hasSelection ? 'filled' : 'link-white'}
+              onClick={handleSkip}>
+              {hasSelection ? 'Continue' : 'Skip'}
+            </Button>
+          </div>
+        )}
         <div className={styles.profilePictures} style={{ width: `${optionWidth}px` }}>
           <ProfilePictures profilePictures={profilePictures} />
         </div>

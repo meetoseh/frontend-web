@@ -115,17 +115,9 @@ export const RequestNotificationTimeForm = ({
             onWordPromptResponse={onWordPromptResponse}
             paused={!showing}
             leavingCallback={leavingCallback}
+            finishEarly
           />
         )}
-        <div className={styles.continueContainer}>
-          <Button
-            type="button"
-            fullWidth
-            variant={answer === 'any' ? 'link-white' : 'filled'}
-            onClick={handleSkip}>
-            {answer === 'any' ? 'Skip' : 'Continue'}
-          </Button>
-        </div>
       </div>
     </div>
   );

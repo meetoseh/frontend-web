@@ -92,18 +92,9 @@ export const DailyGoalPrompt = ({ onLoaded, onFinished }: DailyGoalPromptProps):
               subtitle={undefined}
               paused={!loaded}
               leavingCallback={leavingCallback}
+              finishEarly
             />
           )}
-
-          <div className={styles.continueContainer}>
-            <Button
-              type="button"
-              fullWidth
-              variant={response === null ? 'link-white' : 'filled'}
-              onClick={handleFinished}>
-              {response === null ? 'Skip' : 'Continue'}
-            </Button>
-          </div>
         </div>
       </div>
     </div>

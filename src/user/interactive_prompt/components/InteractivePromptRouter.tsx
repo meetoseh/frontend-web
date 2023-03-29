@@ -43,6 +43,13 @@ type InteractivePromptRouterProps = {
   paused?: boolean;
 
   /**
+   * If set to true, a more obvious button is included to let the user
+   * move on. The button prominence is reduced until the user answers,
+   * but still more prominent than the default X button.
+   */
+  finishEarly?: boolean;
+
+  /**
    * The ref to register a leaving callback which must be called before unmounting
    * the component normally in order to trigger a leave event. Otherwise, a leave
    * event is only triggered when the prompt finishes normally or the page is
@@ -62,6 +69,7 @@ export const InteractivePromptRouter = ({
   countdown,
   subtitle,
   paused,
+  finishEarly,
   leavingCallback,
 }: InteractivePromptRouterProps): ReactElement => {
   if (prompt.prompt.style === 'word') {
@@ -73,6 +81,7 @@ export const InteractivePromptRouter = ({
         countdown={countdown}
         subtitle={subtitle}
         paused={paused}
+        finishEarly={finishEarly}
         leavingCallback={leavingCallback}
       />
     );
@@ -84,6 +93,7 @@ export const InteractivePromptRouter = ({
         countdown={countdown}
         subtitle={subtitle}
         paused={paused}
+        finishEarly={finishEarly}
         leavingCallback={leavingCallback}
       />
     );
@@ -95,6 +105,7 @@ export const InteractivePromptRouter = ({
         countdown={countdown}
         subtitle={subtitle}
         paused={paused}
+        finishEarly={finishEarly}
         leavingCallback={leavingCallback}
       />
     );

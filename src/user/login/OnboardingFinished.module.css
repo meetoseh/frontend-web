@@ -1,0 +1,102 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.backgroundContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+}
+
+.contentContainer {
+  max-width: 390px;
+  max-height: 704px;
+  width: 100%;
+  flex: 1 1 704px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.progressContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.progressSection {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+  height: 114px;
+}
+
+.left {
+  flex: 0 0 97px;
+  width: 97px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.leftLine {
+  flex: 1 1 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.leftFirstLine {
+  background: #ffffff;
+}
+
+.leftIndicator {
+  composes: icon from '../../shared/icons.module.css';
+  flex: 0 0 63.6396104px;
+  width: 63.6396104px;
+  height: 63.6396104px;
+  background-image: url('./icons/left-indicator.svg');
+}
+
+.leftFirstIndicator {
+  background-image: url('./icons/left-first-indicator.svg');
+}
+
+.right {
+  flex: 1 1 245px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  padding-right: 40px;
+  color: white;
+}
+
+.firstRight {
+  font-weight: 400;
+}
+
+.continueContainer {
+  flex: 1 0 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 0 24px 24px 24px;
+}

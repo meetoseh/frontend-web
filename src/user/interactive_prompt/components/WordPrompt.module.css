@@ -76,6 +76,14 @@
   color: white;
 }
 
+.continueContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 24px 24px 0 24px;
+}
+
 .profilePictures {
   margin-top: 20px;
   align-self: center;

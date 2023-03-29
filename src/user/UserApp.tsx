@@ -310,12 +310,8 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
-    if (needRequestName) {
-      if (!requestNameLoaded) {
-        setState('loading');
-      } else {
-        setState('request-name');
-      }
+    if (loginContext.state === 'logged-out') {
+      setState('login');
       return;
     }
 
@@ -324,6 +320,15 @@ const UserAppInner = (): ReactElement => {
         setState('loading');
       } else {
         setState('request-daily-goal');
+      }
+      return;
+    }
+
+    if (needRequestName) {
+      if (!requestNameLoaded) {
+        setState('loading');
+      } else {
+        setState('request-name');
       }
       return;
     }
@@ -348,11 +353,6 @@ const UserAppInner = (): ReactElement => {
       } else {
         setState('request-notification-time');
       }
-      return;
-    }
-
-    if (desiredState === 'current-daily-event' && loginContext.state === 'logged-out') {
-      setState('login');
       return;
     }
 

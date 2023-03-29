@@ -1,4 +1,12 @@
-import { MutableRefObject, ReactElement, useContext, useEffect, useMemo, useRef } from 'react';
+import {
+  MutableRefObject,
+  ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownText, CountdownTextConfig } from './CountdownText';
 import styles from './ColorPrompt.module.css';
@@ -16,6 +24,7 @@ import {
   SimpleSelectionChangedEvent,
   SimpleSelectionRef,
   useSimpleSelection,
+  useSimpleSelectionHasSelection,
 } from '../hooks/useSimpleSelection';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
@@ -26,6 +35,7 @@ import {
 } from './VerticalPartlyFilledRoundedRect';
 import { getColor3fFromHex } from '../../../shared/lib/BezierAnimation';
 import { PromptTitle } from './PromptTitle';
+import { Button } from '../../../shared/forms/Button';
 
 type ColorPromptProps = {
   /**
@@ -55,6 +65,13 @@ type ColorPromptProps = {
   paused?: boolean;
 
   /**
+   * If set to true, a more obvious button is included to let the user
+   * move on. The button prominence is reduced until the user answers,
+   * but still more prominent than the default X button.
+   */
+  finishEarly?: boolean;
+
+  /**
    * The ref to register a leaving callback which must be called before unmounting
    * the component normally in order to trigger a leave event. Otherwise, a leave
    * event is only triggered when the prompt finishes normally or the page is
@@ -79,6 +96,7 @@ export const ColorPrompt = ({
   countdown,
   subtitle,
   paused,
+  finishEarly,
   leavingCallback,
 }: ColorPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'color') {
@@ -88,6 +106,7 @@ export const ColorPrompt = ({
   const promptTime = usePromptTime(-250, paused ?? false);
   const stats = useStats({ prompt: intPrompt, promptTime });
   const selection = useSimpleSelection<number>();
+  const hasSelection = useSimpleSelectionHasSelection(selection);
   const screenSize = useWindowSize();
   const fakeMove = useFakeMove(promptTime, stats, selection);
   const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
@@ -95,10 +114,16 @@ export const ColorPrompt = ({
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
   useStoreEvents(intPrompt, promptTime, selection, joinLeave, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
+  const windowSize = useWindowSize();
 
   leavingCallback.current = () => {
     joinLeave.leaving.current = true;
   };
+
+  const handleSkip = useCallback(() => {
+    leavingCallback.current?.();
+    onFinished();
+  }, [onFinished, leavingCallback]);
 
   const colorsContainerWidth = Math.min(390, Math.min(screenSize.width, 440) - 64);
   const colorsGapPx = 32;
@@ -279,7 +304,28 @@ export const ColorPrompt = ({
             </div>
           ))}
         </div>
-        <div className={styles.profilePictures} style={{ width: `${trueColorsWidth}px` }}>
+        {finishEarly && (
+          <div
+            className={styles.continueContainer}
+            style={
+              countdown && windowSize.height <= 750
+                ? {}
+                : { paddingTop: '45px', paddingBottom: '60px' }
+            }>
+            <Button
+              type="button"
+              fullWidth
+              variant={hasSelection ? 'filled' : 'link-white'}
+              onClick={handleSkip}>
+              {hasSelection ? 'Continue' : 'Skip'}
+            </Button>
+          </div>
+        )}
+        <div
+          className={styles.profilePictures}
+          style={
+            finishEarly ? {} : { width: `${trueColorsWidth}px`, padding: '0', alignSelf: 'center' }
+          }>
           <ProfilePictures profilePictures={profilePictures} />
         </div>
       </div>

@@ -1,4 +1,12 @@
-import { MutableRefObject, ReactElement, useContext, useEffect, useMemo, useRef } from 'react';
+import {
+  MutableRefObject,
+  ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownText, CountdownTextConfig } from './CountdownText';
 import styles from './NumericPrompt.module.css';
@@ -30,6 +38,8 @@ import {
   VPFRRStateChangedEvent,
 } from './VerticalPartlyFilledRoundedRect';
 import { ProfilePictures } from './ProfilePictures';
+import { useSimpleSelectionHasSelection } from '../hooks/useSimpleSelection';
+import { Button } from '../../../shared/forms/Button';
 
 type NumericPromptProps = {
   /**
@@ -59,6 +69,13 @@ type NumericPromptProps = {
   paused?: boolean;
 
   /**
+   * If set to true, a more obvious button is included to let the user
+   * move on. The button prominence is reduced until the user answers,
+   * but still more prominent than the default X button.
+   */
+  finishEarly?: boolean;
+
+  /**
    * The ref to register a leaving callback which must be called before unmounting
    * the component normally in order to trigger a leave event. Otherwise, a leave
    * event is only triggered when the prompt finishes normally or the page is
@@ -83,6 +100,7 @@ export const NumericPrompt = ({
   countdown,
   subtitle,
   paused,
+  finishEarly,
   leavingCallback,
 }: NumericPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'numeric') {
@@ -92,17 +110,24 @@ export const NumericPrompt = ({
   const promptTime = usePromptTime(-250, paused ?? false);
   const stats = useStats({ prompt: intPrompt, promptTime });
   const selection = useSelection();
+  const hasSelection = useSimpleSelectionHasSelection(selection);
   const screenSize = useWindowSize();
   const fakeMove = useFakeMove(promptTime, stats, selection);
   const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
   const loginContext = useContext(LoginContext);
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
+  const windowSize = useWindowSize();
   useStoreEvents(intPrompt, promptTime, selection, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
 
   leavingCallback.current = () => {
     joinLeave.leaving.current = true;
   };
+
+  const handleSkip = useCallback(() => {
+    leavingCallback.current?.();
+    onFinished();
+  }, [onFinished, leavingCallback]);
 
   const promptOptions = useMemo<number[]>(() => {
     const res: number[] = [];
@@ -266,6 +291,23 @@ export const NumericPrompt = ({
         <div className={styles.statsContainer}>
           Average: <div className={styles.statsAmount} ref={statsAmountRef} />
         </div>
+        {finishEarly && (
+          <div
+            className={styles.continueContainer}
+            style={
+              countdown && windowSize.height <= 750
+                ? {}
+                : { paddingTop: '45px', paddingBottom: '60px' }
+            }>
+            <Button
+              type="button"
+              fullWidth
+              variant={hasSelection ? 'filled' : 'link-white'}
+              onClick={handleSkip}>
+              {hasSelection ? 'Continue' : 'Skip'}
+            </Button>
+          </div>
+        )}
         <div
           className={styles.profilePictures}
           style={{ width: `${carouselInfo.info.current.visibleWidth}px` }}>
