@@ -105,11 +105,6 @@
   max-width: 390px;
 }
 
-.continueContainer {
-  margin-top: 36px;
-  padding: 0 24px;
-}
-
 @media screen and (max-height: 632px) {
   .content {
     padding-bottom: 20px;
