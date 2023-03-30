@@ -357,7 +357,8 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
       return;
     }
 
-    setPromptingFullscreen(true);
+    // prompting fullscreen disabled for now
+    // setPromptingFullscreen(true);
   }, [
     fullscreen,
     wantsFullscreen,
