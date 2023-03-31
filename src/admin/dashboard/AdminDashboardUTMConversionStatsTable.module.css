@@ -15,6 +15,12 @@
   color: #171717;
 }
 
+.fromToContainer {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 20px;
+}
+
 .dateInput {
   font-family: 'Roboto Mono', monospace;
   font-size: 16px;

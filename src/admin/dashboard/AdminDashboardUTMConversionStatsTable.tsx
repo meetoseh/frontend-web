@@ -14,6 +14,11 @@ import { LoginContext } from '../../shared/LoginContext';
 import { convertUsingKeymap, CrudFetcherKeyMap } from '../crud/CrudFetcher';
 import styles from './AdminDashboardUTMConversionStatsTable.module.css';
 import { DashboardTable, DashboardTableProps } from './subComponents/DashboardTable';
+import { CrudFormElement } from '../crud/CrudFormElement';
+import {
+  dateToLocaleISODateString,
+  isoDateStringToLocaleDate,
+} from '../../shared/lib/dateToLocaleISODateString';
 
 /**
  * Describes basic utm information, only enforcing that source is present.
@@ -50,6 +55,22 @@ const parseUTM = ({
     content: content ?? null,
     term: term ?? null,
   };
+};
+
+/**
+ * Returns the canonical representation of the given utm, which is always the
+ * same for two identical utms.
+ * @param utm The utm to get the canonical representation of
+ * @returns The canonical representation of the given utm
+ */
+const getCanonicalUTM = (utm: UTM): string => {
+  return new URLSearchParams([
+    ...(utm.campaign !== null ? [['utm_campaign', utm.campaign]] : []),
+    ...(utm.content !== null ? [['utm_content', utm.content]] : []),
+    ...(utm.medium !== null ? [['utm_medium', utm.medium]] : []),
+    ...(utm.source !== null ? [['utm_source', utm.source]] : []),
+    ...(utm.term !== null ? [['utm_term', utm.term]] : []),
+  ]).toString();
 };
 
 /**
@@ -140,14 +161,6 @@ type TableData = {
    * The rows in the table
    */
   rows: RowData[];
-
-  /**
-   * When the server fetched this data. May be (much) earlier than the request
-   * if the data is cacheable (i.e, from a previous day), since the data is
-   * carefully constructed to ensure that new information only effects the
-   * current day's data.
-   */
-  retrievedAt: number;
 };
 
 const tableDataKeyMap: CrudFetcherKeyMap<TableData> = {
@@ -155,7 +168,71 @@ const tableDataKeyMap: CrudFetcherKeyMap<TableData> = {
     key: 'rows',
     value: v.map((row) => convertUsingKeymap(row, rowDataKeyMap)),
   }),
-  retrieved_at: 'retrievedAt',
+};
+
+type UpdateableTableData = {
+  /**
+   * Maps from the canonical string representation of a UTM to the row data
+   * for that UTM.
+   */
+  utmToRow: Map<string, RowData>;
+};
+
+/**
+ * Converts the given single-day table data into a format more suitable
+ * for being updated in-place with other data.
+ */
+const convertToUpdateable = (data: TableData): UpdateableTableData => {
+  const utmToRow = new Map<string, RowData>();
+  for (let i = 0; i < data.rows.length; i++) {
+    const row = data.rows[i];
+    const canonical = getCanonicalUTM(row.utm);
+    utmToRow.set(canonical, row);
+  }
+
+  return { utmToRow };
+};
+
+/**
+ * Updates the base table data in-place with the data from the other table data.
+ *
+ * @param base The base table data to update
+ * @param other The other table data to update the base with
+ * @returns base
+ */
+const updateTableData = (base: UpdateableTableData, other: TableData): UpdateableTableData => {
+  for (let rowIndex = 0; rowIndex < other.rows.length; rowIndex++) {
+    const row = other.rows[rowIndex];
+    const canonical = getCanonicalUTM(row.utm);
+    const baseRow = base.utmToRow.get(canonical);
+    if (baseRow === undefined) {
+      base.utmToRow.set(canonical, row);
+    } else {
+      baseRow.visits += row.visits;
+      baseRow.holdoverPreexisting += row.holdoverPreexisting;
+      baseRow.holdoverLastClickSignups += row.holdoverLastClickSignups;
+      baseRow.holdoverAnyClickSignups += row.holdoverAnyClickSignups;
+      baseRow.preexisting += row.preexisting;
+      baseRow.lastClickSignups += row.lastClickSignups;
+      baseRow.anyClickSignups += row.anyClickSignups;
+    }
+  }
+  return base;
+};
+
+/**
+ * Converts back from the updateable table data representation to the
+ * standard table data representation.
+ *
+ * @param updateable The updateable table data to convert
+ * @returns The standard table data representation
+ */
+const convertUpdateableToTableData = (updateable: UpdateableTableData): TableData => {
+  const rows = Array.from(updateable.utmToRow.values());
+  rows.sort((a, b) => b.visits - a.visits);
+  return {
+    rows,
+  };
 };
 
 /**
@@ -164,7 +241,8 @@ const tableDataKeyMap: CrudFetcherKeyMap<TableData> = {
  */
 export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const [date, setDate] = useState(() => new Date());
+  const [startDate, setStartDate] = useState(() => new Date());
+  const [endDate, setEndDate] = useState(startDate);
   const [error, setError] = useState<ReactElement | null>(null);
   const [tableData, setTableData] = useState<TableData>(() => ({
     rows: [],
@@ -183,7 +261,7 @@ export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
       active = false;
     };
 
-    async function fetchTableDataInner() {
+    async function fetchOneDayTableDataInner(date: Date): Promise<[Date, TableData]> {
       const response = await apiFetch(
         '/api/1/admin/utm_conversion_stats?' +
           new URLSearchParams({
@@ -200,9 +278,50 @@ export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
       }
 
       const data = await response.json();
-      const parsed = convertUsingKeymap(data, tableDataKeyMap);
+      return [date, convertUsingKeymap(data, tableDataKeyMap)];
+    }
+
+    async function fetchTableDataInner() {
+      const maxConcurrent = 5;
+      const result = convertToUpdateable({ rows: [] });
+      const runningPromises: Promise<[Date, TableData]>[] = [];
+      const dateToPromise = new Map<number, Promise<[Date, TableData]>>();
+
+      const utcStartDate = new Date(dateToLocaleISODateString(startDate));
+      const utcEndDate = new Date(dateToLocaleISODateString(endDate));
+
+      let nextDate = utcStartDate;
+      while (nextDate.getTime() <= utcEndDate.getTime() || runningPromises.length > 0) {
+        if (!active) {
+          return;
+        }
+
+        while (
+          runningPromises.length < maxConcurrent &&
+          nextDate.getTime() <= utcEndDate.getTime()
+        ) {
+          const promise = fetchOneDayTableDataInner(nextDate);
+          runningPromises.push(promise);
+          dateToPromise.set(nextDate.getTime(), promise);
+          nextDate = new Date(nextDate.getTime() + 24 * 60 * 60 * 1000);
+        }
+
+        const [finDate, finTable] = await Promise.race(runningPromises);
+        const finPromise = dateToPromise.get(finDate.getTime());
+
+        if (finPromise === undefined) {
+          throw new Error('Promise not found');
+        }
+
+        runningPromises.splice(runningPromises.indexOf(finPromise), 1);
+        dateToPromise.delete(finDate.getTime());
+
+        updateTableData(result, finTable);
+      }
+
+      const tableData = convertUpdateableToTableData(result);
       if (active) {
-        setTableData(parsed);
+        setTableData(tableData);
       }
     }
 
@@ -217,11 +336,17 @@ export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
         }
       }
     }
-  }, [loginContext, date]);
+  }, [loginContext, startDate, endDate]);
 
-  const onDateChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+  const onStartDateChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.valueAsDate) {
-      setDate(e.target.valueAsDate);
+      setStartDate(isoDateStringToLocaleDate(e.target.value));
+    }
+  }, []);
+
+  const onEndDateChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.valueAsDate) {
+      setEndDate(isoDateStringToLocaleDate(e.target.value));
     }
   }, []);
 
@@ -258,26 +383,52 @@ export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
     };
   }, [tableData]);
 
-  const prettyDate = useMemo(() => {
-    return date.toLocaleDateString(undefined, {
+  const prettyStartDate = useMemo(() => {
+    return startDate.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
-  }, [date]);
+  }, [startDate]);
+
+  const prettyEndDate = useMemo(() => {
+    return endDate.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }, [endDate]);
+
+  const prettyDateRangeWithPrep = useMemo(() => {
+    if (prettyStartDate === prettyEndDate) {
+      return `on ${prettyStartDate}`;
+    }
+    return `between ${prettyStartDate} and ${prettyEndDate}`;
+  }, [prettyStartDate, prettyEndDate]);
 
   return (
     <div className={styles.container}>
       {error && <ErrorBlock>{error}</ErrorBlock>}
       <div className={styles.header}>
         <div className={styles.title}>Attributable Visitors</div>
-        <div className={styles.datePicker}>
-          <input
-            className={styles.dateInput}
-            type="date"
-            value={date.toISOString().split('T')[0]}
-            onChange={onDateChange}
-          />
+        <div className={styles.fromToContainer}>
+          <CrudFormElement title="From">
+            <input
+              className={styles.dateInput}
+              type="date"
+              value={dateToLocaleISODateString(startDate)}
+              onChange={onStartDateChange}
+            />
+          </CrudFormElement>
+
+          <CrudFormElement title="To">
+            <input
+              className={styles.dateInput}
+              type="date"
+              value={dateToLocaleISODateString(endDate)}
+              onChange={onEndDateChange}
+            />
+          </CrudFormElement>
         </div>
         <div className={styles.helpContainer}>
           <Button type="button" variant="link-small" onClick={toggleHelp}>
@@ -291,34 +442,36 @@ export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
                   <a href="https://en.wikipedia.org/wiki/UTM_parameters">UTM parameters</a>
                 </li>
                 <li>
-                  <strong>visits</strong> - number of clicks on {prettyDate}
+                  <strong>visits</strong> - number of clicks {prettyDateRangeWithPrep}
                 </li>
                 <li>
-                  <strong>last click signups</strong> - number of users who clicked on {prettyDate}{' '}
-                  and then signed up on {prettyDate} without clicking a different utm in between
-                </li>
-                <li>
-                  <strong>any click signups</strong> - number of users who clicked on {prettyDate}{' '}
-                  and then signed up on {prettyDate}. All last clicks are also any clicks.
-                </li>
-                <li>
-                  <strong>preexisting</strong> - number of users who already had an account and then
-                  clicked on {prettyDate}
-                </li>
-                <li>
-                  <strong>holdover last click signups</strong> - number of users who clicked{' '}
-                  <em>before</em> {prettyDate} and then signed up on {prettyDate} without clicking a
+                  <strong>last click signups</strong> - number of users who clicked{' '}
+                  {prettyDateRangeWithPrep} and then signed up the same day without clicking a
                   different utm in between
                 </li>
                 <li>
-                  <strong>holdover any click signups</strong> - number of users who clicked{' '}
-                  <em>before</em> {prettyDate} and then signed up on {prettyDate}. All last clicks
-                  are also any clicks.
+                  <strong>any click signups</strong> - number of users who clicked{' '}
+                  {prettyDateRangeWithPrep} and then signed up the same day. Will always be greater
+                  than or equal to last click signups.
                 </li>
                 <li>
-                  <strong>holdover preexisting</strong> - number of users who clicked while logged
-                  out <em>before</em> {prettyDate}, then logged in on {prettyDate} to an account
-                  created before they clicked.
+                  <strong>preexisting</strong> - number of users who already had an account and then
+                  clicked {prettyDateRangeWithPrep}
+                </li>
+                <li>
+                  <strong>holdover last click signups</strong> - number of users who signed up
+                  {prettyDateRangeWithPrep} without clicking a different utm in between, but who
+                  clicked at least a day before signing up.
+                </li>
+                <li>
+                  <strong>holdover any click signups</strong> - number of signed up{' '}
+                  {prettyDateRangeWithPrep}, but who clicked at least a day before signing up. Will
+                  always be greater than or equal to holdover last click signups.
+                </li>
+                <li>
+                  <strong>holdover preexisting</strong> - number of users who clicked{' '}
+                  {prettyDateRangeWithPrep}, for which at the time we didn't know they already had
+                  an account, and at least a day later we found out they already had an account.
                 </li>
               </ul>
             </div>
