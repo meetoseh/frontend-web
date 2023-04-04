@@ -8,7 +8,7 @@ type SimpleAnimationProps<T, S> = {
    * The ref object which points to the element to be animated,
    * typically an HTMLDivElement
    */
-  ref: RefObject<T>;
+  ref: RefObject<T> | MutableRefObject<T | undefined>;
 
   /**
    * The delay in milliseconds before the animation starts. Only
@@ -109,7 +109,7 @@ export function useSimpleAnimation<T, S>(props: SimpleAnimationProps<T, S>) {
   const dispose = props.dispose;
 
   useEffect(() => {
-    if (props.ref.current === null) {
+    if (props.ref.current === null || props.ref.current === undefined) {
       return;
     }
 

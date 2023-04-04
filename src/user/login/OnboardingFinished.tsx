@@ -1,25 +1,17 @@
-import { MutableRefObject, ReactElement, useEffect, useMemo, useRef } from 'react';
+import { ReactElement, useEffect, useMemo, useRef } from 'react';
 import { Button } from '../../shared/forms/Button';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../shared/OsehImage';
 import styles from './OnboardingFinished.module.css';
-import { Callbacks } from '../../shared/lib/Callbacks';
-import { createCancelablePromiseFromCallbacks } from '../../shared/lib/createCancelablePromiseFromCallbacks';
-import {
-  BezierAnimation,
-  animIsComplete,
-  calculateAnimValue,
-  interpolateColor,
-  interpolateNumber,
-} from '../../shared/lib/BezierAnimation';
-import { ease } from '../../shared/lib/Bezier';
+import { interpolateColor, interpolateNumber } from '../../shared/lib/BezierAnimation';
+import { Bezier, ease } from '../../shared/lib/Bezier';
 import badgeStart from './icons/badgeStart.svg';
 import badgeEnd from './icons/badgeEnd.svg';
 import enlightenmentStart from './icons/enlightenmentStart.svg';
 import enlightenmentEnd from './icons/enlightenmentEnd.svg';
 import { ImageCrossFade } from '../../shared/anim/ImageCrossFade';
-import { createCancelableTimeout } from '../../shared/lib/createCancelableTimeout';
+import { useSimpleAnimation } from '../../shared/hooks/useSimpleAnimation';
 
 type OnboardingFinishedProps = {
   /**
@@ -97,124 +89,72 @@ const animDuration = 500;
 const animDelay = 250;
 const secondAnimDelay = 2500;
 
+type FirstClassWithAnimationRefs = {
+  step: HTMLDivElement;
+  sep: HTMLDivElement;
+};
+
+type FirstClassWithAnimationState = {
+  duration: number;
+  ease: Bezier;
+};
+
+const firstClassAnimation = {
+  initialize: (refs: FirstClassWithAnimationRefs): FirstClassWithAnimationState => {
+    refs.sep.removeAttribute('style');
+    refs.step.removeAttribute('style');
+
+    return { duration: animDuration, ease };
+  },
+  render: (
+    refs: FirstClassWithAnimationRefs,
+    state: FirstClassWithAnimationState,
+    animationTime: number
+  ) => {
+    const bkndProgress = state.ease.b_t(Math.min(1, animationTime / state.duration))[1];
+    const bkndStartColor: [number, number, number, number] = [68, 98, 102, 0.4];
+    const bkndEndColor: [number, number, number, number] = [52, 126, 122, 1.0];
+
+    const bkndColor = interpolateColor(bkndStartColor, bkndEndColor, bkndProgress);
+    const bkndOpacity = interpolateNumber(bkndStartColor[3], bkndEndColor[3], bkndProgress);
+
+    const bknd = `rgba(${bkndColor[0]}, ${bkndColor[1]}, ${bkndColor[2]}, ${bkndOpacity})`;
+    refs.step.style.background = bknd;
+    refs.sep.style.background = bknd;
+  },
+  tick: (
+    refs: FirstClassWithAnimationRefs,
+    state: FirstClassWithAnimationState,
+    animationTime: number
+  ) => {
+    return animationTime < state.duration;
+  },
+  dispose: (refs: FirstClassWithAnimationRefs, state: FirstClassWithAnimationState) => {},
+};
+
 const FirstClassWithAnimation = ({ paused }: { paused: boolean }): ReactElement => {
   const stepRef = useRef<HTMLDivElement>(null);
   const sepRef = useRef<HTMLDivElement>(null);
-  const running = useRef<boolean>(false);
-  const runningCallbacks = useRef<Callbacks<undefined>>() as MutableRefObject<Callbacks<undefined>>;
 
-  if (runningCallbacks.current === undefined) {
-    runningCallbacks.current = new Callbacks<undefined>();
-  }
-
+  const refs = useRef<FirstClassWithAnimationRefs>();
   useEffect(() => {
-    if (stepRef.current === null || sepRef.current === null || paused) {
-      return;
+    if (stepRef.current === null || sepRef.current === null) {
+      refs.current = undefined;
+    } else if (
+      refs.current === undefined ||
+      refs.current.step !== stepRef.current ||
+      refs.current.sep !== sepRef.current
+    ) {
+      refs.current = { step: stepRef.current, sep: sepRef.current };
     }
+  });
 
-    const step = stepRef.current;
-    const sep = sepRef.current;
-
-    const cancelers = new Callbacks<undefined>();
-    let active = true;
-    const unmount = () => {
-      if (!active) {
-        return;
-      }
-
-      active = false;
-      cancelers.call(undefined);
-    };
-    handleAnimation();
-    return unmount;
-
-    async function handleAnimation() {
-      while (running.current) {
-        if (!active) {
-          return;
-        }
-        const lastEffectPromise = createCancelablePromiseFromCallbacks(runningCallbacks.current);
-        const canceledPromise = createCancelablePromiseFromCallbacks(cancelers);
-        await Promise.race([lastEffectPromise.promise, canceledPromise.promise]);
-        lastEffectPromise.cancel();
-        canceledPromise.cancel();
-      }
-      running.current = true;
-
-      try {
-        resetState();
-      } catch (e) {
-        running.current = false;
-        runningCallbacks.current.call(undefined);
-        throw e;
-      }
-
-      const startDelay = createCancelableTimeout(animDelay);
-      const canceled = createCancelablePromiseFromCallbacks(cancelers);
-      await Promise.race([startDelay.promise, canceled.promise]);
-      startDelay.cancel();
-      canceled.cancel();
-      if (!active) {
-        running.current = false;
-        runningCallbacks.current.call(undefined);
-        return;
-      }
-
-      render(0);
-      playAnimation();
-    }
-
-    function resetState() {
-      step.removeAttribute('style');
-    }
-
-    function render(bkndProgress: number) {
-      const bkndStartColor: [number, number, number, number] = [68, 98, 102, 0.4];
-      const bkndEndColor: [number, number, number, number] = [52, 126, 122, 1.0];
-
-      const bkndColor = interpolateColor(bkndStartColor, bkndEndColor, bkndProgress);
-      const bkndOpacity = interpolateNumber(bkndStartColor[3], bkndEndColor[3], bkndProgress);
-
-      const bknd = `rgba(${bkndColor[0]}, ${bkndColor[1]}, ${bkndColor[2]}, ${bkndOpacity})`;
-      step.style.background = bknd;
-      sep.style.background = bknd;
-    }
-
-    function playAnimation() {
-      const bkndProgressAnimation: BezierAnimation = {
-        from: 0,
-        to: 1,
-        startedAt: null,
-        ease,
-        duration: animDuration,
-      };
-
-      const onFrame = (now: DOMHighResTimeStamp) => {
-        if (!active) {
-          running.current = false;
-          runningCallbacks.current.call(undefined);
-          return;
-        }
-
-        const bkndDone = animIsComplete(bkndProgressAnimation, now);
-
-        if (bkndDone) {
-          cancelers.add(() => {
-            running.current = false;
-            runningCallbacks.current.call(undefined);
-          });
-          return;
-        }
-
-        const bkndProgress = bkndDone ? 1 : calculateAnimValue(bkndProgressAnimation, now);
-
-        render(bkndProgress);
-        requestAnimationFrame(onFrame);
-      };
-
-      requestAnimationFrame(onFrame);
-    }
-  }, [paused]);
+  useSimpleAnimation({
+    ref: refs,
+    delay: animDelay,
+    paused,
+    ...firstClassAnimation,
+  });
 
   return (
     <>
@@ -237,112 +177,39 @@ const FirstClassWithAnimation = ({ paused }: { paused: boolean }): ReactElement 
   );
 };
 
+type EnlightenmentState = {
+  duration: number;
+  ease: Bezier;
+};
+
+const enlightenmentAnimation = {
+  initialize: (ref: HTMLDivElement): EnlightenmentState => {
+    ref.removeAttribute('style');
+    ref.style.borderWidth = '1px';
+    ref.style.borderStyle = 'dashed';
+    ref.style.borderColor = 'transparent';
+
+    return { duration: animDuration, ease };
+  },
+  render: (ref: HTMLDivElement, state: EnlightenmentState, animationTime: number) => {
+    const borderProgress = state.ease.b_t(Math.min(1, animationTime / state.duration))[1];
+    ref.style.borderColor = `rgba(255, 255, 255, ${borderProgress})`;
+  },
+  tick: (ref: HTMLDivElement, state: EnlightenmentState, animationTime: number) => {
+    return animationTime < state.duration;
+  },
+  dispose: (ref: HTMLDivElement, state: EnlightenmentState) => {},
+};
+
 const EnlightenmentWithAnimation = ({ paused }: { paused: boolean }): ReactElement => {
   const stepRef = useRef<HTMLDivElement>(null);
 
-  const running = useRef<boolean>(false);
-  const runningCallbacks = useRef<Callbacks<undefined>>() as MutableRefObject<Callbacks<undefined>>;
-
-  if (runningCallbacks.current === undefined) {
-    runningCallbacks.current = new Callbacks();
-  }
-
-  useEffect(() => {
-    if (stepRef.current === null || paused) {
-      return;
-    }
-
-    const step = stepRef.current;
-    const cancelers = new Callbacks<undefined>();
-    let active = true;
-
-    acquireLockAndPlayAnimation();
-    return () => {
-      active = false;
-      cancelers.call(undefined);
-    };
-
-    async function playAnimation() {
-      resetState();
-
-      const startDelay = createCancelableTimeout(secondAnimDelay);
-      const canceled = createCancelablePromiseFromCallbacks(cancelers);
-      await Promise.race([startDelay.promise, canceled.promise]);
-      startDelay.cancel();
-      canceled.cancel();
-
-      if (!active) {
-        running.current = false;
-        runningCallbacks.current.call(undefined);
-        return;
-      }
-
-      render(0);
-
-      const borderProgressAnimation: BezierAnimation = {
-        from: 0,
-        to: 1,
-        startedAt: null,
-        ease,
-        duration: animDuration,
-      };
-
-      const onFrame = (now: DOMHighResTimeStamp) => {
-        if (!active) {
-          running.current = false;
-          runningCallbacks.current.call(undefined);
-          return;
-        }
-
-        const borderProgressDone = animIsComplete(borderProgressAnimation, now);
-        const borderProgress = borderProgressDone
-          ? 1
-          : calculateAnimValue(borderProgressAnimation, now);
-
-        render(borderProgress);
-
-        if (borderProgressDone) {
-          cancelers.add(() => {
-            running.current = false;
-            runningCallbacks.current.call(undefined);
-          });
-          return;
-        }
-
-        requestAnimationFrame(onFrame);
-      };
-
-      requestAnimationFrame(onFrame);
-    }
-
-    function resetState() {
-      step.removeAttribute('style');
-      step.style.borderWidth = '1px';
-      step.style.borderStyle = 'dashed';
-      step.style.borderColor = 'transparent';
-    }
-
-    function render(borderProgress: number) {
-      step.style.borderColor = `rgba(255, 255, 255, ${borderProgress})`;
-    }
-
-    async function acquireLockAndPlayAnimation() {
-      while (running.current) {
-        if (!active) {
-          return;
-        }
-
-        const canceled = createCancelablePromiseFromCallbacks(cancelers);
-        const prevUnmounted = createCancelablePromiseFromCallbacks(runningCallbacks.current);
-        await Promise.race([canceled.promise, prevUnmounted.promise]);
-        canceled.cancel();
-        prevUnmounted.cancel();
-      }
-
-      running.current = true;
-      playAnimation();
-    }
-  }, [paused]);
+  useSimpleAnimation({
+    ref: stepRef,
+    delay: secondAnimDelay,
+    paused,
+    ...enlightenmentAnimation,
+  });
 
   return (
     <div className={styles.step} ref={stepRef}>
