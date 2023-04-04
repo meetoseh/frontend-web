@@ -427,7 +427,7 @@ const useFakeMove = (
         loweringIndexUpperTrigger: null,
         raisingIndex: event.current,
         raisingIndexLowerTrigger: (stats.stats.current.wordActive?.[event.current] ?? 0) + 1,
-        promptTimeToCancel: promptTime.time.current + 1500,
+        promptTimeToCancel: promptTime.time.current + 4500,
       };
 
       if (event.old) {

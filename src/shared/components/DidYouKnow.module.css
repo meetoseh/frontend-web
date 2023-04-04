@@ -1,0 +1,82 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  padding: 26px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  position: relative;
+  max-width: 326px;
+  margin: 0 auto;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 28px;
+  text-align: center;
+  letter-spacing: 0.25px;
+  color: white;
+  margin-bottom: 16px;
+}
+
+.fact {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  text-align: center;
+  letter-spacing: 0.25px;
+  color: white;
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: -15px;
+  left: -13.5px;
+  width: 27px;
+  height: 30px;
+}
+
+.silhouetteWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 27px;
+  height: 30px;
+}
+
+.lightbulbWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  bottom: 11px;
+  left: 15px;
+}
+
+.silhouette {
+  composes: icon from '../icons.module.css';
+  width: 27px;
+  height: 30px;
+  background-image: url('./icons/silhouette.svg');
+}
+
+.lightbulb {
+  composes: icon from '../icons.module.css';
+  width: 10px;
+  height: 15px;
+  background-image: url('./icons/lightbulb.svg');
+  position: relative;
+  left: -50%;
+}

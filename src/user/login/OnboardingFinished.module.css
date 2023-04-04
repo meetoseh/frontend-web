@@ -113,12 +113,12 @@
   composes: icon from '../../shared/icons.module.css';
   width: 20px;
   height: 21px;
-  background: url('./icons/calendar.svg');
+  background-image: url('./icons/calendar.svg');
 }
 
 .stars {
   composes: icon from '../../shared/icons.module.css';
   width: 18px;
   height: 24px;
-  background: url('./icons/stars.svg');
+  background-image: url('./icons/stars.svg');
 }

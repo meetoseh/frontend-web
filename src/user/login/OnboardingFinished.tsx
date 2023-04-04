@@ -23,6 +23,11 @@ import { createCancelableTimeout } from '../../shared/lib/createCancelableTimeou
 
 type OnboardingFinishedProps = {
   /**
+   * True to delay animations, usually used when this isn't on the screen yet.
+   */
+  paused?: boolean;
+
+  /**
    * The function to call to return the user to the home screen.
    */
   onFinished: () => void;
@@ -31,7 +36,10 @@ type OnboardingFinishedProps = {
 /**
  * The screen that is shown when the user has finished the onboarding experience.
  */
-export const OnboardingFinished = ({ onFinished }: OnboardingFinishedProps): ReactElement => {
+export const OnboardingFinished = ({
+  paused,
+  onFinished,
+}: OnboardingFinishedProps): ReactElement => {
   const windowSize = useWindowSize();
   const backgroundProps = useMemo<OsehImageProps>(
     () => ({
@@ -57,7 +65,7 @@ export const OnboardingFinished = ({ onFinished }: OnboardingFinishedProps): Rea
         <div className={styles.titleAndJourney}>
           <div className={styles.title}>Your Mindfulness Journey</div>
           <div className={styles.journey}>
-            <FirstClassWithAnimation />
+            <FirstClassWithAnimation paused={paused ?? false} />
             <div className={styles.step}>
               <div className={styles.stepIconContainer}>
                 <div className={styles.calendar}></div>
@@ -72,7 +80,7 @@ export const OnboardingFinished = ({ onFinished }: OnboardingFinishedProps): Rea
               <div className={styles.stepText}>Hit a 7-day streak</div>
             </div>
             <div className={styles.largeStepSeparator}></div>
-            <EnlightenmentWithAnimation />
+            <EnlightenmentWithAnimation paused={paused ?? false} />
           </div>
         </div>
         <div className={styles.continueContainer}>
@@ -89,7 +97,7 @@ const animDuration = 500;
 const animDelay = 250;
 const secondAnimDelay = 2500;
 
-const FirstClassWithAnimation = (): ReactElement => {
+const FirstClassWithAnimation = ({ paused }: { paused: boolean }): ReactElement => {
   const stepRef = useRef<HTMLDivElement>(null);
   const sepRef = useRef<HTMLDivElement>(null);
   const running = useRef<boolean>(false);
@@ -100,7 +108,7 @@ const FirstClassWithAnimation = (): ReactElement => {
   }
 
   useEffect(() => {
-    if (stepRef.current === null || sepRef.current === null) {
+    if (stepRef.current === null || sepRef.current === null || paused) {
       return;
     }
 
@@ -206,7 +214,7 @@ const FirstClassWithAnimation = (): ReactElement => {
 
       requestAnimationFrame(onFrame);
     }
-  }, []);
+  }, [paused]);
 
   return (
     <>
@@ -219,6 +227,7 @@ const FirstClassWithAnimation = (): ReactElement => {
             width={42}
             height={42}
             delay={animDelay}
+            paused={paused}
           />
         </div>
         <div className={styles.stepText}>Complete your first class</div>
@@ -228,7 +237,7 @@ const FirstClassWithAnimation = (): ReactElement => {
   );
 };
 
-const EnlightenmentWithAnimation = (): ReactElement => {
+const EnlightenmentWithAnimation = ({ paused }: { paused: boolean }): ReactElement => {
   const stepRef = useRef<HTMLDivElement>(null);
 
   const running = useRef<boolean>(false);
@@ -239,7 +248,7 @@ const EnlightenmentWithAnimation = (): ReactElement => {
   }
 
   useEffect(() => {
-    if (stepRef.current === null) {
+    if (stepRef.current === null || paused) {
       return;
     }
 
@@ -333,7 +342,7 @@ const EnlightenmentWithAnimation = (): ReactElement => {
       running.current = true;
       playAnimation();
     }
-  }, []);
+  }, [paused]);
 
   return (
     <div className={styles.step} ref={stepRef}>
@@ -345,6 +354,7 @@ const EnlightenmentWithAnimation = (): ReactElement => {
           width={42}
           height={42}
           delay={secondAnimDelay}
+          paused={paused}
         />
       </div>
       <div className={styles.stepText}>Achieve enlightenment</div>

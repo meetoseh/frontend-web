@@ -29,6 +29,12 @@ SOFTWARE.
 // - added more documentation
 // - added constants for css named curves
 
+// Modified 02/20/2023 Timothy Moore:
+// - fixed a few additional lint errors related to let/var
+
+// Modified 04/04/2023 Timothy Moore:
+// - added easeInBack, easeOutBack, easeInOutBack
+
 // General Bézier Curve, any number of dimensions or control points
 //
 // All math from http://en.wikipedia.org/wiki/B%C3%A9zier_curve#Generalization
@@ -74,11 +80,11 @@ export class Bezier {
    */
   private refinement: number;
 
-  constructor(points: number[][]) {
+  constructor(points: number[][], refinement = 10) {
     this.points = points;
     this.order = points.length;
     this.cardinality = points[0].length;
-    this.refinement = 10;
+    this.refinement = refinement;
   }
 
   /**
@@ -90,7 +96,7 @@ export class Bezier {
     const n = this.order - 1;
     let b = new_vec(this.cardinality);
 
-    for (var i = 0; i <= n; ++i) {
+    for (let i = 0; i <= n; ++i) {
       b = vec_add(b, sca_mul(b_i_n_t(i, n, t), this.points[i]));
     }
 
@@ -107,7 +113,7 @@ export class Bezier {
     const n = this.order - 1;
     let g = new_vec(this.cardinality);
 
-    for (var i = 0; i <= n - 1; ++i) {
+    for (let i = 0; i <= n - 1; ++i) {
       g = vec_add(g, sca_mul(b_i_n_t(i, n - 1, t), vec_sub(this.points[i + 1], this.points[i])));
     }
 
@@ -143,7 +149,7 @@ export class Bezier {
     let t = x0;
     let x1, dydx;
 
-    for (var i = 0; i < this.refinement; ++i) {
+    for (let i = 0; i < this.refinement; ++i) {
       x1 = this.b_t(t)[ix];
 
       if (x0 === x1) {
@@ -209,6 +215,36 @@ export const easeInOut = new Bezier([
 ]);
 
 /**
+ * https://easings.net/#easeInBack
+ */
+export const easeInBack = new Bezier([
+  [0, 0],
+  [0.36, 0],
+  [0.66, -0.56],
+  [1, 1],
+]);
+
+/**
+ * https://easings.net/#easeOutBack
+ */
+export const easeOutBack = new Bezier([
+  [0, 0],
+  [0.34, 1.56],
+  [0.64, 1],
+  [1, 1],
+]);
+
+/**
+ * https://easings.net/#easeInOutBack
+ */
+export const easeInOutBack = new Bezier([
+  [0, 0],
+  [0.68, -0.6],
+  [0.32, 1.6],
+  [1, 1],
+]);
+
+/**
  * The standard ease-out bezier function in css
  */
 export const easeOut = new Bezier([
@@ -241,8 +277,8 @@ function vec_sub(u: number[], v: number[]): number[] {
   });
 }
 function new_vec(cardinality: number): number[] {
-  var v = [];
-  for (var i = 0; i < cardinality; ++i) {
+  const v = [];
+  for (let i = 0; i < cardinality; ++i) {
     v.push(0);
   }
   return v;

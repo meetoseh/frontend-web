@@ -1,3 +1,48 @@
 .displayNone {
   display: none;
 }
+
+.onboardEnterClass {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.headphonesWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.headphones {
+  composes: icon from '../shared/icons.module.css';
+  background-image: url('./settings/icons/headphones.svg');
+  width: 16px;
+  height: 16px;
+}
+
+.headphonesWrapper {
+  margin-left: calc(-16px - 0.5em);
+  margin-right: 0.5em;
+  animation: 1s 1 2s wiggle;
+  animation-timing-function: linear;
+}
+
+@keyframes wiggle {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(15deg) scale(1.15);
+  }
+  50% {
+    transform: rotate(0deg) scale(1);
+  }
+  75% {
+    transform: rotate(-15deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}

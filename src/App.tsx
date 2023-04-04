@@ -18,7 +18,7 @@ import { SplashScreen } from './user/splash/SplashScreen';
 import { HandleDailyEventUserInviteScreen } from './user/referral/HandleDailyEventUserInviteScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 import { VisitorHandler } from './shared/hooks/useVisitor';
-import { OnboardingFinished } from './user/login/OnboardingFinished';
+import { DidYouKnow } from './shared/components/DidYouKnow';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -151,13 +151,22 @@ function App() {
         />
         <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />
         <Route
-          path="/onboarding-finished"
+          path="/test"
           element={
-            <OnboardingFinished
-              onFinished={() => {
-                window.location.href = '/';
-              }}
-            />
+            <div
+              style={{
+                background: 'black',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+                padding: '24px',
+              }}>
+              <DidYouKnow>
+                Meditation enhances creativity and innovation by reducing the amount of cortisol, a
+                major stress hormone, in your blood.
+              </DidYouKnow>
+            </div>
           }
         />
       </Routes>

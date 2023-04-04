@@ -130,7 +130,7 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
               <div className={assistiveStyles.srOnly}>Oseh</div>
             </div>
             <div className={styles.info}>
-              It&rsquo;s time to create a daily mindfulness habit and we are here for it.
+              Make mindfulness a daily part of your life in 60 seconds.
             </div>
           </div>
           <div className={styles.signinsContainer}>

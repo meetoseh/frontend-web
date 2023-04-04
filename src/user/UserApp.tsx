@@ -524,6 +524,16 @@ const UserAppInner = (): ReactElement => {
               desiredState !== 'onboard' &&
               (desiredState !== 'journey' || !journeyIsOnboarding || playOnboardingJourney !== null)
             }
+            finishCTA={
+              (desiredState === 'onboard' || desiredState === 'journey') && journeyIsOnboarding ? (
+                <div className={styles.onboardEnterClass}>
+                  <div className={styles.headphonesWrapper}>
+                    <div className={styles.headphones}></div>
+                  </div>
+                  Enter Class
+                </div>
+              ) : undefined
+            }
           />
         </div>
       ) : null}
@@ -562,7 +572,10 @@ const UserAppInner = (): ReactElement => {
       ) : null}
       {desiredState === 'onboarding-finished' ? (
         <div className={state !== 'onboarding-finished' ? styles.displayNone : ''}>
-          <OnboardingFinished onFinished={onOnboardingFinished} />
+          <OnboardingFinished
+            onFinished={onOnboardingFinished}
+            paused={state !== 'onboarding-finished'}
+          />
         </div>
       ) : null}
     </div>

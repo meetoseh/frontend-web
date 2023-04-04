@@ -10,6 +10,7 @@ import '../../assets/fonts.css';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useTimezone } from '../../shared/hooks/useTimezone';
 import { combineClasses } from '../../shared/lib/combineClasses';
+import { DidYouKnow } from '../../shared/components/DidYouKnow';
 
 type RequestPhoneFormProps = {
   /**
@@ -34,6 +35,11 @@ type RequestPhoneFormProps = {
    * user from finishing the form.
    */
   readyToFinish?: boolean;
+
+  /**
+   * If specified, takes over the contents of the final button.
+   */
+  finishCTA?: ReactElement | string;
 };
 
 /**
@@ -45,6 +51,7 @@ export const RequestPhoneForm = ({
   onSkipped,
   onFinished,
   readyToFinish,
+  finishCTA,
 }: RequestPhoneFormProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const windowSize = useWindowSize();
@@ -360,20 +367,19 @@ export const RequestPhoneForm = ({
         {step === 'reward' && (
           <>
             <div className={styles.rewardTitle}>
-              Awesome! You&rsquo;re one step closer to creating a mindfulness habit.
+              High-five! You&rsquo;re on your way to making meditation a daily habit.
             </div>
-            {/* https://www.jneurosci.org/content/31/14/5540 */}
-            <div className={styles.rewardFact}>
-              Mindfulness has been associated with the perceived reduction of pain in participants
-              by upwards of 50%.
-            </div>
+            <DidYouKnow animation={{ delay: 750 }}>
+              Meditation enhances creativity and innovation by reducing the amount of cortisol, a
+              major stress hormone, in your blood.
+            </DidYouKnow>
             <div className={styles.submitContainer}>
               <Button
                 type="button"
                 fullWidth
                 onClick={onRewardFinish}
                 disabled={readyToFinish === false}>
-                Let&rsquo;s Go
+                {finishCTA ?? <>Let&rsquo;s Go</>}
               </Button>
             </div>
           </>

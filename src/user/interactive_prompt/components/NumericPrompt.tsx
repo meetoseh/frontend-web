@@ -553,7 +553,7 @@ const useFakeMove = (
         loweringUpperTrigger: null,
         raising: event.current,
         raisingLowerTrigger: (stats.stats.current.numericActive?.get(event.current.value) ?? 0) + 1,
-        promptTimeToCancel: promptTime.time.current + 1500,
+        promptTimeToCancel: promptTime.time.current + 4500,
       };
 
       if (event.old) {
