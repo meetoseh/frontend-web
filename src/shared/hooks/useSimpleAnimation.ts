@@ -35,7 +35,16 @@ type SimpleAnimationProps<T, S> = {
   /**
    * Prepares the state to be rendered at the given time into the animation.
    * Returns a state object which will be passed to the other functions.
-   * If necessary, this can also modify the target to prepare it for the animation.
+   *
+   * If necessary, this can also modify the target to prepare it for the
+   * animation. This may depend on the animation time. Note, however, that
+   * render is always called immediately after initialization, so for simple
+   * animations initialize can ignore the animation time and set the state to as
+   * if it were animation time zero. The most common example where the animation
+   * time needs to be considered in initialize is for multi-part animations,
+   * where render is only modifying one part of the animation at a time. In that
+   * case, if remounted in a later part, initialize should be able to pick up
+   * where it left off.
    *
    * Changing this function will remount the animation, so it should be stable.
    */
