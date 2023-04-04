@@ -18,6 +18,7 @@ import { SplashScreen } from './user/splash/SplashScreen';
 import { HandleDailyEventUserInviteScreen } from './user/referral/HandleDailyEventUserInviteScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 import { VisitorHandler } from './shared/hooks/useVisitor';
+import { OnboardingFinished } from './user/login/OnboardingFinished';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -149,6 +150,16 @@ function App() {
           }
         />
         <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />
+        <Route
+          path="/onboarding-finished"
+          element={
+            <OnboardingFinished
+              onFinished={() => {
+                window.location.href = '/';
+              }}
+            />
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

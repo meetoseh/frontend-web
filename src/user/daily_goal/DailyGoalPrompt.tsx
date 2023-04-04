@@ -5,7 +5,6 @@ import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../sha
 import styles from './DailyGoalPrompt.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { InteractivePromptRouter } from '../interactive_prompt/components/InteractivePromptRouter';
-import { Button } from '../../shared/forms/Button';
 
 type DailyGoalPromptProps = {
   /**

@@ -27,76 +27,98 @@
   align-items: stretch;
 }
 
-.progressContainer {
+.titleAndJourney {
+  flex: 1 1 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: stretch;
 }
 
-.progressSection {
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: flex-start;
-  align-items: stretch;
-  height: 114px;
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 32px;
+  text-align: center;
+  color: white;
+  margin-bottom: 32px;
 }
 
-.left {
-  flex: 0 0 97px;
-  width: 97px;
+.journey {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  align-items: stretch;
+}
+
+.step {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(68, 98, 102, 0.4);
+  margin: 0 16px;
+}
+
+.stepIconContainer {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  margin-right: 16px;
+  display: flex;
+  justify-content: center;
   align-items: center;
 }
 
-.leftLine {
-  flex: 1 1 0;
-  width: 1px;
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.leftFirstLine {
-  background: #ffffff;
-}
-
-.leftIndicator {
-  composes: icon from '../../shared/icons.module.css';
-  flex: 0 0 63.6396104px;
-  width: 63.6396104px;
-  height: 63.6396104px;
-  background-image: url('./icons/left-indicator.svg');
-}
-
-.leftFirstIndicator {
-  background-image: url('./icons/left-first-indicator.svg');
-}
-
-.right {
-  flex: 1 1 245px;
-  display: flex;
-  justify-content: flex-start;
-  align-items: flex-end;
+.stepText {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
-  font-weight: 300;
+  font-weight: 400;
   font-size: 16px;
   line-height: 28px;
   letter-spacing: 0.25px;
-  padding-right: 40px;
   color: white;
+  margin-right: 45px;
 }
 
-.firstRight {
-  font-weight: 400;
+.smallStepSeparator {
+  flex: 0 0 8px;
+  width: 3px;
+  background: rgba(78, 91, 93, 0.5);
+  margin-left: 35px;
+}
+
+.largeStepSeparator {
+  flex: 0 0 32px;
+  border-left-width: 3px;
+  border-left-color: rgba(78, 91, 93, 0.5);
+  border-left-style: dashed;
+  margin-left: 35px;
 }
 
 .continueContainer {
-  flex: 1 0 130px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: stretch;
   padding: 0 24px 24px 24px;
+}
+
+/* ICONS */
+.calendar {
+  composes: icon from '../../shared/icons.module.css';
+  width: 20px;
+  height: 21px;
+  background: url('./icons/calendar.svg');
+}
+
+.stars {
+  composes: icon from '../../shared/icons.module.css';
+  width: 18px;
+  height: 24px;
+  background: url('./icons/stars.svg');
 }

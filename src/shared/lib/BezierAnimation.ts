@@ -50,7 +50,7 @@ export const calculateAnimValue = (anim: BezierAnimation, now: number): number =
   }
 
   const progress = (now - anim.startedAt) / anim.duration;
-  return anim.ease.b_t(progress)[1] * (anim.to - anim.from) + anim.from;
+  return anim.ease.b_t(Math.min(1.0, progress))[1] * (anim.to - anim.from) + anim.from;
 };
 
 type UpdateAnimArgs = {
@@ -112,6 +112,18 @@ export const getColor3fFromHex = (color: string): number[] => {
 };
 
 /**
+ * Linearly interpolates between two numbers, given the progress.
+ *
+ * @param from The starting number, at t=0
+ * @param to The ending number, at t=1
+ * @param t The progress, from 0.0 to 1.0.
+ * @returns The interpolated number
+ */
+export const interpolateNumber = (from: number, to: number, t: number): number => {
+  return from + (to - from) * t;
+};
+
+/**
  * Interpolates between two colors, given the progress. The method for
  * interpolation is not guarranteed, but generally will look at least as good as
  * linear.
@@ -120,10 +132,24 @@ export const getColor3fFromHex = (color: string): number[] => {
  * @param to The ending color, as a 3-element array of floats, each from 0.0 to 1.0.
  * @param t The progress, from 0.0 to 1.0.
  */
-export const interpolateColor = (from: number[], to: number[], t: number): number[] => {
+export const interpolateColor = (
+  from: number[],
+  to: number[],
+  t: number
+): [number, number, number] => {
   return [
     from[0] + (to[0] - from[0]) * t,
     from[1] + (to[1] - from[1]) * t,
     from[2] + (to[2] - from[2]) * t,
   ];
+};
+
+/**
+ * Determines if the given animation is complete
+ * @param anim The animation
+ * @param now The current time
+ * @returns True if the animation is complete, false otherwise
+ */
+export const animIsComplete = (anim: BezierAnimation, now: number): boolean => {
+  return anim.startedAt !== null && anim.startedAt + anim.duration <= now;
 };

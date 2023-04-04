@@ -18,6 +18,7 @@ export function createCancelablePromiseFromCallbacks<T>(
   const promise = new Promise<T>((resolve, reject) => {
     if (instaCanceled) {
       cancel = null;
+      reject(new Error('canceled'));
       return;
     }
 
