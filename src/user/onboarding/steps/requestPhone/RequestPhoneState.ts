@@ -21,6 +21,12 @@ export type RequestPhoneState = {
   hasPhoneNumber: boolean | undefined;
 
   /**
+   * True if the user has added a phone number this session, false otherwise.
+   * This is intended to be used by other states.
+   */
+  justAddedPhoneNumber: boolean;
+
+  /**
    * A function which should be called if the user chooses not to give
    * us a phone number, so that we can update lastRequestAt.
    */

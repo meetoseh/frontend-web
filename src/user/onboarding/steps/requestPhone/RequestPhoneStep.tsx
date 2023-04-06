@@ -57,7 +57,8 @@ const setLastRequestAt = (sub: string, lastRequestAt: Date, variant: 'first' | '
 const makeState = (
   loginContext: LoginContextValue,
   lastFirstRequestAt: Date | number | null,
-  lastSecondRequestAt: Date | number | null
+  lastSecondRequestAt: Date | number | null,
+  justAddedPhoneNumber: string | null
 ): Omit<RequestPhoneState, 'onSkip'> => {
   if (typeof lastFirstRequestAt === 'number') {
     lastFirstRequestAt = new Date(lastFirstRequestAt);
@@ -71,6 +72,7 @@ const makeState = (
       hasPhoneNumber: undefined,
       sawInitialRequest: undefined,
       sawSecondRequest: undefined,
+      justAddedPhoneNumber: false,
     };
   }
 
@@ -82,6 +84,8 @@ const makeState = (
     sawSecondRequest:
       lastSecondRequestAt !== null &&
       lastSecondRequestAt.getTime() + 1000 * 60 * 60 * 24 > Date.now(),
+    justAddedPhoneNumber:
+      justAddedPhoneNumber !== null && justAddedPhoneNumber === loginContext.userAttributes.sub,
   };
 };
 
@@ -92,12 +96,36 @@ export const RequestPhoneStep: OnboardingStep<RequestPhoneState, RequestPhoneRes
     const loginContext = useContext(LoginContext);
     const [lastInitialRequestAt, setLastInitialRequestAtState] = useState<number | null>(null);
     const [lastSecondRequestAt, setLastSecondRequestAtState] = useState<number | null>(null);
+    const [justAddedPhoneNumber, setJustAddedPhoneNumber] = useState<string | null>(null);
     const [state, setState] = useState<RequestPhoneState>(() => ({
-      ...makeState(loginContext, lastInitialRequestAt, lastSecondRequestAt),
+      ...makeState(loginContext, lastInitialRequestAt, lastSecondRequestAt, justAddedPhoneNumber),
       onSkip: () => {
         throw new Error('not done initializing');
       },
     }));
+
+    const hadPhoneNumber = useRef({
+      sub: loginContext.userAttributes?.sub,
+      hadPn: state.hasPhoneNumber,
+    });
+    if (hadPhoneNumber.current.sub !== loginContext.userAttributes?.sub) {
+      hadPhoneNumber.current = {
+        sub: loginContext.userAttributes?.sub,
+        hadPn: state.hasPhoneNumber,
+      };
+    }
+
+    useEffect(() => {
+      if (hadPhoneNumber.current.hadPn) {
+        setJustAddedPhoneNumber(null);
+      } else {
+        if (state.hasPhoneNumber && loginContext.userAttributes?.sub !== undefined) {
+          setJustAddedPhoneNumber(loginContext.userAttributes.sub);
+        } else {
+          setJustAddedPhoneNumber(null);
+        }
+      }
+    }, [state.hasPhoneNumber, loginContext.userAttributes?.sub]);
 
     useEffect(() => {
       if (loginContext.userAttributes === null) {
@@ -128,7 +156,7 @@ export const RequestPhoneStep: OnboardingStep<RequestPhoneState, RequestPhoneRes
         setLastRequestAt(loginContext.userAttributes.sub, now, 'first');
         setLastInitialRequestAtState(now.getTime());
         const newState = {
-          ...makeState(loginContext, now, lastSecondRequestAt),
+          ...makeState(loginContext, now, lastSecondRequestAt, justAddedPhoneNumber),
           onSkip,
         };
         setState(newState);
@@ -137,20 +165,26 @@ export const RequestPhoneStep: OnboardingStep<RequestPhoneState, RequestPhoneRes
         setLastRequestAt(loginContext.userAttributes.sub, now, 'second');
         setLastSecondRequestAtState(now.getTime());
         const newState = {
-          ...makeState(loginContext, lastInitialRequestAt, now),
+          ...makeState(loginContext, lastInitialRequestAt, now, justAddedPhoneNumber),
           onSkip,
         };
         setState(newState);
         return newState;
       }
-    }, [loginContext, lastInitialRequestAt, lastSecondRequestAt, state.sawInitialRequest]);
+    }, [
+      loginContext,
+      lastInitialRequestAt,
+      lastSecondRequestAt,
+      state.sawInitialRequest,
+      justAddedPhoneNumber,
+    ]);
 
     useEffect(() => {
       setState({
-        ...makeState(loginContext, lastInitialRequestAt, lastSecondRequestAt),
+        ...makeState(loginContext, lastInitialRequestAt, lastSecondRequestAt, justAddedPhoneNumber),
         onSkip,
       });
-    }, [loginContext, lastInitialRequestAt, lastSecondRequestAt, onSkip]);
+    }, [loginContext, lastInitialRequestAt, lastSecondRequestAt, onSkip, justAddedPhoneNumber]);
 
     return state;
   },

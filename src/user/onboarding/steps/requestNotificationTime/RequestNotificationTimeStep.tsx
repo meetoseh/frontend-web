@@ -88,6 +88,14 @@ export const RequestNotificationTimeStep: OnboardingStep<
         return;
       }
 
+      if (
+        lastResponse.response === null &&
+        lastResponse.at.getTime() + 24 * 60 * 60 * 1000 < Date.now()
+      ) {
+        setNotificationTimeResponse(undefined);
+        return;
+      }
+
       setNotificationTimeResponse(lastResponse.response);
     }, [loginContext]);
 
@@ -166,7 +174,7 @@ export const RequestNotificationTimeStep: OnboardingStep<
               'Content-Type': 'application/json; charset=utf-8',
             },
             body: JSON.stringify({
-              notification_time: response,
+              notification_time: response?.toLowerCase() ?? 'any',
               timezone: timezone,
               timezone_technique: 'browser',
             }),
@@ -275,7 +283,7 @@ export const RequestNotificationTimeStep: OnboardingStep<
     );
   },
 
-  isRequired: (worldState) => {
+  isRequired: (worldState, allStates) => {
     if (worldState.sawNotificationTime === undefined) {
       return undefined;
     }
@@ -284,7 +292,10 @@ export const RequestNotificationTimeStep: OnboardingStep<
       return undefined;
     }
 
-    return !worldState.sawNotificationTime && worldState.serverWantsNotificationTime;
+    return (
+      !worldState.sawNotificationTime &&
+      (worldState.serverWantsNotificationTime || allStates.requestPhone.justAddedPhoneNumber)
+    );
   },
 
   component: (worldState, resources, doAnticipateState) => (
