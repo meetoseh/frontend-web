@@ -150,25 +150,6 @@ function App() {
           }
         />
         <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />
-        <Route
-          path="/test"
-          element={
-            <div
-              style={{
-                background: 'black',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100vh',
-                padding: '24px',
-              }}>
-              <DidYouKnow>
-                Meditation enhances creativity and innovation by reducing the amount of cortisol, a
-                major stress hormone, in your blood.
-              </DidYouKnow>
-            </div>
-          }
-        />
       </Routes>
     </BrowserRouter>
   );
