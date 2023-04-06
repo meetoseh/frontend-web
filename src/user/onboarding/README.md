@@ -46,4 +46,11 @@ submission unexpectedly fails.
 
 For steps,
 
-TODO
+- user/onboarding/steps/{name}/{Name}State.ts
+  - Exports the type which can be used to determine if the step should be rendered
+- user/onboarding/steps/{name}/{Name}Resources.ts
+  - Exports the type which contains everything required to present the step
+- user/onboarding/steps/{name}/{Name}Step.tsx
+  - Handles loading the state/resources and gluing them to the component
+- user/onboarding/steps/{name}/{Name}.tsx
+  - The component which is rendered via the state and resources
