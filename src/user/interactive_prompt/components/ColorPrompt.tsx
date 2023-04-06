@@ -69,7 +69,7 @@ type ColorPromptProps = {
    * move on. The button prominence is reduced until the user answers,
    * but still more prominent than the default X button.
    */
-  finishEarly?: boolean;
+  finishEarly?: boolean | { cta: string };
 
   /**
    * If specified, used to configure the max width of the title in pixels.
@@ -325,7 +325,7 @@ export const ColorPrompt = ({
               fullWidth
               variant={hasSelection ? 'filled' : 'link-white'}
               onClick={handleSkip}>
-              {hasSelection ? 'Continue' : 'Skip'}
+              {hasSelection ? (finishEarly === true ? 'Continue' : finishEarly.cta) : 'Skip'}
             </Button>
           </div>
         )}

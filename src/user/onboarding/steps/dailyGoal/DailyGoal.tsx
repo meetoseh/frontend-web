@@ -8,6 +8,8 @@ import { InteractivePromptRouter } from '../../../interactive_prompt/components/
 import { useCallback, useRef } from 'react';
 import { Button } from '../../../../shared/forms/Button';
 
+const finishEarlySettings = { cta: 'Enter Class' };
+
 /**
  * Asks the user for their daily goal
  */
@@ -62,7 +64,7 @@ export const DailyGoal = ({
             prompt={resources.prompt.prompt}
             onWordPromptResponse={onWordPromptResponse}
             onFinished={onFinish}
-            finishEarly
+            finishEarly={finishEarlySettings}
             leavingCallback={leavingCallback}
           />
         ) : (

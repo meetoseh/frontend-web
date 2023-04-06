@@ -48,8 +48,11 @@ type InteractivePromptRouterProps = {
    * If set to true, a more obvious button is included to let the user
    * move on. The button prominence is reduced until the user answers,
    * but still more prominent than the default X button.
+   *
+   * If more control is required, instead of `true`, an object containing
+   * more configuration can be passed.
    */
-  finishEarly?: boolean;
+  finishEarly?: boolean | { cta: string };
 
   /**
    * If specified, used to configure the max width of the title in pixels.
