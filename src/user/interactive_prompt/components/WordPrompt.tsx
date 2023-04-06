@@ -44,7 +44,7 @@ type WordPromptProps = {
   /**
    * The function to call when the user finishes the prompt.
    */
-  onFinished: () => void;
+  onFinished: (privileged: boolean) => void;
 
   /**
    * If specified, the function to call when the user selects a response.
@@ -76,6 +76,13 @@ type WordPromptProps = {
   finishEarly?: boolean;
 
   /**
+   * If specified, used to configure the max width of the title in pixels.
+   * It's often useful to configure this if the prompt title is known in
+   * advance to get an aesthetically pleasing layout.
+   */
+  titleMaxWidth?: number;
+
+  /**
    * The ref to register a leaving callback which must be called before unmounting
    * the component normally in order to trigger a leave event. Otherwise, a leave
    * event is only triggered when the prompt finishes normally or the page is
@@ -95,6 +102,7 @@ export const WordPrompt = ({
   subtitle,
   paused,
   finishEarly,
+  titleMaxWidth,
   leavingCallback,
 }: WordPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'word') {
@@ -120,7 +128,7 @@ export const WordPrompt = ({
 
   const handleSkip = useCallback(() => {
     leavingCallback.current?.();
-    onFinished();
+    onFinished(true);
   }, [onFinished, leavingCallback]);
 
   const boundFilledWidthGetterSetters: {
@@ -193,7 +201,7 @@ export const WordPrompt = ({
         className={styles.prompt}
         style={!countdown || !finishEarly || windowSize.height > 700 ? {} : { marginTop: '12px' }}>
         {/* we run out of space with countdown && finishEarly */}
-        <PromptTitle text={prompt.text} subtitle={subtitle} />
+        <PromptTitle text={prompt.text} subtitle={subtitle} titleMaxWidth={titleMaxWidth} />
         <div className={styles.options}>
           {prompt.options.map((option, idx) => {
             return (
@@ -252,7 +260,17 @@ export const WordPrompt = ({
             </Button>
           </div>
         )}
-        <div className={styles.profilePictures} style={{ width: `${optionWidth}px` }}>
+        <div
+          className={styles.profilePictures}
+          style={Object.assign(
+            { width: `${optionWidth}px` },
+            countdown || !finishEarly
+              ? null
+              : {
+                  marginTop: '5px',
+                  marginBottom: '8px',
+                }
+          )}>
           <ProfilePictures profilePictures={profilePictures} />
         </div>
       </div>

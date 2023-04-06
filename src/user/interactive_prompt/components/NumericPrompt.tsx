@@ -50,7 +50,7 @@ type NumericPromptProps = {
   /**
    * The function to call when the user finishes the prompt.
    */
-  onFinished: () => void;
+  onFinished: (privileged: boolean) => void;
 
   /**
    * If specified, a countdown is displayed using the given props.
@@ -74,6 +74,13 @@ type NumericPromptProps = {
    * but still more prominent than the default X button.
    */
   finishEarly?: boolean;
+
+  /**
+   * If specified, used to configure the max width of the title in pixels.
+   * It's often useful to configure this if the prompt title is known in
+   * advance to get an aesthetically pleasing layout.
+   */
+  titleMaxWidth?: number;
 
   /**
    * The ref to register a leaving callback which must be called before unmounting
@@ -101,6 +108,7 @@ export const NumericPrompt = ({
   subtitle,
   paused,
   finishEarly,
+  titleMaxWidth,
   leavingCallback,
 }: NumericPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'numeric') {
@@ -126,7 +134,7 @@ export const NumericPrompt = ({
 
   const handleSkip = useCallback(() => {
     leavingCallback.current?.();
-    onFinished();
+    onFinished(true);
   }, [onFinished, leavingCallback]);
 
   const promptOptions = useMemo<number[]>(() => {
@@ -243,7 +251,7 @@ export const NumericPrompt = ({
     <div className={styles.container}>
       {countdown && <CountdownText promptTime={promptTime} prompt={intPrompt} {...countdown} />}
       <div className={styles.prompt}>
-        <PromptTitle text={prompt.text} subtitle={subtitle} />
+        <PromptTitle text={prompt.text} subtitle={subtitle} titleMaxWidth={titleMaxWidth} />
         <div className={styles.carouselContainer}>
           <Carousel info={carouselInfo}>
             {promptOptions.map((option, optionIndex) => (

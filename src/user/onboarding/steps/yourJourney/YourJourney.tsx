@@ -1,63 +1,55 @@
-import { ReactElement, useEffect, useMemo, useRef } from 'react';
-import { Button } from '../../shared/forms/Button';
-import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
-import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../shared/OsehImage';
-import styles from './OnboardingFinished.module.css';
-import { interpolateColor, interpolateNumber } from '../../shared/lib/BezierAnimation';
-import { Bezier, ease } from '../../shared/lib/Bezier';
+import { ReactElement, useCallback, useEffect, useRef } from 'react';
+import styles from './YourJourney.module.css';
 import badgeStart from './icons/badgeStart.svg';
 import badgeEnd from './icons/badgeEnd.svg';
 import enlightenmentStart from './icons/enlightenmentStart.svg';
 import enlightenmentEnd from './icons/enlightenmentEnd.svg';
-import { ImageCrossFade } from '../../shared/anim/ImageCrossFade';
-import { useSimpleAnimation } from '../../shared/hooks/useSimpleAnimation';
-
-type OnboardingFinishedProps = {
-  /**
-   * True to delay animations, usually used when this isn't on the screen yet.
-   */
-  paused?: boolean;
-
-  /**
-   * The function to call to return the user to the home screen.
-   */
-  onFinished: () => void;
-};
+import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
+import { useFullHeightStyle } from '../../../../shared/hooks/useFullHeight';
+import { OnboardingStepComponentProps } from '../../models/OnboardingStep';
+import { YourJourneyState } from './YourJourneyState';
+import { YourJourneyResources } from './YourJourneyResources';
+import { Button } from '../../../../shared/forms/Button';
+import { OsehImageFromState } from '../../../../shared/OsehImage';
+import { Bezier, ease } from '../../../../shared/lib/Bezier';
+import { interpolateColor, interpolateNumber } from '../../../../shared/lib/BezierAnimation';
+import { useSimpleAnimation } from '../../../../shared/hooks/useSimpleAnimation';
+import { ImageCrossFade } from '../../../../shared/anim/ImageCrossFade';
 
 /**
  * The screen that is shown when the user has finished the onboarding experience.
  */
-export const OnboardingFinished = ({
-  paused,
-  onFinished,
-}: OnboardingFinishedProps): ReactElement => {
+export const YourJourney = ({
+  state,
+  resources,
+  doAnticipateState,
+}: OnboardingStepComponentProps<YourJourneyState, YourJourneyResources>): ReactElement => {
   const windowSize = useWindowSize();
-  const backgroundProps = useMemo<OsehImageProps>(
-    () => ({
-      uid: 'oseh_if_0ykGW_WatP5-mh-0HRsrNw',
-      jwt: null,
-      displayWidth: windowSize.width,
-      displayHeight: windowSize.height,
-      alt: '',
-      isPublic: true,
-      placeholderColor: '#223a3e',
-    }),
-    [windowSize.width, windowSize.height]
-  );
-  const background = useOsehImageState(backgroundProps);
   const containerStyle = useFullHeightStyle({ windowSize });
+
+  const onFinished = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      const newState = state.onContinue.call(undefined);
+      doAnticipateState.call(undefined, newState, Promise.resolve());
+    },
+    [state.onContinue, doAnticipateState]
+  );
+
+  if (resources.background === null) {
+    return <></>;
+  }
 
   return (
     <div className={styles.container} style={containerStyle}>
       <div className={styles.backgroundContainer}>
-        <OsehImageFromState {...background} />
+        <OsehImageFromState {...resources.background} />
       </div>
       <div className={styles.contentContainer}>
         <div className={styles.titleAndJourney}>
           <div className={styles.title}>Your Mindfulness Journey</div>
           <div className={styles.journey}>
-            <FirstClassWithAnimation paused={paused ?? false} />
+            <FirstClassWithAnimation paused={false} />
             <div className={styles.step}>
               <div className={styles.stepIconContainer}>
                 <div className={styles.calendar}></div>
@@ -72,7 +64,7 @@ export const OnboardingFinished = ({
               <div className={styles.stepText}>Hit a 7-day streak</div>
             </div>
             <div className={styles.largeStepSeparator}></div>
-            <EnlightenmentWithAnimation paused={paused ?? false} />
+            <EnlightenmentWithAnimation paused={false} />
           </div>
         </div>
         <div className={styles.continueContainer}>

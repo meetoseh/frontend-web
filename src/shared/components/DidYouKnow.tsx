@@ -72,7 +72,6 @@ const lightbulbAnimation = {
   },
   render: (ref: HTMLDivElement, state: LightbulbAnimationState, animationTime: number) => {
     const growProgress = state.ease.b_t(Math.min(1, animationTime / state.duration))[1];
-    console.log(growProgress);
 
     // Scaling using transform will keep the center of the element in the same
     // spot, but we want to keep the bottom center in the same spot. So we have

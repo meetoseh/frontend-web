@@ -1,66 +1,32 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Button } from '../../shared/forms/Button';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { TextInput } from '../../shared/forms/TextInput';
-import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { LoginContext } from '../../shared/LoginContext';
-import { OsehImage } from '../../shared/OsehImage';
-import styles from './RequestPhoneForm.module.css';
-import '../../assets/fonts.css';
-import { apiFetch } from '../../shared/ApiConstants';
-import { useTimezone } from '../../shared/hooks/useTimezone';
-import { combineClasses } from '../../shared/lib/combineClasses';
-import { DidYouKnow } from '../../shared/components/DidYouKnow';
-
-type RequestPhoneFormProps = {
-  /**
-   * Called to indicate the loaded status of the form
-   * @param loaded If all the content for the form is ready
-   */
-  setLoaded: (loaded: boolean) => void;
-
-  /**
-   * Called when the user requests to skip this step
-   */
-  onSkipped: () => void;
-
-  /**
-   * Called after we successfully verify a phone number. Instead of this, one
-   * call also monitor the userAttributes.phoneNumber attribute for changes.
-   */
-  onFinished: (requestedNotifications: boolean) => void;
-
-  /**
-   * If set to false, the final button is disabled, preventing the
-   * user from finishing the form.
-   */
-  readyToFinish?: boolean;
-
-  /**
-   * If specified, takes over the contents of the final button.
-   */
-  finishCTA?: ReactElement | string;
-};
+import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
+import { LoginContext } from '../../../../shared/LoginContext';
+import { useTimezone } from '../../../../shared/hooks/useTimezone';
+import { apiFetch } from '../../../../shared/ApiConstants';
+import styles from './RequestPhone.module.css';
+import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
+import { combineClasses } from '../../../../shared/lib/combineClasses';
+import { SplashScreen } from '../../../splash/SplashScreen';
+import { OsehImageFromState } from '../../../../shared/OsehImage';
+import { TextInput } from '../../../../shared/forms/TextInput';
+import { Button } from '../../../../shared/forms/Button';
+import { OnboardingStepComponentProps } from '../../models/OnboardingStep';
+import { RequestPhoneState } from './RequestPhoneState';
+import { RequestPhoneResources } from './RequestPhoneResources';
 
 /**
- * Shows a form where the user can put in a phone number and verify it.
- * If it verifies successfully, it becomes their primary phone number.
+ * Prompts the user for their phone number, then verifies it.
  */
-export const RequestPhoneForm = ({
-  setLoaded,
-  onSkipped,
-  onFinished,
-  readyToFinish,
-  finishCTA,
-}: RequestPhoneFormProps): ReactElement => {
+export const RequestPhone = ({
+  state,
+  resources,
+  doAnticipateState,
+}: OnboardingStepComponentProps<RequestPhoneState, RequestPhoneResources>): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const windowSize = useWindowSize();
-  const [step, setStep] = useState<'number' | 'verify' | 'reward'>('number');
+  const [step, setStep] = useState<'number' | 'verify' | 'done'>('number');
   const [phone, setPhone] = useState('');
   const receiveNotifs = true;
   const [error, setError] = useState<ReactElement | null>(null);
   const [saving, setSaving] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
   const [code, setCode] = useState('');
   const [focusPhone, setFocusPhone] = useState<(() => void) | null>(null);
   const [errorPhone, setErrorPhone] = useState(false);
@@ -70,10 +36,6 @@ export const RequestPhoneForm = ({
   const safeSetFocusPhone = useCallback((focuser: () => void) => {
     setFocusPhone(() => focuser);
   }, []);
-
-  useEffect(() => {
-    setLoaded(!imageLoading);
-  }, [imageLoading, setLoaded]);
 
   const formatAndSetPhone = useCallback(async (newValue: string) => {
     setErrorPhone(false);
@@ -219,7 +181,7 @@ export const RequestPhoneForm = ({
           ...loginContext.userAttributes!,
           phoneNumber: phone.replaceAll(/ - /g, ''),
         });
-        setStep('reward');
+        setStep('done');
       } catch (e) {
         console.error(e);
         const err = await describeError(e);
@@ -231,20 +193,13 @@ export const RequestPhoneForm = ({
     [loginContext, code, phone, verificationUid]
   );
 
-  const onRewardFinish = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      onFinished(receiveNotifs);
-    },
-    [onFinished, receiveNotifs]
-  );
-
   const onSkipPhone = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      onSkipped();
+      const newState = state.onSkip.call(undefined);
+      doAnticipateState(newState, Promise.resolve());
     },
-    [onSkipped]
+    [state.onSkip, doAnticipateState]
   );
 
   const onBackVerify = useCallback(async (e: React.FormEvent) => {
@@ -254,18 +209,18 @@ export const RequestPhoneForm = ({
     setStep('number');
   }, []);
 
+  if (resources.background === null) {
+    return <></>;
+  }
+
+  if (step === 'done') {
+    return <SplashScreen />;
+  }
+
   return (
     <div className={combineClasses(styles.container, styles[`container-${step}`])}>
       <div className={styles.imageContainer}>
-        <OsehImage
-          uid="oseh_if_hH68hcmVBYHanoivLMgstg"
-          jwt={null}
-          displayWidth={windowSize.width}
-          displayHeight={windowSize.height}
-          alt=""
-          isPublic={true}
-          setLoading={setImageLoading}
-        />
+        <OsehImageFromState {...resources.background} />
       </div>
       <div className={styles.content}>
         {step === 'number' && (
@@ -362,26 +317,6 @@ export const RequestPhoneForm = ({
                 </Button>
               </div>
             </form>
-          </>
-        )}
-        {step === 'reward' && (
-          <>
-            <div className={styles.rewardTitle}>
-              High-five! You&rsquo;re on your way to making meditation a daily habit.
-            </div>
-            <DidYouKnow animation={{ delay: 750 }}>
-              Meditation enhances creativity and innovation by reducing the amount of cortisol, a
-              major stress hormone, in your blood.
-            </DidYouKnow>
-            <div className={styles.submitContainer}>
-              <Button
-                type="button"
-                fullWidth
-                onClick={onRewardFinish}
-                disabled={readyToFinish === false}>
-                {finishCTA ?? <>Let&rsquo;s Go</>}
-              </Button>
-            </div>
           </>
         )}
       </div>

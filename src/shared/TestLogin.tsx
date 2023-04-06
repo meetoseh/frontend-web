@@ -61,8 +61,8 @@ export const TestLogin = (): ReactElement => {
           name="userSub"
           value={userSub}
           onChange={useCallback((e: ChangeEvent<HTMLInputElement>) => {
-            if (e.target.value === 'guest') {
-              setUserSub('guest-' + Math.random().toString(36).substring(2));
+            if (e.target.value === 'guest' || e.target.value === 'apple') {
+              setUserSub(e.target.value + '-' + Math.random().toString(36).substring(2));
             } else {
               setUserSub(e.target.value);
             }

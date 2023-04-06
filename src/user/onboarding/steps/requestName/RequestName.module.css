@@ -62,7 +62,7 @@
 }
 
 .submit {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../../shared/buttons.module.css';
 
   display: flex;
   justify-content: center;

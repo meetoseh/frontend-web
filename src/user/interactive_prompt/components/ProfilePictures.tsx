@@ -136,15 +136,16 @@ export const ProfilePictures = ({
     }
 
     async function removeSpotAfterFadeOut(i: number) {
-      spots[i].img = null;
-      spots[i].bottom.style.opacity = '0%';
+      const spot = spots[i];
+      spot.img = null;
+      spot.bottom.style.opacity = '0%';
 
       let canceled = false;
       const onChanged = () => {
         canceled = true;
-        spots[i].changed.remove(onChanged);
+        spot.changed.remove(onChanged);
       };
-      spots[i].changed.add(onChanged);
+      spot.changed.add(onChanged);
 
       await new Promise((resolve) => setTimeout(resolve, FADE_TIME));
 
@@ -152,9 +153,13 @@ export const ProfilePictures = ({
         return;
       }
 
-      spots[i].changed.remove(onChanged);
-      spots[i].outerContainer.remove();
-      spots.splice(i, 1);
+      spot.changed.remove(onChanged);
+      spot.outerContainer.remove();
+
+      const newIndex = spots.indexOf(spot);
+      if (newIndex >= 0) {
+        spots.splice(newIndex, 1);
+      }
     }
 
     async function swapOutBottom(i: number, pic: OsehImageState) {

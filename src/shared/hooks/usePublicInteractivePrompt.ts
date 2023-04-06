@@ -49,6 +49,12 @@ type PublicInteractivePromptProps = {
    * The identifier for the public interactive prompt to load
    */
   identifier: string;
+
+  /**
+   * If set to false, the prompt will be unloaded (if already loaded),
+   * and won't be loaded (if not already loaded). Otherwise, ignored.
+   */
+  load?: boolean;
 };
 
 /**
@@ -57,6 +63,7 @@ type PublicInteractivePromptProps = {
  */
 export const usePublicInteractivePrompt = ({
   identifier,
+  load,
 }: PublicInteractivePromptProps): PublicInteractivePrompt => {
   const loginContext = useContext(LoginContext);
   const [prompt, setPrompt] = useState<{ identifier: string; prompt: InteractivePrompt } | null>(
@@ -117,6 +124,11 @@ export const usePublicInteractivePrompt = ({
       if (!active) {
         return;
       }
+      if (load === false) {
+        setPrompt(null);
+        setError(null);
+        return;
+      }
       if (last !== null && last.identifier === identifier) {
         setPrompt(last);
         return;
@@ -136,7 +148,7 @@ export const usePublicInteractivePrompt = ({
         return null;
       })();
     }
-  }, [identifier, loginContext, prompt]);
+  }, [identifier, loginContext, prompt, load]);
 
   return useMemo<PublicInteractivePrompt>(() => {
     const actualPrompt = prompt?.identifier === identifier ? prompt.prompt : null;

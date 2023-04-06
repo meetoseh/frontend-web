@@ -13,12 +13,12 @@ import { PromptTime, waitUntilUsingPromptTimeCancelable } from './usePromptTime'
 export const useOnFinished = (
   prompt: InteractivePrompt,
   promptTime: PromptTime,
-  onFinished: () => void
+  onFinished: (privileged: boolean) => void
 ): void => {
   useEffect(() => {
     const promptDurationMs = prompt.durationSeconds * 1000;
     if (promptTime.time.current >= promptDurationMs) {
-      onFinished();
+      onFinished(false);
       return;
     }
 
@@ -28,7 +28,7 @@ export const useOnFinished = (
     );
     promise.promise
       .then(() => {
-        onFinished();
+        onFinished(false);
       })
       .catch(() => {});
 

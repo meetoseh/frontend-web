@@ -46,7 +46,7 @@ type ColorPromptProps = {
   /**
    * The function to call when the user finishes the prompt.
    */
-  onFinished: () => void;
+  onFinished: (privileged: boolean) => void;
 
   /**
    * If specified, a countdown is displayed using the given props.
@@ -70,6 +70,13 @@ type ColorPromptProps = {
    * but still more prominent than the default X button.
    */
   finishEarly?: boolean;
+
+  /**
+   * If specified, used to configure the max width of the title in pixels.
+   * It's often useful to configure this if the prompt title is known in
+   * advance to get an aesthetically pleasing layout.
+   */
+  titleMaxWidth?: number;
 
   /**
    * The ref to register a leaving callback which must be called before unmounting
@@ -97,6 +104,7 @@ export const ColorPrompt = ({
   subtitle,
   paused,
   finishEarly,
+  titleMaxWidth,
   leavingCallback,
 }: ColorPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'color') {
@@ -122,7 +130,7 @@ export const ColorPrompt = ({
 
   const handleSkip = useCallback(() => {
     leavingCallback.current?.();
-    onFinished();
+    onFinished(true);
   }, [onFinished, leavingCallback]);
 
   const colorsContainerWidth = Math.min(390, Math.min(screenSize.width, 440) - 64);
@@ -271,7 +279,7 @@ export const ColorPrompt = ({
     <div className={styles.container}>
       {countdown && <CountdownText promptTime={promptTime} prompt={intPrompt} {...countdown} />}
       <div className={styles.prompt}>
-        <PromptTitle text={prompt.text} subtitle={subtitle} />
+        <PromptTitle text={prompt.text} subtitle={subtitle} titleMaxWidth={titleMaxWidth} />
         <div className={styles.colors}>
           {colorRows.map((row, rowIndex) => (
             <div key={rowIndex} className={styles.colorRow} style={{ height: `${rowHeight}px` }}>
