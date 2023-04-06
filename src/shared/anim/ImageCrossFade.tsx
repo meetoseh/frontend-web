@@ -462,12 +462,15 @@ export const ImageCrossFade = ({
   }, [fromImage, toImage, duration, ease, paused]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const canvasStyle = useMemo(
-    () => ({
-      transform: `translate(-25%, -25%) scale(${1 / devicePixelRatio})`,
-    }),
-    []
-  );
+  const canvasStyle = useMemo(() => {
+    const translateFraction = (1 - 1 / devicePixelRatio) / 2;
+    const translatePercent = translateFraction * 100;
+    return {
+      transform: `translate(-${translatePercent}%, -${translatePercent}%) scale(${
+        1 / devicePixelRatio
+      })`,
+    };
+  }, []);
   const containerStyle = useMemo(
     () => ({
       width: `${width}px`,
