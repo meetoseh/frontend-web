@@ -1,4 +1,12 @@
-import { MutableRefObject, ReactElement, useContext, useEffect, useMemo, useRef } from 'react';
+import {
+  MutableRefObject,
+  ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownText, CountdownTextConfig } from './CountdownText';
 import styles from './ColorPrompt.module.css';
@@ -16,6 +24,7 @@ import {
   SimpleSelectionChangedEvent,
   SimpleSelectionRef,
   useSimpleSelection,
+  useSimpleSelectionHasSelection,
 } from '../hooks/useSimpleSelection';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
@@ -26,6 +35,7 @@ import {
 } from './VerticalPartlyFilledRoundedRect';
 import { getColor3fFromHex } from '../../../shared/lib/BezierAnimation';
 import { PromptTitle } from './PromptTitle';
+import { Button } from '../../../shared/forms/Button';
 
 type ColorPromptProps = {
   /**
@@ -36,7 +46,7 @@ type ColorPromptProps = {
   /**
    * The function to call when the user finishes the prompt.
    */
-  onFinished: () => void;
+  onFinished: (privileged: boolean) => void;
 
   /**
    * If specified, a countdown is displayed using the given props.
@@ -53,6 +63,20 @@ type ColorPromptProps = {
    * If set to true, the prompt time will not be updated.
    */
   paused?: boolean;
+
+  /**
+   * If set to true, a more obvious button is included to let the user
+   * move on. The button prominence is reduced until the user answers,
+   * but still more prominent than the default X button.
+   */
+  finishEarly?: boolean | { cta: string };
+
+  /**
+   * If specified, used to configure the max width of the title in pixels.
+   * It's often useful to configure this if the prompt title is known in
+   * advance to get an aesthetically pleasing layout.
+   */
+  titleMaxWidth?: number;
 
   /**
    * The ref to register a leaving callback which must be called before unmounting
@@ -79,6 +103,8 @@ export const ColorPrompt = ({
   countdown,
   subtitle,
   paused,
+  finishEarly,
+  titleMaxWidth,
   leavingCallback,
 }: ColorPromptProps): ReactElement => {
   if (intPrompt.prompt.style !== 'color') {
@@ -88,6 +114,7 @@ export const ColorPrompt = ({
   const promptTime = usePromptTime(-250, paused ?? false);
   const stats = useStats({ prompt: intPrompt, promptTime });
   const selection = useSimpleSelection<number>();
+  const hasSelection = useSimpleSelectionHasSelection(selection);
   const screenSize = useWindowSize();
   const fakeMove = useFakeMove(promptTime, stats, selection);
   const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
@@ -95,10 +122,16 @@ export const ColorPrompt = ({
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
   useStoreEvents(intPrompt, promptTime, selection, joinLeave, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
+  const windowSize = useWindowSize();
 
   leavingCallback.current = () => {
     joinLeave.leaving.current = true;
   };
+
+  const handleSkip = useCallback(() => {
+    leavingCallback.current?.();
+    onFinished(true);
+  }, [onFinished, leavingCallback]);
 
   const colorsContainerWidth = Math.min(390, Math.min(screenSize.width, 440) - 64);
   const colorsGapPx = 32;
@@ -246,7 +279,7 @@ export const ColorPrompt = ({
     <div className={styles.container}>
       {countdown && <CountdownText promptTime={promptTime} prompt={intPrompt} {...countdown} />}
       <div className={styles.prompt}>
-        <PromptTitle text={prompt.text} subtitle={subtitle} />
+        <PromptTitle text={prompt.text} subtitle={subtitle} titleMaxWidth={titleMaxWidth} />
         <div className={styles.colors}>
           {colorRows.map((row, rowIndex) => (
             <div key={rowIndex} className={styles.colorRow} style={{ height: `${rowHeight}px` }}>
@@ -279,7 +312,28 @@ export const ColorPrompt = ({
             </div>
           ))}
         </div>
-        <div className={styles.profilePictures} style={{ width: `${trueColorsWidth}px` }}>
+        {finishEarly && (
+          <div
+            className={styles.continueContainer}
+            style={
+              countdown && windowSize.height <= 750
+                ? {}
+                : { paddingTop: '45px', paddingBottom: '60px' }
+            }>
+            <Button
+              type="button"
+              fullWidth
+              variant={hasSelection ? 'filled' : 'link-white'}
+              onClick={handleSkip}>
+              {hasSelection ? (finishEarly === true ? 'Continue' : finishEarly.cta) : 'Skip'}
+            </Button>
+          </div>
+        )}
+        <div
+          className={styles.profilePictures}
+          style={
+            finishEarly ? {} : { width: `${trueColorsWidth}px`, padding: '0', alignSelf: 'center' }
+          }>
           <ProfilePictures profilePictures={profilePictures} />
         </div>
       </div>
@@ -414,7 +468,7 @@ const useFakeMove = (
         loweringIndexUpperTrigger: null,
         raisingIndex: event.current,
         raisingIndexLowerTrigger: (stats.stats.current.colorActive?.[event.current] ?? 0) + 1,
-        promptTimeToCancel: promptTime.time.current + 1500,
+        promptTimeToCancel: promptTime.time.current + 4500,
       };
 
       if (event.old) {

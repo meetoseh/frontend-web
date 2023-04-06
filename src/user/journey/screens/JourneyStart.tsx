@@ -122,20 +122,31 @@ export const JourneyStart = ({
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
         <div className={styles.content}>
           <div className={styles.title}>Your Class is Ready</div>
+          {isOnboarding && (
+            <>
+              <div className={styles.description}>
+                Put on your headset, get comfortable, and prepare for a 1 minute audio experience.
+              </div>
+              <div className={styles.journeyTitle}>{journey.title}</div>
+              <div className={styles.journeyDescription}>{journey.description.text}</div>
+            </>
+          )}
           <div className={styles.skipForNowContainer}>
             <Button type="button" fullWidth={true} onClick={onSkipClick}>
               Let&rsquo;s Go
             </Button>
           </div>
-          <div className={styles.practiceWithAFriendContainer}>
-            <Button
-              type="button"
-              variant="link-white"
-              fullWidth={true}
-              onClick={onPracticeWithAFriendClick}>
-              Invite a Friend
-            </Button>
-          </div>
+          {!isOnboarding && (
+            <div className={styles.practiceWithAFriendContainer}>
+              <Button
+                type="button"
+                variant="link-white"
+                fullWidth={true}
+                onClick={onPracticeWithAFriendClick}>
+                Invite a Friend
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

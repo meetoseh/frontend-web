@@ -59,6 +59,12 @@ export type OsehImageProps = {
    * @param uid The uid of the image we're loading, or null if we don't know yet
    */
   setLoading?: ((this: void, loading: boolean, uid: string | null) => void) | null;
+
+  /**
+   * If specified, used as the background color for the placeholder while the image
+   * is loading
+   */
+  placeholderColor?: string;
 };
 
 /**
@@ -290,6 +296,12 @@ export type OsehImageState = {
    * True if the image is loading, false otherwise
    */
   loading: boolean;
+
+  /**
+   * If a specific color should be used for the placeholder while loading,
+   * this is the color. If not, this is null.
+   */
+  placeholderColor?: string;
 };
 
 /**
@@ -732,6 +744,7 @@ export const OsehImage = (props: OsehImageProps): ReactElement => {
       alt: props.alt,
       isPublic: props.isPublic,
       setLoading: props.setLoading,
+      placeholderColor: props.placeholderColor,
     }),
     [
       props.uid,
@@ -741,6 +754,7 @@ export const OsehImage = (props: OsehImageProps): ReactElement => {
       props.alt,
       props.isPublic,
       props.setLoading,
+      props.placeholderColor,
     ]
   );
 
@@ -759,10 +773,19 @@ export const OsehImageFromState = ({
   displayWidth,
   displayHeight,
   alt,
+  placeholderColor,
 }: OsehImageState): ReactElement => {
+  if (localUrl === null && placeholderColor !== undefined) {
+    return (
+      <div
+        style={{ width: displayWidth, height: displayHeight, backgroundColor: placeholderColor }}
+      />
+    );
+  }
+
   return (
     <img
-      src={localUrl === null ? require('./placeholder.png') : localUrl}
+      src={localUrl ?? require('./placeholder.png')}
       style={{ width: displayWidth, height: displayHeight, objectFit: 'cover' }}
       alt={alt}
     />
@@ -1068,6 +1091,7 @@ export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] =
           displayWidth: img.displayWidth,
           displayHeight: img.displayHeight,
           loading: true,
+          placeholderColor: img.placeholderColor,
         };
       }
 
@@ -1079,6 +1103,7 @@ export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] =
           displayWidth: img.displayWidth,
           displayHeight: img.displayHeight,
           loading: true,
+          placeholderColor: img.placeholderColor,
         };
       }
 
@@ -1090,6 +1115,7 @@ export const useOsehImageStates = (images: OsehImageProps[]): OsehImageState[] =
         displayWidth: img.displayWidth,
         displayHeight: img.displayHeight,
         loading: localUrl === null,
+        placeholderColor: img.placeholderColor,
       };
     });
   }, [images, downloadedItems]);

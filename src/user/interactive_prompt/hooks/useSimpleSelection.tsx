@@ -1,4 +1,4 @@
-import { MutableRefObject, useMemo, useRef } from 'react';
+import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { Callbacks } from '../../../shared/lib/Callbacks';
 
 /**
@@ -50,4 +50,34 @@ export function useSimpleSelection<T>(): SimpleSelectionRef<T> {
     }),
     []
   );
+}
+
+/**
+ * A react hook that returns a standard react state object to determine
+ * if the selection is not null.
+ *
+ * @param selection The selection ref object
+ * @returns Whether the selection is not null
+ */
+export function useSimpleSelectionHasSelection<T>(selection: SimpleSelectionRef<T>): boolean {
+  const [hasSelection, setHasSelection] = useState<boolean>(selection.selection.current !== null);
+
+  useEffect(() => {
+    let curValue = selection.selection.current !== null;
+    setHasSelection(curValue);
+    selection.onSelectionChanged.current.add(handleSelectionChanged);
+    return () => {
+      selection.onSelectionChanged.current.remove(handleSelectionChanged);
+    };
+
+    function handleSelectionChanged(e: SimpleSelectionChangedEvent<T>) {
+      const newVal = e.current !== null;
+      if (newVal !== curValue) {
+        setHasSelection(newVal);
+        curValue = newVal;
+      }
+    }
+  }, [selection]);
+
+  return hasSelection;
 }

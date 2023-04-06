@@ -13,6 +13,20 @@
       "comment": "used for post-referral screen",
       "source": "server_images/login-GaussianBlur36px-Darken30.jpeg",
       "resolutions": "full-bleed"
+    },
+    {
+      "uid": "oseh_if_ds8R1NIo4ch3pD7vBRT2cg",
+      "name": "login-face-darkened",
+      "comment": "used for mobile login screen",
+      "source": "server_images/login-face-darkened.jpeg",
+      "resolutions": "full-bleed"
+    },
+    {
+      "uid": "oseh_if_0ykGW_WatP5-mh-0HRsrNw",
+      "name": "abstract-darkened",
+      "comment": "used for some public interactive prompts, e.g., daily goal",
+      "source": "server_images/oseh_abstract_darken15.jpeg",
+      "resolutions": "full-bleed"
     }
   ]
 }

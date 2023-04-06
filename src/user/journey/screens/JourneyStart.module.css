@@ -13,6 +13,39 @@
   align-items: center;
 }
 
+.description,
+.journeyDescription {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  text-align: center;
+  color: white;
+  padding: 0 24px;
+}
+
+.description {
+  margin-bottom: 64px;
+}
+
+.journeyDescription {
+  margin-bottom: 40px;
+}
+
+.journeyTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: 0.25px;
+  color: #ffffff;
+  margin-top: 8px;
+  text-align: center;
+  padding: 0 24px;
+  margin-bottom: 12px;
+}
+
 .innerContainer {
   position: absolute;
   top: 0;

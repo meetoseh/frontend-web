@@ -12,13 +12,24 @@ type PromptTitleProps = {
    * e.g., 'Class Poll'
    */
   subtitle?: string;
+
+  /**
+   * If specified, used to configure the max width of the title in pixels.
+   * It's often useful to configure this if the prompt title is known in
+   * advance to get an aesthetically pleasing layout.
+   */
+  titleMaxWidth?: number;
 };
 
-export const PromptTitle = ({ text, subtitle }: PromptTitleProps): ReactElement => {
+export const PromptTitle = ({ text, subtitle, titleMaxWidth }: PromptTitleProps): ReactElement => {
   return (
     <div className={styles.container}>
       {subtitle && <div className={styles.subtitle}>{subtitle}</div>}
-      <div className={styles.title}>{text}</div>
+      <div
+        className={styles.title}
+        style={titleMaxWidth === undefined ? undefined : { maxWidth: `${titleMaxWidth}px` }}>
+        {text}
+      </div>
     </div>
   );
 };

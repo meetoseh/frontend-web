@@ -212,9 +212,11 @@ export const useJoinLeave = ({ prompt, promptTime }: JoinLeaveProps): JoinLeave 
       await Promise.race([timePromise.promise, cancelPromise.promise]);
       timePromise.cancel();
       cancelPromise.cancel();
-
       if (active || (leavingRef.current && !alreadyLeft)) {
         onLeft(false);
+      } else {
+        sendingEventRef.current = false;
+        sendingEventChangedRef.current.call(false);
       }
     }
 
