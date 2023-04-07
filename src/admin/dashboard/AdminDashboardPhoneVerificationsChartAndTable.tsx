@@ -224,7 +224,7 @@ export const AdminDashboardPhoneVerificationsChartAndTable = (): ReactElement =>
     <div className={styles.container}>
       {error && <ErrorBlock>{error}</ErrorBlock>}
       <div className={styles.header}>
-        <div className={styles.title}>Attributable Visitors</div>
+        <div className={styles.title}>Phone Verifications</div>
         <div className={styles.fromToContainer}>
           <CrudFormElement title="From">
             <input
