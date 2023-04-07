@@ -11,6 +11,7 @@ import { AdminDashboardSecondLargeChartLoader } from './AdminDashboardSecondLarg
 import { AdminDashboardUTMConversionStatsTable } from './AdminDashboardUTMConversionStatsTable';
 import { AdminDashboardViewStatsTable } from './AdminDashboardViewStatsTable';
 import { AdminDashboardJourneyFeedback } from './AdminDashboardJourneyFeedback';
+import { AdminDashboardPhoneVerificationsChartAndTable } from './AdminDashboardPhoneVerificationsChartAndTable';
 
 export const AdminDashboard = (): ReactElement => {
   const newUsersChart = useNewUsersChart();
@@ -64,6 +65,9 @@ export const AdminDashboard = (): ReactElement => {
       </div>
       <div className={styles.centerContainer}>
         <AdminDashboardJourneyFeedback />
+      </div>
+      <div className={styles.centerContainer}>
+        <AdminDashboardPhoneVerificationsChartAndTable />
       </div>
     </div>
   );

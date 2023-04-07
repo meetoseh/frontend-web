@@ -65,7 +65,7 @@ export type AdminDashboardLargeChartMonthlyItem = AdminDashboardLargeChartItem &
   dailyVariant: AdminDashboardLargeChartItem;
 };
 
-type AdminDashboardLargeChartProps = {
+export type AdminDashboardLargeChartProps = {
   /**
    * Available daily charts; the user can select any number of these to
    * display. If they are displayed alongside monthly charts, the monthly
