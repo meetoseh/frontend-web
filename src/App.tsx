@@ -148,6 +148,14 @@ function App() {
             </LoginProvider>
           }
         />
+        <Route
+          path="/sms-test"
+          element={
+            <div>
+              <a href="sms://+15552345678;?&body=Hello%20World">one recipient only with body</a>
+            </div>
+          }
+        />
         <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />
       </Routes>
     </BrowserRouter>
