@@ -79,6 +79,15 @@ export const VipChatRequestComponent = ({
     [state.suppressEvents, loginContext, state.chatRequest]
   );
 
+  const sentDone = useRef(false);
+  useEffect(() => {
+    if (sentDone.current) {
+      return;
+    }
+    sentDone.current = true;
+    trackEvent('open');
+  }, [trackEvent]);
+
   const trackEventRef = useRef(trackEvent);
   trackEventRef.current = trackEvent;
 
