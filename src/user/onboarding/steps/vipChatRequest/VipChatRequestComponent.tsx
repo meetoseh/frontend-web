@@ -124,9 +124,9 @@ export const VipChatRequestComponent = ({
       };
     }
 
-    return `sms://${state.chatRequest.variant.phoneNumber};?&${new URLSearchParams({
-      body: state.chatRequest.variant.textPrefill,
-    })}`;
+    return `sms://${state.chatRequest.variant.phoneNumber};?&body=${encodeURI(
+      state.chatRequest.variant.textPrefill
+    )}`;
   }, [state, resources.windowSize]);
 
   const onClickX = useCallback(
