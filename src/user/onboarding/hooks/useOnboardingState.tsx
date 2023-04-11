@@ -8,6 +8,7 @@ import { OnboardingClassStep } from '../steps/onboardingClass/OnboardingClassSte
 import { IntrospectionStep } from '../steps/introspection/IntrospectionStep';
 import { RequestNotificationTimeStep } from '../steps/requestNotificationTime/RequestNotificationTimeStep';
 import { YourJourneyStep } from '../steps/yourJourney/YourJourneyStep';
+import { VipChatRequestStep } from '../steps/vipChatRequest/VipChatRequestStep';
 
 export type OnboardingState = {
   /**
@@ -36,6 +37,7 @@ const steps = [
   IntrospectionStep,
   RequestNotificationTimeStep,
   YourJourneyStep,
+  VipChatRequestStep,
 ];
 
 /**

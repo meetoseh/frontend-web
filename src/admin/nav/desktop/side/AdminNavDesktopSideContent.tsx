@@ -58,6 +58,13 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/journeys/intro"
             active={currentPath === '/admin/journeys/intro'}
           />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconVIPChatRequests}
+            text="VIP Chat Requests"
+            url="/admin/vip_chat_requests"
+            active={currentPath === '/admin/vip_chat_requests'}
+            padTextTop={4}
+          />
         </div>
         <div className={styles.userCardContainer}>
           <MyProfilePicture />

@@ -23,6 +23,21 @@ const PAGE_RESULTS: {
       </div>
     ),
   },
+  {
+    identifier: 'vip',
+    aliases: ['vip', 'chat requests', 'vip chat requests'],
+    result: (
+      <div className={styles.resultItem}>
+        <AdminNavDesktopSideLink
+          iconClass={sideContentStyles.iconVIPChatRequests}
+          text="VIP Chat Requests"
+          url="/admin/vip_chat_requests"
+          active={false}
+          padTextTop={4}
+        />
+      </div>
+    ),
+  },
 ];
 
 export const AdminNavDesktopTopSearch = (): ReactElement => {

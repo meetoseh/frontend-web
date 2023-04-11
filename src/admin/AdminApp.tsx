@@ -17,6 +17,7 @@ import { JourneySubcategories } from './journeys/subcategories/JourneySubcategor
 import { ModalProvider } from '../shared/ModalContext';
 import { DailyEvents } from './daily_events/DailyEvents';
 import { IntroductoryJourneys } from './journeys/intros/IntroductoryJourneys';
+import { VipChatRequests } from './vip_chat_requests/VipChatRequests';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -27,6 +28,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="journeys/subcategories" element={<JourneySubcategories />} />
       <Route path="journeys/intro" element={<IntroductoryJourneys />} />
       <Route path="daily_events" element={<DailyEvents />} />
+      <Route path="vip_chat_requests" element={<VipChatRequests />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />

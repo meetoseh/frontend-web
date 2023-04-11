@@ -110,8 +110,11 @@ export class CrudFetcher<T> {
    * type T. If mapping to a string, it's assumed that the value stays the same,
    * but the key is aliased. If mapping to a function, the function is called
    * with the key and value and should return the new key and value.
+   *
+   * May instead be a function which takes the raw object and returns the
+   * converted object.
    */
-  private readonly keyMap: CrudFetcherKeyMap<T>;
+  private readonly keyMap: CrudFetcherKeyMap<T> | ((v: any) => T);
 
   /**
    * The dispatch function to set the items
@@ -159,7 +162,7 @@ export class CrudFetcher<T> {
    */
   constructor(
     path: string,
-    keyMap: CrudFetcherKeyMap<T>,
+    keyMap: CrudFetcherKeyMap<T> | ((v: any) => T),
     setItems: Dispatch<SetStateAction<T[]>>,
     setLoading: Dispatch<SetStateAction<boolean>>,
     setHaveMore: Dispatch<SetStateAction<boolean>>
@@ -181,6 +184,10 @@ export class CrudFetcher<T> {
    * @returns An object of type T
    */
   private convertItem(raw: any): T {
+    if (typeof this.keyMap === 'function') {
+      return this.keyMap(raw);
+    }
+
     return convertUsingKeymap(raw, this.keyMap);
   }
 

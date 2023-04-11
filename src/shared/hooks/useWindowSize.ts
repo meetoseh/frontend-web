@@ -2,8 +2,15 @@ import { useEffect, useState } from 'react';
 
 /**
  * A basic hook to get the window size with a debounced resize listener
+ *
+ * @param forcedSize if specified, returned instead of the real window size.
+ *   Convenient when you want to render a component that uses this hook at
+ *   a specific size, such as in an admin preview.
  */
-export const useWindowSize = (): { width: number; height: number } => {
+export const useWindowSize = (forcedSize?: {
+  width: number;
+  height: number;
+}): { width: number; height: number } => {
   const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -61,5 +68,5 @@ export const useWindowSize = (): { width: number; height: number } => {
     };
   }, []);
 
-  return windowSize;
+  return forcedSize ?? windowSize;
 };

@@ -24,6 +24,13 @@ type AdminNavDesktopSideLinkProps = {
    * change the styling of the link.
    */
   active: boolean;
+
+  /**
+   * Additional padding applied to the top of the text, moving it down. To
+   * keep the spacing between the texts the same, this also shifts the whole
+   * link up by the appropriate amount.
+   */
+  padTextTop?: number;
 };
 
 /**
@@ -35,14 +42,21 @@ export const AdminNavDesktopSideLink = ({
   text,
   url,
   active,
+  padTextTop,
 }: AdminNavDesktopSideLinkProps): ReactElement => {
   return (
-    <div className={`${styles.container} ${active ? styles.active : styles.inactive}`}>
+    <div
+      className={`${styles.container} ${active ? styles.active : styles.inactive}`}
+      style={padTextTop === undefined ? undefined : { marginTop: `${-padTextTop / 2}px` }}>
       <a className={styles.link} href={url}>
         <div>
           <i className={iconClass} />
         </div>
-        <div className={styles.text}>{text}</div>
+        <div
+          className={styles.text}
+          style={padTextTop === undefined ? undefined : { paddingTop: `${padTextTop}px` }}>
+          {text}
+        </div>
       </a>
     </div>
   );

@@ -2,6 +2,9 @@
   cursor: pointer;
   outline: none;
   appearance: none;
+  text-decoration: none;
+  display: block;
+  text-align: center;
 
   padding: 13px 26px;
   font-family: 'Open Sans', sans-serif;

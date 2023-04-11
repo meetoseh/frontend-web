@@ -1,4 +1,4 @@
-import { MouseEventHandler, PropsWithChildren, ReactElement } from 'react';
+import { PropsWithChildren, ReactElement, useEffect, useRef } from 'react';
 import styles from './Button.module.css';
 
 type ButtonProps = {
@@ -26,9 +26,15 @@ type ButtonProps = {
   disabled?: boolean;
 
   /**
-   * Called when the button is clicked
+   * Called when the button is clicked. Can be a string to be treated as a url
    */
-  onClick?: MouseEventHandler<HTMLButtonElement> | undefined;
+  onClick?: React.MouseEventHandler<HTMLButtonElement> | string | undefined;
+
+  /**
+   * Ignored unless onClick is a string. Called when the link is clicked,
+   * when the user is already being navigated to the link
+   */
+  onLinkClick?: ((this: HTMLAnchorElement, ev: MouseEvent) => void) | undefined;
 };
 
 /**
@@ -41,14 +47,44 @@ export const Button = ({
   variant = 'filled',
   disabled = false,
   onClick = undefined,
+  onLinkClick = undefined,
 }: PropsWithChildren<ButtonProps>): ReactElement => {
+  const anchorRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (
+      anchorRef.current === null ||
+      anchorRef.current === undefined ||
+      onLinkClick === undefined
+    ) {
+      return;
+    }
+    const anchor = anchorRef.current;
+    anchor.addEventListener('click', onLinkClick, false);
+    return () => {
+      anchor.removeEventListener('click', onLinkClick, false);
+    };
+  }, [onLinkClick]);
+
+  if (typeof onClick !== 'string') {
+    return (
+      <button
+        type={type}
+        disabled={disabled}
+        onClick={onClick}
+        className={`${styles.button} ${styles[variant]} ${fullWidth ? styles.fullWidth : ''}`}>
+        {children}
+      </button>
+    );
+  }
+
   return (
-    <button
+    <a
+      ref={anchorRef}
       type={type}
-      disabled={disabled}
-      onClick={onClick}
+      href={onClick}
       className={`${styles.button} ${styles[variant]} ${fullWidth ? styles.fullWidth : ''}`}>
       {children}
-    </button>
+    </a>
   );
 };
