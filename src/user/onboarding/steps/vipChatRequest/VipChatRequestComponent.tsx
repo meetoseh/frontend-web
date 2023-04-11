@@ -207,7 +207,7 @@ export const VipChatRequestComponent = ({
                   <div className={styles.swappedSubtext}>Text me!</div>
                 </div>
                 <div className={styles.doneContainer}>
-                  <Button type="button" variant="link-white" onClick={onClickDone} fullWidth>
+                  <Button type="button" variant="filled" onClick={onClickDone} fullWidth>
                     Done
                   </Button>
                 </div>
