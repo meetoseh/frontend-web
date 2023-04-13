@@ -80,10 +80,10 @@ const makeState = (
     hasPhoneNumber: loginContext.userAttributes.phoneNumber !== null,
     sawInitialRequest:
       lastFirstRequestAt !== null &&
-      lastFirstRequestAt.getTime() + 1000 * 60 * 60 * 24 > Date.now(),
+      lastFirstRequestAt.getTime() + 1000 * 60 * 60 * 24 * 7 > Date.now(),
     sawSecondRequest:
       lastSecondRequestAt !== null &&
-      lastSecondRequestAt.getTime() + 1000 * 60 * 60 * 24 > Date.now(),
+      lastSecondRequestAt.getTime() + 1000 * 60 * 60 * 24 * 7 > Date.now(),
     justAddedPhoneNumber:
       justAddedPhoneNumber !== null && justAddedPhoneNumber === loginContext.userAttributes.sub,
   };
