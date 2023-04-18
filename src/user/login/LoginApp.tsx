@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
 import '../../assets/fonts.css';
 import styles from './LoginApp.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
@@ -22,41 +22,48 @@ type LoginAppProps = {
   redirectUrl?: string | undefined;
 };
 
+export type SocialUrls = { google: string; apple: string };
+
 /**
- * This allows users to sign up or sign in via social logins. It does not
- * use the login context; it will redirect back to the home page with the
- * required tokens in the url fragment on success.
+ * Gets the urls for each of the social login providers, in a hook-like
+ * fashion. This is the primary business logic of the login app, and can
+ * be used for custom login screens (like course activation) as well.
  *
- * This is an alternative to the hosted ui url which is used for more
- * styling at the cost of all non-social functionality.
+ * Always returns null if load is set to false. If load is undefined or
+ * true, it will return null until the urls are loaded.
  */
-export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactElement => {
-  const windowSize = useWindowSize();
+export const useProviderUrls = (load?: boolean): SocialUrls | null => {
   const [googleUrl, setGoogleUrl] = useState<string | null>(null);
   const [appleUrl, setAppleUrl] = useState<string | null>(null);
-  const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
 
-  const getProviderUrl = useCallback(async (provider: string): Promise<string> => {
-    if (isDevelopment) {
-      return '/dev_login';
-    }
+  const getProviderUrl = useCallback(
+    async (provider: string): Promise<string | null> => {
+      if (load === false) {
+        return null;
+      }
 
-    const response = await fetch(HTTP_API_URL + '/api/1/oauth/prepare', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify({
-        provider: provider,
-        refresh_token_desired: true,
-      }),
-    });
+      if (isDevelopment) {
+        return '/dev_login';
+      }
 
-    if (!response.ok) {
-      throw response;
-    }
+      const response = await fetch(HTTP_API_URL + '/api/1/oauth/prepare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          provider: provider,
+          refresh_token_desired: true,
+        }),
+      });
 
-    const data = await response.json();
-    return data.url;
-  }, []);
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      return data.url;
+    },
+    [load]
+  );
 
   useEffect(() => {
     let active = true;
@@ -92,6 +99,21 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
     }
   }, [getProviderUrl]);
 
+  return useMemo(() => {
+    if (googleUrl === null || appleUrl === null) {
+      return null;
+    }
+
+    return { google: googleUrl, apple: appleUrl };
+  }, [googleUrl, appleUrl]);
+};
+
+/**
+ * Configures the local storage item that is checked whenever the user lands
+ * logged in to redirect them to the given url. If undefined, redirects the
+ * user to the current page.
+ */
+export const useRedirectUrl = (redirectUrl: string | undefined) => {
   useEffect(() => {
     localStorage.setItem('login-redirect', redirectUrl ?? window.location.pathname);
 
@@ -99,8 +121,23 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
       localStorage.removeItem('login-redirect');
     };
   }, [redirectUrl]);
+};
 
-  if (googleUrl === null || appleUrl === null) {
+/**
+ * This allows users to sign up or sign in via social logins. It does not
+ * use the login context; it will redirect back to the home page with the
+ * required tokens in the url fragment on success.
+ *
+ * This is an alternative to the hosted ui url which is used for more
+ * styling at the cost of all non-social functionality.
+ */
+export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactElement => {
+  const windowSize = useWindowSize();
+  const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
+  const urls = useProviderUrls();
+  useRedirectUrl(redirectUrl);
+
+  if (urls === null) {
     return <SplashScreen />;
   }
 
@@ -133,21 +170,31 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
               Make mindfulness a daily part of your life in 60 seconds.
             </div>
           </div>
-          <div className={styles.signinsContainer}>
-            <div className={styles.signInWithGoogleContainer}>
-              <a className={styles.signInWithGoogle} href={googleUrl}>
-                <span className={styles.signInWithGoogleIcon}></span>
-                <span className={styles.signInWithGoogleText}>Continue with Google</span>
-              </a>
-            </div>
-            <div className={styles.signInWithAppleContainer}>
-              <a className={styles.signInWithApple} href={appleUrl}>
-                <span className={styles.signInWithAppleIcon}></span>
-                <span className={styles.signInWithAppleText}>Continue with Apple</span>
-              </a>
-            </div>
-          </div>
+          <SocialSignins urls={urls} />
         </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Shows all the social signins in the standard way. Requires a dark
+ * background.
+ */
+export const SocialSignins = ({ urls }: { urls: SocialUrls }): ReactElement => {
+  return (
+    <div className={styles.signinsContainer}>
+      <div className={styles.signInWithGoogleContainer}>
+        <a className={styles.signInWithGoogle} href={urls.google}>
+          <span className={styles.signInWithGoogleIcon}></span>
+          <span className={styles.signInWithGoogleText}>Continue with Google</span>
+        </a>
+      </div>
+      <div className={styles.signInWithAppleContainer}>
+        <a className={styles.signInWithApple} href={urls.apple}>
+          <span className={styles.signInWithAppleIcon}></span>
+          <span className={styles.signInWithAppleText}>Continue with Apple</span>
+        </a>
       </div>
     </div>
   );

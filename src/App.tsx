@@ -18,6 +18,8 @@ import { SplashScreen } from './user/splash/SplashScreen';
 import { HandleDailyEventUserInviteScreen } from './user/referral/HandleDailyEventUserInviteScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 import { VisitorHandler } from './shared/hooks/useVisitor';
+import { CourseActivateScreen } from './user/courses/CourseActivateScreen';
+import { CourseAttachScreen } from './user/courses/CourseAttachScreen';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -154,6 +156,22 @@ function App() {
             <div>
               <a href="sms://+15552345678;?&body=Hello%20World">one recipient only with body</a>
             </div>
+          }
+        />
+        <Route
+          path="/courses/activate"
+          element={
+            <LoginProvider>
+              <CourseActivateScreen />
+            </LoginProvider>
+          }
+        />
+        <Route
+          path="/courses/attach"
+          element={
+            <LoginProvider>
+              <CourseAttachScreen />
+            </LoginProvider>
           }
         />
         <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />

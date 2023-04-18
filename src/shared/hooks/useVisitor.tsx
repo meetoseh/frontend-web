@@ -2,13 +2,34 @@ import { ReactElement, useContext, useEffect, useMemo, useRef, useState } from '
 import { apiFetch } from '../ApiConstants';
 import { LoginContext } from '../LoginContext';
 
-type AssociatedUser = {
+/**
+ * The user associated with a visitor
+ */
+export type AssociatedUser = {
+  /**
+   * The sub of the user
+   */
   sub: string;
+
+  /**
+   * The time we last made the association
+   */
   time: number;
 };
 
-type StoredVisitor = {
+/**
+ * The stored information about a devices visitor
+ */
+export type StoredVisitor = {
+  /**
+   * The uid of the visitor
+   */
   uid: string;
+
+  /**
+   * The last user we told the backend to associate with this visitor,
+   * or null if the user was logged out last session.
+   */
   user: AssociatedUser | null;
 };
 
@@ -20,7 +41,11 @@ type UTM = {
   term: string | null;
 };
 
-const getUTMFromURL = (): UTM | null => {
+/**
+ * Fetches the UTM parameters from the current url, if there
+ * are any.
+ */
+export const getUTMFromURL = (): UTM | null => {
   const params = new URLSearchParams(window.location.search);
   const source = params.get('utm_source');
   if (source === null) {
@@ -44,7 +69,30 @@ const areUTMsEqual = (a: UTM, b: UTM): boolean =>
   a.term === b.term;
 
 type VisitorLoading = { loading: true };
-type VisitorLoaded = { loading: false };
+type VisitorLoaded = { loading: false; setVisitor: (uid: string) => void };
+
+/**
+ * Loads the visitor from local storage, if it exists.
+ * @returns The visitor, or null if it does not exist.
+ */
+export const loadVisitorFromStore = (): StoredVisitor | null => {
+  const storedVisitorRaw = localStorage.getItem('visitor');
+  return storedVisitorRaw === null ? null : (JSON.parse(storedVisitorRaw) as StoredVisitor);
+};
+
+/**
+ * Writes the visitor to the store, unless it's null, in which removes
+ * the visitor in the store.
+ *
+ * @param visitor The visitor to write to the store, or null to remove it.
+ */
+export const writeVisitorToStore = (visitor: StoredVisitor | null): void => {
+  if (visitor === null) {
+    localStorage.removeItem('visitor');
+  }
+
+  localStorage.setItem('visitor', JSON.stringify(visitor));
+};
 
 /**
  * Manages creating a visitor via the backend and associating it to the
@@ -56,6 +104,7 @@ export const useVisitor = (): VisitorLoading | VisitorLoaded => {
   const [loading, setLoading] = useState(true);
   const guard = useRef<Promise<void> | null>(null);
   const handledUTM = useRef<{ utm: UTM; visitorUID: string | null } | null>(null);
+  const [visitorCounter, setVisitorCounter] = useState(0);
 
   useEffect(() => {
     if (loginContext.state === 'loading') {
@@ -69,9 +118,7 @@ export const useVisitor = (): VisitorLoading | VisitorLoaded => {
     };
 
     async function handleVisitor() {
-      const storedVisitorRaw = localStorage.getItem('visitor');
-      const storedVisitor =
-        storedVisitorRaw === null ? null : (JSON.parse(storedVisitorRaw) as StoredVisitor);
+      const storedVisitor = loadVisitorFromStore();
 
       const currentUserSub = loginContext.userAttributes?.sub ?? null;
       const utm = (() => {
@@ -158,7 +205,7 @@ export const useVisitor = (): VisitorLoading | VisitorLoaded => {
       }
 
       if (newVisitor !== null) {
-        localStorage.setItem('visitor', JSON.stringify(newVisitor));
+        writeVisitorToStore(newVisitor);
       }
     }
 
@@ -186,11 +233,20 @@ export const useVisitor = (): VisitorLoading | VisitorLoaded => {
         }
       })();
     }
-  }, [loginContext]);
+  }, [loginContext, visitorCounter]);
 
   return useMemo(
     () => ({
       loading,
+      setVisitor: (uid) => {
+        const current = loadVisitorFromStore();
+        if (current !== null && current.uid === uid) {
+          return;
+        }
+
+        writeVisitorToStore({ uid, user: null });
+        setVisitorCounter((c) => c + 1);
+      },
     }),
     [loading]
   );

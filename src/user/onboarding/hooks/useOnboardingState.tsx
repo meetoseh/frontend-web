@@ -9,6 +9,7 @@ import { IntrospectionStep } from '../steps/introspection/IntrospectionStep';
 import { RequestNotificationTimeStep } from '../steps/requestNotificationTime/RequestNotificationTimeStep';
 import { YourJourneyStep } from '../steps/yourJourney/YourJourneyStep';
 import { VipChatRequestStep } from '../steps/vipChatRequest/VipChatRequestStep';
+import { CourseClassesStep } from '../steps/courseClasses/CourseClassesStep';
 
 export type OnboardingState = {
   /**
@@ -30,6 +31,7 @@ export type OnboardingState = {
 
 const steps = [
   RequestNameStep,
+  CourseClassesStep,
   SignupRewardStep,
   RequestPhoneStep,
   DailyGoalStep,
@@ -63,7 +65,8 @@ export const useOnboardingState = (): OnboardingState => {
   const firstRequiredIdx = requiredArr.findIndex((r) => r);
   const loading =
     (firstRequiredIdx === -1 && requiredArr.some((r) => r === undefined)) ||
-    requiredArr.slice(0, firstRequiredIdx).some((r) => r === undefined);
+    requiredArr.slice(0, firstRequiredIdx).some((r) => r === undefined) ||
+    (firstRequiredIdx >= 0 && resources[firstRequiredIdx]?.loading !== false);
   const firstRequired =
     firstRequiredIdx < 0
       ? undefined

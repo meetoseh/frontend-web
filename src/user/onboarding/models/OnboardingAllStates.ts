@@ -1,3 +1,4 @@
+import { CourseClassesState } from '../steps/courseClasses/CourseClassesState';
 import { DailyGoalState } from '../steps/dailyGoal/DailyGoalState';
 import { IntrospectionState } from '../steps/introspection/IntrospectionState';
 import { OnboardingClassState } from '../steps/onboardingClass/OnboardingClassState';
@@ -9,6 +10,7 @@ import { VipChatRequestState } from '../steps/vipChatRequest/VipChatRequestState
 import { YourJourneyState } from '../steps/yourJourney/YourJourneyState';
 
 export type OnboardingAllStates = {
+  courseClasses: CourseClassesState;
   requestName: RequestNameState;
   requestPhone: RequestPhoneState;
   signupReward: SignupRewardState;

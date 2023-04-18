@@ -1,0 +1,87 @@
+.container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+}
+
+.imageContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.innerContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  width: 100%;
+  max-width: 390px;
+}
+
+.primaryContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+}
+
+.title {
+  text-align: center;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  font-size: 22px;
+  line-height: 32px;
+  color: white;
+  margin-bottom: 40px;
+}
+
+.circleContainer {
+  align-self: center;
+  margin-bottom: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.close {
+  composes: unstyled from '../../../../shared/buttons.module.css';
+}
+
+.closeButtonContainer {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: 100%;
+  z-index: 3;
+}
+
+.closeButtonInnerContainer {
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: row-reverse;
+  padding-right: 16px;
+}
+
+.closeIcon {
+  composes: icon from '../../../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('./icons/close.svg');
+}

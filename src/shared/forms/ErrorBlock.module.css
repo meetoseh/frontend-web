@@ -13,3 +13,9 @@
 .container p:last-child {
   margin-bottom: 0;
 }
+
+.container a {
+  color: white;
+  text-decoration: underline;
+  font-weight: 600;
+}
