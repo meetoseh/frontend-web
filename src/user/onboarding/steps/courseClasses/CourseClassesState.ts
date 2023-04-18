@@ -13,6 +13,12 @@ export type CourseClassesState = {
   course: Course | null | undefined;
 
   /**
+   * True if there was a course for them to take today, false if there was not.
+   * Intended to be used for other onboarding steps to tweak copy.
+   */
+  tookCourse: boolean;
+
+  /**
    * Should be called when the user completes the given journey in the given
    * course, so that their progress can be advanced and the prompt won't be
    * displayed until the next class is available.

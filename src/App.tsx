@@ -20,6 +20,7 @@ import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 import { VisitorHandler } from './shared/hooks/useVisitor';
 import { CourseActivateScreen } from './user/courses/CourseActivateScreen';
 import { CourseAttachScreen } from './user/courses/CourseAttachScreen';
+import { CourseDownloadScreen } from './user/courses/CourseDownloadScreen';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -174,6 +175,7 @@ function App() {
             </LoginProvider>
           }
         />
+        <Route path="/courses/download" element={<CourseDownloadScreen />} />
         <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />
       </Routes>
     </BrowserRouter>

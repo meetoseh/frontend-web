@@ -114,7 +114,7 @@ export const YourJourneyStep: OnboardingStep<YourJourneyState, YourJourneyResour
       [isRecentSignup, sawYourJourney, onContinue]
     );
   },
-  useResources: (worldState, required) => {
+  useResources: (worldState, required, allStates) => {
     const loginContext = useContext(LoginContext);
     const givenName = loginContext.userAttributes?.givenName ?? null;
     const images = useOsehImageStatesRef({});
@@ -182,8 +182,9 @@ export const YourJourneyStep: OnboardingStep<YourJourneyState, YourJourneyResour
         givenName,
         background,
         loading: background === null || background.loading,
+        courseCopy: allStates.courseClasses.tookCourse,
       }),
-      [givenName, background]
+      [givenName, background, allStates.courseClasses.tookCourse]
     );
   },
 

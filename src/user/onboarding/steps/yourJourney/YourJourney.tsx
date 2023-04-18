@@ -61,10 +61,15 @@ export const YourJourney = ({
               <div className={styles.stepIconContainer}>
                 <div className={styles.stars}></div>
               </div>
-              <div className={styles.stepText}>Hit a 7-day streak</div>
+              <div className={styles.stepText}>
+                Hit a {resources.courseCopy ? <>30</> : <>7</>}-day streak
+              </div>
             </div>
             <div className={styles.largeStepSeparator}></div>
-            <EnlightenmentWithAnimation paused={false} />
+            <EnlightenmentWithAnimation
+              paused={false}
+              copy={resources.courseCopy ? 'Build a mindfulness habit' : 'Achieve enlightenment'}
+            />
           </div>
         </div>
         <div className={styles.continueContainer}>
@@ -193,7 +198,13 @@ const enlightenmentAnimation = {
   dispose: (ref: HTMLDivElement, state: EnlightenmentState) => {},
 };
 
-const EnlightenmentWithAnimation = ({ paused }: { paused: boolean }): ReactElement => {
+const EnlightenmentWithAnimation = ({
+  paused,
+  copy,
+}: {
+  paused: boolean;
+  copy: string;
+}): ReactElement => {
   const stepRef = useRef<HTMLDivElement>(null);
 
   useSimpleAnimation({
@@ -216,7 +227,7 @@ const EnlightenmentWithAnimation = ({ paused }: { paused: boolean }): ReactEleme
           paused={paused}
         />
       </div>
-      <div className={styles.stepText}>Achieve enlightenment</div>
+      <div className={styles.stepText}>{copy}</div>
     </div>
   );
 };

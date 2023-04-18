@@ -8,6 +8,7 @@ import { Journey } from '../../../journey/screens/Journey';
 import styles from './CourseClasses.module.css';
 import assistiveStyles from '../../../../shared/assistive.module.css';
 import { Button } from '../../../../shared/forms/Button';
+import { JourneyRef } from '../../../journey/models/JourneyRef';
 
 /**
  * The main component for rendering course classes. Course classes are
@@ -56,12 +57,22 @@ export const CourseClasses = ({
     return (
       <CourseClassStartScreen
         course={state.course}
+        journey={resources.journey}
         circle={resources.courseCircle}
         background={resources.startBackground}
         onSkip={skipJourney}
         onContinue={gotoJourney}
       />
     );
+    // return (
+    //   <JourneyStart
+    //     journey={resources.journey}
+    //     shared={resources.journeyShared}
+    //     setScreen={finishJourney}
+    //     onJourneyFinished={finishJourney}
+    //     isOnboarding={true}
+    //   />
+    // );
   }
 
   return (
@@ -77,12 +88,14 @@ export const CourseClasses = ({
 
 const CourseClassStartScreen = ({
   course,
+  journey,
   circle,
   background,
   onSkip,
   onContinue,
 }: {
   course: Course;
+  journey: JourneyRef;
   circle: OsehImageState | null;
   background: OsehImageState;
   onSkip: () => void;
@@ -108,7 +121,9 @@ const CourseClassStartScreen = ({
               <OsehImageFromState {...circle} />
             </div>
           )}
-          <div className={styles.title}>Ready to start your {course.titleShort}?</div>
+          <div className={styles.title}>
+            Ready to start {journey.title} with {journey.instructor.name}?
+          </div>
 
           <Button type="button" variant="filled" onClick={onContinue} fullWidth>
             Let&rsquo;s Go

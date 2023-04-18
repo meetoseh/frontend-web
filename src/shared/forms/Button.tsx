@@ -1,4 +1,4 @@
-import { PropsWithChildren, ReactElement, useEffect, useRef } from 'react';
+import { AnchorHTMLAttributes, PropsWithChildren, ReactElement, useEffect, useRef } from 'react';
 import styles from './Button.module.css';
 
 type ButtonProps = {
@@ -35,6 +35,12 @@ type ButtonProps = {
    * when the user is already being navigated to the link
    */
   onLinkClick?: ((this: HTMLAnchorElement, ev: MouseEvent) => void) | undefined;
+
+  /**
+   * If set, used to make the anchor tag download the file. Ignored if not
+   * an anchor tag
+   */
+  download?: AnchorHTMLAttributes<HTMLAnchorElement>['download'];
 };
 
 /**
@@ -48,6 +54,7 @@ export const Button = ({
   disabled = false,
   onClick = undefined,
   onLinkClick = undefined,
+  download = undefined,
 }: PropsWithChildren<ButtonProps>): ReactElement => {
   const anchorRef = useRef<HTMLAnchorElement>(null);
 
@@ -78,12 +85,15 @@ export const Button = ({
     );
   }
 
+  console.log('anchor tag download=', download);
+  console.log('anchor tag onClick=', onClick);
   return (
     <a
       ref={anchorRef}
       type={type}
       href={onClick}
-      className={`${styles.button} ${styles[variant]} ${fullWidth ? styles.fullWidth : ''}`}>
+      className={`${styles.button} ${styles[variant]} ${fullWidth ? styles.fullWidth : ''}`}
+      download={download}>
       {children}
     </a>
   );

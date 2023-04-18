@@ -137,15 +137,21 @@ export const CourseAttachScreen = (): ReactElement => {
                   <div className={styles.checkmarkText}>Signup for daily reminders</div>
                 </div>
                 <div className={styles.checkmarkItem}>
-                  <div className={styles.checkmarkContainer} />
+                  <div className={styles.checkmarkContainer}>
+                    <div className={styles.checkmark2}></div>
+                  </div>
                   <div className={styles.checkmarkText}>Start your first class</div>
                 </div>
                 <div className={styles.checkmarkItem}>
-                  <div className={styles.checkmarkContainer} />
+                  <div className={styles.checkmarkContainer}>
+                    <div className={styles.checkmark3}></div>
+                  </div>
                   <div className={styles.checkmarkText}>Explore additional classes</div>
                 </div>
                 <div className={styles.checkmarkItem}>
-                  <div className={styles.checkmarkContainer} />
+                  <div className={styles.checkmarkContainer}>
+                    <div className={styles.checkmark4}></div>
+                  </div>
                   <div className={styles.checkmarkText}>Build a daily mindfulness habit</div>
                 </div>
               </div>

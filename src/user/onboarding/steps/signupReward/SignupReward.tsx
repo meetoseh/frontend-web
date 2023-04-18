@@ -43,7 +43,7 @@ export const SignupReward = ({
         </DidYouKnow>
         <div className={styles.submitContainer}>
           <Button type="button" fullWidth onClick={onFinish}>
-            Let&rsquo;s Go
+            Continue
           </Button>
         </div>
       </div>

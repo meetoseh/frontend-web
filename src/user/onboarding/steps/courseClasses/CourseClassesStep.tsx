@@ -113,6 +113,7 @@ export const CourseClassesStep: OnboardingStep<CourseClassesState, CourseClasses
     // are unsuppressed and haven't had a class too recently.
     const [courses, setCourses] = useState<Course[] | null>(null);
     const coursesLoadedFor = useRef<string | null>(null);
+    const [tookCourse, setTookCourse] = useState(false);
 
     useSingletonEffect(
       (onDone) => {
@@ -168,6 +169,7 @@ export const CourseClassesStep: OnboardingStep<CourseClassesState, CourseClasses
 
           if (active) {
             setCourses(unsuppressedCourses);
+            setTookCourse(unsuppressedCourses.length > 0);
             coursesLoadedFor.current = sub;
           }
         }
@@ -271,10 +273,11 @@ export const CourseClassesStep: OnboardingStep<CourseClassesState, CourseClasses
     return useMemo<CourseClassesState>(
       () => ({
         course: courses === null ? undefined : courses.length === 0 ? null : courses[0],
+        tookCourse,
         onDone,
         onSkip,
       }),
-      [courses, onDone, onSkip]
+      [courses, onDone, onSkip, tookCourse]
     );
   },
   useResources(state, required) {
