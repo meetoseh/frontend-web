@@ -42,102 +42,23 @@
   width: 100%;
 }
 
+.download {
+  composes: icon from '../../shared/icons.module.css';
+  align-self: center;
+  width: 68px;
+  height: 68px;
+  background-image: url('./icons/download.svg');
+  margin-bottom: 24px;
+}
+
 .title {
   text-align: center;
+  max-width: 290px;
+  align-self: center;
   font-family: 'Open Sans', sans-serif;
-  font-weight: 400;
+  font-weight: 300;
   font-size: 22px;
   line-height: 32px;
   color: white;
   margin-bottom: 48px;
-}
-
-.checkmarkList {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  margin-bottom: 40px;
-  margin-left: 26px;
-}
-
-.checkmarkItem {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.checkmarkItem:not(:first-child) {
-  margin-top: 18px;
-}
-
-.checkmarkContainer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background-color: white;
-  border-radius: 50%;
-  margin-right: 20px;
-}
-
-.checkmarkText {
-  font-family: 'Open Sans', sans-serif;
-  font-weight: 300;
-  font-size: 16px;
-  line-height: 28px;
-  letter-spacing: 0.25px;
-  color: white;
-}
-
-.checkmark,
-.checkmark2,
-.checkmark3,
-.checkmark4 {
-  composes: icon from '../../shared/icons.module.css';
-  background-image: url('./icons/check.svg');
-  width: 12px;
-  height: 12px;
-}
-
-.checkmark {
-  animation: 0.5s fadein-wait, 0.5s ease 0.5s fadein;
-}
-
-.checkmark2 {
-  animation: 1s fadein-wait, 0.5s ease 1s fadein;
-}
-
-.checkmark3 {
-  animation: 1.5s fadein-wait, 0.5s ease 1.5s fadein;
-}
-
-.checkmark4 {
-  animation: 2s fadein-wait, 0.5s ease 2s fadein;
-}
-
-@keyframes fadein-wait {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes fadein {
-  from {
-    opacity: 0%;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 50%;
-    transform: scale(1.2);
-  }
-  to {
-    opacity: 100%;
-    transform: scale(1);
-  }
 }

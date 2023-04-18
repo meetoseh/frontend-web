@@ -110,7 +110,7 @@ export const CourseDownloadScreen = (): ReactElement => {
     <div className={styles.container}>
       <div className={styles.imageContainer}>
         <OsehImage
-          uid="oseh_if_hH68hcmVBYHanoivLMgstg"
+          uid="oseh_if_0ykGW_WatP5-mh-0HRsrNw"
           jwt={null}
           displayWidth={windowSize.width}
           displayHeight={windowSize.height}
@@ -127,33 +127,8 @@ export const CourseDownloadScreen = (): ReactElement => {
             </div>
           ) : (
             <>
-              <div className={styles.title}>What&rsquo;s included?</div>
-              <div className={styles.checkmarkList}>
-                <div className={styles.checkmarkItem}>
-                  <div className={styles.checkmarkContainer}>
-                    <div className={styles.checkmark}></div>
-                  </div>
-                  <div className={styles.checkmarkText}>Class names and descriptions</div>
-                </div>
-                <div className={styles.checkmarkItem}>
-                  <div className={styles.checkmarkContainer}>
-                    <div className={styles.checkmark2}></div>
-                  </div>
-                  <div className={styles.checkmarkText}>Animated class video files</div>
-                </div>
-                <div className={styles.checkmarkItem}>
-                  <div className={styles.checkmarkContainer}>
-                    <div className={styles.checkmark3}></div>
-                  </div>
-                  <div className={styles.checkmarkText}>Convenient index file</div>
-                </div>
-                <div className={styles.checkmarkItem}>
-                  <div className={styles.checkmarkContainer}>
-                    <div className={styles.checkmark4}></div>
-                  </div>
-                  <div className={styles.checkmarkText}>All course updates since release</div>
-                </div>
-              </div>
+              <div className={styles.download} />
+              <div className={styles.title}>Download all classes by clicking the button below</div>
             </>
           )}
           <Button
@@ -162,7 +137,7 @@ export const CourseDownloadScreen = (): ReactElement => {
             onClick={error === null ? downloadLink ?? '#' : '/'}
             download={downloadLink !== null ? true : undefined}
             fullWidth>
-            {error === null ? <>Download</> : <>Back to Safety</>}
+            {error === null ? <>Download Now</> : <>Back to Safety</>}
           </Button>
         </div>
       </div>
