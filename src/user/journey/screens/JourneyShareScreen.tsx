@@ -1,14 +1,8 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
 import styles from './JourneyShareScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { OsehImage, OsehImageFromState } from '../../../shared/OsehImage';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
-import { NewUserDailyEventInvite } from '../../referral/models/NewUserDailyEventInvite';
-import { getDailyEventInvite } from '../../referral/lib/getDailyEventInvite';
-import { LoginContext } from '../../../shared/LoginContext';
-import { addModalWithCallbackToRemove, ModalContext } from '../../../shared/ModalContext';
-import { ModalWrapper } from '../../../shared/ModalWrapper';
-import { InviteFallbackPrompt } from '../../referral/InviteFallbackPrompt';
 import { useOsehContent } from '../../../shared/OsehContent';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
@@ -19,8 +13,6 @@ export const JourneyShareScreen = ({
   onJourneyFinished,
   isOnboarding,
 }: JourneyScreenProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
-  const modalContext = useContext(ModalContext);
   const shareable = useOsehContent({
     uid: journey.sample?.uid ?? null,
     jwt: journey.sample?.jwt ?? null,
@@ -28,8 +20,6 @@ export const JourneyShareScreen = ({
     presign: false,
   });
   const [error, setError] = useState<ReactElement | null>(null);
-  const [invite, setInvite] = useState<NewUserDailyEventInvite | null>(null);
-  const [tryInvite, setTryInvite] = useState(false);
   const [nativeShare, setNativeShare] = useState<File | null>(null);
   const windowSize = useWindowSize();
 
@@ -65,97 +55,6 @@ export const JourneyShareScreen = ({
   }, [shareable.webExport, journey.sample, journey.title, journey.instructor.name]);
 
   useEffect(() => {
-    if (invite !== null) {
-      return;
-    }
-    let active = true;
-    fetchInvite();
-    return () => {
-      active = false;
-    };
-
-    async function fetchInvite() {
-      setError(null);
-      try {
-        const invite = await getDailyEventInvite({
-          loginContext,
-          journeyUid: isOnboarding ? null : journey.uid,
-        });
-        if (!active) {
-          return;
-        }
-        setInvite(invite);
-      } catch (e) {
-        if (!active) {
-          return;
-        }
-        const err = await describeError(e);
-        if (!active) {
-          return;
-        }
-        setError(err);
-      }
-    }
-  }, [loginContext, invite, journey.uid, isOnboarding]);
-
-  const doShareClassLink = useCallback(async () => {
-    setTryInvite(true);
-  }, []);
-
-  useEffect(() => {
-    if (invite === null || !tryInvite) {
-      return;
-    }
-
-    const shareData = {
-      url: invite.url,
-      text: isOnboarding
-        ? "Join Oseh so we can do mindfulness journey's together."
-        : `Let's do a ${journey.category.externalName.toLowerCase()} class together on Oseh.`,
-    };
-
-    let fallbackShare =
-      !invite.isPlusLink ||
-      !window.navigator ||
-      !window.navigator.share ||
-      !window.navigator.canShare ||
-      !window.navigator.canShare(shareData);
-
-    if (!fallbackShare) {
-      try {
-        navigator.share(shareData);
-        setTryInvite(false);
-      } catch (e) {
-        console.error(e);
-        fallbackShare = true;
-      }
-    }
-
-    if (fallbackShare) {
-      const onCancel = () => {
-        setTryInvite(false);
-      };
-      return addModalWithCallbackToRemove(
-        modalContext.setModals,
-        <ModalWrapper minimalStyling={true} onClosed={onCancel}>
-          <InviteFallbackPrompt
-            loginContext={loginContext}
-            onCancel={onCancel}
-            initialInvite={invite}
-          />
-        </ModalWrapper>
-      );
-    }
-  }, [
-    invite,
-    tryInvite,
-    modalContext.setModals,
-    journey.category.externalName,
-    loginContext,
-    isOnboarding,
-  ]);
-
-  useEffect(() => {
     if (nativeShare === null) {
       return;
     }
@@ -188,7 +87,7 @@ export const JourneyShareScreen = ({
       a.click();
       setNativeShare(null);
     }
-  }, [nativeShare, modalContext.setModals]);
+  }, [nativeShare]);
 
   const previewSize: { width: number; height: number } = useMemo(() => {
     if (windowSize.width >= 390 && windowSize.height >= 844) {
@@ -243,15 +142,6 @@ export const JourneyShareScreen = ({
               type="button"
               disabled={shareable.webExport === null}>
               Share Video
-            </button>
-          </div>
-          <div className={styles.shareClassLinkContainer}>
-            <button
-              className={styles.secondaryButton}
-              onClick={doShareClassLink}
-              disabled={invite === null}
-              type="button">
-              {isOnboarding ? 'Share Oseh with Friends' : 'Share Class Link with Friends'}
             </button>
           </div>
         </div>

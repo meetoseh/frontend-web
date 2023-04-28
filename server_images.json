@@ -8,13 +8,6 @@
       "resolutions": "full-bleed"
     },
     {
-      "uid": "oseh_if_-i-Qff8gqHyMZRb1r_5WMQ",
-      "name": "login-blurred",
-      "comment": "used for post-referral screen",
-      "source": "server_images/login-GaussianBlur36px-Darken30.jpeg",
-      "resolutions": "full-bleed"
-    },
-    {
       "uid": "oseh_if_ds8R1NIo4ch3pD7vBRT2cg",
       "name": "login-face-darkened",
       "comment": "used for mobile login screen",

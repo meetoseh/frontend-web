@@ -81,13 +81,6 @@ export type Journey = {
   deletedAt: Date | null;
 
   /**
-   * The UID of the daily event that this journey is a part of.
-   * Null if we know the journey is not part of a daily event.
-   * Undefined if we don't know if the journey is part of a daily event.
-   */
-  dailyEventUID: string | null | undefined;
-
-  /**
    * If the sample for this journey is available, the sample, otherwise null.
    * If the journey is changed, it will have the old sample until the new
    * sample is available.

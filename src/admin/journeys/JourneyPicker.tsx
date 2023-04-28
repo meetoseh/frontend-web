@@ -57,12 +57,12 @@ const sort: CrudFetcherSort = [{ key: 'title', dir: 'asc', before: null, after: 
 
 /**
  * Constructs the filter for the journey picker
- * @param filterInEvent If true, filters out journeys that are in an event
+ * @param filterIsIntroductory If true, filters out introductory journeys
+ * @param filterHasSessions If true, filters out journeys with sessions
  * @param query The query to filter by
  * @returns The filter to use
  */
 const generalFilterMaker = (
-  filterInEvent: boolean,
   filterIsIntroductory: boolean,
   filterHasSessions: boolean,
   query: string
@@ -77,12 +77,6 @@ const generalFilterMaker = (
       value: null,
     },
   };
-  if (filterInEvent) {
-    res.daily_event_uid = {
-      operator: 'eq',
-      value: null,
-    };
-  }
   if (filterIsIntroductory) {
     res.introductory_journey_uid = {
       operator: 'eq',
@@ -117,15 +111,13 @@ export const JourneyPicker = ({
   query,
   setQuery,
   setSelected,
-  filterInEvent = false,
   filterIsIntroductory = false,
   filterHasSessions = false,
   disabled = false,
 }: JourneyPickerProps): ReactElement => {
   const filterMaker = useMemo(
-    () =>
-      generalFilterMaker.bind(undefined, filterInEvent, filterIsIntroductory, filterHasSessions),
-    [filterInEvent, filterIsIntroductory, filterHasSessions]
+    () => generalFilterMaker.bind(undefined, filterIsIntroductory, filterHasSessions),
+    [filterIsIntroductory, filterHasSessions]
   );
   return (
     <CrudPicker

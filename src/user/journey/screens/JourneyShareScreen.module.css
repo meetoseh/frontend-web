@@ -168,11 +168,6 @@
   letter-spacing: 0.25px;
 }
 
-.shareClassLinkContainer {
-  width: 100%;
-  margin-top: 32px;
-}
-
 .secondaryButton {
   composes: unstyled from '../../../shared/buttons.module.css';
   text-decoration: none;
@@ -199,9 +194,6 @@
 @media screen and (max-height: 710px) {
   .shareToStoriesContainer {
     margin-top: 24px;
-  }
-  .shareClassLinkContainer {
-    margin-top: 16px;
   }
 }
 

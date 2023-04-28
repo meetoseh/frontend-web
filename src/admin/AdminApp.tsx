@@ -15,7 +15,6 @@ import { Instructors } from './instructors/Instructors';
 import { Journeys } from './journeys/Journeys';
 import { JourneySubcategories } from './journeys/subcategories/JourneySubcategories';
 import { ModalProvider } from '../shared/ModalContext';
-import { DailyEvents } from './daily_events/DailyEvents';
 import { IntroductoryJourneys } from './journeys/intros/IntroductoryJourneys';
 import { VipChatRequests } from './vip_chat_requests/VipChatRequests';
 
@@ -27,7 +26,6 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="journeys" element={<Journeys />} />
       <Route path="journeys/subcategories" element={<JourneySubcategories />} />
       <Route path="journeys/intro" element={<IntroductoryJourneys />} />
-      <Route path="daily_events" element={<DailyEvents />} />
       <Route path="vip_chat_requests" element={<VipChatRequests />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
