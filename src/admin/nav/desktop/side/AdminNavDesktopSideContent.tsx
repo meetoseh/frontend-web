@@ -39,12 +39,6 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/journeys"
             active={currentPath === '/admin/journeys'}
           />
-          <AdminNavDesktopSideLink
-            iconClass={styles.iconDailyEvents}
-            text="Calendar"
-            url="/admin/daily_events"
-            active={currentPath === '/admin/daily_events'}
-          />
           <AdminNavDesktopSideSectionHeader text="Advanced" />
           <AdminNavDesktopSideLink
             iconClass={styles.iconJourneySubcategories}

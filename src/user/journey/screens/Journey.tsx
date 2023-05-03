@@ -65,6 +65,13 @@ export const Journey = ({ journey, shared, setScreen }: JourneyScreenProps): Rea
 
   useEffect(() => {
     setControlsVisibility('visible');
+    const audio = shared.audio?.audioRef?.current;
+    if (!audio) {
+      return;
+    }
+    if (audio.paused) {
+      return;
+    }
 
     const doHide = () => {
       setControlsVisibility('hiding');
@@ -102,7 +109,7 @@ export const Journey = ({ journey, shared, setScreen }: JourneyScreenProps): Rea
       window.removeEventListener('touchcancel', onUserInput);
       window.removeEventListener('keydown', onUserInput);
     };
-  }, []);
+  }, [shared.audio?.audioRef]);
 
   const gotoPost = useCallback(() => {
     if (shared.audio?.stop) {

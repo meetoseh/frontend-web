@@ -1,16 +1,13 @@
-import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { ReactElement, useContext, useEffect, useState } from 'react';
 import { LoginContext, LoginProvider } from '../shared/LoginContext';
 import { ModalProvider } from '../shared/ModalContext';
-import { CurrentDailyEventLoader } from './daily_event/CurrentDailyEventLoader';
 import { LoginApp } from './login/LoginApp';
 import { SplashScreen } from './splash/SplashScreen';
 import '../assets/fonts.css';
 import styles from './UserApp.module.css';
 import { apiFetch } from '../shared/ApiConstants';
-import { JourneyRef } from './journey/models/JourneyRef';
 import { useFonts } from '../shared/lib/useFonts';
 import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenContext';
-import { JourneyRouter } from './journey/JourneyRouter';
 import { VisitorHandler } from '../shared/hooks/useVisitor';
 import { useOnboardingState } from './onboarding/hooks/useOnboardingState';
 import { OnboardingRouter } from './onboarding/OnboardingRouter';
@@ -35,20 +32,26 @@ const requiredFonts = [
   '700 1em Open Sans',
 ];
 
+/**
+ * Originally, this would select what to do and pass functions around to
+ * change the state. Now, this is essentially a thin wrapper around the
+ * OnboardingRouter to add loading fonts, injecting a login screen, requesting
+ * fullscreen, and showing a splash screen while loading
+ */
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const fullscreenContext = useContext(FullscreenContext);
-  const [desiredState, setDesiredState] = useState<'current-daily-event' | 'journey'>(
-    'current-daily-event'
-  );
-  const [state, setState] = useState<
-    'loading' | 'onboarding' | 'current-daily-event' | 'login' | 'journey'
-  >('loading');
+  const [state, setState] = useState<'loading' | 'onboarding' | 'login'>('loading');
   const fontsLoaded = useFonts(requiredFonts);
   const onboarding = useOnboardingState();
+
+  // Since on first load the user likely sees white anyway, it's better to leave
+  // it white and then go straight to the content if we can do so rapidly, rather
+  // than going white screen -> black screen (start of splash) -> content. Of course,
+  // if loading takes a while, we'll show the splash screen.
   const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
-  const [currentDailyEventLoaded, setCurrentDailyEventLoaded] = useState(false);
-  const [journey, setJourney] = useState<JourneyRef | null>(null);
+
+  const [beenLoaded, setBeenLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
 
   useEffect(() => {
@@ -143,21 +146,9 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
-    if (desiredState === 'current-daily-event' && !currentDailyEventLoaded) {
-      setState('loading');
-      return;
-    }
-
-    setState(desiredState);
-  }, [
-    loginContext.state,
-    desiredState,
-    currentDailyEventLoaded,
-    fontsLoaded,
-    handlingCheckout,
-    onboarding.required,
-    onboarding.loading,
-  ]);
+    console.warn("No state matched, defaulting to 'loading' (this should never happen)");
+    setState('loading');
+  }, [loginContext.state, fontsLoaded, handlingCheckout, onboarding.required, onboarding.loading]);
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in') {
@@ -175,34 +166,18 @@ const UserAppInner = (): ReactElement => {
     loginContext.state,
   ]);
 
-  const wrappedSetJourney = useCallback((journey: JourneyRef) => {
-    setJourney(journey);
-    setDesiredState('journey');
-  }, []);
-
-  const onJourneyPostFinished = useCallback(() => {
-    localStorage.removeItem('onboard');
-    setJourney(null);
-    setDesiredState('current-daily-event');
-  }, []);
+  useEffect(() => {
+    if (state === 'onboarding' && !beenLoaded) {
+      setBeenLoaded(true);
+    }
+  }, [state, beenLoaded]);
 
   return (
     <div className={styles.container}>
       {state === 'loading' && !flashWhiteInsteadOfSplash ? (
-        <SplashScreen type={desiredState === 'current-daily-event' ? 'wordmark' : 'brandmark'} />
+        <SplashScreen type={beenLoaded ? 'brandmark' : 'wordmark'} />
       ) : null}
       {state === 'login' ? <LoginApp /> : null}
-      {desiredState === 'current-daily-event' && !handlingCheckout && !onboarding.required ? (
-        <div className={state !== 'current-daily-event' ? styles.displayNone : ''}>
-          <CurrentDailyEventLoader
-            setLoaded={setCurrentDailyEventLoaded}
-            setJourney={wrappedSetJourney}
-          />
-        </div>
-      ) : null}
-      {state === 'journey' && journey !== null ? (
-        <JourneyRouter journey={journey} onFinished={onJourneyPostFinished} isOnboarding={false} />
-      ) : null}
       {onboarding.required ? (
         <div className={state !== 'onboarding' ? styles.displayNone : ''}>
           <OnboardingRouter state={onboarding} />

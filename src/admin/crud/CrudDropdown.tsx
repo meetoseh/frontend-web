@@ -10,7 +10,12 @@ import React, {
 import { apiFetch } from '../../shared/ApiConstants';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/LoginContext';
-import { CrudFetcherKeyMap, CrudFetcherSort, convertUsingKeymap } from './CrudFetcher';
+import {
+  CrudFetcherFilter,
+  CrudFetcherKeyMap,
+  CrudFetcherSort,
+  convertUsingKeymap,
+} from './CrudFetcher';
 import styles from './CrudDropdown.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 
@@ -23,7 +28,7 @@ type CrudDropdownProps<T extends { uid: string }> = {
   /**
    * How to map from items in the api response to the items
    */
-  keyMap: CrudFetcherKeyMap<T>;
+  keyMap: CrudFetcherKeyMap<T> | ((raw: any) => T);
 
   /**
    * The sort to apply to the matched items
@@ -70,6 +75,22 @@ type CrudDropdownProps<T extends { uid: string }> = {
    * @default 'hover'
    */
   loadOn?: 'eager' | 'hover' | 'focus';
+
+  /**
+   * If specified, used to filter the results using the api, preventing unwanted
+   * items from being sent to the client.
+   */
+  apiFilter?: CrudFetcherFilter;
+
+  /**
+   * If specified, used to filter the items locally after they have been fetched
+   * from the network. This can be significantly slower than using the apiFilter,
+   * but is useful if the apiFilter is not sufficient.
+   *
+   * @param item The item to consider filtering
+   * @returns True to keep the item, false to discard it
+   */
+  localFilter?: (this: void, item: T) => boolean;
 };
 
 /**
@@ -93,6 +114,8 @@ export function CrudDropdown<T extends { uid: string }>({
   variant = 'down',
   limit = 100,
   loadOn = 'hover',
+  apiFilter = undefined,
+  localFilter = undefined,
 }: CrudDropdownProps<T>): ReactElement {
   const loginContext = useContext(LoginContext);
   const selectRef = useRef<HTMLSelectElement | null>(null);
@@ -124,6 +147,12 @@ export function CrudDropdown<T extends { uid: string }>({
       throw new Error('Invalid loadOn value');
     }
   }, [focused, hovered, wantLoad, loadOn]);
+
+  useEffect(() => {
+    setFetchedItems(false);
+    setError(null);
+    setItems([]);
+  }, [apiFilter, localFilter]);
 
   useEffect(() => {
     if (wantLoad || loadOn !== 'hover' || containerRef.current === null) {
@@ -170,7 +199,7 @@ export function CrudDropdown<T extends { uid: string }>({
                 'Content-Type': 'application/json; charset=utf-8',
               },
               body: JSON.stringify({
-                filters: {},
+                filters: apiFilter ?? {},
                 sort: nextSort,
                 limit,
               }),
@@ -191,8 +220,14 @@ export function CrudDropdown<T extends { uid: string }>({
             return;
           }
 
-          for (const item of data.items) {
-            newItems.push(convertUsingKeymap(item, keyMap));
+          if (typeof keyMap === 'function') {
+            for (const item of data.items) {
+              newItems.push(keyMap(item));
+            }
+          } else {
+            for (const item of data.items) {
+              newItems.push(convertUsingKeymap(item, keyMap));
+            }
           }
 
           if (
@@ -208,6 +243,28 @@ export function CrudDropdown<T extends { uid: string }>({
         if (!active) {
           return;
         }
+        if (localFilter) {
+          const indicesToDiscard: number[] = [];
+          for (let i = 0; i < newItems.length; i++) {
+            if (!localFilter(newItems[i])) {
+              indicesToDiscard.push(i);
+            }
+          }
+
+          if (indicesToDiscard.length < 3) {
+            for (let i = indicesToDiscard.length - 1; i >= 0; i--) {
+              newItems.splice(indicesToDiscard[i], 1);
+            }
+          } else {
+            const cp = [...newItems];
+            newItems.splice(0, newItems.length);
+            for (let i = 0; i < cp.length; i++) {
+              if (!indicesToDiscard.includes(i)) {
+                newItems.push(cp[i]);
+              }
+            }
+          }
+        }
         setItems(newItems);
         setChoice(null);
         setFetchedItems(true);
@@ -222,7 +279,18 @@ export function CrudDropdown<T extends { uid: string }>({
         setError(err);
       }
     }
-  }, [focused, fetchedItems, wantLoad, path, sort, limit, loginContext, keyMap]);
+  }, [
+    focused,
+    fetchedItems,
+    wantLoad,
+    path,
+    sort,
+    limit,
+    loginContext,
+    keyMap,
+    apiFilter,
+    localFilter,
+  ]);
 
   useEffect(() => {
     if (doFocus === null || selectRef.current === null) {

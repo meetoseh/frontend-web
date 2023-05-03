@@ -12,9 +12,6 @@ import '../../assets/fonts.css';
 import styles from './Settings.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { apiFetch } from '../../shared/ApiConstants';
-import { NewUserDailyEventInvite } from '../referral/models/NewUserDailyEventInvite';
-import { getDailyEventInvite } from '../referral/lib/getDailyEventInvite';
-import { InviteFallbackPrompt } from '../referral/InviteFallbackPrompt';
 import { SplashScreen } from '../splash/SplashScreen';
 
 /**
@@ -36,8 +33,6 @@ export const Settings = () => {
   const [showCancelPromoPrompt, setShowCancelPromoPrompt] = useState(false);
   const [showCancelNoSubscriptionPrompt, setShowCancelNoSubscriptionPrompt] = useState(false);
   const [showCancelSuccessPrompt, setShowCancelSuccessPrompt] = useState(false);
-  const [showInviteFallbackPrompt, setShowInviteFallbackPrompt] = useState(false);
-  const [preloadedInvite, setPreloadedInvite] = useState<NewUserDailyEventInvite | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
 
   const boundShowDeleteConfirmInitialPrompt = useCallback(() => {
@@ -535,25 +530,6 @@ export const Settings = () => {
   }, [showCancelSuccessPrompt, modalContext.setModals]);
 
   useEffect(() => {
-    if (!showInviteFallbackPrompt) {
-      return;
-    }
-
-    const onCancel = () => setShowInviteFallbackPrompt(false);
-
-    return addModalWithCallbackToRemove(
-      modalContext.setModals,
-      <ModalWrapper minimalStyling={true} onClosed={onCancel}>
-        <InviteFallbackPrompt
-          loginContext={loginContext}
-          onCancel={onCancel}
-          initialInvite={preloadedInvite}
-        />
-      </ModalWrapper>
-    );
-  }, [showInviteFallbackPrompt, modalContext.setModals, loginContext, preloadedInvite]);
-
-  useEffect(() => {
     if (loginContext.state === 'logged-out') {
       window.location.href = '/';
     }
@@ -562,40 +538,6 @@ export const Settings = () => {
   const logout = useCallback(() => {
     if (loginContext.state === 'logged-in') {
       loginContext.setAuthTokens(null);
-    }
-  }, [loginContext]);
-
-  const inviteFriends = useCallback(async () => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-
-    try {
-      const invite = await getDailyEventInvite({
-        loginContext,
-        journeyUid: null,
-      });
-
-      const shareData = {
-        url: invite.url,
-        text: "Join Oseh so we can do mindfulness journey's together.",
-      };
-      if (
-        !invite.isPlusLink ||
-        !window.navigator ||
-        !window.navigator.share ||
-        !window.navigator.canShare ||
-        !window.navigator.canShare(shareData)
-      ) {
-        setPreloadedInvite(invite);
-        setShowInviteFallbackPrompt(true);
-        return;
-      }
-
-      await window.navigator.share(shareData);
-    } catch (e) {
-      console.error(e);
-      setShowInviteFallbackPrompt(true);
     }
   }, [loginContext]);
 
@@ -616,11 +558,6 @@ export const Settings = () => {
       </div>
       <div className={styles.content}>
         <div className={styles.bigLinks}>
-          <div className={styles.bigLinkContainer}>
-            <button type="button" className={styles.bigLink} onClick={inviteFriends}>
-              Invite Friends
-            </button>
-          </div>
           {!havePro ? (
             <div className={styles.bigLinkContainer}>
               <a href="/upgrade" className={styles.bigLink}>

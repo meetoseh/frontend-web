@@ -19,7 +19,6 @@ export const AdminNavMobileContent = ({ expanded }: AdminNavMobileContentProps):
         <AdminNavMobileLink text="Dashboard" url="/admin" />
         <AdminNavMobileLink text="Instructors" url="/admin/instructors" />
         <AdminNavMobileLink text="Journeys" url="/admin/journeys" />
-        <AdminNavMobileLink text="Calendar" url="/admin/daily_events" />
       </div>
     </div>
   );

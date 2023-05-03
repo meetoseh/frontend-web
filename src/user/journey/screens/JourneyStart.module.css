@@ -13,6 +13,14 @@
   align-items: center;
 }
 
+.backgroundContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -2;
+  width: 100%;
+}
+
 .description,
 .journeyDescription {
   font-family: 'Open Sans', sans-serif;
@@ -59,6 +67,11 @@
   z-index: 1;
 }
 
+.foreground {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+}
+
 .content {
   max-width: 440px;
   max-height: 875px;
@@ -75,13 +88,15 @@
   justify-content: center;
   align-items: center;
   margin-bottom: 60px;
+  text-align: center;
+  padding: 0 24px;
 
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: 22px;
   line-height: 32px;
-  color: #ffffff;
+  color: #f9f9f9;
 }
 
 .practiceWithAFriendContainer {
@@ -109,26 +124,6 @@
 }
 
 .skipForNowContainer {
-  padding: 0 40px;
+  padding: 0 57px;
   margin-bottom: 35px;
-}
-
-.button {
-  composes: unstyled from '../../../shared/buttons.module.css';
-  height: 56px;
-  width: 100%;
-  background: white;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-  border-radius: 100px;
-  color: #446266;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 400;
-  font-size: 16px;
-  letter-spacing: 0.25px;
 }

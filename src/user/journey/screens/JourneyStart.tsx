@@ -1,16 +1,11 @@
-import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useRef } from 'react';
 import { Button } from '../../../shared/forms/Button';
-import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
-import { LoginContext } from '../../../shared/LoginContext';
-import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/ModalContext';
-import { ModalWrapper } from '../../../shared/ModalWrapper';
 import { OsehImageFromState } from '../../../shared/OsehImage';
-import { InviteFallbackPrompt } from '../../referral/InviteFallbackPrompt';
-import { getDailyEventInvite } from '../../referral/lib/getDailyEventInvite';
-import { NewUserDailyEventInvite } from '../../referral/models/NewUserDailyEventInvite';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import styles from './JourneyStart.module.css';
+import { Journey } from './Journey';
+import { combineClasses } from '../../../shared/lib/combineClasses';
 
 /**
  * Shows a screen allowing the user to perform an interaction to start the
@@ -24,12 +19,12 @@ export const JourneyStart = ({
   shared,
   setScreen,
   isOnboarding,
-}: JourneyScreenProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
-  const modalContext = useContext(ModalContext);
+  onJourneyFinished,
+  selectedEmotionAntonym,
+}: JourneyScreenProps & {
+  selectedEmotionAntonym?: string;
+}): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [invite, setInvite] = useState<NewUserDailyEventInvite | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
 
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize: shared.windowSize });
 
@@ -42,111 +37,54 @@ export const JourneyStart = ({
     [setScreen, shared.audio]
   );
 
-  const onPracticeWithAFriendClick = useCallback(
-    async (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
+  if (isOnboarding || selectedEmotionAntonym === undefined) {
+    return (
+      <div className={styles.container} ref={containerRef}>
+        <div className={styles.backgroundImageContainer}>
+          {shared.image && <OsehImageFromState {...shared.image} />}
+        </div>
 
-      if (loginContext.state !== 'logged-in') {
-        setError(<>You can&rsquo;t do that until you&rsquo;ve logged in.</>);
-        return;
-      }
-
-      setError(null);
-      try {
-        const invite = await getDailyEventInvite({
-          loginContext,
-          journeyUid: isOnboarding ? null : journey.uid,
-        });
-        setInvite(invite);
-      } catch (e) {
-        const err = await describeError(e);
-        setError(err);
-      }
-    },
-    [loginContext, journey.uid, isOnboarding]
-  );
-
-  useEffect(() => {
-    if (invite === null) {
-      return;
-    }
-
-    const shareData = {
-      url: invite.url,
-      text: isOnboarding
-        ? "Join Oseh so we can do mindfulness journey's together."
-        : `Let's do a ${journey.category.externalName.toLowerCase()} class together on Oseh.`,
-    };
-
-    let fallbackShare =
-      !invite.isPlusLink ||
-      !window.navigator ||
-      !window.navigator.share ||
-      !window.navigator.canShare ||
-      !window.navigator.canShare(shareData);
-
-    if (!fallbackShare) {
-      try {
-        navigator.share(shareData);
-        setInvite(null);
-      } catch (e) {
-        console.error(e);
-        fallbackShare = true;
-      }
-    }
-
-    if (fallbackShare) {
-      const onCancel = () => {
-        setInvite(null);
-      };
-      return addModalWithCallbackToRemove(
-        modalContext.setModals,
-        <ModalWrapper minimalStyling={true} onClosed={onCancel}>
-          <InviteFallbackPrompt
-            loginContext={loginContext}
-            onCancel={onCancel}
-            initialInvite={invite}
-          />
-        </ModalWrapper>
-      );
-    }
-  }, [invite, journey.category, loginContext, modalContext.setModals, isOnboarding]);
+        <div className={styles.innerContainer}>
+          <div className={styles.content}>
+            <div className={styles.title}>Your Class is Ready</div>
+            <div className={styles.description}>
+              Put on your headset, get comfortable, and prepare for a 1 minute audio experience.
+            </div>
+            <div className={styles.journeyTitle}>{journey.title}</div>
+            <div className={styles.journeyDescription}>{journey.description.text}</div>
+            <div className={styles.skipForNowContainer}>
+              <Button type="button" fullWidth={true} onClick={onSkipClick}>
+                Let&rsquo;s Go
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container} ref={containerRef}>
-      <div className={styles.backgroundImageContainer}>
-        {shared.image && <OsehImageFromState {...shared.image} />}
+      <div className={styles.backgroundContainer}>
+        <Journey
+          journey={journey}
+          shared={shared}
+          setScreen={setScreen}
+          isOnboarding={isOnboarding}
+          onJourneyFinished={onJourneyFinished}
+        />
       </div>
-
-      <div className={styles.innerContainer}>
-        {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
+      <div className={combineClasses(styles.innerContainer, styles.foreground)}>
         <div className={styles.content}>
-          <div className={styles.title}>Your Class is Ready</div>
-          {isOnboarding && (
-            <>
-              <div className={styles.description}>
-                Put on your headset, get comfortable, and prepare for a 1 minute audio experience.
-              </div>
-              <div className={styles.journeyTitle}>{journey.title}</div>
-              <div className={styles.journeyDescription}>{journey.description.text}</div>
-            </>
-          )}
+          <div className={styles.title}>
+            Here&rsquo;s a 1-minute {journey.category.externalName.toLocaleLowerCase()} class to
+            help you {selectedEmotionAntonym.toLocaleLowerCase()} with {journey.instructor.name}.
+          </div>
           <div className={styles.skipForNowContainer}>
-            <Button type="button" fullWidth={true} onClick={onSkipClick}>
+            <Button type="button" variant="filled-white" fullWidth={true} onClick={onSkipClick}>
               Let&rsquo;s Go
             </Button>
           </div>
-          {!isOnboarding && (
-            <div className={styles.practiceWithAFriendContainer}>
-              <Button
-                type="button"
-                variant="link-white"
-                fullWidth={true}
-                onClick={onPracticeWithAFriendClick}>
-                Invite a Friend
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { CourseClassesState } from '../steps/courseClasses/CourseClassesState';
 import { DailyGoalState } from '../steps/dailyGoal/DailyGoalState';
 import { IntrospectionState } from '../steps/introspection/IntrospectionState';
 import { OnboardingClassState } from '../steps/onboardingClass/OnboardingClassState';
+import { PickEmotionJourneyState } from '../steps/pickEmotionJourney/PickEmotionJourneyState';
 import { RequestNameState } from '../steps/requestName/RequestNameState';
 import { RequestNotificationTimeState } from '../steps/requestNotificationTime/RequestNotificationTimeState';
 import { RequestPhoneState } from '../steps/requestPhone/RequestPhoneState';
@@ -20,4 +21,5 @@ export type OnboardingAllStates = {
   requestNotificationTime: RequestNotificationTimeState;
   yourJourney: YourJourneyState;
   vipChatRequest: VipChatRequestState;
+  pickEmotionJourney: PickEmotionJourneyState;
 };

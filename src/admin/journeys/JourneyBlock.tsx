@@ -24,6 +24,7 @@ import { keyMap as journeyKeyMap } from './Journeys';
 import { Checkbox } from '../../shared/forms/Checkbox';
 import { InstructorPicker } from '../instructors/InstructorPicker';
 import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
+import { JourneyEmotionsBlock } from './emotions/JourneyEmotionsBlock';
 
 type JourneyBlockProps = {
   /**
@@ -279,6 +280,8 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
             </CrudFormElement>
           </div>
         ) : null}
+
+        <JourneyEmotionsBlock journeyUid={journey.uid} />
 
         {editing && (
           <TextInput

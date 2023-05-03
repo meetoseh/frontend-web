@@ -15,7 +15,6 @@ import { OsehPlusUpgradePrompt } from './user/payment/OsehPlusUpgradePrompt';
 import { Settings } from './user/settings/Settings';
 import { ModalProvider } from './shared/ModalContext';
 import { SplashScreen } from './user/splash/SplashScreen';
-import { HandleDailyEventUserInviteScreen } from './user/referral/HandleDailyEventUserInviteScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 import { VisitorHandler } from './shared/hooks/useVisitor';
 import { CourseActivateScreen } from './user/courses/CourseActivateScreen';
@@ -176,7 +175,6 @@ function App() {
           }
         />
         <Route path="/courses/download" element={<CourseDownloadScreen />} />
-        <Route path="/i/:code" element={<HandleDailyEventUserInviteScreen />} />
       </Routes>
     </BrowserRouter>
   );
