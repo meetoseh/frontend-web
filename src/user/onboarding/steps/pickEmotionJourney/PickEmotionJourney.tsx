@@ -1,4 +1,12 @@
-import { MutableRefObject, ReactElement, useCallback, useMemo, useRef, useState } from 'react';
+import {
+  MutableRefObject,
+  ReactElement,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { OnboardingStepComponentProps } from '../../models/OnboardingStep';
 import { PickEmotionJourneyResources } from './PickEmotionJourneyResources';
 import { PickEmotionJourneyState } from './PickEmotionJourneyState';
@@ -22,6 +30,8 @@ import { JourneyRouterScreenId } from '../../../journey/JourneyRouter';
 import { JourneyPostScreen } from '../../../journey/screens/JourneyPostScreen';
 import { JourneyShareScreen } from '../../../journey/screens/JourneyShareScreen';
 import { JourneyStart } from '../../../journey/screens/JourneyStart';
+import { MyProfilePicture } from '../../../../shared/MyProfilePicture';
+import { LoginContext } from '../../../../shared/LoginContext';
 
 /**
  * Ensures we display at least 12 options, faking the rest if necessary.
@@ -171,6 +181,7 @@ const PickEmotion = ({
 }: OnboardingStepComponentProps<PickEmotionJourneyState, PickEmotionJourneyResources> & {
   gotoJourney: () => void;
 }): ReactElement => {
+  const loginContext = useContext(LoginContext);
   const words = useMemo(() => {
     const res = resources.options?.words?.map((opt) => opt.word) ?? [];
     if (isDevelopment) {
@@ -281,7 +292,30 @@ const PickEmotion = ({
     }
 
     return {
-      paddingBottom: 80,
+      paddingTop: '20px',
+      paddingBottom: '80px',
+    };
+  }, [windowSize]);
+
+  const settingsStyle = useMemo<React.CSSProperties>(() => {
+    const usableHeight = Math.min(844, windowSize.height);
+    if (usableHeight <= 570) {
+      return {
+        marginBottom: '40px',
+        width: '100%',
+      };
+    }
+
+    const distanceFromTopOfUsable = 32;
+
+    return {
+      position: 'absolute',
+      left: 0,
+      top: windowSize.height / 2 - usableHeight / 2 + distanceFromTopOfUsable,
+      width: `${windowSize.width}px`,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
     };
   }, [windowSize]);
 
@@ -358,6 +392,19 @@ const PickEmotion = ({
         <OsehImageFromState {...resources.background} />
       </div>
       <div className={styles.innerContainer}>
+        <div className={styles.settingsLinkContainer} style={settingsStyle}>
+          <a href="/settings" className={styles.settingsLink}>
+            <div className={styles.profilePictureContainer}>
+              <MyProfilePicture />
+            </div>
+            <div className={styles.settingsText}>
+              <div className={styles.greeting}>
+                Hi {loginContext.userAttributes?.givenName ?? 'there'} 👋
+              </div>
+              <div className={styles.settingsLinkText}>Daily Check-in</div>
+            </div>
+          </a>
+        </div>
         <div className={styles.primaryContainer} style={primaryContainerStyle}>
           <div className={styles.title}>How do you want to feel today?</div>
           <Words
