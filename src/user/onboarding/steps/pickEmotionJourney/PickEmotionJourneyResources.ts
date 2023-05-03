@@ -1,0 +1,85 @@
+import { ReactElement } from 'react';
+import { OsehImageState } from '../../../../shared/OsehImage';
+import { JourneyRef } from '../../../journey/models/JourneyRef';
+import { JourneyShared } from '../../../journey/models/JourneyShared';
+import { Emotion } from './Emotion';
+
+/**
+ * The resources required to show the PickEmotionJourney step without
+ * any spinners.
+ */
+export type PickEmotionJourneyResources = {
+  /**
+   * True if we're waiting for more resources, false if we're ready to
+   * show the step.
+   */
+  loading: boolean;
+
+  /**
+   * If an error occurred that prevents progress loading resources,
+   * this will be set to the error to show.
+   */
+  error: ReactElement | null;
+
+  /**
+   * The client-side uid assigned to the word set that the user is
+   * currently viewing, and the words that the user is currently viewing.
+   * Null if the words haven't been loaded yet.
+   */
+  options: { clientUid: string; words: Emotion[] } | null;
+
+  /**
+   * If the user selected a word from the options already, then this
+   * corresponds to the word they selected, the journey that this
+   * directs to, the shared state for that journey, and some information
+   * about who voted for that journey.
+   */
+  selected: {
+    /**
+     * The word the user chose
+     */
+    word: Emotion;
+    /**
+     * The journey that, as a result, we should go to
+     */
+    journey: JourneyRef;
+    /**
+     * The shared state for the journey. This may be loading, which should
+     * disable the Start Your Class button
+     */
+    shared: JourneyShared;
+    /**
+     * The number of selections of this emotion recently
+     */
+    numVotes: number;
+    /**
+     * The number of selections for any emotion recently
+     */
+    numTotalVotes: number;
+    /**
+     * A small number of profile pictures representing people who have selected this
+     * emotion recently. This may contain loading images.
+     */
+    profilePictures: OsehImageState[];
+  } | null;
+
+  /**
+   * The background image, if we've tried loading it, otherwise null
+   */
+  background: OsehImageState | null;
+
+  /**
+   * Should be called when the user selects a word from a set of words.
+   * This should be called instead of state.onSelection, as it will
+   * call state.onSelection if it successfully loads the journey.
+   *
+   * @param word The word that the user selected
+   */
+  onSelect: (this: void, word: Emotion) => void;
+
+  /**
+   * Should be called when the user completes the journey, so that we can
+   * reset back to the initial state.
+   */
+  onFinishedJourney: () => void;
+};

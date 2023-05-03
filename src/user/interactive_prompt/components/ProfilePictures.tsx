@@ -7,20 +7,35 @@ import {
   ProfilePicturesStateRef,
 } from '../hooks/useProfilePictures';
 import styles from './ProfilePictures.module.css';
+import { combineClasses } from '../../../shared/lib/combineClasses';
 
 const FADE_TIME = 350;
+
+type HereSettings =
+  | {
+      type: 'filled';
+      action: string;
+    }
+  | {
+      type: 'floating';
+      action: string;
+    };
 
 /**
  * Displays profile pictures from the given state ref.
  */
 export const ProfilePictures = ({
   profilePictures,
+  hereSettings,
 }: {
   profilePictures: ProfilePicturesStateRef;
+  hereSettings?: HereSettings;
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const bonusRef = useRef<HTMLDivElement>(null);
   const bonusAmountRef = useRef<HTMLDivElement>(null);
+  const trueHereSettings =
+    hereSettings === undefined ? { type: 'filled', action: 'here' } : hereSettings;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -213,9 +228,14 @@ export const ProfilePictures = ({
   return (
     <div className={styles.outerContainer}>
       <div ref={containerRef} className={styles.container} />
-      <div ref={bonusRef} className={styles.bonusContainer}>
+      <div
+        ref={bonusRef}
+        className={combineClasses(
+          styles.bonusContainer,
+          styles['hereVariant-' + trueHereSettings.type]
+        )}>
         <div ref={bonusAmountRef} />
-        <div>here</div>
+        <div>{trueHereSettings.action}</div>
       </div>
     </div>
   );

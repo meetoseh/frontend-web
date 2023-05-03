@@ -4,6 +4,8 @@ import { useFullHeight } from '../../../shared/hooks/useFullHeight';
 import { OsehImageFromState } from '../../../shared/OsehImage';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import styles from './JourneyStart.module.css';
+import { Journey } from './Journey';
+import { combineClasses } from '../../../shared/lib/combineClasses';
 
 /**
  * Shows a screen allowing the user to perform an interaction to start the
@@ -17,7 +19,11 @@ export const JourneyStart = ({
   shared,
   setScreen,
   isOnboarding,
-}: JourneyScreenProps): ReactElement => {
+  onJourneyFinished,
+  selectedEmotionAntonym,
+}: JourneyScreenProps & {
+  selectedEmotionAntonym?: string;
+}): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize: shared.windowSize });
@@ -31,26 +37,51 @@ export const JourneyStart = ({
     [setScreen, shared.audio]
   );
 
+  if (isOnboarding || selectedEmotionAntonym === undefined) {
+    return (
+      <div className={styles.container} ref={containerRef}>
+        <div className={styles.backgroundImageContainer}>
+          {shared.image && <OsehImageFromState {...shared.image} />}
+        </div>
+
+        <div className={styles.innerContainer}>
+          <div className={styles.content}>
+            <div className={styles.title}>Your Class is Ready</div>
+            <div className={styles.description}>
+              Put on your headset, get comfortable, and prepare for a 1 minute audio experience.
+            </div>
+            <div className={styles.journeyTitle}>{journey.title}</div>
+            <div className={styles.journeyDescription}>{journey.description.text}</div>
+            <div className={styles.skipForNowContainer}>
+              <Button type="button" fullWidth={true} onClick={onSkipClick}>
+                Let&rsquo;s Go
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container} ref={containerRef}>
-      <div className={styles.backgroundImageContainer}>
-        {shared.image && <OsehImageFromState {...shared.image} />}
+      <div className={styles.backgroundContainer}>
+        <Journey
+          journey={journey}
+          shared={shared}
+          setScreen={setScreen}
+          isOnboarding={isOnboarding}
+          onJourneyFinished={onJourneyFinished}
+        />
       </div>
-
-      <div className={styles.innerContainer}>
+      <div className={combineClasses(styles.innerContainer, styles.foreground)}>
         <div className={styles.content}>
-          <div className={styles.title}>Your Class is Ready</div>
-          {isOnboarding && (
-            <>
-              <div className={styles.description}>
-                Put on your headset, get comfortable, and prepare for a 1 minute audio experience.
-              </div>
-              <div className={styles.journeyTitle}>{journey.title}</div>
-              <div className={styles.journeyDescription}>{journey.description.text}</div>
-            </>
-          )}
+          <div className={styles.title}>
+            Here&rsquo;s a 1-minute {journey.category.externalName.toLocaleLowerCase()} class to
+            help you {selectedEmotionAntonym.toLocaleLowerCase()} with {journey.instructor.name}.
+          </div>
           <div className={styles.skipForNowContainer}>
-            <Button type="button" fullWidth={true} onClick={onSkipClick}>
+            <Button type="button" variant="filled-white" fullWidth={true} onClick={onSkipClick}>
               Let&rsquo;s Go
             </Button>
           </div>

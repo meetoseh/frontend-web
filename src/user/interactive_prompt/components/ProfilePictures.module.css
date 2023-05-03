@@ -56,7 +56,7 @@
   top: 0;
 }
 
-.bonusContainer {
+.hereVariant-filled {
   height: 38px;
   padding: 0 12px;
   opacity: 0%;
@@ -75,6 +75,27 @@
   color: #160808;
   margin-left: -6px;
   z-index: 50;
+}
+
+.hereVariant-floating {
+  height: 38px;
+  padding: 0;
+  opacity: 0%;
+  transition: opacity 0.35s ease;
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 12px;
+  text-align: left;
+  color: white;
+  margin-left: 8px;
+  z-index: 50;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25em;
 }
 
 .outerContainer {

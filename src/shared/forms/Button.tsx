@@ -1,5 +1,6 @@
 import { AnchorHTMLAttributes, PropsWithChildren, ReactElement, useEffect, useRef } from 'react';
 import styles from './Button.module.css';
+import { combineClasses } from '../lib/combineClasses';
 
 type ButtonProps = {
   /**
@@ -18,7 +19,15 @@ type ButtonProps = {
    * The variant of the button
    * @default 'filled'
    */
-  variant?: 'filled' | 'outlined' | 'link' | 'link-small' | 'link-white' | 'link-small-upper';
+  variant?:
+    | 'filled'
+    | 'filled-white'
+    | 'outlined'
+    | 'outlined-white'
+    | 'link'
+    | 'link-small'
+    | 'link-white'
+    | 'link-small-upper';
 
   /**
    * If the button is disabled
@@ -79,20 +88,26 @@ export const Button = ({
         type={type}
         disabled={disabled}
         onClick={onClick}
-        className={`${styles.button} ${styles[variant]} ${fullWidth ? styles.fullWidth : ''}`}>
+        className={combineClasses(
+          styles.button,
+          styles[variant],
+          fullWidth ? styles.fullWidth : undefined
+        )}>
         {children}
       </button>
     );
   }
 
-  console.log('anchor tag download=', download);
-  console.log('anchor tag onClick=', onClick);
   return (
     <a
       ref={anchorRef}
       type={type}
       href={onClick}
-      className={`${styles.button} ${styles[variant]} ${fullWidth ? styles.fullWidth : ''}`}
+      className={combineClasses(
+        styles.button,
+        styles[variant],
+        fullWidth ? styles.fullWidth : undefined
+      )}
       download={download}>
       {children}
     </a>
