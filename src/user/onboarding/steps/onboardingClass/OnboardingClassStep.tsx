@@ -63,8 +63,8 @@ const storeLastShownAt = (sub: string, lastShownAt: Date) => {
 
 const classUidByResponse: Record<string, string> = {
   Connect: 'oseh_j_y6ShNBstkH0ZcKGWY1pLng',
-  Destress: 'oseh_j_dIIyr8ANGGMgzK6piHbVWA',
-  Relax: 'oseh_j_JtdEIj6CXignWc_4mwrCBQ',
+  Destress: 'oseh_j_LyvGJQx-Dj9rfYa3xx-lpw',
+  Relax: 'oseh_j_HjR_DJhiNJkh4afR6J_D0w',
 };
 const classUids = Object.values(classUidByResponse);
 const fallbackResponse = 'Relax';
