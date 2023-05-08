@@ -20,6 +20,18 @@
       "comment": "used for some public interactive prompts, e.g., daily goal",
       "source": "server_images/oseh_abstract_darken15.jpeg",
       "resolutions": "full-bleed"
+    },
+    {
+      "uid": "oseh_if_F7sVhs4BJ7nnhPjyhi09-g",
+      "name": "woman-laughing",
+      "comment": "used for the product update screen / signup reward",
+      "source": "server_images/oseh_womanlaughing.jpg",
+      "resolutions": [
+        [336, 184],
+        [672, 368],
+        [840, 460],
+        [1008, 552]
+      ]
     }
   ]
 }

@@ -3,6 +3,7 @@ import {
   ReactElement,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -50,36 +51,64 @@ export const PickEmotionJourney = ({
   PickEmotionJourneyState,
   PickEmotionJourneyResources
 >): ReactElement => {
-  const [step, setStep] = useState<'pick' | JourneyRouterScreenId>('pick');
+  const [step, setStep] = useState<{
+    journeyUid: string | null;
+    step: 'pick' | JourneyRouterScreenId;
+  }>({ journeyUid: null, step: 'pick' });
   const stepRef = useRef(step);
   stepRef.current = step;
 
+  useEffect(() => {
+    if (resources.selected === null && step.step !== 'pick') {
+      setStep({ journeyUid: null, step: 'pick' });
+      return;
+    }
+
+    if (resources.selected !== null && step.step === 'pick' && resources.selected.skipsStats) {
+      setStep({ journeyUid: resources.selected.journey.uid, step: 'lobby' });
+      return;
+    }
+
+    if (
+      resources.selected !== null &&
+      step.step !== 'pick' &&
+      step.journeyUid !== resources.selected.journey.uid
+    ) {
+      console.log('returning to pick screen because its a new journey');
+      setStep({ journeyUid: null, step: 'pick' });
+    }
+  }, [step, resources.selected]);
+
   const gotoJourney = useCallback(() => {
-    setStep('lobby');
-  }, []);
+    if (resources.selected === null) {
+      console.warn('gotoJourney without a journey to goto');
+      return;
+    }
+    setStep({ journeyUid: resources.selected.journey.uid, step: 'lobby' });
+  }, [resources.selected]);
 
   const onFinishJourney = useCallback(() => {
     resources.onFinishedJourney.call(undefined);
-    setStep('pick');
-  }, [resources.onFinishedJourney]);
+    state.onFinishedClass.call(undefined);
+    setStep({ journeyUid: null, step: 'pick' });
+  }, [resources.onFinishedJourney, state.onFinishedClass]);
 
   const setScreen = useCallback(
     (
       screen: JourneyRouterScreenId | ((screen: JourneyRouterScreenId) => JourneyRouterScreenId)
     ) => {
-      if (stepRef.current === 'pick') {
+      if (stepRef.current.step === 'pick') {
         return;
       }
 
       if (typeof screen === 'function') {
-        screen = screen(stepRef.current);
+        screen = screen(stepRef.current.step);
+      }
+      if (resources.selected === null) {
+        console.warn('Cannot go to journey screen without a selected emotion.');
+        return;
       }
       if (screen === 'journey') {
-        if (resources.selected === null) {
-          console.warn('Cannot go to journey screen without a selected emotion.');
-          return;
-        }
-
         const shared = resources.selected.shared;
         if (shared.audio === null) {
           console.warn('Cannot go to journey screen without audio.');
@@ -98,13 +127,18 @@ export const PickEmotionJourney = ({
 
         shared.audio.play();
       }
-      stepRef.current = screen;
-      setStep(screen);
+      const newStep = { journeyUid: resources.selected.journey.uid, step: screen };
+      stepRef.current = newStep;
+      setStep(newStep);
     },
     [resources.selected]
   );
 
-  if (step === 'pick') {
+  if (resources.forceSplash) {
+    return <SplashScreen type="wordmark" />;
+  }
+
+  if (step.step === 'pick') {
     return (
       <PickEmotion
         state={state}
@@ -117,7 +151,6 @@ export const PickEmotionJourney = ({
 
   if (resources.selected === null) {
     console.warn("Not at the pick step, but there's no selected emotion.");
-    setStep('pick');
     return <></>;
   }
   const sel = resources.selected;
@@ -126,10 +159,10 @@ export const PickEmotionJourney = ({
     shared: resources.selected.shared,
     setScreen,
     onJourneyFinished: onFinishJourney,
-    isOnboarding: false,
+    isOnboarding: state.isOnboarding,
   };
 
-  if (step === 'lobby') {
+  if (step.step === 'lobby') {
     if (sel.shared.imageLoading) {
       return <SplashScreen />;
     }
@@ -137,7 +170,7 @@ export const PickEmotionJourney = ({
     return <JourneyLobbyScreen {...props} />;
   }
 
-  if (step === 'start') {
+  if (step.step === 'start') {
     if (
       sel.shared.blurredImageLoading ||
       sel.shared.audio === null ||
@@ -149,18 +182,24 @@ export const PickEmotionJourney = ({
     return <JourneyStart {...props} selectedEmotionAntonym={sel.word.antonym} />;
   }
 
-  if (step === 'journey') {
+  if (step.step === 'journey') {
     if (sel.shared.audio === null || !sel.shared.audio.loaded) {
       return <SplashScreen />;
     }
     return <Journey {...props} />;
   }
 
-  if (step === 'post') {
-    return <JourneyPostScreen {...props} />;
+  if (step.step === 'post') {
+    return (
+      <JourneyPostScreen
+        {...props}
+        classesTakenToday={state.classesTakenThisSession}
+        overrideOnContinue={state.isOnboarding ? undefined : resources.takeAnotherClass}
+      />
+    );
   }
 
-  if (step === 'share') {
+  if (step.step === 'share') {
     if (sel.shared.blurredImageLoading) {
       return <SplashScreen />;
     }

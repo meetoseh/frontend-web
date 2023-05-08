@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { OnboardingStep } from '../../models/OnboardingStep';
 import { LoginContext } from '../../../../shared/LoginContext';
 import {
@@ -13,51 +13,8 @@ import { RequestNotificationTimeState } from './RequestNotificationTimeState';
 import { RequestNotificationTimeResources } from './RequestNotificationTimeResources';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { RequestNotificationTime } from './RequestNotificationTime';
-import { useTimezone } from '../../../../shared/hooks/useTimezone';
-
-/**
- * Determines when we last showed the introspection prompt for the user with the
- * given sub on this device.
- */
-const getLastShownAt = (sub: string): { response: string | null; at: Date } | null => {
-  const storedValue = localStorage.getItem('notification-time-prompt');
-  if (
-    storedValue === undefined ||
-    storedValue === null ||
-    storedValue === '' ||
-    storedValue[0] !== '{'
-  ) {
-    return null;
-  }
-
-  try {
-    const parsed: { sub?: string; lastShownAt?: number; response?: string | null } =
-      JSON.parse(storedValue);
-    if (parsed.sub !== sub || parsed.lastShownAt === undefined || parsed.response === undefined) {
-      return null;
-    }
-    return { response: parsed.response, at: new Date(parsed.lastShownAt) };
-  } catch (e) {
-    return null;
-  }
-};
-
-/**
- * Stores that the given user saw the introspection prompt at the given time
- * @param sub The sub of the user
- * @param lastShownAt The time the user saw the screen
- * @param response The response the user gave
- */
-const storeLastShownAt = (sub: string, lastShownAt: Date, response: string | null) => {
-  localStorage.setItem(
-    'notification-time-prompt',
-    JSON.stringify({
-      sub,
-      lastShownAt: lastShownAt.getTime(),
-      response,
-    })
-  );
-};
+import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
+import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 
 const backgroundImageUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -68,39 +25,19 @@ export const RequestNotificationTimeStep: OnboardingStep<
   identifier: 'requestNotificationTime',
   useWorldState: () => {
     const loginContext = useContext(LoginContext);
-    const [notificationTimeResponse, setNotificationTimeResponse] = useState<
-      string | null | undefined
-    >(undefined);
+    const missingPhone =
+      loginContext.state === 'loading'
+        ? undefined
+        : loginContext.state !== 'logged-in' ||
+          loginContext.userAttributes === null ||
+          loginContext.userAttributes.phoneNumber === null;
+    const ian = useInappNotification('oseh_ian_aJs054IZzMnJE2ulbbyT6w', missingPhone ?? true);
     const [serverWantsNotificationTime, setServerWantsNotificationTime] = useState<
       boolean | undefined
     >(undefined);
-    const timezone = useTimezone();
 
     useEffect(() => {
-      if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
-        setNotificationTimeResponse(undefined);
-        return;
-      }
-
-      const lastResponse = getLastShownAt(loginContext.userAttributes.sub);
-      if (lastResponse === null) {
-        setNotificationTimeResponse(undefined);
-        return;
-      }
-
-      if (
-        lastResponse.response === null &&
-        lastResponse.at.getTime() + 24 * 60 * 60 * 1000 < Date.now()
-      ) {
-        setNotificationTimeResponse(undefined);
-        return;
-      }
-
-      setNotificationTimeResponse(lastResponse.response);
-    }, [loginContext]);
-
-    useEffect(() => {
-      if (notificationTimeResponse !== undefined) {
+      if (ian === null || !ian.showNow) {
         setServerWantsNotificationTime(undefined);
         return;
       }
@@ -147,62 +84,15 @@ export const RequestNotificationTimeStep: OnboardingStep<
           return;
         }
       }
-    }, [loginContext, notificationTimeResponse]);
-
-    const onContinue = useCallback(
-      (response: string | null): RequestNotificationTimeState => {
-        if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
-          return {
-            sawNotificationTime: false,
-            notificationTimeSelection: null,
-            serverWantsNotificationTime: false,
-            onContinue: () => {
-              throw new Error('not available from onContinue');
-            },
-          };
-        }
-
-        storeLastShownAt(loginContext.userAttributes.sub, new Date(), response);
-        setNotificationTimeResponse(response);
-        setServerWantsNotificationTime(false);
-
-        apiFetch(
-          '/api/1/users/me/attributes/notification_time',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-            },
-            body: JSON.stringify({
-              notification_time: response?.toLowerCase() ?? 'any',
-              timezone: timezone,
-              timezone_technique: 'browser',
-            }),
-            keepalive: true,
-          },
-          loginContext
-        );
-
-        return {
-          sawNotificationTime: true,
-          serverWantsNotificationTime: false,
-          notificationTimeSelection: response,
-          onContinue: () => {
-            throw new Error('onContinue should not be called from onContinue');
-          },
-        };
-      },
-      [loginContext, timezone]
-    );
+    }, [loginContext, ian]);
 
     return useMemo<RequestNotificationTimeState>(
       () => ({
-        sawNotificationTime: notificationTimeResponse !== undefined,
-        notificationTimeSelection: notificationTimeResponse,
+        ian,
+        missingPhone,
         serverWantsNotificationTime,
-        onContinue,
       }),
-      [notificationTimeResponse, serverWantsNotificationTime, onContinue]
+      [ian, missingPhone, serverWantsNotificationTime]
     );
   },
   useResources: (worldState, required) => {
@@ -211,6 +101,7 @@ export const RequestNotificationTimeStep: OnboardingStep<
     const images = useOsehImageStatesRef({});
     const windowSize = useWindowSize();
     const [background, setBackground] = useState<OsehImageState | null>(null);
+    const session = useInappNotificationSession(worldState.ian?.uid ?? null);
     const prompt = usePublicInteractivePrompt({
       identifier: 'notification-time',
       load: required,
@@ -274,26 +165,39 @@ export const RequestNotificationTimeStep: OnboardingStep<
 
     return useMemo<RequestNotificationTimeResources>(
       () => ({
+        session,
         givenName,
         background,
         prompt: prompt,
         loading: background === null || background.loading,
       }),
-      [givenName, background, prompt]
+      [session, givenName, background, prompt]
     );
   },
 
   isRequired: (worldState, allStates) => {
-    if (worldState.sawNotificationTime === undefined) {
+    if (allStates.pickEmotionJourney.classesTakenThisSession < 1) {
+      return false;
+    }
+
+    if (worldState.missingPhone === undefined) {
       return undefined;
     }
 
-    if (!worldState.sawNotificationTime && worldState.serverWantsNotificationTime === undefined) {
+    if (worldState.missingPhone) {
+      return false;
+    }
+
+    if (worldState.ian === null) {
+      return undefined;
+    }
+
+    if (worldState.ian.showNow && worldState.serverWantsNotificationTime === undefined) {
       return undefined;
     }
 
     return (
-      !worldState.sawNotificationTime &&
+      worldState.ian.showNow &&
       (worldState.serverWantsNotificationTime || allStates.requestPhone.justAddedPhoneNumber)
     );
   },

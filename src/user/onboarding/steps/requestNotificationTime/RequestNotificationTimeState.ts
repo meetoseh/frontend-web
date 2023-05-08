@@ -1,19 +1,21 @@
+import { InappNotification } from '../../../../shared/hooks/useInappNotification';
+
 /**
  * The state required to determine if we should show the introspection
  * prompt
  */
 export type RequestNotificationTimeState = {
   /**
-   * True if the user has seen this notification time screen recently,
-   * false if they have not, undefined if not logged in.
+   * True if the user doesn't have a phone number and thus it doesn't make
+   * sense to show this screen, false if they are logged in and have a phone
+   * number, undefined if we don't know yet
    */
-  sawNotificationTime: boolean | undefined;
+  missingPhone: boolean | undefined;
 
   /**
-   * If the user has seen the notification time screen recently, their response
-   * (null if they skipped), otherwise undefined.
+   * The in-app notification for this screen, or null if it hasn't been loaded yet
    */
-  notificationTimeSelection: string | null | undefined;
+  ian: InappNotification | null;
 
   /**
    * True if the server wants us to show the notification time screen,
@@ -22,12 +24,4 @@ export type RequestNotificationTimeState = {
    * screen)
    */
   serverWantsNotificationTime: boolean | undefined;
-
-  /**
-   * A function to call if the user is presented the screen and they
-   * skip/continue, so we store that they saw this screen.
-   *
-   * @param response The response the user gave, or null if they skipped.
-   */
-  onContinue: (response: string | null) => RequestNotificationTimeState;
 };

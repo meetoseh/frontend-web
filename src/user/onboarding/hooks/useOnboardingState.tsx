@@ -3,14 +3,11 @@ import { RequestPhoneStep } from '../steps/requestPhone/RequestPhoneStep';
 import { RequestNameStep } from '../steps/requestName/RequestNameStep';
 import { OnboardingAllStates } from '../models/OnboardingAllStates';
 import { SignupRewardStep } from '../steps/signupReward/SignupRewardStep';
-import { DailyGoalStep } from '../steps/dailyGoal/DailyGoalStep';
-import { OnboardingClassStep } from '../steps/onboardingClass/OnboardingClassStep';
-import { IntrospectionStep } from '../steps/introspection/IntrospectionStep';
 import { RequestNotificationTimeStep } from '../steps/requestNotificationTime/RequestNotificationTimeStep';
-import { YourJourneyStep } from '../steps/yourJourney/YourJourneyStep';
 import { VipChatRequestStep } from '../steps/vipChatRequest/VipChatRequestStep';
 import { CourseClassesStep } from '../steps/courseClasses/CourseClassesStep';
 import { PickEmotionJourneyStep } from '../steps/pickEmotionJourney/PickEmotionJourneyStep';
+import { GoalDaysPerWeekStep } from '../steps/goalDaysPerWeek/GoalDaysPerWeekStep';
 
 export type OnboardingState = {
   /**
@@ -35,12 +32,9 @@ const steps = [
   CourseClassesStep,
   SignupRewardStep,
   RequestPhoneStep,
-  DailyGoalStep,
-  OnboardingClassStep,
-  IntrospectionStep,
   RequestNotificationTimeStep,
-  YourJourneyStep,
   VipChatRequestStep,
+  GoalDaysPerWeekStep,
   PickEmotionJourneyStep,
 ];
 

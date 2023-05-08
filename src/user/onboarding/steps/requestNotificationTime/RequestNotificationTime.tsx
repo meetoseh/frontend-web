@@ -3,10 +3,14 @@ import styles from './RequestNotificationTime.module.css';
 import { OsehImageFromState } from '../../../../shared/OsehImage';
 import { ErrorBlock } from '../../../../shared/forms/ErrorBlock';
 import { InteractivePromptRouter } from '../../../interactive_prompt/components/InteractivePromptRouter';
-import { useCallback, useRef } from 'react';
+import { useCallback, useContext, useRef } from 'react';
 import { Button } from '../../../../shared/forms/Button';
 import { RequestNotificationTimeState } from './RequestNotificationTimeState';
 import { RequestNotificationTimeResources } from './RequestNotificationTimeResources';
+import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { useTimezone } from '../../../../shared/hooks/useTimezone';
+import { apiFetch } from '../../../../shared/ApiConstants';
+import { LoginContext } from '../../../../shared/LoginContext';
 
 /**
  * Asks the user to consider how they are feeling
@@ -19,8 +23,11 @@ export const RequestNotificationTime = ({
   RequestNotificationTimeState,
   RequestNotificationTimeResources
 >) => {
+  const loginContext = useContext(LoginContext);
+  const timezone = useTimezone();
   const leavingCallback = useRef<(() => void) | null>(null);
   const responseRef = useRef<string | null>(null);
+  useStartSession(resources.session);
 
   const onWordPromptResponse = useCallback((response: string) => {
     responseRef.current = response;
@@ -28,13 +35,34 @@ export const RequestNotificationTime = ({
 
   const onFinish = useCallback(
     (privileged: boolean) => {
+      apiFetch(
+        '/api/1/users/me/attributes/notification_time',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          body: JSON.stringify({
+            notification_time: responseRef.current?.toLowerCase() ?? 'any',
+            timezone: timezone,
+            timezone_technique: 'browser',
+          }),
+          keepalive: true,
+        },
+        loginContext
+      );
+      resources.session?.reset?.call(undefined);
+
       leavingCallback?.current?.();
-      const newState = state.onContinue(responseRef.current);
+      const newState = {
+        ...state,
+        ian: state.ian?.onShown?.call(undefined) ?? null,
+      };
       if (privileged) {
         doAnticipateState(newState, Promise.resolve());
       }
     },
-    [doAnticipateState, state]
+    [doAnticipateState, state, resources.session, timezone, loginContext]
   );
 
   const onErrorButtonPress = useCallback(

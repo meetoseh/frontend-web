@@ -2,10 +2,11 @@ import { OnboardingStepComponentProps } from '../../models/OnboardingStep';
 import { SignupRewardResources } from './SignupRewardResources';
 import styles from './SignupReward.module.css';
 import { OsehImageFromState } from '../../../../shared/OsehImage';
-import { DidYouKnow } from '../../../../shared/components/DidYouKnow';
 import { useCallback } from 'react';
 import { Button } from '../../../../shared/forms/Button';
 import { SignupRewardState } from './SignupRewardState';
+import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 
 /**
  * Rewards the user for completing signup.
@@ -15,36 +16,51 @@ export const SignupReward = ({
   resources,
   doAnticipateState,
 }: OnboardingStepComponentProps<SignupRewardState, SignupRewardResources>) => {
-  const onFinish = useCallback(() => {
-    const newState = state.onContinue();
-    doAnticipateState(newState, Promise.resolve());
-  }, [doAnticipateState, state]);
+  useStartSession(resources.session);
+  const windowSize = useWindowSize();
 
-  if (resources.background === null) {
+  const onFinish = useCallback(() => {
+    resources.session?.storeAction?.call(undefined, 'next', null);
+    resources.session?.reset?.call(undefined);
+    const newState = {
+      ...state,
+      signupIAP: state.signupIAP?.onShown?.call(undefined) ?? null,
+    };
+
+    doAnticipateState(newState, Promise.resolve());
+  }, [doAnticipateState, state, resources.session]);
+
+  if (resources.image === null) {
     return <></>;
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...resources.background} />
+        <div
+          className={styles.background}
+          style={{ width: windowSize.width, height: windowSize.height }}
+        />
       </div>
       <div className={styles.content}>
         <div className={styles.title}>
-          <div className={styles.line1}>
-            High-five{resources.givenName !== null ? ', ' + resources.givenName : ''}!
-          </div>
-          <div className={styles.line2}>
-            You&rsquo;re on your way to making mindfulness a daily habit.
-          </div>
+          We are here to help you feel your best&#8212;<em>everyday</em>
         </div>
-        <DidYouKnow animation={{ delay: 750 }}>
-          Meditation enhances creativity and innovation by reducing your stress hormone.
-        </DidYouKnow>
-        <div className={styles.submitContainer}>
-          <Button type="button" fullWidth onClick={onFinish}>
-            Continue
-          </Button>
+        <div className={styles.horizontalRule} />
+        <div className={styles.checkList}>
+          <div className={styles.checkListItem}>Classes for every mood</div>
+          <div className={styles.checkListItem}>Daily check-ins</div>
+          <div className={styles.checkListItem}>Bite-sized to fit your schedule</div>
+        </div>
+        <div className={styles.bannerContainer}>
+          <OsehImageFromState {...resources.image} />
+        </div>
+        <div className={styles.submitOuterContainer}>
+          <div className={styles.submitContainer}>
+            <Button type="button" variant="filled-white" fullWidth onClick={onFinish}>
+              Next
+            </Button>
+          </div>
         </div>
       </div>
     </div>

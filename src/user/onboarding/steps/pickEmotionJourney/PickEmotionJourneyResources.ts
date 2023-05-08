@@ -61,12 +61,23 @@ export type PickEmotionJourneyResources = {
      * emotion recently. This may contain loading images.
      */
     profilePictures: OsehImageState[];
+
+    /**
+     * True if the user should jump straight to the journey start screen,
+     * false if they should see stats first.
+     */
+    skipsStats: boolean;
   } | null;
 
   /**
    * The background image, if we've tried loading it, otherwise null
    */
   background: OsehImageState | null;
+
+  /**
+   * True if a splash screen should be shown, false otherwise.
+   */
+  forceSplash: boolean;
 
   /**
    * Should be called when the user selects a word from a set of words.
@@ -76,6 +87,11 @@ export type PickEmotionJourneyResources = {
    * @param word The word that the user selected
    */
   onSelect: (this: void, word: Emotion) => void;
+
+  /**
+   * Can be called to start a new class with the same emotion.
+   */
+  takeAnotherClass: () => void;
 
   /**
    * Should be called when the user completes the journey, so that we can

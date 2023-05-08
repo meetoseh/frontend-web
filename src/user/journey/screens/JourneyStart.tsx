@@ -37,7 +37,7 @@ export const JourneyStart = ({
     [setScreen, shared.audio]
   );
 
-  if (isOnboarding || selectedEmotionAntonym === undefined) {
+  if (selectedEmotionAntonym === undefined) {
     return (
       <div className={styles.container} ref={containerRef}>
         <div className={styles.backgroundImageContainer}>

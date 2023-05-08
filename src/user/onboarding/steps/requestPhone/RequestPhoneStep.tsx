@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   OsehImageProps,
   OsehImageState,
@@ -6,112 +6,40 @@ import {
   useOsehImageStatesRef,
 } from '../../../../shared/OsehImage';
 import { OnboardingStep } from '../../models/OnboardingStep';
-import { LoginContext, LoginContextValue } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/LoginContext';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { RequestPhoneResources } from './RequestPhoneResources';
 import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhone } from './RequestPhone';
+import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
+import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 
 const backgroundImageUid = 'oseh_if_hH68hcmVBYHanoivLMgstg';
-
-/**
- * Determines when we last requested a phone number for the user with the given
- * sub on this device.
- */
-const getLastRequestAt = (sub: string, variant: 'first' | 'second'): Date | null => {
-  const storedValue = localStorage.getItem(`skip-request-phone-${variant}`);
-  if (
-    storedValue === undefined ||
-    storedValue === null ||
-    storedValue === '' ||
-    storedValue[0] !== '{'
-  ) {
-    return null;
-  }
-
-  try {
-    const parsed: { sub?: string; lastRequestAt?: number } = JSON.parse(storedValue);
-    if (parsed.sub !== sub || parsed.lastRequestAt === undefined) {
-      return null;
-    }
-    return new Date(parsed.lastRequestAt);
-  } catch (e) {
-    return null;
-  }
-};
-
-/**
- * Stores that we requested a phone number for the user with the given sub on
- * this device at the given time.
- */
-const setLastRequestAt = (sub: string, lastRequestAt: Date, variant: 'first' | 'second') => {
-  localStorage.setItem(
-    `skip-request-phone-${variant}`,
-    JSON.stringify({
-      sub,
-      lastRequestAt: lastRequestAt.getTime(),
-    })
-  );
-};
-
-const makeState = (
-  loginContext: LoginContextValue,
-  lastFirstRequestAt: Date | number | null,
-  lastSecondRequestAt: Date | number | null,
-  justAddedPhoneNumber: string | null
-): Omit<RequestPhoneState, 'onSkip'> => {
-  if (typeof lastFirstRequestAt === 'number') {
-    lastFirstRequestAt = new Date(lastFirstRequestAt);
-  }
-  if (typeof lastSecondRequestAt === 'number') {
-    lastSecondRequestAt = new Date(lastSecondRequestAt);
-  }
-
-  if (loginContext.userAttributes === null) {
-    return {
-      hasPhoneNumber: undefined,
-      sawInitialRequest: undefined,
-      sawSecondRequest: undefined,
-      justAddedPhoneNumber: false,
-    };
-  }
-
-  return {
-    hasPhoneNumber: loginContext.userAttributes.phoneNumber !== null,
-    sawInitialRequest:
-      lastFirstRequestAt !== null &&
-      lastFirstRequestAt.getTime() + 1000 * 60 * 60 * 24 * 7 > Date.now(),
-    sawSecondRequest:
-      lastSecondRequestAt !== null &&
-      lastSecondRequestAt.getTime() + 1000 * 60 * 60 * 24 * 7 > Date.now(),
-    justAddedPhoneNumber:
-      justAddedPhoneNumber !== null && justAddedPhoneNumber === loginContext.userAttributes.sub,
-  };
-};
 
 export const RequestPhoneStep: OnboardingStep<RequestPhoneState, RequestPhoneResources> = {
   identifier: 'requestPhone',
 
   useWorldState: () => {
     const loginContext = useContext(LoginContext);
-    const [lastInitialRequestAt, setLastInitialRequestAtState] = useState<number | null>(null);
-    const [lastSecondRequestAt, setLastSecondRequestAtState] = useState<number | null>(null);
+    const phoneNumberIAN = useInappNotification(
+      'oseh_ian_ENUob52K4t7HTs7idvR7Ig',
+      loginContext.userAttributes?.phoneNumber !== null
+    );
+    const onboardingPhoneNumberIAN = useInappNotification(
+      'oseh_ian_bljOnb8Xkxt-aU9Fm7Qq9w',
+      loginContext.userAttributes?.phoneNumber !== null
+    );
     const [justAddedPhoneNumber, setJustAddedPhoneNumber] = useState<string | null>(null);
-    const [state, setState] = useState<RequestPhoneState>(() => ({
-      ...makeState(loginContext, lastInitialRequestAt, lastSecondRequestAt, justAddedPhoneNumber),
-      onSkip: () => {
-        throw new Error('not done initializing');
-      },
-    }));
+    const hasPhoneNumber = loginContext.userAttributes?.phoneNumber !== null;
 
     const hadPhoneNumber = useRef({
       sub: loginContext.userAttributes?.sub,
-      hadPn: state.hasPhoneNumber,
+      hadPn: hasPhoneNumber,
     });
     if (hadPhoneNumber.current.sub !== loginContext.userAttributes?.sub) {
       hadPhoneNumber.current = {
         sub: loginContext.userAttributes?.sub,
-        hadPn: state.hasPhoneNumber,
+        hadPn: hasPhoneNumber,
       };
     }
 
@@ -119,80 +47,42 @@ export const RequestPhoneStep: OnboardingStep<RequestPhoneState, RequestPhoneRes
       if (hadPhoneNumber.current.hadPn) {
         setJustAddedPhoneNumber(null);
       } else {
-        if (state.hasPhoneNumber && loginContext.userAttributes?.sub !== undefined) {
+        if (hasPhoneNumber && loginContext.userAttributes?.sub !== undefined) {
           setJustAddedPhoneNumber(loginContext.userAttributes.sub);
         } else {
           setJustAddedPhoneNumber(null);
         }
       }
-    }, [state.hasPhoneNumber, loginContext.userAttributes?.sub]);
+    }, [hasPhoneNumber, loginContext.userAttributes?.sub]);
 
-    useEffect(() => {
-      if (loginContext.userAttributes === null) {
-        setLastInitialRequestAtState(null);
-        setLastSecondRequestAtState(null);
-        return;
-      }
-
-      setLastInitialRequestAtState(
-        getLastRequestAt(loginContext.userAttributes.sub, 'first')?.getTime() ?? null
-      );
-      setLastSecondRequestAtState(
-        getLastRequestAt(loginContext.userAttributes.sub, 'second')?.getTime() ?? null
-      );
-    }, [loginContext.userAttributes]);
-
-    const stateRef = useRef(state);
-    stateRef.current = state;
-
-    const onSkip = useCallback((): RequestPhoneState => {
-      if (loginContext.userAttributes === null) {
-        return stateRef.current;
-      }
-
-      const now = new Date();
-
-      if (!state.sawInitialRequest) {
-        setLastRequestAt(loginContext.userAttributes.sub, now, 'first');
-        setLastInitialRequestAtState(now.getTime());
-        const newState = {
-          ...makeState(loginContext, now, lastSecondRequestAt, justAddedPhoneNumber),
-          onSkip,
-        };
-        setState(newState);
-        return newState;
-      } else {
-        setLastRequestAt(loginContext.userAttributes.sub, now, 'second');
-        setLastSecondRequestAtState(now.getTime());
-        const newState = {
-          ...makeState(loginContext, lastInitialRequestAt, now, justAddedPhoneNumber),
-          onSkip,
-        };
-        setState(newState);
-        return newState;
-      }
-    }, [
-      loginContext,
-      lastInitialRequestAt,
-      lastSecondRequestAt,
-      state.sawInitialRequest,
-      justAddedPhoneNumber,
-    ]);
-
-    useEffect(() => {
-      setState({
-        ...makeState(loginContext, lastInitialRequestAt, lastSecondRequestAt, justAddedPhoneNumber),
-        onSkip,
-      });
-    }, [loginContext, lastInitialRequestAt, lastSecondRequestAt, onSkip, justAddedPhoneNumber]);
-
-    return state;
+    return useMemo<RequestPhoneState>(
+      () => ({
+        phoneNumberIAN,
+        onboardingPhoneNumberIAN,
+        hasPhoneNumber,
+        justAddedPhoneNumber: justAddedPhoneNumber === loginContext.userAttributes?.sub,
+      }),
+      [
+        phoneNumberIAN,
+        onboardingPhoneNumberIAN,
+        hasPhoneNumber,
+        justAddedPhoneNumber,
+        loginContext.userAttributes?.sub,
+      ]
+    );
   },
 
-  useResources: (worldState, required) => {
+  useResources: (state, required) => {
     const images = useOsehImageStatesRef({});
     const windowSize = useWindowSize();
     const [background, setBackground] = useState<OsehImageState | null>(null);
+    const session = useInappNotificationSession(
+      state.phoneNumberIAN?.showNow
+        ? state.phoneNumberIAN.uid
+        : state.onboardingPhoneNumberIAN?.showNow
+        ? state.onboardingPhoneNumberIAN.uid
+        : null
+    );
 
     useEffect(() => {
       const oldProps = images.handling.current.get(backgroundImageUid);
@@ -252,10 +142,11 @@ export const RequestPhoneStep: OnboardingStep<RequestPhoneState, RequestPhoneRes
 
     return useMemo<RequestPhoneResources>(
       () => ({
+        session,
         background,
         loading: background === null || background.loading,
       }),
-      [background]
+      [session, background]
     );
   },
 
@@ -268,11 +159,22 @@ export const RequestPhoneStep: OnboardingStep<RequestPhoneState, RequestPhoneRes
       return false;
     }
 
-    if (!worldState.sawInitialRequest) {
+    if (worldState.phoneNumberIAN === null) {
+      return undefined;
+    }
+
+    if (worldState.phoneNumberIAN.showNow) {
       return true;
     }
 
-    return allStates.introspection.sawIntrospection && !worldState.sawSecondRequest;
+    if (worldState.onboardingPhoneNumberIAN === null) {
+      return undefined;
+    }
+
+    return (
+      allStates.pickEmotionJourney.classesTakenThisSession > 0 &&
+      worldState.onboardingPhoneNumberIAN.showNow
+    );
   },
 
   component: (worldState, resources, doAnticipateState) => (

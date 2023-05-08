@@ -12,6 +12,7 @@ import { Button } from '../../../../shared/forms/Button';
 import { OnboardingStepComponentProps } from '../../models/OnboardingStep';
 import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhoneResources } from './RequestPhoneResources';
+import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 
 /**
  * Prompts the user for their phone number, then verifies it.
@@ -32,6 +33,7 @@ export const RequestPhone = ({
   const [errorPhone, setErrorPhone] = useState(false);
   const [verificationUid, setVerificationUid] = useState<string | null>(null);
   const timezone = useTimezone();
+  useStartSession(resources.session);
 
   const safeSetFocusPhone = useCallback((focuser: () => void) => {
     setFocusPhone(() => focuser);
@@ -113,6 +115,7 @@ export const RequestPhone = ({
         return;
       }
 
+      resources.session?.storeAction?.call(undefined, 'continue', { pn: phone, tz: timezone });
       setSaving(true);
       setError(null);
       try {
@@ -146,7 +149,15 @@ export const RequestPhone = ({
         setSaving(false);
       }
     },
-    [loginContext, phoneFormatCorrect, focusPhone, phone, receiveNotifs, timezone]
+    [
+      loginContext,
+      phoneFormatCorrect,
+      focusPhone,
+      phone,
+      receiveNotifs,
+      timezone,
+      resources.session?.storeAction,
+    ]
   );
 
   const onVerifyPhone = useCallback(
@@ -157,6 +168,7 @@ export const RequestPhone = ({
         return;
       }
 
+      resources.session?.storeAction?.call(undefined, 'verify_start', null);
       setSaving(true);
       setError(null);
       try {
@@ -181,8 +193,10 @@ export const RequestPhone = ({
           ...loginContext.userAttributes!,
           phoneNumber: phone.replaceAll(/ - /g, ''),
         });
+        resources.session?.storeAction?.call(undefined, 'verify_success', null);
         setStep('done');
       } catch (e) {
+        resources.session?.storeAction?.call(undefined, 'verify_fail', null);
         console.error(e);
         const err = await describeError(e);
         setError(err);
@@ -190,24 +204,45 @@ export const RequestPhone = ({
         setSaving(false);
       }
     },
-    [loginContext, code, phone, verificationUid]
+    [loginContext, code, phone, verificationUid, resources.session?.storeAction]
   );
 
   const onSkipPhone = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      const newState = state.onSkip.call(undefined);
+      let newState: RequestPhoneState = state;
+      if (resources.session !== null) {
+        if (resources.session.inappNotificationUid === state.phoneNumberIAN?.uid) {
+          newState = {
+            ...state,
+            phoneNumberIAN: state.phoneNumberIAN.onShown(),
+          };
+        } else if (resources.session.inappNotificationUid === state.onboardingPhoneNumberIAN?.uid) {
+          newState = {
+            ...state,
+            onboardingPhoneNumberIAN: state.onboardingPhoneNumberIAN.onShown(),
+          };
+        }
+
+        resources.session.storeAction('skip', null);
+        resources.session.reset();
+      }
+
       doAnticipateState(newState, Promise.resolve());
     },
-    [state.onSkip, doAnticipateState]
+    [state, resources.session, doAnticipateState]
   );
 
-  const onBackVerify = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setVerificationUid(null);
-    setStep('number');
-  }, []);
+  const onBackVerify = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      resources.session?.storeAction?.call(undefined, 'verify_back', null);
+      setError(null);
+      setVerificationUid(null);
+      setStep('number');
+    },
+    [resources.session?.storeAction]
+  );
 
   if (resources.background === null) {
     return <></>;
@@ -225,7 +260,9 @@ export const RequestPhone = ({
       <div className={styles.content}>
         {step === 'number' && (
           <>
-            <div className={styles.title}>Oseh is much better with reminders</div>
+            <div className={styles.title}>
+              Let&rsquo;s create a daily mindfulness habit with friendly nudges
+            </div>
             <div className={styles.subtitle}>
               Sign up for daily text reminders by entering your phone number below.
             </div>

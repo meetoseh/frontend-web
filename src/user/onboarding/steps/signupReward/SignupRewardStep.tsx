@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { OnboardingStep } from '../../models/OnboardingStep';
 import { SignupRewardResources } from './SignupRewardResources';
 import { SignupRewardState } from './SignupRewardState';
@@ -9,159 +9,64 @@ import {
   OsehImageStateChangedEvent,
   useOsehImageStatesRef,
 } from '../../../../shared/OsehImage';
-import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { SignupReward } from './SignupReward';
+import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
+import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 
-/**
- * Determines when we last showed the signup reward screen for the user with the
- * given sub on this device.
- */
-const getLastShownAt = (sub: string): Date | null => {
-  const storedValue = localStorage.getItem('signup-reward');
-  if (
-    storedValue === undefined ||
-    storedValue === null ||
-    storedValue === '' ||
-    storedValue[0] !== '{'
-  ) {
-    return null;
-  }
-
-  try {
-    const parsed: { sub?: string; lastShownAt?: number } = JSON.parse(storedValue);
-    if (parsed.sub !== sub || parsed.lastShownAt === undefined) {
-      return null;
-    }
-    return new Date(parsed.lastShownAt);
-  } catch (e) {
-    return null;
-  }
-};
-
-/**
- * Stores that the given user saw the signup reward screen at the given time
- * @param sub The sub of the user
- * @param lastShownAt The time the user saw the screen
- */
-const storeLastShownAt = (sub: string, lastShownAt: Date) => {
-  localStorage.setItem(
-    'signup-reward',
-    JSON.stringify({
-      sub,
-      lastShownAt: lastShownAt.getTime(),
-    })
-  );
-};
-
-const backgroundImageUid = 'oseh_if_hH68hcmVBYHanoivLMgstg';
+const bannerImageUid = 'oseh_if_F7sVhs4BJ7nnhPjyhi09-g';
 
 export const SignupRewardStep: OnboardingStep<SignupRewardState, SignupRewardResources> = {
   identifier: 'signupReward',
   useWorldState: () => {
-    const loginContext = useContext(LoginContext);
-    const [isRecentSignup, setIsRecentSignup] = useState<boolean | undefined>(undefined);
-    const [sawSignupReward, setSawSignupReward] = useState<boolean | undefined>(undefined);
+    const signupIAP = useInappNotification('oseh_ian_7_3gJYejCkpQTunjRcw-Mg', false);
 
-    useEffect(() => {
-      if (loginContext.state !== 'logged-in') {
-        setIsRecentSignup(undefined);
-        return;
-      }
-
-      setIsRecentSignup(localStorage.getItem('onboard') === '1');
-    }, [loginContext]);
-
-    useEffect(() => {
-      if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
-        setSawSignupReward(undefined);
-        return;
-      }
-
-      const lastSeenAt = getLastShownAt(loginContext.userAttributes.sub);
-      setSawSignupReward(
-        lastSeenAt !== null && lastSeenAt.getTime() + 24 * 60 * 60 * 1000 > Date.now()
-      );
-    }, [loginContext]);
-
-    const onContinue = useCallback((): SignupRewardState => {
-      if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
-        return {
-          isRecentSignup: false,
-          sawSignupReward: false,
-          onContinue: () => {
-            throw new Error('onContinue should not be called from onContinue');
-          },
-        };
-      }
-
-      storeLastShownAt(loginContext.userAttributes.sub, new Date());
-      setSawSignupReward(true);
-      return {
-        isRecentSignup,
-        sawSignupReward: true,
-        onContinue: () => {
-          throw new Error('onContinue should not be called from onContinue');
-        },
-      };
-    }, [loginContext, isRecentSignup]);
-
-    return useMemo<SignupRewardState>(
-      () => ({
-        isRecentSignup,
-        sawSignupReward,
-        onContinue,
-      }),
-      [isRecentSignup, sawSignupReward, onContinue]
-    );
+    return useMemo(() => ({ signupIAP }), [signupIAP]);
   },
-  useResources: (worldState, required) => {
+  useResources: (state, required) => {
     const loginContext = useContext(LoginContext);
+    const session = useInappNotificationSession(state.signupIAP?.uid ?? null);
     const givenName = loginContext.userAttributes?.givenName ?? null;
     const images = useOsehImageStatesRef({});
-    const windowSize = useWindowSize();
-    const [background, setBackground] = useState<OsehImageState | null>(null);
+    const [image, setImage] = useState<OsehImageState | null>(null);
 
     useEffect(() => {
-      const oldProps = images.handling.current.get(backgroundImageUid);
+      const oldProps = images.handling.current.get(bannerImageUid);
       if (!required) {
         if (oldProps !== undefined) {
-          images.handling.current.delete(backgroundImageUid);
+          images.handling.current.delete(bannerImageUid);
           images.onHandlingChanged.current.call({
             old: oldProps,
             current: null,
-            uid: backgroundImageUid,
+            uid: bannerImageUid,
           });
         }
         return;
       }
 
-      if (
-        oldProps?.displayWidth === windowSize.width &&
-        oldProps?.displayHeight === windowSize.height
-      ) {
+      if (oldProps?.displayWidth === 336 && oldProps?.displayHeight === 184) {
         return;
       }
 
       const newProps: OsehImageProps = {
-        uid: backgroundImageUid,
+        uid: bannerImageUid,
         jwt: null,
-        displayWidth: windowSize.width,
-        displayHeight: windowSize.height,
+        displayWidth: 336,
+        displayHeight: 184,
         alt: '',
         isPublic: true,
       };
 
-      images.handling.current.set(backgroundImageUid, newProps);
+      images.handling.current.set(bannerImageUid, newProps);
       images.onHandlingChanged.current.call({
         old: oldProps ?? null,
         current: newProps,
-        uid: backgroundImageUid,
+        uid: bannerImageUid,
       });
-    }, [required, windowSize, images]);
+    }, [required, images]);
 
     useEffect(() => {
-      const background = images.state.current.get(backgroundImageUid);
-      setBackground(background ?? null);
+      const image = images.state.current.get(bannerImageUid);
+      setImage(image ?? null);
 
       images.onStateChanged.current.add(handleStateChanged);
       return () => {
@@ -169,30 +74,27 @@ export const SignupRewardStep: OnboardingStep<SignupRewardState, SignupRewardRes
       };
 
       function handleStateChanged(e: OsehImageStateChangedEvent) {
-        if (e.uid !== backgroundImageUid) {
+        if (e.uid !== bannerImageUid) {
           return;
         }
 
-        setBackground(e.current);
+        setImage(e.current);
       }
     }, [images]);
 
     return useMemo<SignupRewardResources>(
       () => ({
+        session,
         givenName,
-        background,
-        loading: background === null || background.loading,
+        image,
+        loading: image === null || image.loading,
       }),
-      [givenName, background]
+      [session, givenName, image]
     );
   },
 
   isRequired: (worldState) => {
-    if (worldState.isRecentSignup === undefined || worldState.sawSignupReward === undefined) {
-      return undefined;
-    }
-
-    return worldState.isRecentSignup && !worldState.sawSignupReward;
+    return worldState.signupIAP?.showNow;
   },
 
   component: (worldState, resources, doAnticipateState) => (

@@ -28,6 +28,7 @@ export default function UserApp(): ReactElement {
 const requiredFonts = [
   '300 1em Open Sans',
   '400 1em Open Sans',
+  'italic 400 1em Open Sans',
   '600 1em Open Sans',
   '700 1em Open Sans',
 ];

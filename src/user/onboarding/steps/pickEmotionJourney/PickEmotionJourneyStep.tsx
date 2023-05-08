@@ -26,9 +26,13 @@ export const PickEmotionJourneyStep: OnboardingStep<
 > = {
   identifier: 'pickEmotionJourney',
   useWorldState: () => {
+    const [classesTakenThisSession, setClassesTakenThisSession] = useState<number>(0);
     const [recentlyViewed, setRecentlyViewed] = useState<
       { clientUid: string; words: Emotion[]; at: Date; selected: Emotion | null }[]
     >([]);
+    const [isOnboarding, setIsOnboarding] = useState<boolean>(() => {
+      return localStorage.getItem('onboard') === '1';
+    });
 
     const onViewed = useCallback((words: Emotion[]) => {
       const now = new Date();
@@ -63,9 +67,31 @@ export const PickEmotionJourneyStep: OnboardingStep<
       });
     }, []);
 
+    const onFinishedClass = useCallback(() => {
+      setClassesTakenThisSession((prev) => prev + 1);
+      if (isOnboarding) {
+        setIsOnboarding(false);
+        localStorage.removeItem('onboard');
+      }
+    }, [isOnboarding]);
+
     return useMemo<PickEmotionJourneyState>(
-      () => ({ recentlyViewed, onViewed, onSelection }),
-      [recentlyViewed, onViewed, onSelection]
+      () => ({
+        classesTakenThisSession,
+        recentlyViewed,
+        isOnboarding,
+        onViewed,
+        onSelection,
+        onFinishedClass,
+      }),
+      [
+        classesTakenThisSession,
+        recentlyViewed,
+        isOnboarding,
+        onViewed,
+        onSelection,
+        onFinishedClass,
+      ]
     );
   },
   useResources: (state, required) => {
@@ -83,6 +109,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
       numVotes: number;
       numTotalVotes: number;
       profilePictures: OsehImageRef[];
+      skipsStats: boolean;
     } | null>(null);
     const journeyShared = useJourneyShared(selected === null ? null : selected.journey);
     const images = useOsehImageStatesRef({});
@@ -105,6 +132,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
       ];
     }, [required, windowSize]);
     const background = useOsehImageStates(backgroundProps);
+    const [forceSplash, setForceSplash] = useState<boolean>(false);
 
     useSingletonEffect(
       (onDone) => {
@@ -183,7 +211,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
     );
 
     const onSelect = useCallback(
-      async (word: Emotion) => {
+      async (word: Emotion, skipsStats?: boolean) => {
         if (
           options === null ||
           options.ctr !== optionsCounter ||
@@ -223,6 +251,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
             numVotes,
             numTotalVotes,
             profilePictures: voterPictures,
+            skipsStats: skipsStats ?? false,
           });
         } catch (e) {
           const err = await describeError(e);
@@ -285,6 +314,20 @@ export const PickEmotionJourneyStep: OnboardingStep<
       setOptionsCounter((c) => c + 1);
     }, []);
 
+    const takeAnotherClass = useCallback(async () => {
+      if (selected === null) {
+        setOptionsCounter((c) => c + 1);
+        return;
+      }
+
+      setForceSplash(true);
+      setSelected(null);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      onSelect(selected.word, true);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      setForceSplash(false);
+    }, [selected, onSelect]);
+
     return useMemo<PickEmotionJourneyResources>(() => {
       const realError = error === null || error.ctr !== optionsCounter ? null : error.value;
       const realOptions = options === null || options.ctr !== optionsCounter ? null : options;
@@ -311,10 +354,13 @@ export const PickEmotionJourneyStep: OnboardingStep<
                 numVotes: realSelected.numVotes,
                 numTotalVotes: realSelected.numTotalVotes,
                 profilePictures,
+                skipsStats: realSelected.skipsStats,
               },
         background: background.length > 0 ? background[0] : null,
+        forceSplash,
         onSelect,
         onFinishedJourney,
+        takeAnotherClass,
       };
     }, [
       optionsCounter,
@@ -324,8 +370,10 @@ export const PickEmotionJourneyStep: OnboardingStep<
       journeyShared,
       profilePictures,
       background,
+      forceSplash,
       onSelect,
       onFinishedJourney,
+      takeAnotherClass,
     ]);
   },
   isRequired: () => true,

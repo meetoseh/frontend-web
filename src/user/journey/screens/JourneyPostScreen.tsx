@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { OsehImageFromState } from '../../../shared/OsehImage';
 import styles from './JourneyPostScreen.module.css';
@@ -7,21 +7,61 @@ import { LoginContext } from '../../../shared/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import { SplashScreen } from '../../splash/SplashScreen';
+import { combineClasses } from '../../../shared/lib/combineClasses';
+import { Button } from '../../../shared/forms/Button';
+
+type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+const DAYS_OF_WEEK: DayOfWeek[] = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
+
+type StreakInfo = {
+  /**
+   * The number of consecutive days the user has taken a class
+   */
+  streak: number;
+  /**
+   * The days of the week the user has taken a class
+   */
+  daysOfWeek: DayOfWeek[];
+  /**
+   * The number of days per week the user has taken a class
+   */
+  goalDaysPerWeek: number | null;
+};
 
 export const JourneyPostScreen = ({
   journey,
   shared,
   setScreen,
   onJourneyFinished,
-}: JourneyScreenProps): ReactElement => {
+  isOnboarding,
+  classesTakenToday,
+  overrideOnContinue,
+}: JourneyScreenProps & {
+  /**
+   * The number of classes the user has taken this session, used to
+   * personalize the goal message in some cases
+   */
+  classesTakenToday?: number;
+
+  /**
+   * Normally the cta button will call onJourneyFinished, which is the
+   * same function that's called if the user clicks the X or uses any
+   * other method to close the screen. If this prop is specified, instead
+   * the cta button will call this function.
+   */
+  overrideOnContinue?: () => void;
+}): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [error, setError] = useState<ReactElement | null>(null);
-  const [streak, setStreak] = useState<number>(-1);
-  const [reviewResponse, setReviewResponse] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    localStorage.removeItem('onboard');
-  }, []);
+  const [streak, setStreak] = useState<StreakInfo | null>(null);
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in') {
@@ -50,11 +90,19 @@ export const JourneyPostScreen = ({
         if (!response.ok) {
           throw response;
         }
-        const data = await response.json();
+        const data: {
+          streak: number;
+          days_of_week: DayOfWeek[];
+          goal_days_per_week: number | null;
+        } = await response.json();
         if (!active) {
           return;
         }
-        setStreak(data.streak);
+        setStreak({
+          streak: data.streak,
+          daysOfWeek: data.days_of_week,
+          goalDaysPerWeek: data.goal_days_per_week,
+        });
       } catch (e) {
         if (!active) {
           return;
@@ -68,85 +116,145 @@ export const JourneyPostScreen = ({
     }
   }, [loginContext]);
 
-  const feedbackHandledFor = useRef<{ uid: string; response: boolean } | null>(null);
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-    if (reviewResponse === null) {
-      return;
-    }
-    if (
-      feedbackHandledFor.current !== null &&
-      feedbackHandledFor.current.uid === journey.uid &&
-      feedbackHandledFor.current.response === reviewResponse
-    ) {
-      return;
-    }
-    feedbackHandledFor.current = { uid: journey.uid, response: reviewResponse };
-
-    let active = true;
-    sendReviewResponse();
-    return () => {
-      active = false;
-    };
-
-    async function sendReviewResponse() {
-      setError(null);
-      try {
-        const response = await apiFetch(
-          '/api/1/journeys/feedback',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              journey_uid: journey.uid,
-              journey_jwt: journey.jwt,
-              version: 'oseh_jf-otp_fKWQzTG-JnA',
-              response: reviewResponse ? 1 : 2,
-              feedback: null,
-            }),
-          },
-          loginContext
-        );
-        if (!active) {
-          return;
-        }
-        if (!response.ok) {
-          throw response;
-        }
-      } catch (e) {
-        if (!active) {
-          return;
-        }
-        const err = await describeError(e);
-        if (!active) {
-          return;
-        }
-        setError(err);
-      }
-    }
-  }, [loginContext, reviewResponse, journey.jwt, journey.uid]);
-
-  const onReviewUp = useCallback(() => {
-    setReviewResponse(true);
-  }, []);
-
-  const onReviewDown = useCallback(() => {
-    setReviewResponse(false);
-  }, []);
-
-  const doShare = useCallback(
+  const onContinue = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      setScreen('share');
+      if (overrideOnContinue) {
+        console.log('overrideOnContinue');
+        overrideOnContinue();
+      } else {
+        console.log('onJourneyFinished');
+        onJourneyFinished();
+      }
     },
-    [setScreen]
+    [onJourneyFinished, overrideOnContinue]
   );
 
-  if (streak === -1) {
+  if (streak === null) {
     return <SplashScreen />;
   }
+
+  const userIdentifier = (() => {
+    if (
+      loginContext.userAttributes === null ||
+      loginContext.userAttributes.givenName === 'Anonymous'
+    ) {
+      return null;
+    }
+
+    return loginContext.userAttributes.givenName;
+  })();
+
+  const title = (() => {
+    if (isOnboarding) {
+      return <>{userIdentifier ? `${userIdentifier}, h` : 'H'}igh-five on your first class!</>;
+    }
+
+    if (streak.streak === 1) {
+      if (classesTakenToday === 3) {
+        return (
+          <>
+            Fantastic work{userIdentifier ? `, ${userIdentifier}` : ''}&#8212;but you don&rsquo;t
+            need to do it all today!
+          </>
+        );
+      }
+      const choice = Math.min(2, Math.floor(Math.random() * 3));
+      if (choice === 0) {
+        return <>Well done, keep up the good work{userIdentifier ? ` ${userIdentifier}` : ''}.</>;
+      } else if (choice === 1) {
+        return (
+          <>Excellent effort, keep pushing forward{userIdentifier ? ` ${userIdentifier}` : ''}!</>
+        );
+      } else if (choice === 2) {
+        return (
+          <>
+            Congratulations, you're on the right track{userIdentifier ? ` ${userIdentifier}` : ''}!
+          </>
+        );
+      }
+    }
+
+    if (streak.streak === 2) {
+      return <>Lift-off{userIdentifier ? `, ${userIdentifier}` : ''} 🚀 Keep it up!</>;
+    }
+
+    if (streak.streak === 3) {
+      return (
+        <>
+          Congratulations on making it to day {streak}
+          {userIdentifier ? `, ${userIdentifier}` : ''}!
+        </>
+      );
+    }
+
+    if (
+      streak.streak === 5 &&
+      streak.daysOfWeek.includes('Monday') &&
+      streak.daysOfWeek.includes('Friday')
+    ) {
+      return <>A clean streak this week{userIdentifier ? `, ${userIdentifier}` : ''}! 🎉</>;
+    }
+
+    if (streak.streak < 7) {
+      return <>{userIdentifier}, you&rsquo;re on a roll!</>;
+    }
+
+    if (streak.streak === 7) {
+      return (
+        <>A full week&#8212;exceptional work{userIdentifier ? `, ${userIdentifier}!` : '!'} 😎</>
+      );
+    }
+
+    if ([30, 50, 100, 200, 365, 500, 1000].includes(streak.streak)) {
+      return <>You&rsquo;re on fire{userIdentifier ? `, ${userIdentifier}` : ''} 🔥</>;
+    }
+
+    return <>{userIdentifier ? `${userIdentifier}, h` : 'H'}igh-five on your new streak!</>;
+  })();
+
+  const goalText = ((): ReactElement | null => {
+    if (streak.goalDaysPerWeek === null) {
+      return null;
+    }
+
+    const goal = streak.goalDaysPerWeek;
+    const daysSoFar = streak.daysOfWeek.length;
+    const curDayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' }) as DayOfWeek;
+    const curDayOfWeekIdx = DAYS_OF_WEEK.indexOf(curDayOfWeek);
+    const remainingNumDays = 6 - curDayOfWeekIdx;
+
+    const numToName = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'];
+
+    if (daysSoFar < goal && daysSoFar + remainingNumDays >= goal) {
+      return (
+        <>
+          You&rsquo;ve practiced {numToName[daysSoFar]} day{daysSoFar === 1 ? '' : 's'} so far this
+          week&#8212;you can still make your goal of {goal} day{goal === 1 ? '' : 's'} 👏
+        </>
+      );
+    }
+
+    if (daysSoFar === goal) {
+      return (
+        <>
+          You&rsquo;ve reached your goal of {goal} day{goal === 1 ? '' : 's'} this week! 🎉
+        </>
+      );
+    }
+
+    if (daysSoFar > goal) {
+      return (
+        <>
+          You&rsquo;ve exceeded your goal of {goal} day{goal === 1 ? '' : 's'}! 🏅
+        </>
+      );
+    }
+
+    return null;
+  })();
+
+  const completedDaysSet = new Set(streak.daysOfWeek);
 
   return (
     <div className={styles.container}>
@@ -165,49 +273,38 @@ export const JourneyPostScreen = ({
         </div>
 
         <div className={styles.primaryContainer}>
-          <div className={styles.title}>
-            Thanks for practicing
-            {loginContext.state === 'logged-in' && loginContext.userAttributes !== null
-              ? ' ' + loginContext.userAttributes.givenName
-              : ''}
-            , you're on a roll
-          </div>
-          <div className={styles.titleStreakSpacer} />
+          <div className={styles.topSpacer}></div>
+          <div className={styles.title}>{title}</div>
           <div className={styles.streak}>
             <div className={styles.streakNumber}>
-              {streak.toLocaleString(undefined, { useGrouping: true })}
+              {streak.streak.toLocaleString(undefined, { useGrouping: true })}
             </div>
             <div className={styles.streakUnit}>day streak</div>
           </div>
-          <div className={styles.streakReviewSpacer} />
-          <div className={styles.reviewContainer}>
-            <div className={styles.reviewText}>Do you want to see more classes like this?</div>
-            <div className={styles.reviewButtons}>
-              <button
-                className={`${styles.reviewUp} ${
-                  reviewResponse === true ? styles.reviewActive : ''
-                }`}
-                type="button"
-                onClick={onReviewUp}>
-                <div className={styles.reviewUpIcon} />
-                <div className={assistiveStyles.srOnly}>Yes</div>
-              </button>
-              <button
-                className={`${styles.reviewDown} ${
-                  reviewResponse === false ? styles.reviewActive : ''
-                }`}
-                type="button"
-                onClick={onReviewDown}>
-                <div className={styles.reviewDownIcon} />
-                <div className={assistiveStyles.srOnly}>No</div>
-              </button>
-            </div>
+          <div className={styles.weekdays}>
+            {DAYS_OF_WEEK.map((day) => {
+              return (
+                <div className={styles.weekday} key={day}>
+                  <div
+                    className={combineClasses(
+                      styles.weekdayIcon,
+                      completedDaysSet.has(day)
+                        ? styles.weekdayIconCompleted
+                        : styles.weekdayIconIncomplete
+                    )}
+                  />
+                  <div className={styles.weekdayLabel}>{day.substring(0, 3)}</div>
+                </div>
+              );
+            })}
           </div>
+          {goalText && <div className={styles.goal}>{goalText}</div>}
           <div className={styles.buttonContainer}>
-            <button className={styles.button} onClick={doShare} type="button">
-              Share this Class
-            </button>
+            <Button type="button" variant="filled-white" onClick={onContinue} fullWidth>
+              {isOnboarding ? 'Continue' : 'Take Another Class'}
+            </Button>
           </div>
+          <div className={styles.bottomSpacer}></div>
         </div>
       </div>
     </div>

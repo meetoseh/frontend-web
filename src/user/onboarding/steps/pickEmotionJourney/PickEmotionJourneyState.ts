@@ -17,6 +17,18 @@ export type PickEmotionJourneyState = {
   recentlyViewed: { clientUid: string; words: Emotion[]; at: Date; selected: Emotion | null }[];
 
   /**
+   * How many journeys the user has taken in this session. This is
+   * incremented when they would return back to the pick emotion screen.
+   */
+  classesTakenThisSession: number;
+
+  /**
+   * True if we should show the onboarding variants of the journey screens,
+   * false if we should show the regular variants.
+   */
+  isOnboarding: boolean;
+
+  /**
    * Should be called whenever the user views a set of words. This will
    * assign a uid and update recentlyViewed.
    *
@@ -32,4 +44,9 @@ export type PickEmotionJourneyState = {
    * @param word The word the user selected
    */
   onSelection: (this: void, clientUid: string, word: Emotion) => void;
+
+  /**
+   * Increments classesTakenThisSession.
+   */
+  onFinishedClass: () => void;
 };

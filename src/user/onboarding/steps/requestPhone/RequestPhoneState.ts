@@ -1,19 +1,19 @@
+import { InappNotification } from '../../../../shared/hooks/useInappNotification';
+
 /**
  * Describes the state required to determine if we need to request a users
  * phone number.
  */
 export type RequestPhoneState = {
   /**
-   * True if the user has seen the first prompt to request their phone number
-   * recently, false if they have not, undefined if not logged in.
+   * If loaded, the regular phone number in-app notification
    */
-  sawInitialRequest: boolean | undefined;
+  phoneNumberIAN: InappNotification | null;
 
   /**
-   * True if the user has seen the second prompt to request their phone number
-   * recently, false if they have not, undefined if not logged in.
+   * If loaded, the onboarding phone number in-app notification
    */
-  sawSecondRequest: boolean | undefined;
+  onboardingPhoneNumberIAN: InappNotification | null;
 
   /**
    * Whether the user has a phone number associated with their account.
@@ -25,10 +25,4 @@ export type RequestPhoneState = {
    * This is intended to be used by other states.
    */
   justAddedPhoneNumber: boolean;
-
-  /**
-   * A function which should be called if the user chooses not to give
-   * us a phone number, so that we can update lastRequestAt.
-   */
-  onSkip: () => RequestPhoneState;
 };
