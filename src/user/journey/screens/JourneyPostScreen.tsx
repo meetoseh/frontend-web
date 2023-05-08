@@ -120,10 +120,8 @@ export const JourneyPostScreen = ({
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       if (overrideOnContinue) {
-        console.log('overrideOnContinue');
         overrideOnContinue();
       } else {
-        console.log('onJourneyFinished');
         onJourneyFinished();
       }
     },
