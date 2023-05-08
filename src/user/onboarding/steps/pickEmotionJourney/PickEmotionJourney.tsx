@@ -134,6 +134,11 @@ export const PickEmotionJourney = ({
     [resources.selected]
   );
 
+  const handleTakeAnotherClass = useCallback(() => {
+    state.onFinishedClass.call(undefined);
+    resources.takeAnotherClass.call(undefined);
+  }, [state.onFinishedClass, resources.takeAnotherClass]);
+
   if (resources.forceSplash) {
     return <SplashScreen type="wordmark" />;
   }
@@ -194,7 +199,7 @@ export const PickEmotionJourney = ({
       <JourneyPostScreen
         {...props}
         classesTakenToday={state.classesTakenThisSession}
-        overrideOnContinue={state.isOnboarding ? undefined : resources.takeAnotherClass}
+        overrideOnContinue={state.isOnboarding ? undefined : handleTakeAnotherClass}
       />
     );
   }
