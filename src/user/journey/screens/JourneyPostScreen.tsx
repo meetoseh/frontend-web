@@ -157,20 +157,7 @@ export const JourneyPostScreen = ({
           </>
         );
       }
-      const choice = Math.min(2, Math.floor(Math.random() * 3));
-      if (choice === 0) {
-        return <>Well done, keep up the good work{userIdentifier ? ` ${userIdentifier}` : ''}.</>;
-      } else if (choice === 1) {
-        return (
-          <>Excellent effort, keep pushing forward{userIdentifier ? ` ${userIdentifier}` : ''}!</>
-        );
-      } else if (choice === 2) {
-        return (
-          <>
-            Congratulations, you're on the right track{userIdentifier ? ` ${userIdentifier}` : ''}!
-          </>
-        );
-      }
+      return <>{userIdentifier ? `${userIdentifier}, h` : 'H'}igh-five on your new streak!</>;
     }
 
     if (streak.streak === 2) {
