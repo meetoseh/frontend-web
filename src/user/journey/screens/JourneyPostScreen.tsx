@@ -180,7 +180,7 @@ export const JourneyPostScreen = ({
     if (streak.streak === 3) {
       return (
         <>
-          Congratulations on making it to day {streak}
+          Congratulations on making it to day {streak.streak}
           {userIdentifier ? `, ${userIdentifier}` : ''}!
         </>
       );
