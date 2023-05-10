@@ -166,9 +166,7 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
               <div className={styles.logo} />
               <div className={assistiveStyles.srOnly}>Oseh</div>
             </div>
-            <div className={styles.info}>
-              Make mindfulness a daily part of your life in 60 seconds.
-            </div>
+            <div className={styles.info}>A better day is 60 seconds away.</div>
           </div>
           <SocialSignins urls={urls} />
         </div>
