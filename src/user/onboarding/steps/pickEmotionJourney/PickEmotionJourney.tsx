@@ -195,13 +195,7 @@ export const PickEmotionJourney = ({
   }
 
   if (step.step === 'post') {
-    return (
-      <JourneyPostScreen
-        {...props}
-        classesTakenToday={state.classesTakenThisSession}
-        overrideOnContinue={state.isOnboarding ? undefined : handleTakeAnotherClass}
-      />
-    );
+    return <JourneyPostScreen {...props} classesTakenToday={state.classesTakenThisSession} />;
   }
 
   if (step.step === 'share') {

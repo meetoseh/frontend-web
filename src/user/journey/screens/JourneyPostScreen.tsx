@@ -286,7 +286,7 @@ export const JourneyPostScreen = ({
           {goalText && <div className={styles.goal}>{goalText}</div>}
           <div className={styles.buttonContainer}>
             <Button type="button" variant="filled-white" onClick={onContinue} fullWidth>
-              {isOnboarding ? 'Continue' : 'Take Another Class'}
+              Continue
             </Button>
           </div>
           <div className={styles.bottomSpacer}></div>
