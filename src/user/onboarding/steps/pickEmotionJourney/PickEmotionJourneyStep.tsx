@@ -223,7 +223,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
         }
 
         if (replacedEmotionUserUid === undefined) {
-          if (selected === null) {
+          if (selected === null || selected.ctr !== optionsCounter) {
             replacedEmotionUserUid = null;
           } else {
             replacedEmotionUserUid = selected.emotionUserUid;
