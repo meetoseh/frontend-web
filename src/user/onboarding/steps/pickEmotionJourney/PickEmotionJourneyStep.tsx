@@ -105,6 +105,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
     const [selected, setSelected] = useState<{
       ctr: number;
       word: Emotion;
+      emotionUserUid: string;
       journey: JourneyRef;
       numVotes: number;
       numTotalVotes: number;
@@ -211,7 +212,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
     );
 
     const onSelect = useCallback(
-      async (word: Emotion, skipsStats?: boolean) => {
+      async (word: Emotion, skipsStats?: boolean, replacedEmotionUserUid?: string | null) => {
         if (
           options === null ||
           options.ctr !== optionsCounter ||
@@ -219,6 +220,14 @@ export const PickEmotionJourneyStep: OnboardingStep<
           loginContext.state !== 'logged-in'
         ) {
           return;
+        }
+
+        if (replacedEmotionUserUid === undefined) {
+          if (selected === null) {
+            replacedEmotionUserUid = null;
+          } else {
+            replacedEmotionUserUid = selected.emotionUserUid;
+          }
         }
 
         try {
@@ -229,6 +238,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
               headers: { 'Content-Type': 'application/json; charset=utf-8' },
               body: JSON.stringify({
                 emotion: word.word,
+                replaced_emotion_user_uid: replacedEmotionUserUid,
               }),
             },
             loginContext
@@ -240,13 +250,15 @@ export const PickEmotionJourneyStep: OnboardingStep<
 
           const data = await response.json();
           const journey = convertUsingKeymap(data.journey, journeyRefKeyMap);
-          const numVotes = data.num_votes;
-          const numTotalVotes = data.num_total_votes;
-          const voterPictures: OsehImageRef[] = data.voter_pictures;
+          const numVotes = data.num_votes as number;
+          const numTotalVotes = data.num_total_votes as number;
+          const voterPictures = data.voter_pictures as OsehImageRef[];
+          const emotionUserUid = data.emotion_user_uid as string;
 
           setSelected({
             ctr: optionsCounter,
             word,
+            emotionUserUid,
             journey,
             numVotes,
             numTotalVotes,
@@ -258,7 +270,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
           setError({ ctr: optionsCounter, value: err });
         }
       },
-      [loginContext, options, optionsCounter]
+      [loginContext, options, optionsCounter, selected]
     );
 
     useEffect(() => {
@@ -323,7 +335,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
       setForceSplash(true);
       setSelected(null);
       await new Promise((resolve) => setTimeout(resolve, 500));
-      onSelect(selected.word, true);
+      onSelect(selected.word, true, null);
       await new Promise((resolve) => setTimeout(resolve, 2000));
       setForceSplash(false);
     }, [selected, onSelect]);
@@ -349,6 +361,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
             ? null
             : {
                 word: realSelected.word,
+                emotionUserUid: realSelected.emotionUserUid,
                 journey: realSelected.journey,
                 shared: journeyShared,
                 numVotes: realSelected.numVotes,

@@ -33,6 +33,7 @@ import { JourneyShareScreen } from '../../../journey/screens/JourneyShareScreen'
 import { JourneyStart } from '../../../journey/screens/JourneyStart';
 import { MyProfilePicture } from '../../../../shared/MyProfilePicture';
 import { LoginContext } from '../../../../shared/LoginContext';
+import { apiFetch } from '../../../../shared/ApiConstants';
 
 /**
  * Ensures we display at least 12 options, faking the rest if necessary.
@@ -51,6 +52,7 @@ export const PickEmotionJourney = ({
   PickEmotionJourneyState,
   PickEmotionJourneyResources
 >): ReactElement => {
+  const loginContext = useContext(LoginContext);
   const [step, setStep] = useState<{
     journeyUid: string | null;
     step: 'pick' | JourneyRouterScreenId;
@@ -84,8 +86,19 @@ export const PickEmotionJourney = ({
       console.warn('gotoJourney without a journey to goto');
       return;
     }
+    apiFetch(
+      '/api/1/emotions/started_related_journey',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          emotion_user_uid: resources.selected.emotionUserUid,
+        }),
+      },
+      loginContext
+    );
     setStep({ journeyUid: resources.selected.journey.uid, step: 'lobby' });
-  }, [resources.selected]);
+  }, [resources.selected, loginContext]);
 
   const onFinishJourney = useCallback(() => {
     resources.onFinishedJourney.call(undefined);
@@ -133,11 +146,6 @@ export const PickEmotionJourney = ({
     },
     [resources.selected]
   );
-
-  const handleTakeAnotherClass = useCallback(() => {
-    state.onFinishedClass.call(undefined);
-    resources.takeAnotherClass.call(undefined);
-  }, [state.onFinishedClass, resources.takeAnotherClass]);
 
   if (resources.forceSplash) {
     return <SplashScreen type="wordmark" />;

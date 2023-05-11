@@ -83,11 +83,7 @@
   background: linear-gradient(95.08deg, #57b8a2 2.49%, #009999 97.19%);
 }
 
-.verticalWords.wordsWithPressed .word {
-  cursor: default;
-}
-
-.wordsWithoutPressed .word:hover {
+.word:hover:not(.pressedWord) {
   background: rgba(255, 255, 255, 0.3);
 }
 

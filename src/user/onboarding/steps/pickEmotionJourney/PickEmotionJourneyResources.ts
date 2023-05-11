@@ -40,6 +40,11 @@ export type PickEmotionJourneyResources = {
      */
     word: Emotion;
     /**
+     * The uid of the emotion/user relationship that was created when they
+     * selected this emotion
+     */
+    emotionUserUid: string;
+    /**
      * The journey that, as a result, we should go to
      */
     journey: JourneyRef;
