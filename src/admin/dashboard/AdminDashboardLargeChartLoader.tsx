@@ -279,7 +279,7 @@ const RetentionDetails = ({
   }, [to, labels]);
 
   const totalRetained = useMemo(() => {
-    if (fromIndex >= toIndex || fromIndex === -1 || toIndex === -1) {
+    if (fromIndex > toIndex || fromIndex === -1 || toIndex === -1) {
       return 0;
     }
 
@@ -287,7 +287,7 @@ const RetentionDetails = ({
   }, [fromIndex, toIndex, retained]);
 
   const totalUnretained = useMemo(() => {
-    if (fromIndex >= toIndex || fromIndex === -1 || toIndex === -1) {
+    if (fromIndex > toIndex || fromIndex === -1 || toIndex === -1) {
       return 0;
     }
 
@@ -295,6 +295,12 @@ const RetentionDetails = ({
   }, [fromIndex, toIndex, unretained]);
 
   const table = useMemo<DashboardTableProps>(() => {
+    if (fromIndex > toIndex || fromIndex === -1 || toIndex === -1) {
+      return {
+        columnHeaders: ['Date', 'Retained', 'Unretained', 'Retention Rate'],
+        rows: [['N/A', 'N/A', 'N/A', 'N/A']],
+      };
+    }
     return {
       columnHeaders: ['Date', 'Retained', 'Unretained', 'Retention Rate'],
       rows: labels.slice(fromIndex, toIndex + 1).map((label, i) => {
