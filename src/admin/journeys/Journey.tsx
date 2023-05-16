@@ -93,4 +93,10 @@ export type Journey = {
    * full video is available.
    */
   video: { uid: string; jwt: string } | null;
+
+  /**
+   * If the journey belongs to a special category, the special category it belongs to,
+   * otherwise null. Undefined if not returned from that particular route.
+   */
+  specialCategory: 'ai' | null | undefined;
 };

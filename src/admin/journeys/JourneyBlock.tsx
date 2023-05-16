@@ -283,6 +283,12 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
 
         <JourneyEmotionsBlock journeyUid={journey.uid} />
 
+        {journey.specialCategory !== null && journey.specialCategory !== undefined ? (
+          <div className={styles.specialCategoryContainer}>
+            <CrudFormElement title="Special Category">{journey.specialCategory}</CrudFormElement>
+          </div>
+        ) : null}
+
         {editing && (
           <TextInput
             label="Title"

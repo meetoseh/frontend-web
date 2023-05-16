@@ -47,6 +47,10 @@ export const defaultFilter: CrudFetcherFilter = {
     operator: 'eq',
     value: null,
   },
+  special_category: {
+    operator: 'eq',
+    value: null,
+  },
 };
 
 const SORTS: { name: string; sort: CrudFetcherSort }[] = [
@@ -139,6 +143,29 @@ export const JourneyFilterAndSortBlock = ({
             }}>
             <option value="false">No</option>
             <option value="true">Yes</option>
+          </select>
+        </CrudFormElement>
+        <CrudFormElement title="Special Category">
+          <select
+            className={styles.select}
+            value={filter.special_category?.value ?? 'normal'}
+            onChange={(e) => {
+              const newFilter = { ...filter };
+              if (e.target.value === 'normal') {
+                newFilter.special_category = {
+                  operator: 'eq',
+                  value: null,
+                };
+              } else {
+                newFilter.special_category = {
+                  operator: 'eq',
+                  value: e.target.value,
+                };
+              }
+              setFilter(newFilter);
+            }}>
+            <option value="normal">Normal</option>
+            <option value="ai">AI</option>
           </select>
         </CrudFormElement>
       </div>
