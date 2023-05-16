@@ -69,7 +69,7 @@ const areUTMsEqual = (a: UTM, b: UTM): boolean =>
   a.term === b.term;
 
 type VisitorLoading = { loading: true };
-type VisitorLoaded = { loading: false; setVisitor: (uid: string) => void };
+type VisitorLoaded = { loading: false; uid: string | null; setVisitor: (uid: string) => void };
 
 /**
  * Loads the visitor from local storage, if it exists.
@@ -103,6 +103,7 @@ export const useVisitor = (): VisitorLoading | VisitorLoaded => {
   const loginContext = useContext(LoginContext);
   const [loading, setLoading] = useState(true);
   const guard = useRef<Promise<void> | null>(null);
+  const [visitorUID, setVisitorUID] = useState<string | null>(null);
   const handledUTM = useRef<{ utm: UTM; visitorUID: string | null } | null>(null);
   const [visitorCounter, setVisitorCounter] = useState(0);
 
@@ -206,6 +207,9 @@ export const useVisitor = (): VisitorLoading | VisitorLoaded => {
 
       if (newVisitor !== null) {
         writeVisitorToStore(newVisitor);
+        setVisitorUID(newVisitor.uid);
+      } else if (storedVisitor !== null) {
+        setVisitorUID(storedVisitor.uid);
       }
     }
 
@@ -236,19 +240,24 @@ export const useVisitor = (): VisitorLoading | VisitorLoaded => {
   }, [loginContext, visitorCounter]);
 
   return useMemo(
-    () => ({
-      loading,
-      setVisitor: (uid) => {
-        const current = loadVisitorFromStore();
-        if (current !== null && current.uid === uid) {
-          return;
-        }
+    () =>
+      loading
+        ? { loading }
+        : {
+            loading,
+            uid: visitorUID,
+            setVisitor: (uid) => {
+              const current = loadVisitorFromStore();
+              if (current !== null && current.uid === uid) {
+                return;
+              }
 
-        writeVisitorToStore({ uid, user: null });
-        setVisitorCounter((c) => c + 1);
-      },
-    }),
-    [loading]
+              writeVisitorToStore({ uid, user: null });
+              setVisitorCounter((c) => c + 1);
+              setVisitorUID(uid);
+            },
+          },
+    [loading, visitorUID]
   );
 };
 

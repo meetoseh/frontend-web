@@ -20,6 +20,7 @@ import { VisitorHandler } from './shared/hooks/useVisitor';
 import { CourseActivateScreen } from './user/courses/CourseActivateScreen';
 import { CourseAttachScreen } from './user/courses/CourseAttachScreen';
 import { CourseDownloadScreen } from './user/courses/CourseDownloadScreen';
+import { JourneyPublicLink } from './user/journey/JourneyPublicLink';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -175,6 +176,14 @@ function App() {
           }
         />
         <Route path="/courses/download" element={<CourseDownloadScreen />} />
+        <Route
+          path="/jpl"
+          element={
+            <LoginProvider>
+              <JourneyPublicLink />
+            </LoginProvider>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

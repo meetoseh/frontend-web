@@ -48,7 +48,7 @@ export const JourneyStart = ({
           <div className={styles.content}>
             <div className={styles.title}>Your Class is Ready</div>
             <div className={styles.description}>
-              Put on your headset, get comfortable, and prepare for a 1 minute audio experience.
+              Put on your headset, get comfortable, and prepare for a short audio experience.
             </div>
             <div className={styles.journeyTitle}>{journey.title}</div>
             <div className={styles.journeyDescription}>{journey.description.text}</div>
