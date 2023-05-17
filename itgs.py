@@ -12,6 +12,9 @@ import jobs
 import file_service
 import loguru
 import revenue_cat
+import asyncio
+import twilio.rest
+import klaviyo
 
 
 our_diskcache: diskcache.Cache = diskcache.Cache(
@@ -34,6 +37,9 @@ class Itgs:
         """Initializes a new integrations with nothing loaded.
         Must be __aenter__ 'd and __aexit__'d.
         """
+        self._lock: asyncio.Lock = asyncio.Lock()
+        """A lock for when mutating our state"""
+
         self._conn: Optional[rqdb.async_connection.AsyncConnection] = None
         """the rqlite connection, if it has been opened"""
 
@@ -55,6 +61,12 @@ class Itgs:
         self._revenue_cat: Optional[revenue_cat.RevenueCat] = None
         """the revenue cat connection if it had been opened"""
 
+        self._twilio: Optional[twilio.rest.Client] = None
+        """the twilio connection if it had been opened"""
+
+        self._klaviyo: Optional[klaviyo.Klaviyo] = None
+        """the klaviyo connection if it had been opened"""
+
         self._closures: List[Callable[["Itgs"], Coroutine]] = []
         """functions to run on __aexit__ to cleanup opened resources"""
 
@@ -64,9 +76,10 @@ class Itgs:
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
         """closes any managed resources"""
-        for closure in self._closures:
-            await closure(self)
-        self._closures = []
+        async with self._lock:
+            for closure in self._closures:
+                await closure(self)
+            self._closures = []
 
     async def conn(self) -> rqdb.async_connection.AsyncConnection:
         """Gets or creates and initializes the rqdb connection.
@@ -75,32 +88,38 @@ class Itgs:
         if self._conn is not None:
             return self._conn
 
-        rqlite_ips = os.environ.get("RQLITE_IPS").split(",")
-        if not rqlite_ips:
-            raise ValueError("RQLITE_IPS not set -> cannot connect to rqlite")
+        async with self._lock:
+            if self._conn is not None:
+                return self._conn
 
-        async def cleanup(me: "Itgs") -> None:
-            if me._conn is not None:
-                await me._conn.__aexit__(None, None, None)
-                me._conn = None
+            rqlite_ips = os.environ.get("RQLITE_IPS").split(",")
+            if not rqlite_ips:
+                raise ValueError("RQLITE_IPS not set -> cannot connect to rqlite")
 
-        self._closures.append(cleanup)
-        self._conn = rqdb.connect_async(
-            hosts=rqlite_ips,
-            log=rqdb.LogConfig(
-                read_start={"method": loguru.logger.debug},
-                read_response={"method": loguru.logger.debug},
-                read_stale={"method": loguru.logger.debug},
-                write_start={"method": loguru.logger.debug},
-                write_response={"method": loguru.logger.debug},
-                connect_timeout={"method": loguru.logger.warning},
-                hosts_exhausted={"method": loguru.logger.critical},
-                non_ok_response={"method": loguru.logger.warning},
-                backup_start={"method": loguru.logger.info},
-                backup_end={"method": loguru.logger.info},
-            ),
-        )
-        await self._conn.__aenter__()
+            async def cleanup(me: "Itgs") -> None:
+                if me._conn is not None:
+                    await me._conn.__aexit__(None, None, None)
+                    me._conn = None
+
+            self._closures.append(cleanup)
+            c = rqdb.connect_async(
+                hosts=rqlite_ips,
+                log=rqdb.LogConfig(
+                    read_start={"method": loguru.logger.debug},
+                    read_response={"method": loguru.logger.debug},
+                    read_stale={"method": loguru.logger.debug},
+                    write_start={"method": loguru.logger.debug},
+                    write_response={"method": loguru.logger.debug},
+                    connect_timeout={"method": loguru.logger.warning},
+                    hosts_exhausted={"method": loguru.logger.critical},
+                    non_ok_response={"method": loguru.logger.warning},
+                    backup_start={"method": loguru.logger.info},
+                    backup_end={"method": loguru.logger.info},
+                ),
+            )
+            await c.__aenter__()
+            self._conn = c
+
         return self._conn
 
     async def redis(self) -> redis.asyncio.Redis:
@@ -108,53 +127,72 @@ class Itgs:
         if self._redis_main is not None:
             return self._redis_main
 
-        redis_ips = os.environ.get("REDIS_IPS").split(",")
-        if not redis_ips:
-            raise ValueError(
-                "REDIS_IPs is not set and so a redis connection cannot be established"
+        async with self._lock:
+            if self._redis_main is not None:
+                return self._redis_main
+
+            redis_ips = os.environ.get("REDIS_IPS").split(",")
+            if not redis_ips:
+                raise ValueError(
+                    "REDIS_IPs is not set and so a redis connection cannot be established"
+                )
+
+            async def cleanup(me: "Itgs") -> None:
+                if me._redis_main is not None:
+                    await me._redis_main.close()
+                    me._redis_main = None
+
+                me._sentinel = None
+
+            self._closures.append(cleanup)
+            self._sentinel = redis.asyncio.Sentinel(
+                sentinels=[(ip, 26379) for ip in redis_ips],
+                min_other_sentinels=len(redis_ips) // 2,
             )
-
-        async def cleanup(me: "Itgs") -> None:
-            if me._redis_main is not None:
-                await me._redis_main.close()
-                me._redis_main = None
-
-            me._sentinel = None
-
-        self._closures.append(cleanup)
-        self._sentinel = redis.asyncio.Sentinel(
-            sentinels=[(ip, 26379) for ip in redis_ips],
-            min_other_sentinels=len(redis_ips) // 2,
-        )
-        self._redis_main = self._sentinel.master_for("mymaster")
+            self._redis_main = self._sentinel.master_for("mymaster")
         return self._redis_main
 
     async def slack(self) -> slack.Slack:
         """gets or creates and gets the slack connection"""
         if self._slack is not None:
             return self._slack
-        self._slack = slack.Slack()
-        await self._slack.__aenter__()
 
-        async def cleanup(me: "Itgs") -> None:
-            await me._slack.__aexit__(None, None, None)
-            me._slack = None
+        async with self._lock:
+            if self._slack is not None:
+                return self._slack
 
-        self._closures.append(cleanup)
+            s = slack.Slack()
+            await s.__aenter__()
+
+            async def cleanup(me: "Itgs") -> None:
+                await me._slack.__aexit__(None, None, None)
+                me._slack = None
+
+            self._closures.append(cleanup)
+            self._slack = s
+
         return self._slack
 
     async def jobs(self) -> jobs.Jobs:
         """gets or creates the jobs connection"""
         if self._jobs is not None:
             return self._jobs
-        self._jobs = jobs.Jobs(await self.redis())
-        await self._jobs.__aenter__()
 
-        async def cleanup(me: "Itgs") -> None:
-            await me._jobs.__aexit__(None, None, None)
-            me._jobs = None
+        _redis = await self.redis()
+        async with self._lock:
+            if self._jobs is not None:
+                return self._jobs
 
-        self._closures.append(cleanup)
+            j = jobs.Jobs(_redis)
+            await j.__aenter__()
+
+            async def cleanup(me: "Itgs") -> None:
+                await me._jobs.__aexit__(None, None, None)
+                me._jobs = None
+
+            self._closures.append(cleanup)
+            self._jobs = j
+
         return self._jobs
 
     async def files(self) -> file_service.FileService:
@@ -162,23 +200,27 @@ class Itgs:
         if self._file_service is not None:
             return self._file_service
 
-        default_bucket = os.environ["OSEH_S3_BUCKET_NAME"]
+        async with self._lock:
+            if self._file_service is not None:
+                return self._file_service
 
-        if os.environ.get("ENVIRONMENT", default="production") == "dev":
-            root = os.environ["OSEH_S3_LOCAL_BUCKET_PATH"]
-            self._file_service = file_service.LocalFiles(
-                root, default_bucket=default_bucket
-            )
-        else:
-            self._file_service = file_service.S3(default_bucket=default_bucket)
+            default_bucket = os.environ["OSEH_S3_BUCKET_NAME"]
 
-        await self._file_service.__aenter__()
+            if os.environ.get("ENVIRONMENT", default="production") == "dev":
+                root = os.environ["OSEH_S3_LOCAL_BUCKET_PATH"]
+                fs = file_service.LocalFiles(root, default_bucket=default_bucket)
+            else:
+                fs = file_service.S3(default_bucket=default_bucket)
 
-        async def cleanup(me: "Itgs") -> None:
-            await me._file_service.__aexit__(None, None, None)
-            me._file_service = None
+            await fs.__aenter__()
 
-        self._closures.append(cleanup)
+            async def cleanup(me: "Itgs") -> None:
+                await me._file_service.__aexit__(None, None, None)
+                me._file_service = None
+
+            self._closures.append(cleanup)
+            self._file_service = fs
+
         return self._file_service
 
     async def local_cache(self) -> diskcache.Cache:
@@ -190,16 +232,67 @@ class Itgs:
         if self._revenue_cat is not None:
             return self._revenue_cat
 
-        sk = os.environ["OSEH_REVENUE_CAT_SECRET_KEY"]
-        stripe_pk = os.environ["OSEH_REVENUE_CAT_STRIPE_PUBLIC_KEY"]
+        async with self._lock:
+            if self._revenue_cat is not None:
+                return self._revenue_cat
 
-        self._revenue_cat = revenue_cat.RevenueCat(sk=sk, stripe_pk=stripe_pk)
+            sk = os.environ["OSEH_REVENUE_CAT_SECRET_KEY"]
+            stripe_pk = os.environ["OSEH_REVENUE_CAT_STRIPE_PUBLIC_KEY"]
 
-        await self._revenue_cat.__aenter__()
+            rc = revenue_cat.RevenueCat(sk=sk, stripe_pk=stripe_pk)
 
-        async def cleanup(me: "Itgs") -> None:
-            await me._revenue_cat.__aexit__(None, None, None)
-            me._revenue_cat = None
+            await rc.__aenter__()
 
-        self._closures.append(cleanup)
+            async def cleanup(me: "Itgs") -> None:
+                await me._revenue_cat.__aexit__(None, None, None)
+                me._revenue_cat = None
+
+            self._closures.append(cleanup)
+            self._revenue_cat = rc
+
         return self._revenue_cat
+
+    async def twilio(self) -> twilio.rest.Client:
+        """gets or creates the twilio connection"""
+        if self._twilio is not None:
+            return self._twilio
+
+        async with self._lock:
+            if self._twilio is not None:
+                return self._twilio
+
+            sid = os.environ["OSEH_TWILIO_ACCOUNT_SID"]
+            token = os.environ["OSEH_TWILIO_AUTH_TOKEN"]
+
+            tw = twilio.rest.Client(sid, token)
+
+            async def cleanup(me: "Itgs") -> None:
+                me._twilio = None
+
+            self._closures.append(cleanup)
+            self._twilio = tw
+
+        return self._twilio
+
+    async def klaviyo(self) -> klaviyo.Klaviyo:
+        """gets or creates the klaviyo connection"""
+        if self._klaviyo is not None:
+            return self._klaviyo
+
+        async with self._lock:
+            if self._klaviyo is not None:
+                return self._klaviyo
+
+            api_key = os.environ["OSEH_KLAVIYO_API_KEY"]
+
+            kl = klaviyo.Klaviyo(api_key)
+            await kl.__aenter__()
+
+            async def cleanup(me: "Itgs") -> None:
+                await me._klaviyo.__aexit__(None, None, None)
+                me._klaviyo = None
+
+            self._closures.append(cleanup)
+            self._klaviyo = kl
+
+        return self._klaviyo

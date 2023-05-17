@@ -1,10 +1,18 @@
 from itgs import Itgs
+from fastapi import Request, Response
+from fastapi.responses import PlainTextResponse
 import traceback
 import logging
 from typing import Dict, Optional
 from collections import deque
 import time
 import os
+
+
+async def handle_request_error(request: Request, exc: Exception) -> Response:
+    """Handles an error while processing a request"""
+    await handle_error(exc)
+    return PlainTextResponse(content="internal server error", status_code=500)
 
 
 async def handle_error(exc: Exception) -> None:
