@@ -29,7 +29,7 @@ export type InappNotification = {
   /**
    * Can be called to set showNow to false. Note that it's also necessary
    * to use an inapp notification session (useInappNotificationSession) to
-   * tell the backend we saw the prompt, which also has a complete() function
+   * tell the backend we saw the prompt, which also has a reset() function
    * that should be shown when the inapp notification is dismissed.
    *
    * Returns the inapp notification after setting showNow to false.

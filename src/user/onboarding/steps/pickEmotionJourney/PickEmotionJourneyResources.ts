@@ -100,7 +100,7 @@ export type PickEmotionJourneyResources = {
 
   /**
    * Should be called when the user completes the journey, so that we can
-   * reset back to the initial state.
+   * reset back to the initial state and inform other states
    */
   onFinishedJourney: () => void;
 };

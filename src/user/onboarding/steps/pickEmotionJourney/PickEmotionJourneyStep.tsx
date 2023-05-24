@@ -94,7 +94,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
       ]
     );
   },
-  useResources: (state, required) => {
+  useResources: (state, required, allStates) => {
     const loginContext = useContext(LoginContext);
     const [optionsCounter, setOptionsCounter] = useState(0);
     const [options, setOptions] = useState<{
@@ -324,7 +324,8 @@ export const PickEmotionJourneyStep: OnboardingStep<
 
     const onFinishedJourney = useCallback(() => {
       setOptionsCounter((c) => c + 1);
-    }, []);
+      allStates.tryAIJourney.setStreakDays.call(undefined, null);
+    }, [allStates.tryAIJourney.setStreakDays]);
 
     const takeAnotherClass = useCallback(async () => {
       if (selected === null) {

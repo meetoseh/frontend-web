@@ -8,6 +8,7 @@ import { VipChatRequestStep } from '../steps/vipChatRequest/VipChatRequestStep';
 import { CourseClassesStep } from '../steps/courseClasses/CourseClassesStep';
 import { PickEmotionJourneyStep } from '../steps/pickEmotionJourney/PickEmotionJourneyStep';
 import { GoalDaysPerWeekStep } from '../steps/goalDaysPerWeek/GoalDaysPerWeekStep';
+import { TryAIJourneyStep } from '../steps/tryAIJourney/TryAIJourneyStep';
 
 export type OnboardingState = {
   /**
@@ -35,6 +36,7 @@ const steps = [
   RequestNotificationTimeStep,
   VipChatRequestStep,
   GoalDaysPerWeekStep,
+  TryAIJourneyStep,
   PickEmotionJourneyStep,
 ];
 

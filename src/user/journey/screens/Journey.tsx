@@ -16,7 +16,20 @@ const HIDING_TIME = 365;
  * to the user, while they are allowed to engage via the prompt and a "like"
  * button.
  */
-export const Journey = ({ journey, shared, setScreen }: JourneyScreenProps): ReactElement => {
+export const Journey = ({
+  journey,
+  shared,
+  setScreen,
+  onCloseEarly,
+}: JourneyScreenProps & {
+  /**
+   * If specified, instead of just using setScreen('post') for both the
+   * audio ending normally and the user clicking the x to skip the remaining
+   * audio, instead we use setScreen('post') if it ends normally and
+   * onCloseEarly if the user clicks the x to skip the remaining audio.
+   */
+  onCloseEarly?: (currentTime: number, totalTime: number) => void;
+}): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [controlsVisibility, setControlsVisibility] = useState<'visible' | 'hiding' | 'hidden'>(
     'visible'
@@ -111,13 +124,17 @@ export const Journey = ({ journey, shared, setScreen }: JourneyScreenProps): Rea
     };
   }, [shared.audio?.audioRef]);
 
-  const gotoPost = useCallback(() => {
+  const onClickedClose = useCallback(() => {
     if (shared.audio?.stop) {
       shared.audio.stop();
     }
 
-    setScreen('post');
-  }, [setScreen, shared.audio]);
+    if (onCloseEarly !== undefined) {
+      onCloseEarly(currentTime, journey.durationSeconds);
+    } else {
+      setScreen('post');
+    }
+  }, [setScreen, shared.audio, currentTime, journey.durationSeconds, onCloseEarly]);
 
   const audioProgressStyle = useMemo(() => {
     return {
@@ -135,7 +152,7 @@ export const Journey = ({ journey, shared, setScreen }: JourneyScreenProps): Rea
           styles['control_' + controlsVisibility]
         }`}>
         <div className={styles.closeButtonInnerContainer}>
-          <button type="button" className={styles.close} onClick={gotoPost}>
+          <button type="button" className={styles.close} onClick={onClickedClose}>
             <div className={styles.closeIcon} />
             <div className={assistiveStyles.srOnly}>Close</div>
           </button>
