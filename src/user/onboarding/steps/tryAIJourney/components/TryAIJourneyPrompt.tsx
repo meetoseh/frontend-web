@@ -47,9 +47,9 @@ export const TryAIJourneyPrompt = ({
         <OsehImageFromState {...resources.promptBackground} />
       </div>
       <div className={styles.content}>
-        <div className={styles.title}>Want to try something different?</div>
+        <div className={styles.title}>We&rsquo;re working on something new</div>
         <div className={styles.description}>
-          Spice up your practice with an all-new AI generated class, then let us know{' '}
+          Try an AI generated class, then let us know{' '}
           <span style={{ whiteSpace: 'nowrap' }}>what you think.</span>
         </div>
         <div className={styles.buttonsContainer}>
