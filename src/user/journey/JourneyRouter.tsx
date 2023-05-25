@@ -41,7 +41,7 @@ export const JourneyRouter = ({
     return {
       journey,
       shared: sharedState,
-      setScreen,
+      setScreen: (screen, privileged) => setScreen(screen),
       onJourneyFinished: onFinished,
       isOnboarding,
     };

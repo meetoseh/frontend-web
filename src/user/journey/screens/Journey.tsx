@@ -45,7 +45,7 @@ export const Journey = ({
     }
 
     const handler = () => {
-      setScreen('post');
+      setScreen('post', false);
     };
 
     if (audio.ended) {
@@ -132,7 +132,7 @@ export const Journey = ({
     if (onCloseEarly !== undefined) {
       onCloseEarly(currentTime, journey.durationSeconds);
     } else {
-      setScreen('post');
+      setScreen('post', true);
     }
   }, [setScreen, shared.audio, currentTime, journey.durationSeconds, onCloseEarly]);
 

@@ -74,25 +74,42 @@ export const TryAIJourney = ({
     doAnticipateState.call(undefined, { ...state, ian: newState }, Promise.resolve());
   }, [state, resources.session, doAnticipateState]);
 
-  const onPromptDone = useCallback(() => {
-    if (
-      !startedAudioRef.current &&
-      resources.shared.audio !== null &&
-      resources.shared.audio.play !== null
-    ) {
-      resources.shared.audio.play();
-      startedAudioRef.current = true;
-    }
+  const onPromptDone = useCallback(
+    (privileged: boolean) => {
+      if (
+        !startedAudioRef.current &&
+        resources.shared.audio !== null &&
+        resources.shared.audio.play !== null &&
+        privileged
+      ) {
+        try {
+          resources.shared.audio.play();
+          startedAudioRef.current = true;
+        } catch (e) {
+          // Probably not privileged. Note that this is not enough to tell
+          // that the audio didn't start, which is why we need the privileged
+          // check above.
+        }
+      }
 
-    if (startedAudioRef) {
-      resources.session?.storeAction('start_audio', null);
-      setStep('journey');
-    } else {
-      // audio wasn't loaded in time, so another screen is shown before they can
-      // start the audio
-      setStep('start');
-    }
-  }, [resources]);
+      if (startedAudioRef.current) {
+        resources.session?.storeAction('start_audio', null);
+        setStep('journey');
+      } else {
+        // audio wasn't loaded in time or we completed the prompt outside
+        // a privileged context
+        setStep('start');
+      }
+    },
+    [resources]
+  );
+
+  const onPromptDoneIgnoreFirst = useCallback(
+    (_: any, privileged: boolean) => {
+      onPromptDone(privileged);
+    },
+    [onPromptDone]
+  );
 
   const onStartContinue = useCallback(() => {
     if (
@@ -167,7 +184,7 @@ export const TryAIJourney = ({
       <JourneyLobbyScreen
         journey={state.journey}
         shared={resources.shared}
-        setScreen={onPromptDone}
+        setScreen={onPromptDoneIgnoreFirst}
         onJourneyFinished={onPromptDone}
         isOnboarding={false}
       />

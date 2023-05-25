@@ -89,6 +89,14 @@ export const JourneyShareScreen = ({
     }
   }, [nativeShare]);
 
+  const onCloseClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      onJourneyFinished(true);
+    },
+    [onJourneyFinished]
+  );
+
   const previewSize: { width: number; height: number } = useMemo(() => {
     if (windowSize.width >= 390 && windowSize.height >= 844) {
       return { width: 270, height: 470 };
@@ -106,7 +114,7 @@ export const JourneyShareScreen = ({
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
         <div className={styles.closeButtonContainer}>
           <div className={styles.closeButtonInnerContainer}>
-            <button type="button" className={styles.close} onClick={onJourneyFinished}>
+            <button type="button" className={styles.close} onClick={onCloseClick}>
               <div className={styles.closeIcon} />
               <div className={assistiveStyles.srOnly}>Close</div>
             </button>

@@ -122,10 +122,18 @@ export const JourneyPostScreen = ({
       if (overrideOnContinue) {
         overrideOnContinue();
       } else {
-        onJourneyFinished();
+        onJourneyFinished(true);
       }
     },
     [onJourneyFinished, overrideOnContinue]
+  );
+
+  const onCloseClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      onJourneyFinished(true);
+    },
+    [onJourneyFinished]
   );
 
   if (streak === null) {
@@ -250,7 +258,7 @@ export const JourneyPostScreen = ({
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
         <div className={styles.closeButtonContainer}>
           <div className={styles.closeButtonInnerContainer}>
-            <button type="button" className={styles.close} onClick={onJourneyFinished}>
+            <button type="button" className={styles.close} onClick={onCloseClick}>
               <div className={styles.closeIcon} />
               <div className={assistiveStyles.srOnly}>Close</div>
             </button>

@@ -24,11 +24,18 @@ export const JourneyLobbyScreen = ({
     leavingCallback.current = null;
   }
 
+  const gotoStartPrivileged = useCallback(() => {
+    if (leavingCallback.current !== null) {
+      leavingCallback.current();
+    }
+    setScreen('start', true);
+  }, [setScreen]);
+
   const gotoStart = useCallback(() => {
     if (leavingCallback.current !== null) {
       leavingCallback.current();
     }
-    setScreen('start');
+    setScreen('start', false);
   }, [setScreen]);
 
   return (
@@ -38,7 +45,7 @@ export const JourneyLobbyScreen = ({
       </div>
       <div className={styles.closeButtonContainer}>
         <div className={styles.closeButtonInnerContainer}>
-          <button type="button" className={styles.close} onClick={gotoStart}>
+          <button type="button" className={styles.close} onClick={gotoStartPrivileged}>
             <div className={styles.closeIcon} />
             <div className={assistiveStyles.srOnly}>Close</div>
           </button>

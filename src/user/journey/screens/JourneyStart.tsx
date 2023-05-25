@@ -32,7 +32,7 @@ export const JourneyStart = ({
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       shared.audio!.play!();
-      setScreen('journey');
+      setScreen('journey', true);
     },
     [setScreen, shared.audio]
   );
