@@ -8,13 +8,17 @@ import {
   useOsehImageStatesRef,
 } from '../../../../shared/OsehImage';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
-import { usePublicInteractivePrompt } from '../../../../shared/hooks/usePublicInteractivePrompt';
+import {
+  PublicInteractivePrompt,
+  usePublicInteractivePrompt,
+} from '../../../../shared/hooks/usePublicInteractivePrompt';
 import { RequestNotificationTimeState } from './RequestNotificationTimeState';
 import { RequestNotificationTimeResources } from './RequestNotificationTimeResources';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { RequestNotificationTime } from './RequestNotificationTime';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { InterestsContext } from '../../../../shared/InterestsContext';
 
 const backgroundImageUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -102,6 +106,7 @@ export const RequestNotificationTimeStep: OnboardingStep<
     const windowSize = useWindowSize();
     const [background, setBackground] = useState<OsehImageState | null>(null);
     const session = useInappNotificationSession(worldState.ian?.uid ?? null);
+    const interests = useContext(InterestsContext);
     const prompt = usePublicInteractivePrompt({
       identifier: 'notification-time',
       load: required,
@@ -163,15 +168,36 @@ export const RequestNotificationTimeStep: OnboardingStep<
       }
     }, [images]);
 
+    const personalizedPrompt = useMemo<PublicInteractivePrompt>(() => {
+      if (interests.state !== 'loaded' || prompt.loading || prompt.prompt === null) {
+        return prompt;
+      }
+
+      if (interests.primaryInterest === 'sleep') {
+        return {
+          ...prompt,
+          prompt: {
+            ...prompt.prompt,
+            prompt: {
+              ...prompt.prompt.prompt,
+              text: 'Staying relaxed during the day will help you sleep at night. When do you want to be reminded to relax?',
+            },
+          },
+        };
+      }
+
+      return prompt;
+    }, [interests, prompt]);
+
     return useMemo<RequestNotificationTimeResources>(
       () => ({
         session,
         givenName,
         background,
-        prompt: prompt,
-        loading: background === null || background.loading,
+        prompt: personalizedPrompt,
+        loading: background === null || background.loading || interests.state === 'loading',
       }),
-      [session, givenName, background, prompt]
+      [session, givenName, background, personalizedPrompt, interests.state]
     );
   },
 

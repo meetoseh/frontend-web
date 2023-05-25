@@ -3,7 +3,6 @@ import styles from './CourseAttachScreen.module.css';
 import { OsehImage } from '../../shared/OsehImage';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { Button } from '../../shared/forms/Button';
-import { useVisitor } from '../../shared/hooks/useVisitor';
 import { SplashScreen } from '../splash/SplashScreen';
 import { useSingletonEffect } from '../../shared/lib/useSingletonEffect';
 import { LoginContext } from '../../shared/LoginContext';
@@ -17,7 +16,6 @@ import { apiFetch } from '../../shared/ApiConstants';
  * even if they land on the checkout success page already logged in.
  */
 export const CourseAttachScreen = (): ReactElement => {
-  useVisitor();
   const loginContext = useContext(LoginContext);
   const windowSize = useWindowSize();
   const [loading, setLoading] = useState(true);

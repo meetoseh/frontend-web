@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useVisitor } from '../../shared/hooks/useVisitor';
-import { LoginContext } from '../../shared/LoginContext';
+import { Visitor, useVisitor } from '../../shared/hooks/useVisitor';
+import { LoginContext, LoginContextValue } from '../../shared/LoginContext';
 import { SplashScreen } from '../splash/SplashScreen';
 import { JourneyRef, journeyRefKeyMap } from './models/JourneyRef';
 import { useJourneyShared } from './hooks/useJourneyShared';
@@ -11,6 +11,7 @@ import { JourneyStart } from './screens/JourneyStart';
 import { JourneyLobbyScreen } from './screens/JourneyLobbyScreen';
 import { Journey } from './screens/Journey';
 import { JourneyRouterScreenId } from './JourneyRouter';
+import { InterestsProvider } from '../../shared/InterestsContext';
 
 /**
  * This is a top-level component intended to be used for the /jpl route.
@@ -22,11 +23,26 @@ import { JourneyRouterScreenId } from './JourneyRouter';
  * is logged in or not.
  *
  * This should not be within a visitor context: the visitor is handled specially
- * as it is required when the user is not logged in.
+ * as it is required when the user is not logged in. In particular, this means this
+ * should not be within an interests provider.
  */
 export const JourneyPublicLink = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const visitor = useVisitor();
+  return (
+    <InterestsProvider loginContext={loginContext} visitor={visitor}>
+      <JourneyPublicLinkInner loginContext={loginContext} visitor={visitor} />
+    </InterestsProvider>
+  );
+};
+
+const JourneyPublicLinkInner = ({
+  loginContext,
+  visitor,
+}: {
+  loginContext: LoginContextValue;
+  visitor: Visitor;
+}): ReactElement => {
   const code = useMemo(() => {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('code');

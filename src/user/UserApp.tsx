@@ -8,19 +8,20 @@ import styles from './UserApp.module.css';
 import { apiFetch } from '../shared/ApiConstants';
 import { useFonts } from '../shared/lib/useFonts';
 import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenContext';
-import { VisitorHandler } from '../shared/hooks/useVisitor';
 import { useOnboardingState } from './onboarding/hooks/useOnboardingState';
 import { OnboardingRouter } from './onboarding/OnboardingRouter';
+import { InterestsAutoProvider } from '../shared/InterestsContext';
 
 export default function UserApp(): ReactElement {
   return (
     <LoginProvider>
-      <VisitorHandler />
-      <ModalProvider>
-        <FullscreenProvider>
-          <UserAppInner />
-        </FullscreenProvider>
-      </ModalProvider>
+      <InterestsAutoProvider>
+        <ModalProvider>
+          <FullscreenProvider>
+            <UserAppInner />
+          </FullscreenProvider>
+        </ModalProvider>
+      </InterestsAutoProvider>
     </LoginProvider>
   );
 }

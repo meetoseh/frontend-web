@@ -2,11 +2,12 @@ import { OnboardingStepComponentProps } from '../../models/OnboardingStep';
 import { SignupRewardResources } from './SignupRewardResources';
 import styles from './SignupReward.module.css';
 import { OsehImageFromState } from '../../../../shared/OsehImage';
-import { useCallback } from 'react';
+import { useCallback, useContext } from 'react';
 import { Button } from '../../../../shared/forms/Button';
 import { SignupRewardState } from './SignupRewardState';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
+import { InterestsContext } from '../../../../shared/InterestsContext';
 
 /**
  * Rewards the user for completing signup.
@@ -16,6 +17,7 @@ export const SignupReward = ({
   resources,
   doAnticipateState,
 }: OnboardingStepComponentProps<SignupRewardState, SignupRewardResources>) => {
+  const interests = useContext(InterestsContext);
   useStartSession(resources.session);
   const windowSize = useWindowSize();
 
@@ -44,11 +46,43 @@ export const SignupReward = ({
       </div>
       <div className={styles.content}>
         <div className={styles.title}>
-          We are here to help you feel your best&#8212;<em>everyday</em>
+          {(() => {
+            const defaultCopy = (
+              <>
+                We are here to help you feel your best&#8212;<em>everyday</em>
+              </>
+            );
+
+            if (interests.state !== 'loaded') {
+              return defaultCopy;
+            } else if (interests.primaryInterest === 'sleep') {
+              return (
+                <>
+                  We are here to help you sleep&#8212;<em>everyday</em>
+                </>
+              );
+            } else {
+              return defaultCopy;
+            }
+          })()}
         </div>
         <div className={styles.horizontalRule} />
         <div className={styles.checkList}>
-          <div className={styles.checkListItem}>Classes for every mood</div>
+          <div className={styles.checkListItem}>
+            {(() => {
+              const defaultCopy = <>Classes for every mood</>;
+
+              if (interests.state !== 'loaded') {
+                return defaultCopy;
+              } else if (interests.primaryInterest === 'anxiety') {
+                return <>Variety of unique themes</>;
+              } else if (interests.primaryInterest === 'sleep') {
+                return <>Classes to induce any dream</>;
+              } else {
+                return defaultCopy;
+              }
+            })()}
+          </div>
           <div className={styles.checkListItem}>Daily check-ins</div>
           <div className={styles.checkListItem}>Bite-sized to fit your schedule</div>
         </div>

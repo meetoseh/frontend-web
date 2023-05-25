@@ -13,6 +13,7 @@ import { OnboardingStepComponentProps } from '../../models/OnboardingStep';
 import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhoneResources } from './RequestPhoneResources';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { InterestsContext } from '../../../../shared/InterestsContext';
 
 /**
  * Prompts the user for their phone number, then verifies it.
@@ -23,6 +24,7 @@ export const RequestPhone = ({
   doAnticipateState,
 }: OnboardingStepComponentProps<RequestPhoneState, RequestPhoneResources>): ReactElement => {
   const loginContext = useContext(LoginContext);
+  const interests = useContext(InterestsContext);
   const [step, setStep] = useState<'number' | 'verify' | 'done'>('number');
   const [phone, setPhone] = useState('');
   const receiveNotifs = true;
@@ -261,7 +263,34 @@ export const RequestPhone = ({
         {step === 'number' && (
           <>
             <div className={styles.title}>
-              Let&rsquo;s create a daily mindfulness habit with friendly nudges
+              {(() => {
+                const defaultCopy = (
+                  <>
+                    Let&rsquo;s create a daily mindfulness habit with{' '}
+                    <span style={{ whiteSpace: 'nowrap' }}>friendly nudges</span>
+                  </>
+                );
+
+                if (interests.state !== 'loaded') {
+                  return defaultCopy;
+                } else if (interests.primaryInterest === 'anxiety') {
+                  return (
+                    <>
+                      Relax every day with{' '}
+                      <span style={{ whiteSpace: 'nowrap' }}>friendly nudges</span>
+                    </>
+                  );
+                } else if (interests.primaryInterest === 'sleep') {
+                  return (
+                    <>
+                      Sleep easier every day with{' '}
+                      <span style={{ whiteSpace: 'nowrap' }}>friendly nudges</span>
+                    </>
+                  );
+                } else {
+                  return defaultCopy;
+                }
+              })()}
             </div>
             <div className={styles.subtitle}>
               Sign up for daily text reminders by entering your phone number below.

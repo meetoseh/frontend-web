@@ -13,6 +13,7 @@ import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhone } from './RequestPhone';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { InterestsContext } from '../../../../shared/InterestsContext';
 
 const backgroundImageUid = 'oseh_if_hH68hcmVBYHanoivLMgstg';
 
@@ -83,6 +84,7 @@ export const RequestPhoneStep: OnboardingStep<RequestPhoneState, RequestPhoneRes
         ? state.onboardingPhoneNumberIAN.uid
         : null
     );
+    const interests = useContext(InterestsContext);
 
     useEffect(() => {
       const oldProps = images.handling.current.get(backgroundImageUid);
@@ -144,9 +146,9 @@ export const RequestPhoneStep: OnboardingStep<RequestPhoneState, RequestPhoneRes
       () => ({
         session,
         background,
-        loading: background === null || background.loading,
+        loading: background === null || background.loading || interests.state === 'loading',
       }),
-      [session, background]
+      [session, background, interests.state]
     );
   },
 

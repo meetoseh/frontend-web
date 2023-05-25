@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import '../../assets/fonts.css';
 import styles from './LoginApp.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
@@ -7,6 +7,7 @@ import { HTTP_API_URL } from '../../shared/ApiConstants';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/OsehImage';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
+import { InterestsContext } from '../../shared/InterestsContext';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -132,6 +133,7 @@ export const useRedirectUrl = (redirectUrl: string | undefined) => {
  * styling at the cost of all non-social functionality.
  */
 export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactElement => {
+  const interests = useContext(InterestsContext);
   const windowSize = useWindowSize();
   const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
   const urls = useProviderUrls();
@@ -166,7 +168,33 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
               <div className={styles.logo} />
               <div className={assistiveStyles.srOnly}>Oseh</div>
             </div>
-            <div className={styles.info}>A better day is 60 seconds away.</div>
+            <div className={styles.info}>
+              {(() => {
+                const defaultCopy = <>A better day is 60 seconds away.</>;
+                if (interests.state !== 'loaded') {
+                  return defaultCopy;
+                } else if (interests.primaryInterest === 'anxiety') {
+                  return (
+                    <>Sign up for instant, free access to anxiety-relieving 1 minute exercises.</>
+                  );
+                } else if (interests.primaryInterest === 'mindful') {
+                  return (
+                    <>
+                      You&rsquo;re one step away from starting a life-changing mindfulness journey
+                    </>
+                  );
+                } else if (interests.primaryInterest === 'sleep') {
+                  return (
+                    <>
+                      Sign up for instant, free access to sleep-inducing meditations from the
+                      world&rsquo;s most relaxing instructors.
+                    </>
+                  );
+                } else {
+                  return defaultCopy;
+                }
+              })()}
+            </div>
           </div>
           <SocialSignins urls={urls} />
         </div>

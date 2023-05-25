@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useContext, useMemo } from 'react';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { OnboardingStep } from '../../models/OnboardingStep';
 import { GoalDaysPerWeekResources } from './GoalDaysPerWeekResources';
@@ -8,6 +8,7 @@ import { OsehImageProps, OsehImageState } from '../../../../shared/OsehImage';
 import { useOsehImageStates } from '../../../../shared/OsehImage';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { GoalDaysPerWeek } from './GoalDaysPerWeek';
+import { InterestsContext } from '../../../../shared/InterestsContext';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -19,6 +20,7 @@ export const GoalDaysPerWeekStep: OnboardingStep<GoalDaysPerWeekState, GoalDaysP
   },
   useResources: (state, required) => {
     const windowSize = useWindowSize();
+    const interests = useContext(InterestsContext);
     const imageProps = useMemo<OsehImageProps[]>(() => {
       if (!required) {
         return [];
@@ -44,9 +46,13 @@ export const GoalDaysPerWeekStep: OnboardingStep<GoalDaysPerWeekState, GoalDaysP
       () => ({
         background,
         session,
-        loading: background === null || background.loading || session === null,
+        loading:
+          background === null ||
+          background.loading ||
+          session === null ||
+          interests.state === 'loading',
       }),
-      [background, session]
+      [background, session, interests.state]
     );
   },
   isRequired: (state, allStates) => {

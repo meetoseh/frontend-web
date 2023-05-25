@@ -16,11 +16,11 @@ import { Settings } from './user/settings/Settings';
 import { ModalProvider } from './shared/ModalContext';
 import { SplashScreen } from './user/splash/SplashScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
-import { VisitorHandler } from './shared/hooks/useVisitor';
 import { CourseActivateScreen } from './user/courses/CourseActivateScreen';
 import { CourseAttachScreen } from './user/courses/CourseAttachScreen';
 import { CourseDownloadScreen } from './user/courses/CourseDownloadScreen';
 import { JourneyPublicLink } from './user/journey/JourneyPublicLink';
+import { InterestsAutoProvider } from './shared/InterestsContext';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -87,8 +87,9 @@ function App() {
           path="/upgrade"
           element={
             <LoginProvider>
-              <OsehPlusUpgradePrompt setLoaded={() => {}} />
-              <VisitorHandler />
+              <InterestsAutoProvider>
+                <OsehPlusUpgradePrompt setLoaded={() => {}} />
+              </InterestsAutoProvider>
             </LoginProvider>
           }
         />
@@ -96,10 +97,11 @@ function App() {
           path="/settings"
           element={
             <LoginProvider>
-              <VisitorHandler />
-              <ModalProvider>
-                <Settings />
-              </ModalProvider>
+              <InterestsAutoProvider>
+                <ModalProvider>
+                  <Settings />
+                </ModalProvider>
+              </InterestsAutoProvider>
             </LoginProvider>
           }
         />
@@ -110,8 +112,9 @@ function App() {
           path="/dev_login"
           element={
             <LoginProvider>
-              <VisitorHandler />
-              <TestLogin />
+              <InterestsAutoProvider>
+                <TestLogin />
+              </InterestsAutoProvider>
             </LoginProvider>
           }
         />
@@ -119,8 +122,9 @@ function App() {
           path="/login"
           element={
             <LoginProvider>
-              <VisitorHandler />
-              <LoginApp redirectUrl="/" />
+              <InterestsAutoProvider>
+                <LoginApp redirectUrl="/" />
+              </InterestsAutoProvider>
             </LoginProvider>
           }
         />
@@ -128,8 +132,9 @@ function App() {
           path="/connectivity"
           element={
             <LoginProvider>
-              <VisitorHandler />
-              <ConnectivityScreen />
+              <InterestsAutoProvider>
+                <ConnectivityScreen />
+              </InterestsAutoProvider>
             </LoginProvider>
           }
         />
@@ -137,8 +142,9 @@ function App() {
           path="/splash"
           element={
             <LoginProvider>
-              <VisitorHandler />
-              <SplashScreen />
+              <InterestsAutoProvider>
+                <SplashScreen />
+              </InterestsAutoProvider>
             </LoginProvider>
           }
         />
@@ -146,17 +152,22 @@ function App() {
           path="/splash-alt"
           element={
             <LoginProvider>
-              <VisitorHandler />
-              <SplashScreen type="wordmark" />
+              <InterestsAutoProvider>
+                <SplashScreen type="wordmark" />
+              </InterestsAutoProvider>
             </LoginProvider>
           }
         />
         <Route
           path="/sms-test"
           element={
-            <div>
-              <a href="sms://+15552345678;?&body=Hello%20World">one recipient only with body</a>
-            </div>
+            <LoginProvider>
+              <InterestsAutoProvider>
+                <div>
+                  <a href="sms://+15552345678;?&body=Hello%20World">one recipient only with body</a>
+                </div>
+              </InterestsAutoProvider>
+            </LoginProvider>
           }
         />
         <Route
@@ -171,11 +182,22 @@ function App() {
           path="/courses/attach"
           element={
             <LoginProvider>
-              <CourseAttachScreen />
+              <InterestsAutoProvider>
+                <CourseAttachScreen />
+              </InterestsAutoProvider>
             </LoginProvider>
           }
         />
-        <Route path="/courses/download" element={<CourseDownloadScreen />} />
+        <Route
+          path="/courses/download"
+          element={
+            <LoginProvider>
+              <InterestsAutoProvider>
+                <CourseDownloadScreen />
+              </InterestsAutoProvider>
+            </LoginProvider>
+          }
+        />
         <Route
           path="/jpl"
           element={

@@ -12,6 +12,7 @@ import {
 import { SignupReward } from './SignupReward';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { InterestsContext } from '../../../../shared/InterestsContext';
 
 const bannerImageUid = 'oseh_if_F7sVhs4BJ7nnhPjyhi09-g';
 
@@ -28,6 +29,7 @@ export const SignupRewardStep: OnboardingStep<SignupRewardState, SignupRewardRes
     const givenName = loginContext.userAttributes?.givenName ?? null;
     const images = useOsehImageStatesRef({});
     const [image, setImage] = useState<OsehImageState | null>(null);
+    const interests = useContext(InterestsContext);
 
     useEffect(() => {
       const oldProps = images.handling.current.get(bannerImageUid);
@@ -87,9 +89,9 @@ export const SignupRewardStep: OnboardingStep<SignupRewardState, SignupRewardRes
         session,
         givenName,
         image,
-        loading: image === null || image.loading,
+        loading: image === null || image.loading || interests.state === 'loading',
       }),
-      [session, givenName, image]
+      [session, givenName, image, interests.state]
     );
   },
 

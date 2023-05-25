@@ -33,7 +33,7 @@ export type StoredVisitor = {
   user: AssociatedUser | null;
 };
 
-type UTM = {
+export type UTM = {
   source: string;
   medium: string | null;
   campaign: string | null;
@@ -71,6 +71,8 @@ const areUTMsEqual = (a: UTM, b: UTM): boolean =>
 type VisitorLoading = { loading: true };
 type VisitorLoaded = { loading: false; uid: string | null; setVisitor: (uid: string) => void };
 
+export type Visitor = VisitorLoading | VisitorLoaded;
+
 /**
  * Loads the visitor from local storage, if it exists.
  * @returns The visitor, or null if it does not exist.
@@ -99,7 +101,7 @@ export const writeVisitorToStore = (visitor: StoredVisitor | null): void => {
  * current user. Must be used within a login context, and is intended to
  * only be included once per page.
  */
-export const useVisitor = (): VisitorLoading | VisitorLoaded => {
+export const useVisitor = (): Visitor => {
   const loginContext = useContext(LoginContext);
   const [loading, setLoading] = useState(true);
   const guard = useRef<Promise<void> | null>(null);

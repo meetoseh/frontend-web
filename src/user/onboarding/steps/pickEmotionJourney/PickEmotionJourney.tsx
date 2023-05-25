@@ -452,7 +452,7 @@ const PickEmotion = ({
           </a>
         </div>
         <div className={styles.primaryContainer} style={primaryContainerStyle}>
-          <div className={styles.title}>How do you want to feel today?</div>
+          <div className={styles.title}>How do you want to feel?</div>
           <Words
             options={words}
             onWordClick={onWordClick}

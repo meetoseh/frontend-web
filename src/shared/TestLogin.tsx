@@ -1,14 +1,19 @@
 import './TestLogin.css';
-import { ChangeEvent, FormEvent, ReactElement, useCallback, useState } from 'react';
+import { ChangeEvent, FormEvent, ReactElement, useCallback, useContext, useState } from 'react';
 import { apiFetch } from './ApiConstants';
+import { InterestsContext } from './InterestsContext';
 
 /**
  * Shows a development page where you can login just be specifying your user
  * sub. Only works in the dev environment when targeting a local server.
+ *
+ * Should be within an interests provider for similarity to the regular
+ * login flow.
  */
 export const TestLogin = (): ReactElement => {
   const [loggingIn, setLoggingIn] = useState(false);
   const [userSub, setUserSub] = useState('timothy');
+  const interests = useContext(InterestsContext);
 
   const login = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -72,6 +77,18 @@ export const TestLogin = (): ReactElement => {
           Login
         </button>
       </form>
+      {interests.state === 'loading' && <p>Interests: Loading</p>}
+      {interests.state === 'unavailable' && <p>Interests: Unavailable</p>}
+      {interests.state === 'loaded' && (
+        <>
+          <p>Interests:</p>
+          <ul>
+            {interests.interests.map((int) => (
+              <li>{int === interests.primaryInterest ? <b>{int}</b> : int}</li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 };

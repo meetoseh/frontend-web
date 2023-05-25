@@ -10,6 +10,7 @@ import { useStartSession } from '../../../../shared/hooks/useInappNotificationSe
 import { LoginContext } from '../../../../shared/LoginContext';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
+import { InterestsContext } from '../../../../shared/InterestsContext';
 
 export const GoalDaysPerWeek = ({
   state,
@@ -18,6 +19,7 @@ export const GoalDaysPerWeek = ({
 }: OnboardingStepComponentProps<GoalDaysPerWeekState, GoalDaysPerWeekResources>): ReactElement => {
   useStartSession(resources.session);
   const loginContext = useContext(LoginContext);
+  const interests = useContext(InterestsContext);
   const [goal, setGoal] = useState<number>(3);
   const [error, setError] = useState<ReactElement | null>(null);
 
@@ -74,8 +76,27 @@ export const GoalDaysPerWeek = ({
       </div>
       <div className={styles.content}>
         <div className={styles.title}>
-          Let&rsquo;s set a goal, how many days a week do you want to{' '}
-          <span style={{ whiteSpace: 'nowrap' }}>check-in?</span>
+          {(() => {
+            const defaultCopy = (
+              <>
+                Let&rsquo;s set a goal, how many days a week do you want to{' '}
+                <span style={{ whiteSpace: 'nowrap' }}>check-in?</span>
+              </>
+            );
+
+            if (interests.state !== 'loaded') {
+              return defaultCopy;
+            } else if (interests.primaryInterest === 'sleep') {
+              return (
+                <>
+                  Regular sleep starts with a regular schedule: how many days a week do you want to{' '}
+                  <span style={{ whiteSpace: 'nowrap' }}>check-in?</span>
+                </>
+              );
+            } else {
+              return defaultCopy;
+            }
+          })()}
         </div>
         <div className={styles.days}>
           {boundSetGoals.map((setGoal, i) => (

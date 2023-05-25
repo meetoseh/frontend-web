@@ -27,13 +27,13 @@ import { Button } from '../../shared/forms/Button';
 import { CourseAttachScreen } from './CourseAttachScreen';
 
 /**
- * The activation screen for a course, which should be the first screen
- * after a user checks out. Two query parameters should be available:
- * slug, for the slug of the course, and session, for the stripe checkout
- * session id.
+ * The activation screen for a course, which should be the first screen after a
+ * user checks out. Two query parameters should be available: slug, for the slug
+ * of the course, and session, for the stripe checkout session id.
  *
- * A reasonable amount of effort goes into ensuring that visitor information
- * can be tracked without waterfalling the critical path.
+ * A reasonable amount of effort goes into ensuring that visitor information can
+ * be tracked without waterfalling the critical path. To accomplish this, unlike
+ * most screens, this screen does not currently support the interest provider
  */
 export const CourseActivateScreen = (): ReactElement => {
   const loginContext = useContext(LoginContext);
