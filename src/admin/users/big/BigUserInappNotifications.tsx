@@ -96,6 +96,14 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
                   value: user.sub,
                 },
               },
+              sort: [
+                {
+                  key: 'created_at',
+                  dir: 'desc',
+                  before: null,
+                  after: null,
+                },
+              ],
               limit: 15,
             }),
           },
@@ -173,6 +181,14 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
                   value: activeSession.session.uid,
                 },
               },
+              sort: [
+                {
+                  key: 'created_at',
+                  dir: 'asc',
+                  before: null,
+                  after: null,
+                },
+              ],
               limit: 25,
             }),
           },
