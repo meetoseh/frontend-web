@@ -148,13 +148,43 @@ export const TryAIJourney = ({
     setStep('post');
   }, [resources]);
 
+  const rateJourney = useCallback(
+    async (feedback: 1 | 2) => {
+      if (state.journey === null || state.journey === undefined) {
+        return;
+      }
+
+      const response = await apiFetch(
+        '/api/1/journeys/feedback',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            journey_uid: state.journey.uid,
+            journey_jwt: state.journey.jwt,
+            version: 'oseh_jf-otp_gwJjdMC4820',
+            response: feedback,
+          }),
+        },
+        loginContext
+      );
+      if (!response.ok) {
+        const text = await response.text();
+        console.warn('Failed to store feedback: ', response.status, text);
+      }
+    },
+    [loginContext, state.journey]
+  );
+
   const onThumbsUp = useCallback(() => {
     resources.session?.storeAction('thumbs_up', null);
-  }, [resources]);
+    rateJourney(1);
+  }, [rateJourney, resources]);
 
   const onThumbsDown = useCallback(() => {
     resources.session?.storeAction('thumbs_down', null);
-  }, [resources]);
+    rateJourney(2);
+  }, [rateJourney, resources]);
 
   const onPostContinue = useCallback(() => {
     resources.session?.storeAction('continue', null);
