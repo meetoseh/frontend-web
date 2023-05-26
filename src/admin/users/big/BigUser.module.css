@@ -1,0 +1,39 @@
+.container {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 20px;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 32px;
+  color: #171717;
+}
+
+.row {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 20px;
+}
+
+.wide {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-basis: 850px;
+  flex-grow: 0;
+  flex-shrink: 1;
+}
+
+.narrow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-basis: 270px;
+  flex-grow: 0;
+  flex-shrink: 1;
+}

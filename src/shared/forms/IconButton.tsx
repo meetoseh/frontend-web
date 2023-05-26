@@ -14,9 +14,9 @@ type IconButtonProps = {
   srOnlyName: string;
 
   /**
-   * The click handler
+   * The click handler, or a string to use an anchor tag instead
    */
-  onClick: MouseEventHandler<HTMLButtonElement>;
+  onClick: MouseEventHandler<HTMLButtonElement> | string;
 
   /**
    * If the button should be disabled
@@ -31,10 +31,19 @@ export const IconButton = ({
   onClick,
   disabled = false,
 }: IconButtonProps): ReactElement => {
-  return (
-    <button type="button" onClick={onClick} className={styles.button} disabled={disabled}>
-      <div className={icon} aria-hidden="true" />
-      <span className={assistiveStyles.srOnly}>{srOnlyName}</span>
-    </button>
-  );
+  if (typeof onClick === 'string') {
+    return (
+      <a href={onClick} className={styles.button}>
+        <div className={icon} aria-hidden="true" />
+        <span className={assistiveStyles.srOnly}>{srOnlyName}</span>
+      </a>
+    );
+  } else {
+    return (
+      <button type="button" onClick={onClick} className={styles.button} disabled={disabled}>
+        <div className={icon} aria-hidden="true" />
+        <span className={assistiveStyles.srOnly}>{srOnlyName}</span>
+      </button>
+    );
+  }
 };

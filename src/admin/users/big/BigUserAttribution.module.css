@@ -1,0 +1,26 @@
+.utmList {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 12px;
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.utmList > li {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.utmContainer,
+.attributionInfoContainer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e5e5;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e5e5;
+}

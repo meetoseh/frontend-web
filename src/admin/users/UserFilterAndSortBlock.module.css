@@ -1,0 +1,23 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.select {
+  composes: sortSelect from '../crud/standard.module.css';
+}
+
+.fromToContainer {
+  display: flex;
+  flex-flow: row wrap;
+  row-gap: 0px;
+  column-gap: 20px;
+}
+
+.dateInput {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+}

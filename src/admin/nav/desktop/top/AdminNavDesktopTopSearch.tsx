@@ -38,6 +38,48 @@ const PAGE_RESULTS: {
       </div>
     ),
   },
+  {
+    identifier: 'users',
+    aliases: ['users', 'people', 'person', 'persons'],
+    result: (
+      <div className={styles.resultItem}>
+        <AdminNavDesktopSideLink
+          iconClass={sideContentStyles.iconUsers}
+          text="Users"
+          url="/admin/users"
+          active={false}
+        />
+      </div>
+    ),
+  },
+  {
+    identifier: 'journeys',
+    aliases: ['journeys', 'classes'],
+    result: (
+      <div className={styles.resultItem}>
+        <AdminNavDesktopSideLink
+          iconClass={sideContentStyles.iconJourneys}
+          text="Journeys"
+          url="/admin/journeys"
+          active={false}
+        />
+      </div>
+    ),
+  },
+  {
+    identifier: 'instructors',
+    aliases: ['instructors', 'teachers'],
+    result: (
+      <div className={styles.resultItem}>
+        <AdminNavDesktopSideLink
+          iconClass={sideContentStyles.iconInstructors}
+          text="Instructors"
+          url="/admin/instructors"
+          active={false}
+        />
+      </div>
+    ),
+  },
 ];
 
 export const AdminNavDesktopTopSearch = (): ReactElement => {

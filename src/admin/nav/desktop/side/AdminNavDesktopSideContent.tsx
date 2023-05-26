@@ -28,6 +28,12 @@ export const AdminNavDesktopSideContent = ({
             active={currentPath === '/admin'}
           />
           <AdminNavDesktopSideLink
+            iconClass={styles.iconUsers}
+            text="Users"
+            url="/admin/users"
+            active={currentPath === '/admin/users'}
+          />
+          <AdminNavDesktopSideLink
             iconClass={styles.iconInstructors}
             text="Instructors"
             url="/admin/instructors"
