@@ -1,3 +1,4 @@
+import './shared/buttons.module.css';
 import UserApp from './user/UserApp';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AdminApp, AdminRoutes } from './admin/AdminApp';
