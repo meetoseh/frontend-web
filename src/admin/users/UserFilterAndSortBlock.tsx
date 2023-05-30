@@ -76,6 +76,8 @@ const SORTS: { name: string; sort: CrudFetcherSort }[] = [
   },
 ];
 
+const INTERESTS = ['sleep', 'anxiety', 'mindful'];
+
 /**
  * Controls the filter and sort for the user listing
  */
@@ -263,6 +265,32 @@ export const UserFilterAndSortBlock = ({
           inputStyle="normal"
           html5Validation={null}
         />
+        <CrudFormElement title="Primary Interest">
+          <select
+            className={styles.select}
+            value={filter.primary_interest?.value ?? ''}
+            onChange={(e) => {
+              setFilter((oldFilter) => {
+                const newFilter = { ...oldFilter };
+                if (e.target.value === '') {
+                  delete newFilter.primary_interest;
+                } else {
+                  newFilter.primary_interest = {
+                    operator: 'eq',
+                    value: e.target.value,
+                  };
+                }
+                return newFilter;
+              });
+            }}>
+            <option value="">All</option>
+            {INTERESTS.map((pi) => (
+              <option key={pi} value={pi}>
+                {pi}
+              </option>
+            ))}
+          </select>
+        </CrudFormElement>
         <CrudFormElement title="Created">
           <Checkbox value={filteringCreatedAt} setValue={setCreatedAtFilter} label="Filter" />
           <div
