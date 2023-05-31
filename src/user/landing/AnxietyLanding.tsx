@@ -5,7 +5,7 @@ import { LandingPreviewScreen } from './screens/LandingPreviewScreen';
 import { AgendaScreen } from './screens/AgendaScreen';
 import { BannerValuePropsScreen } from './screens/BannerValuePropsScreen';
 
-type Step = 'preview' | 'agenda' | 'bannerVPs' | 'headshot';
+type Step = 'preview' | 'agenda' | 'bannerVPs' | 'fact' | 'headshot';
 
 /**
  * The landing page for users acquired via anxiety-related marketing.
@@ -24,6 +24,11 @@ export const AnxietyLanding = () => {
     setStep('bannerVPs');
   }, []);
 
+  const gotoFact = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setStep('fact');
+  }, []);
+
   const gotoHeadshot = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setStep('headshot');
@@ -34,7 +39,9 @@ export const AnxietyLanding = () => {
   } else if (step === 'agenda') {
     return <AgendaScreen onContinue={gotoBannerVPs} />;
   } else if (step === 'bannerVPs') {
-    return <BannerValuePropsScreen onContinue={gotoHeadshot} />;
+    return <BannerValuePropsScreen onContinue={gotoFact} />;
+  } else if (step === 'fact') {
+    return <FactWithTitleScreen onContinue={gotoHeadshot} />;
   } else {
     return (
       <HeadshotScreen
