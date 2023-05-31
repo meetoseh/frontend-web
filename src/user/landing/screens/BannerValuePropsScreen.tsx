@@ -37,7 +37,13 @@ export const BannerValuePropsScreen = ({
   bannerImageUid,
   onContinue,
 }: BannerValuePropsScreenProps): ReactElement => {
-  const title = titleRaw ?? <>Reduce anxiety and find your calm</>;
+  const title = titleRaw ?? (
+    <>
+      Reduce anxiety,
+      <br />
+      <em>Find your calm</em>
+    </>
+  );
   const valueProps = useMemo(() => {
     return (
       valuePropsRaw ?? [
