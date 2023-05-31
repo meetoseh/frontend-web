@@ -20,8 +20,21 @@ export const SignupRewardStep: OnboardingStep<SignupRewardState, SignupRewardRes
   identifier: 'signupReward',
   useWorldState: () => {
     const signupIAP = useInappNotification('oseh_ian_7_3gJYejCkpQTunjRcw-Mg', false);
+    const interests = useContext(InterestsContext);
 
-    return useMemo(() => ({ signupIAP }), [signupIAP]);
+    const isPreLoginInterest = (() => {
+      if (interests.state === 'loading') {
+        return undefined;
+      }
+
+      if (interests.state === 'unavailable') {
+        return false;
+      }
+
+      return interests.primaryInterest === 'anxiety';
+    })();
+
+    return useMemo(() => ({ signupIAP, isPreLoginInterest }), [signupIAP, isPreLoginInterest]);
   },
   useResources: (state, required) => {
     const loginContext = useContext(LoginContext);
@@ -96,7 +109,14 @@ export const SignupRewardStep: OnboardingStep<SignupRewardState, SignupRewardRes
   },
 
   isRequired: (worldState) => {
-    return worldState.signupIAP?.showNow;
+    if (worldState.signupIAP === null) {
+      return undefined;
+    }
+    if (worldState.isPreLoginInterest === undefined) {
+      return undefined;
+    }
+
+    return !worldState.isPreLoginInterest && worldState.signupIAP.showNow;
   },
 
   component: (worldState, resources, doAnticipateState) => (

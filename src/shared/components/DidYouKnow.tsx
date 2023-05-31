@@ -34,6 +34,12 @@ type DidYouKnowProps = {
    * the callbacks within (if used).
    */
   animation?: DidYouKnowAnimationProps;
+
+  /**
+   * If specified, the title to display above the fact. Defaults to
+   * Did you know?
+   */
+  title?: ReactElement | string;
 };
 
 /**
@@ -42,6 +48,7 @@ type DidYouKnowProps = {
  */
 export const DidYouKnow = ({
   animation,
+  title,
   children,
 }: PropsWithChildren<DidYouKnowProps>): ReactElement => {
   return (
@@ -49,7 +56,7 @@ export const DidYouKnow = ({
       <div className={styles.iconContainer}>
         <LightbulbAnimatedIcon {...animation} />
       </div>
-      <div className={styles.title}>Did you know?</div>
+      <div className={styles.title}>{title ?? <>Did you know?</>}</div>
       <div className={styles.fact}>{children}</div>
     </div>
   );

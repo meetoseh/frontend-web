@@ -17,9 +17,9 @@
     {
       "uid": "oseh_if_0ykGW_WatP5-mh-0HRsrNw",
       "name": "abstract-darkened",
-      "comment": "used for some public interactive prompts, e.g., daily goal",
+      "comment": "used for some public interactive prompts, e.g., daily goal, and many other pages",
       "source": "server_images/oseh_abstract_darken15.jpeg",
-      "resolutions": "full-bleed"
+      "resolutions": ["full-bleed", [241, 391], [482, 782], [723, 1173]]
     },
     {
       "uid": "oseh_if_F7sVhs4BJ7nnhPjyhi09-g",
@@ -32,6 +32,20 @@
         [840, 460],
         [1008, 552]
       ]
+    },
+    {
+      "uid": "oseh_if_y2J1TPz5VhUUsk8I0ofPwg",
+      "name": "woman-headshot",
+      "comment": "generally used as a placeholder when developing where a headshot is desired",
+      "source": "server_images/pexels-andrea-piacquadio-3767392.jpg",
+      "resolutions": "headshot"
+    },
+    {
+      "uid": "oseh_if_pZHgy82qwFj2YvTdn7RgEw",
+      "name": "pati-lee-headshot",
+      "comment": "A user with a strong quote about the product",
+      "source": "server_images/pati-lee-headshot.jpg",
+      "resolutions": "headshot"
     }
   ]
 }

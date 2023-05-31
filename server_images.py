@@ -83,10 +83,28 @@ RESOLUTION_PRESETS: Dict[str, List[Tuple[int, int]]] = {
         (1920, 1080),
         (1366, 768),
         (1536, 864),
-    ]
+    ],
+    "headshot": [
+        (38, 38),
+        (45, 45),
+        (56, 56),
+        (60, 60),
+        (76, 76),
+        (90, 90),
+        (112, 112),
+        (120, 120),
+        (168, 168),
+        (180, 180),
+        (189, 189),
+        (224, 224),
+        (256, 256),
+        (378, 378),
+        (512, 512),
+        (567, 567),
+    ],
 }
 
-ResolutionPreset = Literal["full-bleed"]
+ResolutionPreset = Literal["full-bleed", "headshot"]
 
 
 class ServerImageFile(BaseModel):
@@ -98,8 +116,10 @@ class ServerImageFile(BaseModel):
     source: str = Field(
         description="path to source image file, relative to the project root"
     )
-    resolutions: Union[ResolutionPreset, List[Tuple[int, int]]] = Field(
-        description="list of resolutions to generate, or a preset"
+    resolutions: Union[
+        ResolutionPreset, List[Union[Tuple[int, int], ResolutionPreset]]
+    ] = Field(
+        description="list of resolutions to generate, or a preset, or a combination"
     )
 
 
@@ -169,6 +189,15 @@ async def update_server_images(itgs: Itgs):
     for file in config.files:
         if isinstance(file.resolutions, str):
             file.resolutions = RESOLUTION_PRESETS[file.resolutions]
+        else:
+            new_resolutions: List[Tuple[int, int]] = []
+            for resolution in file.resolutions:
+                if isinstance(resolution, str):
+                    new_resolutions.extend(RESOLUTION_PRESETS[resolution])
+                else:
+                    new_resolutions.append(tuple(resolution))
+            # dict will preserve order
+            file.resolutions = list(dict((k, 1) for k in new_resolutions))
 
         old_resolutions = None
         old_file = old_config_lookup.get(file.uid)
@@ -222,7 +251,9 @@ async def ensure_file_exists(itgs: Itgs, file: ServerImageFile, force: bool = Fa
         jobs = await itgs.jobs()
         job_uid = secrets.token_urlsafe(16)
         job_done_task = asyncio.create_task(wait_job_done(itgs, job_uid, 60))
-        await jobs.enqueue("runners.delete_image_file", uid=file.uid, job_uid=job_uid)
+        await jobs.enqueue(
+            "runners.delete_image_file", uid=file.uid, job_uid=job_uid, force=True
+        )
         await job_done_task
         print("  done")
     else:

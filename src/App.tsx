@@ -1,3 +1,4 @@
+import './shared/icons.module.css';
 import './shared/buttons.module.css';
 import UserApp from './user/UserApp';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
@@ -22,6 +23,7 @@ import { CourseAttachScreen } from './user/courses/CourseAttachScreen';
 import { CourseDownloadScreen } from './user/courses/CourseDownloadScreen';
 import { JourneyPublicLink } from './user/journey/JourneyPublicLink';
 import { InterestsAutoProvider } from './shared/InterestsContext';
+import { AnxietyLanding } from './user/landing/AnxietyLanding';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -204,6 +206,16 @@ function App() {
           element={
             <LoginProvider>
               <JourneyPublicLink />
+            </LoginProvider>
+          }
+        />
+        <Route
+          path="/anxiety"
+          element={
+            <LoginProvider>
+              <InterestsAutoProvider>
+                <AnxietyLanding />
+              </InterestsAutoProvider>
             </LoginProvider>
           }
         />
