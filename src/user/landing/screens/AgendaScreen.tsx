@@ -54,7 +54,7 @@ export const AgendaScreen = ({
     () =>
       agendaRaw ?? [
         <>Learn more about Oseh</>,
-        <>Create an account</>,
+        <>Create a free account</>,
         <>Try your first class</>,
         <>Build a daily mindfulness habit</>,
       ],
