@@ -125,7 +125,7 @@ export const TryAIJourneyStep: OnboardingStep<TryAIJourneyState, TryAIJourneyRes
           return;
         }
 
-        if (streakDays < 2) {
+        if (streakDays < 7) {
           setJourney(undefined);
           onDone();
           return;
