@@ -159,11 +159,20 @@ export const UserFilterAndSortBlock = ({
       if (f.startsWith('%')) {
         f = f.slice(1);
       }
-      // replace all % which aren't escaped with \\ with &. this will not work
-      // with \\\\% but that's so unlikely to happen that it's not worth
-      // worrying about
-      f = f.replace(/(?<!\\)%/g, '&');
-      return f;
+      // replace all % which aren't escaped with \\ with &
+      let result = '';
+      let lastIndex = 0;
+      let escaped = false;
+      for (let i = 0; i < f.length; i++) {
+        if (f[i] === '%' && !escaped) {
+          result += f.slice(lastIndex, i) + '&';
+          lastIndex = i + 1;
+        }
+        escaped = f[i] === '\\' && !escaped;
+      }
+      result += f.slice(lastIndex);
+
+      return result;
     })(filterRepresentation);
     const parsed = new URLSearchParams(canonicalRepresentation);
 
