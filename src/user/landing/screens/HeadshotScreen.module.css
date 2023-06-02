@@ -41,12 +41,22 @@
   padding: 0 24px;
 }
 
+.userQuote {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 16px 29px;
+}
+
 .headshot {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 189px;
-  height: 189px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   overflow: hidden;
   margin-bottom: 20px;
@@ -59,7 +69,6 @@
   line-height: 24px;
   color: white;
   text-align: center;
-  padding: 0 26px;
 }
 
 .name {
@@ -71,7 +80,17 @@
   text-align: center;
 }
 
-.buttonContainer {
-  margin-top: 100px;
+.valueProp {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  text-align: center;
+  color: white;
+  margin: 38px 0;
+}
+
+.buttonsContainer {
   width: 100%;
 }

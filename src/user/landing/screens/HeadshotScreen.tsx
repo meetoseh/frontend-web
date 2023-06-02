@@ -2,7 +2,9 @@ import { ReactElement, useMemo } from 'react';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../../shared/OsehImage';
 import styles from './HeadshotScreen.module.css';
-import { Button } from '../../../shared/forms/Button';
+import { useProviderUrls } from '../../login/LoginApp';
+import { SplashScreen } from '../../splash/SplashScreen';
+import { SocialSignins } from '../../login/LoginApp';
 
 type HeadshotScreenProps = {
   /**
@@ -21,24 +23,31 @@ type HeadshotScreenProps = {
    * The name of the user. Defaults to "Jane Smith"
    */
   name?: ReactElement | string;
+
   /**
-   * The handler for when the continue button is clicked, or a string to have
-   * the button be an anchor tag going to the specified url.
+   * A value prop above the signin buttons, defaults to
+   * "Free access to anxiety-relieving 1 minute exercises"
    */
-  onContinue: React.MouseEventHandler<HTMLButtonElement> | string;
+  valueProp?: ReactElement | string;
 };
 
+/**
+ * A screen which shows the oseh logo, a user headshot & quote, a sentence,
+ * and login buttons.
+ */
 export const HeadshotScreen = ({
   headshotUid: headshotUidRaw,
   quote: quoteRaw,
   name: nameRaw,
-  onContinue,
+  valueProp: valuePropRaw,
 }: HeadshotScreenProps): ReactElement => {
   const headshotUid = headshotUidRaw ?? 'oseh_if_y2J1TPz5VhUUsk8I0ofPwg';
   const quote = quoteRaw ?? (
     <>I feel like I have a better understanding of my anxiety and how to manage it.</>
   );
   const name = nameRaw ?? <>Jane Smith</>;
+  const valueProp = valuePropRaw ?? <>Free access to anxiety-relieving 1 minute exercises</>;
+  const urls = useProviderUrls();
 
   const windowSize = useWindowSize();
   const backgroundProps = useMemo<OsehImageProps>(
@@ -59,8 +68,8 @@ export const HeadshotScreen = ({
     () => ({
       uid: headshotUid,
       jwt: null,
-      displayWidth: 189,
-      displayHeight: 189,
+      displayWidth: 56,
+      displayHeight: 56,
       alt: '',
       isPublic: true,
       placeholderColor: '#f9f9f9',
@@ -69,21 +78,26 @@ export const HeadshotScreen = ({
   );
   const headshot = useOsehImageState(headshotProps);
 
+  if (urls === null || headshot.loading) {
+    return <SplashScreen />;
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
         <OsehImageFromState {...background} />
       </div>
       <div className={styles.content}>
-        <div className={styles.headshot}>
-          <OsehImageFromState {...headshot} />
+        <div className={styles.userQuote}>
+          <div className={styles.headshot}>
+            <OsehImageFromState {...headshot} />
+          </div>
+          <div className={styles.quote}>{quote}</div>
+          <div className={styles.name}>{name}</div>
         </div>
-        <div className={styles.quote}>{quote}</div>
-        <div className={styles.name}>{name}</div>
-        <div className={styles.buttonContainer}>
-          <Button type="button" variant="filled-white" onClick={onContinue} fullWidth>
-            Continue
-          </Button>
+        <div className={styles.valueProp}>{valueProp}</div>
+        <div className={styles.buttonsContainer}>
+          <SocialSignins urls={urls} />
         </div>
       </div>
     </div>

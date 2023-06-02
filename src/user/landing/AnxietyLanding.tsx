@@ -1,28 +1,16 @@
 import { useCallback, useState } from 'react';
 import { FactWithTitleScreen } from './screens/FactWithTitleScreen';
 import { HeadshotScreen } from './screens/HeadshotScreen';
-import { LandingPreviewScreen } from './screens/LandingPreviewScreen';
-import { AgendaScreen } from './screens/AgendaScreen';
 import { BannerValuePropsScreen } from './screens/BannerValuePropsScreen';
 
-type Step = 'preview' | 'agenda' | 'bannerVPs' | 'fact' | 'headshot';
+type Step = 'bannerVPs' | 'fact' | 'headshot';
 
 /**
  * The landing page for users acquired via anxiety-related marketing.
  * Assumed to be wrapped in a login / interest context.
  */
 export const AnxietyLanding = () => {
-  const [step, setStep] = useState<Step>('preview');
-
-  const gotoAgenda = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    setStep('agenda');
-  }, []);
-
-  const gotoBannerVPs = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    setStep('bannerVPs');
-  }, []);
+  const [step, setStep] = useState<Step>('bannerVPs');
 
   const gotoFact = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -34,18 +22,13 @@ export const AnxietyLanding = () => {
     setStep('headshot');
   }, []);
 
-  if (step === 'preview') {
-    return <LandingPreviewScreen onContinue={gotoAgenda} />;
-  } else if (step === 'agenda') {
-    return <AgendaScreen onContinue={gotoBannerVPs} />;
-  } else if (step === 'bannerVPs') {
+  if (step === 'bannerVPs') {
     return <BannerValuePropsScreen onContinue={gotoFact} />;
   } else if (step === 'fact') {
     return <FactWithTitleScreen onContinue={gotoHeadshot} />;
   } else {
     return (
       <HeadshotScreen
-        onContinue="/"
         headshotUid="oseh_if_pZHgy82qwFj2YvTdn7RgEw"
         quote={
           <>
