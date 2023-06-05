@@ -18,6 +18,17 @@ export type OsehImageRef = {
   jwt: string;
 };
 
+/**
+ * Describes the minimum information required to reference a specific
+ * public image.
+ */
+export type OsehPublicImageRef = {
+  /** The uid of the image file */
+  uid: string;
+  /** The value null, to indicate the image is public */
+  jwt: null;
+};
+
 export type OsehImageProps = {
   /**
    * The uid of the oseh image file. If null, no image is loaded until

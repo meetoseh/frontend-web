@@ -26,10 +26,8 @@ type MyProfilePictureProps = {
 };
 /**
  * Shows the users profile picture as a 60x60 image. Requires a login
- * context.
- *
- * Shows a blank image if the user is not logged in or do not have a
- * profile picture.
+ * context. Returns an empty fragment if the user doesn't have a profile
+ * picture.
  */
 export const MyProfilePicture = ({
   displayWidth = 60,

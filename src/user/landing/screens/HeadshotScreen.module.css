@@ -25,10 +25,6 @@
   overflow: hidden;
 }
 
-.background {
-  background: linear-gradient(0deg, #000000 0%, #191c1d 37%, #191c1d 100%);
-}
-
 .content {
   display: flex;
   flex-direction: column;

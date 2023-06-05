@@ -9,6 +9,7 @@ import { CourseClassesStep } from '../steps/courseClasses/CourseClassesStep';
 import { PickEmotionJourneyStep } from '../steps/pickEmotionJourney/PickEmotionJourneyStep';
 import { GoalDaysPerWeekStep } from '../steps/goalDaysPerWeek/GoalDaysPerWeekStep';
 import { TryAIJourneyStep } from '../steps/tryAIJourney/TryAIJourneyStep';
+import { FavoritesAnnouncementStep } from '../steps/favoritesAnnouncement/FavoritesAnnouncementStep';
 
 export type OnboardingState = {
   /**
@@ -30,6 +31,7 @@ export type OnboardingState = {
 
 const steps = [
   RequestNameStep,
+  FavoritesAnnouncementStep,
   CourseClassesStep,
   SignupRewardStep,
   RequestPhoneStep,

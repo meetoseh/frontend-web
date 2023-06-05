@@ -122,16 +122,20 @@
 
 .ctaContainer {
   max-width: 390px;
-  padding: 0 57px;
+  padding: 0 24px;
   margin: 0 auto;
+  transition: top 0.7s ease;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .settingsLinkContainer {
   display: flex;
   flex-flow: row nowrap;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
-  width: 100%;
 }
 
 .settingsLink {
@@ -141,8 +145,11 @@
   align-items: center;
   text-decoration: none;
   color: #f2f2f3;
-  width: 100%;
   padding: 0 32px;
+}
+
+.favoritesContainer {
+  margin-right: 6px;
 }
 
 .greeting {
@@ -168,4 +175,19 @@
   border-radius: 50%;
   overflow: hidden;
   margin-right: 10px;
+}
+
+.emptyHeart {
+  composes: icon from '../../../../shared/icons.module.css';
+  width: 18px;
+  height: 18px;
+  background-image: url('./icons/emptyHeart.svg');
+  margin-right: 0.25em;
+}
+
+.favoritesInner {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
 }

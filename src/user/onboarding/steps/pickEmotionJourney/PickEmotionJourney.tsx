@@ -277,25 +277,7 @@ const PickEmotion = ({
     [resources.onSelect, resources.options]
   );
 
-  const onContinueClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      if (resources.options === null) {
-        return;
-      }
-
-      const index =
-        tentativelyPressedIndex === null
-          ? Math.min(
-              Math.floor(Math.random() * resources.options.words.length),
-              resources.options.words.length - 1
-            )
-          : tentativelyPressedIndex;
-
-      resources.onSelect.call(undefined, resources.options.words[index]);
-    },
-    [resources.options, resources.onSelect, tentativelyPressedIndex]
-  );
+  const onGotoFavoritesClick = '/favorites';
 
   const onGotoClassClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -339,9 +321,10 @@ const PickEmotion = ({
 
     return {
       paddingTop: '20px',
-      paddingBottom: '80px',
+      paddingBottom: resources.selected === null ? '20px' : '80px',
+      transition: 'padding-bottom 0.7s ease',
     };
-  }, [windowSize]);
+  }, [resources.selected, windowSize]);
 
   const settingsStyle = useMemo<React.CSSProperties>(() => {
     const usableHeight = Math.min(844, windowSize.height);
@@ -352,16 +335,15 @@ const PickEmotion = ({
       };
     }
 
+    const desiredWidth = Math.min(390, windowSize.width);
+
     const distanceFromTopOfUsable = 32;
 
     return {
       position: 'absolute',
-      left: 0,
+      left: windowSize.width / 2 - desiredWidth / 2,
       top: windowSize.height / 2 - usableHeight / 2 + distanceFromTopOfUsable,
-      width: `${windowSize.width}px`,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
+      width: `${desiredWidth}px`,
     };
   }, [windowSize]);
 
@@ -381,9 +363,6 @@ const PickEmotion = ({
       position: 'absolute',
       top: windowSize.height / 2 + usableHeight / 2 - distanceFromBottomOfUsable - buttonHeight,
       width: `${windowSize.width}px`,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
     };
   }, [windowSize]);
 
@@ -450,6 +429,13 @@ const PickEmotion = ({
               <div className={styles.settingsLinkText}>Daily Check-in</div>
             </div>
           </a>
+          <div className={styles.favoritesContainer}>
+            <Button type="button" variant="link-white" onClick={onGotoFavoritesClick}>
+              <div className={styles.favoritesInner}>
+                <span className={styles.emptyHeart} /> Favorites
+              </div>
+            </Button>
+          </div>
         </div>
         <div className={styles.primaryContainer} style={primaryContainerStyle}>
           <div className={styles.title}>How do you want to feel?</div>
@@ -468,18 +454,13 @@ const PickEmotion = ({
             </div>
           )}
         </div>
-        <div className={styles.ctaContainer} style={ctaStyle}>
-          {resources.selected === null && (
-            <Button type="button" variant="filled-white" onClick={onContinueClick} fullWidth>
-              Choose For Me
-            </Button>
-          )}
-          {resources.selected !== null && (
+        {resources.selected !== null && (
+          <div className={styles.ctaContainer} style={ctaStyle}>
             <Button type="button" variant="filled-white" onClick={onGotoClassClick} fullWidth>
               Take Me To Class
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

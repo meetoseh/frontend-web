@@ -1,0 +1,74 @@
+.container {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(2px);
+  border-radius: 10px;
+}
+
+.titleAndInstructor {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 27px;
+  color: #eaf0ff;
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 225px;
+}
+
+.instructor {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.instructorPictureContainer {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 6px;
+}
+
+.instructorName {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 14px;
+  letter-spacing: 0.25px;
+  color: #eaf0ff;
+}
+
+.favoritedContainer {
+  padding: 8px;
+}
+
+.favoritedIcon {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('../icons/fullHeart.svg');
+}
+
+.unfavoritedIcon {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('../icons/emptyHeart.svg');
+}

@@ -46,6 +46,13 @@
       "comment": "A user with a strong quote about the product",
       "source": "server_images/pati-lee-headshot.jpg",
       "resolutions": "headshot"
+    },
+    {
+      "uid": "oseh_if_IpfCWgN-6w_c1VxR4OX_Vg",
+      "name": "favorites-announcement",
+      "comment": "Used for the favorites feature announcement",
+      "source": "server_images/favorites_announcement.jpg",
+      "resolutions": [[326, 257]]
     }
   ]
 }

@@ -11,6 +11,7 @@ import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenConte
 import { useOnboardingState } from './onboarding/hooks/useOnboardingState';
 import { OnboardingRouter } from './onboarding/OnboardingRouter';
 import { InterestsAutoProvider } from '../shared/InterestsContext';
+import { useTimedValue } from '../shared/hooks/useTimedValue';
 
 export default function UserApp(): ReactElement {
   return (
@@ -51,7 +52,7 @@ const UserAppInner = (): ReactElement => {
   // it white and then go straight to the content if we can do so rapidly, rather
   // than going white screen -> black screen (start of splash) -> content. Of course,
   // if loading takes a while, we'll show the splash screen.
-  const [flashWhiteInsteadOfSplash, setFlashWhiteInsteadOfLoading] = useState(true);
+  const flashWhiteInsteadOfSplash = useTimedValue(true, false, 250);
 
   const [beenLoaded, setBeenLoaded] = useState(false);
   const [handlingCheckout, setHandlingCheckout] = useState(true);
@@ -113,19 +114,6 @@ const UserAppInner = (): ReactElement => {
       }
     }
   }, [loginContext]);
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout | null = setTimeout(() => {
-      timeout = null;
-      setFlashWhiteInsteadOfLoading(false);
-    }, 250);
-
-    return () => {
-      if (timeout !== null) {
-        clearTimeout(timeout);
-      }
-    };
-  });
 
   useEffect(() => {
     if (loginContext.state === 'loading' || !fontsLoaded || handlingCheckout) {
