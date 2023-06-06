@@ -292,15 +292,25 @@ export function InfiniteList<T>({
     }
 
     let addedListener = false;
+    let lastScrollTop = scrollPaddingAbove;
 
     const onScroll = (e: Event) => {
       if (e.cancelable) {
         e.preventDefault();
       }
 
+      // ios doesn't seem to respect changing the scroll position very well, and
+      // so we'll constantly get the same scrollTop value. This doesnt seem like
+      // a good solution though
+
       const currentScroll = list.scrollTop;
-      const scrollChange = currentScroll - scrollPaddingAbove;
-      console.log('scrollChange:', scrollChange);
+      const scrollChangeUsingScrollPaddingAbove = currentScroll - lastScrollTop;
+      const scrollChangeUsingLastScrollTop = currentScroll - scrollPaddingAbove;
+      const scrollChange =
+        Math.abs(scrollChangeUsingScrollPaddingAbove) < Math.abs(scrollChangeUsingLastScrollTop)
+          ? scrollChangeUsingScrollPaddingAbove
+          : scrollChangeUsingLastScrollTop;
+      lastScrollTop = currentScroll;
       list.scrollTop = scrollPaddingAbove;
       updateScrollY(scrollChange);
     };
