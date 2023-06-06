@@ -21,4 +21,15 @@ export type JourneyShared = {
    * (audio.loaded)
    */
   audio: JourneyAudio | null;
+  /**
+   * True if the user has favorited this journey, false if they have
+   * not, null if we don't know yet.
+   */
+  favorited: boolean | null;
+  /**
+   * If the user favorites/unfavorites the journey, this can be called to update
+   * our in-memory state.
+   * @param favorited True if the user has favorited the journey, false if they have not
+   */
+  setFavorited: (favorited: boolean) => void;
 };

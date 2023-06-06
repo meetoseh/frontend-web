@@ -225,7 +225,9 @@ function App() {
           element={
             <LoginProvider>
               <InterestsAutoProvider>
-                <FavoritesApp />
+                <ModalProvider>
+                  <FavoritesApp />
+                </ModalProvider>
               </InterestsAutoProvider>
             </LoginProvider>
           }

@@ -1,9 +1,15 @@
-import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
 import { OsehImageFromState } from '../../../shared/OsehImage';
 import styles from './Journey.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
+import { IconButton } from '../../../shared/forms/IconButton';
+import { useFavoritedModal } from '../../favorites/hooks/useFavoritedModal';
+import { useUnfavoritedModal } from '../../favorites/hooks/useUnfavoritedModal';
+import { apiFetch } from '../../../shared/ApiConstants';
+import { LoginContext } from '../../../shared/LoginContext';
+import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 
 const HIDE_TIME = 10000;
 const HIDING_TIME = 365;
@@ -30,11 +36,15 @@ export const Journey = ({
    */
   onCloseEarly?: (currentTime: number, totalTime: number) => void;
 }): ReactElement => {
+  const loginContext = useContext(LoginContext);
   const containerRef = useRef<HTMLDivElement>(null);
   const [controlsVisibility, setControlsVisibility] = useState<'visible' | 'hiding' | 'hidden'>(
     'visible'
   );
   const [currentTime, setCurrentTime] = useState(0);
+  const [showLikedUntil, setShowLikedUntil] = useState<number | undefined>(undefined);
+  const [showUnlikedUntil, setShowUnlikedUntil] = useState<number | undefined>(undefined);
+  const [likeError, setLikeError] = useState<ReactElement | null>(null);
 
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize: shared.windowSize });
 
@@ -124,6 +134,9 @@ export const Journey = ({
     };
   }, [shared.audio?.audioRef]);
 
+  useFavoritedModal(showLikedUntil);
+  useUnfavoritedModal(showUnlikedUntil);
+
   const onClickedClose = useCallback(() => {
     if (shared.audio?.stop) {
       shared.audio.stop();
@@ -141,6 +154,53 @@ export const Journey = ({
       width: `${(currentTime / journey.durationSeconds) * 100}%`,
     };
   }, [currentTime, journey.durationSeconds]);
+
+  const onToggleFavorited = useCallback(
+    async (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (shared.favorited === null) {
+        return;
+      }
+
+      e.preventDefault();
+      setShowLikedUntil(undefined);
+      setShowUnlikedUntil(undefined);
+      setLikeError(null);
+
+      try {
+        const response = await apiFetch(
+          '/api/1/users/me/journeys/likes' +
+            (shared.favorited ? '?uid=' + encodeURIComponent(journey.uid) : ''),
+          shared.favorited
+            ? {
+                method: 'DELETE',
+              }
+            : {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                  journey_uid: journey.uid,
+                }),
+              },
+          loginContext
+        );
+        if (!response.ok) {
+          throw response;
+        }
+
+        const nowFavorited = !shared.favorited;
+        shared.setFavorited.call(undefined, nowFavorited);
+        if (nowFavorited) {
+          setShowLikedUntil(Date.now() + 5000);
+        } else {
+          setShowUnlikedUntil(Date.now() + 5000);
+        }
+      } catch (err) {
+        const desc = await describeError(err);
+        setLikeError(desc);
+      }
+    },
+    [shared.favorited, journey.uid, loginContext, shared.setFavorited]
+  );
 
   return (
     <div className={styles.container} ref={containerRef}>
@@ -174,8 +234,21 @@ export const Journey = ({
           styles['control_' + controlsVisibility]
         }`}>
         <div className={styles.content}>
-          <div className={styles.title}>{journey.title}</div>
-          <div className={styles.instructor}>{journey.instructor.name}</div>
+          <div className={styles.titleAndInstructor}>
+            <div className={styles.title}>{journey.title}</div>
+            <div className={styles.instructor}>{journey.instructor.name}</div>
+          </div>
+          {shared.favorited !== null && (
+            <div className={styles.likeContainer}>
+              <IconButton
+                icon={shared.favorited ? styles.fullHeartIcon : styles.emptyHeartIcon}
+                srOnlyName={shared.favorited ? 'Unlike' : 'Like'}
+                onClick={onToggleFavorited}
+                disabled={false}
+              />
+            </div>
+          )}
+          {likeError && <ErrorBlock>{likeError}</ErrorBlock>}
         </div>
       </div>
     </div>

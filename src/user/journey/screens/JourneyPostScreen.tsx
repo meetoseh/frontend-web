@@ -9,6 +9,8 @@ import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import { SplashScreen } from '../../splash/SplashScreen';
 import { combineClasses } from '../../../shared/lib/combineClasses';
 import { Button } from '../../../shared/forms/Button';
+import { useFavoritedModal } from '../../favorites/hooks/useFavoritedModal';
+import { useUnfavoritedModal } from '../../favorites/hooks/useUnfavoritedModal';
 
 type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 const DAYS_OF_WEEK: DayOfWeek[] = [
@@ -62,6 +64,9 @@ export const JourneyPostScreen = ({
   const loginContext = useContext(LoginContext);
   const [error, setError] = useState<ReactElement | null>(null);
   const [streak, setStreak] = useState<StreakInfo | null>(null);
+  const [showLikedUntil, setShowLikedUntil] = useState<number | undefined>(undefined);
+  const [showUnlikedUntil, setShowUnlikedUntil] = useState<number | undefined>(undefined);
+  const [likeError, setLikeError] = useState<ReactElement | null>(null);
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in') {
@@ -116,6 +121,9 @@ export const JourneyPostScreen = ({
     }
   }, [loginContext]);
 
+  useFavoritedModal(showLikedUntil);
+  useUnfavoritedModal(showUnlikedUntil);
+
   const onContinue = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
@@ -134,6 +142,53 @@ export const JourneyPostScreen = ({
       onJourneyFinished(true);
     },
     [onJourneyFinished]
+  );
+
+  const onToggleFavorited = useCallback(
+    async (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (shared.favorited === null) {
+        return;
+      }
+
+      e.preventDefault();
+      setShowLikedUntil(undefined);
+      setShowUnlikedUntil(undefined);
+      setLikeError(null);
+
+      try {
+        const response = await apiFetch(
+          '/api/1/users/me/journeys/likes' +
+            (shared.favorited ? '?uid=' + encodeURIComponent(journey.uid) : ''),
+          shared.favorited
+            ? {
+                method: 'DELETE',
+              }
+            : {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                  journey_uid: journey.uid,
+                }),
+              },
+          loginContext
+        );
+        if (!response.ok) {
+          throw response;
+        }
+
+        const nowFavorited = !shared.favorited;
+        shared.setFavorited.call(undefined, nowFavorited);
+        if (nowFavorited) {
+          setShowLikedUntil(Date.now() + 5000);
+        } else {
+          setShowUnlikedUntil(Date.now() + 5000);
+        }
+      } catch (err) {
+        const desc = await describeError(err);
+        setLikeError(desc);
+      }
+    },
+    [shared.favorited, journey.uid, loginContext, shared.setFavorited]
   );
 
   if (streak === null) {
@@ -296,6 +351,26 @@ export const JourneyPostScreen = ({
             <Button type="button" variant="filled-white" onClick={onContinue} fullWidth>
               Continue
             </Button>
+          </div>
+          <div
+            className={styles.favoriteContainer}
+            style={shared.favorited === null ? { display: 'none' } : undefined}>
+            <Button type="button" variant="link-white" onClick={onToggleFavorited} fullWidth>
+              <div className={styles.favoriteButtonContents}>
+                {shared.favorited ? (
+                  <>
+                    <div className={styles.favoritedIcon} />
+                    Remove from favorites
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.unfavoritedIcon} />
+                    Add to favorites
+                  </>
+                )}
+              </div>
+            </Button>
+            {likeError && <ErrorBlock>{likeError}</ErrorBlock>}
           </div>
           <div className={styles.bottomSpacer}></div>
         </div>

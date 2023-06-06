@@ -179,3 +179,30 @@
   text-align: center;
   color: white;
 }
+
+.favoriteContainer {
+  margin-top: 24px;
+}
+
+.favoriteButtonContents {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.favoritedIcon {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('../icons/fullHeart.svg');
+  margin-right: 12px;
+}
+
+.unfavoritedIcon {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('../icons/emptyHeart.svg');
+  margin-right: 12px;
+}

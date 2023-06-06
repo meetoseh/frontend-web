@@ -17,7 +17,7 @@
   position: absolute;
   left: 0;
   width: 100%;
-  bottom: 138px;
+  bottom: 106px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -30,9 +30,17 @@
   max-height: 875px;
   width: 100%;
   display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.titleAndInstructor {
+  display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 .title {
@@ -89,7 +97,7 @@
 
 .audioControlsContainer {
   position: absolute;
-  bottom: 96px;
+  bottom: 64px;
   left: 24px;
   right: 24px;
 }
@@ -124,6 +132,22 @@
   background: #446266;
 }
 
+.fullHeartIcon {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('../icons/fullHeart.svg');
+  margin-right: 12px;
+}
+
+.emptyHeartIcon {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('../icons/emptyHeart.svg');
+  margin-right: 12px;
+}
+
 .control {
   display: flex;
   align-items: center;
@@ -147,11 +171,5 @@
 
   .control {
     transition: opacity 0.35s ease-in;
-  }
-}
-
-@media screen and (max-height: 724px) {
-  .content {
-    justify-content: center;
   }
 }

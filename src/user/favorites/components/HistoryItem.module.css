@@ -1,3 +1,18 @@
+.separator {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 12px;
+  letter-spacing: 0.25px;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 2px 0 10px 0;
+}
+
 .container {
   display: flex;
   flex-flow: row nowrap;
