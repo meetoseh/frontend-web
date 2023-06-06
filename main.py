@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from error_middleware import handle_request_error
 import routes.journey_public_links
+import routes.favorites
 import asyncio
 
 
@@ -35,6 +36,7 @@ if os.environ.get("ENVIRONMENT") == "dev":
     )
 
 app.include_router(routes.journey_public_links.router)
+app.include_router(routes.favorites.router)
 app.router.redirect_slashes = False
 
 
