@@ -304,14 +304,14 @@ export function InfiniteList<T>({
       // a good solution though
 
       const currentScroll = list.scrollTop;
-      const scrollChangeUsingScrollPaddingAbove = currentScroll - lastScrollTop;
-      const scrollChangeUsingLastScrollTop = currentScroll - scrollPaddingAbove;
+      const scrollChangeUsingScrollPaddingAbove = currentScroll - scrollPaddingAbove;
+      const scrollChangeUsingLastScrollTop = currentScroll - lastScrollTop;
       const scrollChange =
         Math.abs(scrollChangeUsingScrollPaddingAbove) < Math.abs(scrollChangeUsingLastScrollTop)
           ? scrollChangeUsingScrollPaddingAbove
           : scrollChangeUsingLastScrollTop;
       lastScrollTop = currentScroll;
-      list.scrollTop = scrollPaddingAbove;
+      list.scrollTo({ top: scrollPaddingAbove, behavior: 'auto' });
       updateScrollY(scrollChange);
     };
 
