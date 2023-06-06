@@ -7,6 +7,7 @@ Because this doesn't materially affect the page, in development it's not necessa
 to run this server.
 """
 import os
+from itgs import Itgs
 import updater
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -44,5 +45,9 @@ background_tasks = set()
 
 
 @app.on_event("startup")
-def register_background_tasks():
+async def register_background_tasks():
+    async with Itgs() as itgs:
+        cache = await itgs.local_cache()
+        cache.clear()
+
     background_tasks.add(asyncio.create_task(updater.listen_forever()))
