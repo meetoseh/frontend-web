@@ -48,6 +48,7 @@ background_tasks = set()
 async def register_background_tasks():
     async with Itgs() as itgs:
         cache = await itgs.local_cache()
-        cache.clear()
+        while cache.clear() > 0:
+            pass
 
     background_tasks.add(asyncio.create_task(updater.listen_forever()))
