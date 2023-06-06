@@ -300,6 +300,7 @@ export function InfiniteList<T>({
 
       const currentScroll = list.scrollTop;
       const scrollChange = currentScroll - scrollPaddingAbove;
+      console.log('scrollChange:', scrollChange);
       list.scrollTop = scrollPaddingAbove;
       updateScrollY(scrollChange);
     };
