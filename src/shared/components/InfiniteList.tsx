@@ -293,7 +293,11 @@ export function InfiniteList<T>({
 
     let addedListener = false;
 
-    const onScroll = () => {
+    const onScroll = (e: Event) => {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+
       const currentScroll = list.scrollTop;
       const scrollChange = currentScroll - scrollPaddingAbove;
       list.scrollTop = scrollPaddingAbove;
@@ -308,7 +312,7 @@ export function InfiniteList<T>({
         setScrollY(0);
         requestAnimationFrame(resetScroll);
       } else {
-        list.addEventListener('scroll', onScroll);
+        list.addEventListener('scroll', onScroll, { passive: false });
         addedListener = true;
       }
     };
