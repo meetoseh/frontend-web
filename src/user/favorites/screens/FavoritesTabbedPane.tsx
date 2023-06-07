@@ -82,6 +82,28 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
     return result;
   }, [tab, windowSize.height]);
 
+  // const infiniteListing = useMemo<InfiniteListing<MinimalJourney>>(() => {
+  //   const startAt = Date.now();
+  //   const result = new ProceduralInfiniteListing<MinimalJourney>(
+  //     (idx) => ({
+  //       uid: `uid-${idx}`,
+  //       title: `Title ${idx}`,
+  //       instructor: {
+  //         name: `Instructor ${idx}`,
+  //         image: {
+  //           uid: 'oseh_if_y2J1TPz5VhUUsk8I0ofPwg',
+  //           jwt: null,
+  //         },
+  //       },
+  //       lastTakenAt: new Date(startAt - idx * 1000 * 60 * 60 * 3),
+  //       likedAt: idx % 3 === 0 ? new Date(startAt - idx * 1000 * 60 * 60 * 3) : null,
+  //     }),
+  //     Math.ceil(windowSize.height / 80) + 5
+  //   );
+  //   result.reset();
+  //   return result;
+  // }, [windowSize.height]);
+
   const gotoFavorites = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setTab('favorites');

@@ -1,6 +1,7 @@
-import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MutableRefObject, ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import { InfiniteListing } from '../lib/InfiniteListing';
 import styles from './InfiniteList.module.css';
+import { Callbacks } from '../lib/Callbacks';
 
 type InfiniteListProps<T> = {
   /**
@@ -68,7 +69,16 @@ type InfiniteListProps<T> = {
   emptyElement?: ReactElement;
 };
 
-const scrollPaddingAbove = 500;
+type ScrollPaddingValue = {
+  top: number;
+  bottom: number;
+};
+
+type ScrollPadding = {
+  value: ScrollPaddingValue;
+  changed: Callbacks<ScrollPaddingValue>;
+  set: (value: ScrollPaddingValue) => void;
+};
 
 /**
  * Uses an infinite listing object to render items within a scrollable
@@ -88,58 +98,40 @@ export function InfiniteList<T>({
   emptyElement,
 }: InfiniteListProps<T>): ReactElement {
   const items = listing.items;
-  const itemsLoaded = items !== null;
-  const numItems = items?.length ?? 0;
-  const scrollPaddingBelow = height;
 
-  // The scroll on the list container. The element is marked scrollable,
-  // but scrolling is blocked and instead we listen to the scroll event
-  // to update this value.
-  const [scrollY, setScrollY] = useState(0);
   const setItemsCounter = useState(0)[1];
-  const [itemHeights, setItemHeights] = useState<number[]>([]);
   const oldItemsRef = useRef<T[]>([]);
-  const fixHeights = useRef(false);
-  const fixHeightsTimeout = useRef<NodeJS.Timeout | null>(null);
-  const scrollPreventedUntilScrollYDiffersFrom = useRef<number | null>(null);
+
+  const scrollPadding = useRef<ScrollPadding>() as MutableRefObject<ScrollPadding>;
+  if (scrollPadding.current === undefined) {
+    scrollPadding.current = {
+      value: { top: 0, bottom: 0 },
+      changed: new Callbacks(),
+      set: (value) => {
+        scrollPadding.current.value = value;
+        scrollPadding.current.changed.call(value);
+      },
+    };
+  }
 
   const listRef = useRef<HTMLDivElement>(null);
-
-  const updateScrollY = useCallback(
-    (delta: number) => {
-      setScrollY((y) => {
-        y += delta;
-
-        if (listing.definitelyNoneBelow && listRef.current !== null) {
-          y = Math.min(y, listRef.current.scrollHeight);
-        }
-
-        if (listing.definitelyNoneAbove) {
-          y = Math.max(y, 0);
-        }
-        return y;
-      });
-    },
-    [listing]
-  );
+  const paddingTopRef = useRef<HTMLDivElement>(null);
+  const paddingBottomRef = useRef<HTMLDivElement>(null);
 
   // ensure listing or listing.items changes triggers a rerender
   useEffect(() => {
     const onItemsChanged = () => {
       setItemsCounter((c) => c + 1);
-      updateScrollY(0);
     };
 
     listing.itemsChanged.add(onItemsChanged);
     return () => {
       listing.itemsChanged.remove(onItemsChanged);
     };
-  }, [listing, updateScrollY, setItemsCounter]);
+  }, [listing, setItemsCounter]);
 
   // when rendering after listing.items changes, if listing.items is a simple
-  // rotation of the list, visually maintain the scroll position. this needs to
-  // happen before the element heights calculation, as element heights will need
-  // to be updated in the following tick.
+  // rotation of the list, visually maintain the scroll position.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (items === null) {
@@ -155,186 +147,206 @@ export function InfiniteList<T>({
 
     if (oldItems[0] === items[1]) {
       // We rotated items down one index. This means we added an item to the
-      // top of the list.
+      // top of the list that takes up space, meaning we need less space in our
+      // padding above.
 
-      // I'm not sure why oldItems[0] + gap is not correct, but when we're
-      // actually infinite scrolling the correct adjustment here appears to
-      // always be the same. i suspect it's because it works when the sizes
-      // dont change, and when the sizes do change they counterbalance each
-      // other
-      let adjustment = initialComponentHeight + gap;
-      let newHeights = [initialComponentHeight, ...itemHeights.slice(0, -1)];
-
-      updateScrollY(adjustment);
-      setItemHeights(newHeights);
+      // We will take the space created by the new item and reduce the padding
+      // above by that amount
+      const adjustment = -initialComponentHeight - gap;
+      scrollPadding.current.set({
+        top: Math.max(scrollPadding.current.value.top + adjustment, 0),
+        bottom: scrollPadding.current.value.bottom,
+      });
     } else if (oldItems[1] === items[0]) {
       // We rotated items up one index, meaning we removed an item from the
-      // top of the list.
-      updateScrollY(-itemHeights[0] - gap);
-      setItemHeights([...itemHeights.slice(1), initialComponentHeight]);
+      // top of the list, so theres less real space there, so we need more
+      // padding above.
+      const adjustment = initialComponentHeight + gap;
+      scrollPadding.current.set({
+        top: scrollPadding.current.value.top + adjustment,
+        bottom: scrollPadding.current.value.bottom,
+      });
     }
 
-    if (fixHeightsTimeout.current !== null) {
-      clearTimeout(fixHeightsTimeout.current);
+    if (listing.definitelyNoneAbove) {
+      if (scrollPadding.current.value.top !== 0) {
+        scrollPadding.current.set({ top: 0, bottom: scrollPadding.current.value.bottom });
+      }
     }
-    fixHeightsTimeout.current = setTimeout(() => {
-      fixHeights.current = true;
-      setItemsCounter((c) => c + 1);
-    }, 35);
 
-    if (listRef.current !== null) {
-      listRef.current.scrollTop = scrollPaddingAbove;
+    if (listing.definitelyNoneBelow) {
+      if (scrollPadding.current.value.bottom !== 20) {
+        scrollPadding.current.set({ top: scrollPadding.current.value.top, bottom: 20 });
+      }
+    } else {
+      if (scrollPadding.current.value.bottom !== 500) {
+        scrollPadding.current.set({ top: scrollPadding.current.value.top, bottom: 500 });
+      }
     }
 
     oldItemsRef.current = items;
   });
 
-  // when element heights change, give them more space and update the scroll.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!itemsLoaded) {
-      return;
-    }
-
-    const list = listRef.current;
-    if (list === undefined || list === null) {
-      return;
-    }
-
-    if (list.children.length !== items.length + 2) {
-      return;
-    }
-
-    if (items.length !== itemHeights.length) {
-      // we don't want to update the scrollbar on first load, so this
-      // is the trivial case
-      const newHeights: number[] = [];
-      for (let i = 1; i < list.children.length - 1; i++) {
-        newHeights.push(list.children[i].scrollHeight);
-      }
-      setItemHeights(newHeights);
-      return;
-    }
-
-    // whenever we're changing the height of something which is above
-    // the viewport, move the scrollY down by the same amount
-    // The scrollPaddingAbove is canceled out by the scrollTop, so for determining
-    // where a component is within the viewport we ignore it.
-    let scrollChange = 0;
-    let changed = false;
-    let y = -scrollY;
-    const newHeights: number[] = [];
-    for (let i = 1; i < list.children.length - 1; i++) {
-      const newHeight = list.children[i].scrollHeight;
-      if (newHeight !== itemHeights[i - 1]) {
-        changed = true;
-        if (y + newHeight < 0) {
-          const change = newHeight - itemHeights[i - 1];
-          scrollChange += change;
-        }
-      }
-      newHeights.push(newHeight);
-      y += newHeight + gap;
-    }
-    if (changed && fixHeights.current) {
-      updateScrollY(scrollChange);
-      setItemHeights(newHeights);
-    }
-    fixHeights.current = false;
-  });
-
   // call onFirstVisible/onLastVisible as appropriate when the scroll changes
   // the items change
   useEffect(() => {
+    if (listRef.current === undefined || listRef.current === null) {
+      return;
+    }
+    if (listing === null) {
+      return;
+    }
+
+    const list = listRef.current;
+    let waitingForItemsChanged = false;
+    let waitingForFrame = false;
+    let waitingForItemsChangedTimeout: NodeJS.Timeout | null = null;
+    let scrollWaitingForFrame = false;
+    let locked = false;
+
+    let active = true;
+    listing.itemsChanged.add(onItemsChanged);
+    list.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      if (active) {
+        active = false;
+        listing.itemsChanged.remove(onItemsChanged);
+        list.removeEventListener('scroll', onScroll, { capture: false });
+        if (waitingForItemsChangedTimeout !== null) {
+          clearTimeout(waitingForItemsChangedTimeout);
+          waitingForItemsChangedTimeout = null;
+        }
+      }
+    };
+
+    function checkVisible() {
+      if (!active) {
+        return;
+      }
+
+      if (list.children.length < 4) {
+        return;
+      }
+
+      const items = listing.items;
+      if (items === null) {
+        return;
+      }
+
+      if (waitingForItemsChanged || waitingForFrame || scrollWaitingForFrame || locked) {
+        return;
+      }
+
+      locked = true;
+      try {
+        const listRect = list.getBoundingClientRect();
+        const firstItem = list.children[1].getBoundingClientRect();
+        const lastItem = list.children[list.children.length - 2].getBoundingClientRect();
+
+        let triggerTop = firstItem.bottom > listRect.top && !listing.definitelyNoneAbove;
+        let triggerBottom = lastItem.top < listRect.bottom && !listing.definitelyNoneBelow;
+
+        if (triggerTop || triggerBottom) {
+          waitingForItemsChanged = true;
+          waitingForItemsChangedTimeout = setTimeout(() => {
+            waitingForItemsChangedTimeout = null;
+            waitingForItemsChanged = false;
+            checkVisible();
+          }, 1000);
+        }
+
+        if (triggerTop) {
+          listing.onFirstVisible();
+        }
+        if (triggerBottom) {
+          listing.onLastVisible();
+        }
+      } finally {
+        locked = false;
+      }
+    }
+
+    function onScroll() {
+      checkVisible();
+    }
+
+    function onItemsChanged() {
+      if (waitingForItemsChanged) {
+        if (waitingForItemsChangedTimeout !== null) {
+          clearTimeout(waitingForItemsChangedTimeout);
+          waitingForItemsChangedTimeout = null;
+        }
+        waitingForItemsChanged = false;
+        waitingForFrame = true;
+        requestAnimationFrame(() => {
+          // This is the first frame we've likely rendered the items
+          requestAnimationFrame(() => {
+            waitingForFrame = false;
+            checkVisible();
+          });
+        });
+      }
+
+      checkVisible();
+    }
+  }, [height, gap, listing]);
+
+  // Changing scrollPadding immediately effects the corresponding elements
+  useEffect(() => {
     if (
-      items === null ||
-      itemHeights.length !== items.length ||
-      items.length < listing.visibleLimit
+      paddingBottomRef.current === null ||
+      paddingTopRef.current === null ||
+      listRef.current === null
     ) {
       return;
     }
-
-    if (scrollPreventedUntilScrollYDiffersFrom.current === scrollY) {
-      return;
-    }
-
-    // The scrollPaddingAbove is canceled out by the scrollTop, so for determining
-    // where a component is within the viewport we ignore it.
-    let y = -scrollY;
-    let triggered = false;
-    for (let i = 0; i < items.length; i++) {
-      const itemHeight = itemHeights[i];
-
-      if (i === 0 && y + height > 0) {
-        listing.onFirstVisible();
-        triggered = true;
-      }
-      if (i === items.length - 1 && y < height) {
-        listing.onLastVisible();
-        triggered = true;
-      }
-
-      y += itemHeight + gap;
-    }
-
-    if (triggered) {
-      scrollPreventedUntilScrollYDiffersFrom.current = scrollY;
-    } else {
-      scrollPreventedUntilScrollYDiffersFrom.current = null;
-    }
-  }, [scrollY, items, itemHeights, height, gap, listing]);
-
-  // scrolling the list only changes scrollY, not the real scroll position
-  useEffect(() => {
+    const paddingBottom = paddingBottomRef.current;
+    const paddingTop = paddingTopRef.current;
     const list = listRef.current;
-    if (list === undefined || list === null || !itemsLoaded) {
-      return;
-    }
 
-    let addedListener = false;
-    let lastScrollTop = scrollPaddingAbove;
-
-    const onScroll = (e: Event) => {
-      if (e.cancelable) {
-        e.preventDefault();
-      }
-
-      // ios doesn't seem to respect changing the scroll position very well, and
-      // so we'll constantly get the same scrollTop value. This doesnt seem like
-      // a good solution though
-
-      const currentScroll = list.scrollTop;
-      const scrollChangeUsingScrollPaddingAbove = currentScroll - scrollPaddingAbove;
-      const scrollChangeUsingLastScrollTop = currentScroll - lastScrollTop;
-      const scrollChange =
-        Math.abs(scrollChangeUsingScrollPaddingAbove) < Math.abs(scrollChangeUsingLastScrollTop)
-          ? scrollChangeUsingScrollPaddingAbove
-          : scrollChangeUsingLastScrollTop;
-      lastScrollTop = currentScroll;
-      list.scrollTo({ top: scrollPaddingAbove, behavior: 'auto' });
-      updateScrollY(scrollChange);
-    };
-
-    const resetScroll = () => {
-      setScrollY(0);
-      list.scrollTop = scrollPaddingAbove;
-
-      if (list.scrollTop !== scrollPaddingAbove) {
-        setScrollY(0);
-        requestAnimationFrame(resetScroll);
-      } else {
-        list.addEventListener('scroll', onScroll, { passive: false });
-        addedListener = true;
-      }
-    };
-    requestAnimationFrame(resetScroll);
-
+    let active = true;
+    updateStyles();
+    scrollPadding.current.changed.add(updateStyles);
     return () => {
-      if (addedListener) {
-        list.removeEventListener('scroll', onScroll);
+      if (active) {
+        active = false;
+        scrollPadding.current.changed.remove(updateStyles);
       }
     };
-  }, [listing, itemsLoaded, scrollPaddingBelow, updateScrollY]);
+
+    function updateStyles() {
+      if (!active) {
+        return;
+      }
+
+      const top = scrollPadding.current.value.top;
+      const bottom = scrollPadding.current.value.bottom;
+      const expectedTop = `${top}px`;
+      const expectedBottom = `${bottom}px`;
+
+      if (
+        paddingBottom.style.minHeight === expectedBottom &&
+        paddingTop.style.minHeight === expectedTop
+      ) {
+        return;
+      }
+
+      const rerender = () =>
+        list.offsetHeight +
+        list.scrollHeight +
+        paddingBottom.offsetHeight +
+        paddingBottom.scrollHeight;
+
+      rerender();
+      list.style.overflowAnchor = 'none';
+      rerender();
+      paddingBottom.style.minHeight = expectedBottom;
+      paddingTop.style.minHeight = expectedTop;
+      rerender();
+      list.style.removeProperty('overflow-anchor');
+      rerender();
+    }
+  }, []);
 
   const listStyle = useMemo<React.CSSProperties>(() => {
     return {
@@ -354,40 +366,16 @@ export function InfiniteList<T>({
     });
   }, [listing, items, itemComparer]);
 
-  const [paddingAboveElementStyle, itemsStyles, paddingBelowElementStyle] = useMemo<
-    [React.CSSProperties, React.CSSProperties[], React.CSSProperties]
-  >(() => {
-    let y = -scrollY;
-    const paddingAboveElement: React.CSSProperties = {
-      position: 'absolute',
-      minHeight: `${scrollPaddingAbove}px`,
-      width: '100%',
-      top: `${y}px`,
-    };
-    y += scrollPaddingAbove;
-
-    const result: React.CSSProperties[] = [];
-    for (let i = 0; i < numItems; i++) {
-      const height = itemHeights[i] ?? initialComponentHeight;
-
-      if (i > 0) {
-        y += gap;
-      }
-
-      result.push({
-        top: `${y}px`,
-      });
-
-      y += height;
+  const firstItemStyle = useMemo<React.CSSProperties>(() => {
+    if (items === null || listing.definitelyNoneAbove) {
+      return {};
     }
-    const paddingBelowElement: React.CSSProperties = {
-      position: 'absolute',
-      minHeight: `${scrollPaddingBelow}px`,
-      width: '100%',
-      top: `${y}px`,
+    return {
+      minHeight: `${initialComponentHeight}px`,
+      maxHeight: `${initialComponentHeight}px`,
+      overflowY: 'hidden',
     };
-    return [paddingAboveElement, result, paddingBelowElement];
-  }, [itemHeights, gap, initialComponentHeight, numItems, scrollY, scrollPaddingBelow]);
+  }, [items, listing, initialComponentHeight]);
 
   if (loadingElement !== undefined && items === null) {
     return loadingElement;
@@ -399,15 +387,19 @@ export function InfiniteList<T>({
 
   return (
     <div style={listStyle} className={styles.container} ref={listRef}>
-      <div style={paddingAboveElementStyle}></div>
+      <div
+        style={{ width: '100%', minHeight: scrollPadding.current.value.top }}
+        ref={paddingTopRef}></div>
       {items?.map((item, index) => {
         return (
-          <div key={index} className={styles.item} style={itemsStyles[index]}>
+          <div key={index} className={styles.item} style={index === 0 ? firstItemStyle : undefined}>
             {component(item, replaceItemByIndex[index], items, index)}
           </div>
         );
       })}
-      <div style={paddingBelowElementStyle}></div>
+      <div
+        style={{ width: '100%', minHeight: scrollPadding.current.value.bottom }}
+        ref={paddingBottomRef}></div>
     </div>
   );
 }
