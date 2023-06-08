@@ -174,9 +174,7 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
                 if (interests.state !== 'loaded') {
                   return defaultCopy;
                 } else if (interests.primaryInterest === 'anxiety') {
-                  return (
-                    <>Sign up for instant, free access to anxiety-relieving 1 minute exercises.</>
-                  );
+                  return <>Sign up for instant, free access to anxiety-relieving meditations.</>;
                 } else if (interests.primaryInterest === 'mindful') {
                   return (
                     <>
