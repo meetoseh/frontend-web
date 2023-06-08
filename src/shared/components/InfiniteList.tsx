@@ -174,27 +174,8 @@ export function InfiniteList<T>({
       return;
     }
 
-    if (oldItems[0] === items[1]) {
-      // We rotated items down one index. This means we added an item to the
-      // top of the list that takes up space, meaning we need less space in our
-      // padding above.
-
-      // We will take the space created by the new item and reduce the padding
-      // above by that amount
-      const adjustment = -initialComponentHeight - gap;
-      scrollPadding.current.set({
-        top: Math.max(scrollPadding.current.value.top + adjustment, 0),
-        bottom: scrollPadding.current.value.bottom,
-      });
-    } else if (oldItems[1] === items[0]) {
-      // We rotated items up one index, meaning we removed an item from the
-      // top of the list, so theres less real space there, so we need more
-      // padding above.
-      const adjustment = initialComponentHeight + gap;
-      scrollPadding.current.set({
-        top: scrollPadding.current.value.top + adjustment,
-        bottom: scrollPadding.current.value.bottom,
-      });
+    if (checkDownRotation()) {
+      checkUpRotation();
     }
 
     if (listing.definitelyNoneAbove) {
@@ -214,6 +195,59 @@ export function InfiniteList<T>({
     }
 
     oldItemsRef.current = items;
+
+    function checkDownRotation(): boolean {
+      if (items === null) {
+        return false;
+      }
+
+      for (let i = 1; i <= listing.rotationLength; i++) {
+        if (oldItems[0] === items[i]) {
+          handleDownRotation(i);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function handleDownRotation(amt: number) {
+      // We rotated items down amt index. This means we added an item to the
+      // top of the list that takes up space, meaning we need less space in our
+      // padding above.
+
+      // We will take the space created by the new item and reduce the padding
+      // above by that amount
+      const adjustment = (-initialComponentHeight - gap) * amt;
+      scrollPadding.current.set({
+        top: Math.max(scrollPadding.current.value.top + adjustment, 0),
+        bottom: scrollPadding.current.value.bottom,
+      });
+    }
+
+    function checkUpRotation(): boolean {
+      if (items === null) {
+        return false;
+      }
+
+      for (let i = 1; i <= listing.rotationLength; i++) {
+        if (oldItems[i] === items[0]) {
+          handleUpRotation(i);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function handleUpRotation(amt: number) {
+      // We rotated items up amt index, meaning we removed an item from the
+      // top of the list, so theres less real space there, so we need more
+      // padding above.
+      const adjustment = (initialComponentHeight + gap) * amt;
+      scrollPadding.current.set({
+        top: scrollPadding.current.value.top + adjustment,
+        bottom: scrollPadding.current.value.bottom,
+      });
+    }
   });
 
   // call onFirstVisible/onLastVisible as appropriate when the scroll changes
@@ -331,7 +365,6 @@ export function InfiniteList<T>({
     }
     const paddingBottom = paddingBottomRef.current;
     const paddingTop = paddingTopRef.current;
-    const list = listRef.current;
 
     let active = true;
     updateStyles();

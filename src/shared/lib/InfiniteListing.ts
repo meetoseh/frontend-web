@@ -64,6 +64,11 @@ export class NetworkedInfiniteListing<T> {
   readonly visibleLimit: number;
 
   /**
+   * How many items are rotated in/out in a given direction at a time
+   */
+  readonly rotationLength: number;
+
+  /**
    * The items that should be shown. This list is always replaced, never
    * modified, making it suitable as a hook dependency. Null until the first
    * load is complete, which is started via reset()
@@ -80,21 +85,28 @@ export class NetworkedInfiniteListing<T> {
   /**
    * Callbacks that are called when the last item is removed an a new earlier
    * item is added. This is normally used for moving where the items are
-   * positioned on screen
+   * positioned on screen.
+   *
+   * Called with the items that were inserted at the beginning, in the same
+   * order they now appear in items.
    */
-  readonly onShiftedEarlier: Callbacks<T>;
+  readonly onShiftedEarlier: Callbacks<T[]>;
 
   /**
    * Callbacks that are called when the first item is removed an a new later
    * item is added. This is normally used for moving where the items are
    * positioned on screen
+   *
+   * Called with the items that were inserted at the end, in the same
+   * order they now appear in items.
    */
-  readonly onShiftedLater: Callbacks<T>;
+  readonly onShiftedLater: Callbacks<T[]>;
 
   constructor(
     endpoint: string,
     loadLimit: number,
     visibleLimit: number,
+    rotationLength: number,
     filter: CrudFetcherFilter,
     initialSort: CrudFetcherSort,
     sortMaker: InfiniteListingSortMaker<T>,
@@ -104,9 +116,11 @@ export class NetworkedInfiniteListing<T> {
     this.cachedList = new CachedServerList(
       new ServerList(endpoint, loadLimit, filter, initialSort, sortMaker, keyMap, getLoginContext),
       Math.max(2 * visibleLimit, 2 * loadLimit),
-      visibleLimit
+      visibleLimit,
+      rotationLength
     );
     this.visibleLimit = visibleLimit;
+    this.rotationLength = rotationLength;
     this.itemsChanged = new Callbacks();
     this.onShiftedEarlier = new Callbacks();
     this.onShiftedLater = new Callbacks();
@@ -149,10 +163,10 @@ export class NetworkedInfiniteListing<T> {
   onFirstVisible(): void {
     const result = this.cachedList.tryPopAndUnshift();
     result.promise
-      .then((earlierItem) => {
-        if (earlierItem !== null) {
-          this.items = [earlierItem, ...(this.items?.slice(0, -1) ?? [])];
-          this.onShiftedEarlier.call(earlierItem);
+      .then((earlierItems) => {
+        if (earlierItems !== null && earlierItems.length > 0) {
+          this.items = [...earlierItems, ...(this.items?.slice(0, -earlierItems.length) ?? [])];
+          this.onShiftedEarlier.call(earlierItems);
           this.itemsChanged.call(this.items);
         }
       })
@@ -170,10 +184,10 @@ export class NetworkedInfiniteListing<T> {
   onLastVisible(): void {
     const result = this.cachedList.tryShiftAndPush();
     result.promise
-      .then((laterItem) => {
-        if (laterItem !== null) {
-          this.items = [...(this.items?.slice(1) ?? []), laterItem];
-          this.onShiftedLater.call(laterItem);
+      .then((laterItems) => {
+        if (laterItems !== null && laterItems.length > 0) {
+          this.items = [...(this.items?.slice(laterItems.length) ?? []), ...laterItems];
+          this.onShiftedLater.call(laterItems);
           this.itemsChanged.call(this.items);
         }
       })
@@ -232,6 +246,11 @@ export class ProceduralInfiniteListing<T> {
   readonly visibleLimit: number;
 
   /**
+   * How many items are rotated in/out in a given direction at a time
+   */
+  readonly rotationLength: number;
+
+  /**
    * The items that should be shown. This list is always replaced, never
    * modified, making it suitable as a hook dependency. Null until the first
    * call to reset()
@@ -249,18 +268,19 @@ export class ProceduralInfiniteListing<T> {
    * item is added. This is normally used for moving where the items are
    * positioned on screen
    */
-  readonly onShiftedEarlier: Callbacks<T>;
+  readonly onShiftedEarlier: Callbacks<T[]>;
 
   /**
    * Callbacks that are called when the first item is removed an a new later
    * item is added. This is normally used for moving where the items are
    * positioned on screen
    */
-  readonly onShiftedLater: Callbacks<T>;
+  readonly onShiftedLater: Callbacks<T[]>;
 
   constructor(
     generator: (index: number) => T,
     visibleLimit: number,
+    rotationLength: number = 1,
     fakedNetworkDelay: number = 0
   ) {
     this.generator = generator;
@@ -268,6 +288,7 @@ export class ProceduralInfiniteListing<T> {
     this.firstIndex = 0;
     this.locked = false;
     this.visibleLimit = visibleLimit;
+    this.rotationLength = rotationLength;
     this.items = null;
     this.itemsChanged = new Callbacks();
     this.onShiftedEarlier = new Callbacks();
@@ -328,10 +349,16 @@ export class ProceduralInfiniteListing<T> {
       if (this.fakedNetworkDelay > 0) {
         await new Promise((resolve) => setTimeout(resolve, this.fakedNetworkDelay));
       }
-      this.firstIndex--;
-      this.items = [this.generator(this.firstIndex), ...this.items.slice(0, -1)];
+
+      const numItemsEarlier = Math.min(this.firstIndex, this.rotationLength);
+      this.firstIndex -= numItemsEarlier;
+      const newItems = [];
+      for (let i = 0; i < numItemsEarlier; i++) {
+        newItems.push(this.generator(this.firstIndex + i));
+      }
+      this.items = [...newItems, ...this.items.slice(0, this.items.length - numItemsEarlier)];
       this.locked = false;
-      this.onShiftedEarlier.call(this.items[0]);
+      this.onShiftedEarlier.call(newItems);
       this.itemsChanged.call(this.items);
     })();
   }
@@ -354,13 +381,17 @@ export class ProceduralInfiniteListing<T> {
       if (this.fakedNetworkDelay > 0) {
         await new Promise((resolve) => setTimeout(resolve, this.fakedNetworkDelay));
       }
-      this.firstIndex++;
-      this.items = [
-        ...this.items.slice(1, this.items.length),
-        this.generator(this.firstIndex + this.visibleLimit - 1),
-      ];
+
+      const numItemsLater = this.rotationLength;
+      const newItems = [];
+      for (let i = 0; i < numItemsLater; i++) {
+        newItems.push(this.generator(this.firstIndex + this.visibleLimit + i));
+      }
+      this.items = [...this.items.slice(numItemsLater), ...newItems];
+      this.firstIndex += numItemsLater;
       this.locked = false;
-      this.onShiftedLater.call(this.items[this.items.length - 1]);
+
+      this.onShiftedLater.call(newItems);
       this.itemsChanged.call(this.items);
     })();
   }
@@ -392,6 +423,13 @@ export type InfiniteListing<T> = NetworkedInfiniteListing<T> | ProceduralInfinit
  */
 class CachedServerList<T> {
   private serverList: ServerList<T>;
+
+  /**
+   * When a rotation is requested, the number of items we attempt to
+   * load before/after the first/last visible item.
+   */
+  private rotationLength: number;
+
   /**
    * In descending order, the items before the first visible item. Thus,
    * the item at index 0 is the first item before the first visible item.
@@ -431,7 +469,8 @@ class CachedServerList<T> {
    *   given direction. This is a soft limit, and may be exceeded if it's set
    *   to a particularly egregious value (e.g., if the preloadLimit is below
    *   the limit set on the serverList, we won't discard the extra items returned).
-   *   The recommended min value is `max(2*pageSize, 2*serverList.limit)` as this is
+   *   The recommended min value is
+   *   `max(2*pageSize, 2*serverList.limit) + rotationLength` as this is
    *   guarranteed to be treated as a hard limit.
    * @param pageSize The number of items in the visible list at a time. Note
    *   that the visible list is not directly exposed in order to allow for
@@ -439,9 +478,17 @@ class CachedServerList<T> {
    *   when to fetch more items. If there are at least pageSize items in the
    *   underlying list, and when loading the first page at least pageSize items
    *   are returned, the visible list will always have exactly pageSize items.
+   * @param rotationLength The number of items to load before/after the first/last
+   *   item when a rotation is requested.
    */
-  constructor(serverList: ServerList<T>, preloadLimit: number, pageSize: number) {
+  constructor(
+    serverList: ServerList<T>,
+    preloadLimit: number,
+    pageSize: number,
+    rotationLength: number
+  ) {
     this.serverList = serverList;
+    this.rotationLength = rotationLength;
     this.before = [];
     this.moreBefore = false;
     this.visible = [];
@@ -473,27 +520,27 @@ class CachedServerList<T> {
   }
 
   /**
-   * Removes an item from the end of the visible list and adds an item to
-   * the beginning of the visible list. In other words, the change to
-   * the visible list is
+   * Removes up to `rotationLength` from the end of the visible list and adds
+   * the same number of items to the beginning of the visible list. In other
+   * words, the change to the visible list is
    *
    * ```ts
-   * const earlierItem = await cached.tryPopAndUnshift().promise;
-   * if (earlierItem === null) {
+   * const earlierItems = await cached.tryPopAndUnshift().promise;
+   * if (earlierItems === null) {
    *   // no more earlier items
    * } else {
-   *   visible.pop()
-   *   visible.unshift(earlierItem)
+   *   visible = visible.slice(0, visible.length - earlierItems.length)
+   *   visible.unshift(...earlierItems);
    * }
    * ```
    *
    * This will reject if the lock is held or if a network request is
    * required but fails.
    *
-   * @returns A cancelable promise that resolves to the item to
+   * @returns A cancelable promise that resolves to the items to
    *   unshift.
    */
-  tryPopAndUnshift(): CancelablePromise<T | null> {
+  tryPopAndUnshift(): CancelablePromise<T[] | null> {
     if (this.locked) {
       return {
         done: () => true,
@@ -512,27 +559,17 @@ class CachedServerList<T> {
 
     // Standard case: we already have items ready to go
     if (this.before.length > 0) {
-      const earlierItem = this.before.shift();
-      if (earlierItem === undefined) {
-        throw new Error(
-          'Invariant violation: before.length > 0 but before.shift() returned undefined'
-        );
-      }
+      const earlierItems = this.before.slice(0, this.rotationLength);
+      const laterItems = this.visible.slice(this.visible.length - earlierItems.length);
 
-      const laterItem = this.visible.pop();
-      if (laterItem === undefined) {
-        throw new Error(
-          'Invariant violation: visible.length > 0 but visible.pop() returned undefined'
-        );
-      }
+      this.visible.unshift(...earlierItems);
+      this.after.unshift(...laterItems);
 
-      this.visible.unshift(earlierItem);
-      this.after.unshift(laterItem);
       this._maybeUnloadAfter();
       this._maybeFetchBefore();
       return {
         done: () => true,
-        promise: Promise.resolve(earlierItem),
+        promise: Promise.resolve(earlierItems),
         cancel: () => {},
       };
     }
@@ -560,7 +597,7 @@ class CachedServerList<T> {
       }
     };
 
-    const promise = (async (): Promise<T | null> => {
+    const promise = (async (): Promise<T[] | null> => {
       if (!active) {
         throw new Error('canceled');
       }
@@ -621,27 +658,27 @@ class CachedServerList<T> {
   }
 
   /**
-   * Removes an item from the beginning of the visible list and adds an item to
-   * the end of the visible list. In other words, the change to
-   * the visible list is
+   * Removes up to `rotationLength` items from the beginning of the visible list
+   * and adds an item to the end of the visible list. In other words, the change
+   * to the visible list is
    *
    * ```ts
-   * const laterItem = await cached.tryShiftAndPush().promise;
-   * if (laterItem === null) {
+   * const laterItems = await cached.tryShiftAndPush().promise;
+   * if (laterItems === null) {
    *  // no more later items
    * } else {
-   *  visible.shift()
-   *  visible.push(laterItem)
+   *  visible = visible.slice(laterItems.length)
+   *  visible.push(...laterItems);
    * }
    * ```
    *
    * This will reject if the lock is held or if a network request is
    * required but fails.
    *
-   * @returns A cancelable promise that resolves to the item to
+   * @returns A cancelable promise that resolves to the items to
    *   push.
    */
-  tryShiftAndPush(): CancelablePromise<T | null> {
+  tryShiftAndPush(): CancelablePromise<T[] | null> {
     if (this.locked) {
       return {
         done: () => true,
@@ -660,27 +697,16 @@ class CachedServerList<T> {
 
     // Standard case: we already have items ready to go
     if (this.after.length > 0) {
-      const laterItem = this.after.shift();
-      if (laterItem === undefined) {
-        throw new Error(
-          'Invariant violation: after.length > 0 but after.shift() returned undefined'
-        );
-      }
+      const laterItems = this.after.slice(this.rotationLength);
+      const earlierItems = this.visible.slice(0, laterItems.length);
 
-      const earlierItem = this.visible.shift();
-      if (earlierItem === undefined) {
-        throw new Error(
-          'Invariant violation: visible.length > 0 but visible.shift() returned undefined'
-        );
-      }
-
-      this.visible.push(laterItem);
-      this.before.unshift(earlierItem);
+      this.visible.push(...laterItems);
+      this.before.unshift(...earlierItems);
       this._maybeUnloadBefore();
       this._maybeFetchAfter();
       return {
         done: () => true,
-        promise: Promise.resolve(laterItem),
+        promise: Promise.resolve(laterItems),
         cancel: () => {},
       };
     }
@@ -708,7 +734,7 @@ class CachedServerList<T> {
       }
     };
 
-    const promise = (async (): Promise<T | null> => {
+    const promise = (async (): Promise<T[] | null> => {
       if (!active) {
         throw new Error('canceled');
       }

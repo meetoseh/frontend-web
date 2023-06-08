@@ -38,11 +38,12 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
   const instructorImages = useOsehImageStatesRef({ cacheSize: 128 });
 
   const infiniteListing = useMemo<InfiniteListing<MinimalJourney>>(() => {
-    const numVisible = Math.ceil(windowSize.height / 80) + 5;
+    const numVisible = Math.ceil(windowSize.height / 80) + 15;
     const result = new NetworkedInfiniteListing<MinimalJourney>(
       '/api/1/users/me/search_history',
-      Math.min(numVisible * 2, 150),
+      Math.min(numVisible * 2 + 10, 150),
       numVisible,
+      10,
       tab === 'favorites'
         ? {
             liked_at: {
@@ -104,7 +105,8 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
   //       lastTakenAt: new Date(startAt - idx * 1000 * 60 * 60 * 3),
   //       likedAt: idx % 3 === 0 ? new Date(startAt - idx * 1000 * 60 * 60 * 7) : null,
   //     }),
-  //     Math.ceil(windowSize.height / 80) + 5
+  //     Math.ceil(windowSize.height / 80) + 15,
+  //     10
   //   );
   //   result.reset();
   //   return result;
