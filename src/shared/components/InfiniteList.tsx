@@ -114,6 +114,7 @@ export function InfiniteList<T>({
 
   const setItemsCounter = useState(0)[1];
   const oldItemsRef = useRef<T[]>([]);
+  const oldItemHeightsRef = useRef<number[] | null>(null);
 
   /*
    * Scroll padding is specifically for ios; we could not have it and it'd still work on android.
@@ -137,10 +138,10 @@ export function InfiniteList<T>({
 
   // when listing changes, go back to the top
   useEffect(() => {
-    const list = listRef.current;
-    if (list === null) {
+    if (listRef.current === null) {
       return;
     }
+    const list = listRef.current;
 
     if (!listing.definitelyNoneAbove) {
       // didn't really swap lists
@@ -172,9 +173,18 @@ export function InfiniteList<T>({
       return;
     }
 
+    if (listRef.current === null) {
+      return;
+    }
+    const list = listRef.current;
+
     const oldItems = oldItemsRef.current;
-    if (items.length !== oldItems.length) {
+    const oldHeights = oldItemHeightsRef.current;
+    const heights = getHeights();
+
+    if (items.length !== oldItems.length || oldHeights === null) {
       oldItemsRef.current = items;
+      oldItemHeightsRef.current = heights;
       return;
     }
 
@@ -199,6 +209,7 @@ export function InfiniteList<T>({
     }
 
     oldItemsRef.current = items;
+    oldItemHeightsRef.current = heights;
 
     function checkDownRotation(): boolean {
       if (items === null) {
@@ -221,7 +232,11 @@ export function InfiniteList<T>({
 
       // We will take the space created by the new item and reduce the padding
       // above by that amount
-      const adjustment = (-initialComponentHeight - gap) * amt;
+
+      const topOfFirstAddedItem = list.children[1].getBoundingClientRect().top;
+      const bottomOfLastAddedItem = list.children[amt].getBoundingClientRect().bottom + gap;
+
+      const adjustment = topOfFirstAddedItem - bottomOfLastAddedItem;
       scrollPadding.current.set({
         top: Math.max(scrollPadding.current.value.top + adjustment, 0),
         bottom: scrollPadding.current.value.bottom,
@@ -246,11 +261,27 @@ export function InfiniteList<T>({
       // We rotated items up amt index, meaning we removed an item from the
       // top of the list, so theres less real space there, so we need more
       // padding above.
-      const adjustment = (initialComponentHeight + gap) * amt;
+      let heightRemoved = 0;
+      if (oldHeights === null) {
+        heightRemoved = (initialComponentHeight + gap) * amt;
+      } else {
+        for (let i = 0; i < amt; i++) {
+          heightRemoved += (oldHeights[i] ?? initialComponentHeight) + gap;
+        }
+      }
+      const adjustment = heightRemoved;
       scrollPadding.current.set({
         top: scrollPadding.current.value.top + adjustment,
         bottom: scrollPadding.current.value.bottom,
       });
+    }
+
+    function getHeights(): number[] {
+      const res = [];
+      for (let i = 1; i < list.children.length - 2; i++) {
+        res.push(list.children[i].getBoundingClientRect().height);
+      }
+      return res;
     }
   });
 
