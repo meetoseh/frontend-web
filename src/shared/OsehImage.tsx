@@ -1289,6 +1289,19 @@ export const useOsehImageStatesRef = ({
 
     async function fetchImages() {
       onHandlingChanged.current.add(handlingChanged);
+
+      // make sure we're tracking any incomplete loads
+      const iter = handling.current.entries();
+      while (true) {
+        const { value, done } = iter.next();
+        if (done) {
+          break;
+        }
+
+        const [uid, props] = value;
+        handlingChanged({ uid, old: props, current: props });
+      }
+
       cancelers.add(() => {
         onHandlingChanged.current.remove(handlingChanged);
       });
@@ -1305,20 +1318,20 @@ export const useOsehImageStatesRef = ({
 
       const usesWebp = await USES_WEBP;
 
+      if (event.old !== null && event.current !== null) {
+        const callbacks = handlingCancelers.get(event.uid);
+        if (callbacks === undefined) {
+          event = { ...event, old: null };
+        } else {
+          callbacks.call(event);
+          return;
+        }
+      }
+
       if (event.old === null && event.current !== null) {
         const callbacks = new Callbacks<ImageStatesRefHandlingChangedEvent>();
         handlingCancelers.set(event.uid, callbacks);
         handleImage(event.current, callbacks, usesWebp);
-        return;
-      }
-
-      if (event.old !== null && event.current !== null) {
-        const callbacks = handlingCancelers.get(event.uid);
-        if (callbacks === undefined) {
-          return;
-        }
-
-        callbacks.call(event);
         return;
       }
 

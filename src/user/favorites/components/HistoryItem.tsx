@@ -1,5 +1,5 @@
-import { ReactElement, useCallback, useContext, useState } from 'react';
-import { OsehImage } from '../../../shared/OsehImage';
+import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { OsehImageStatesRef, useOsehImageStatesRef } from '../../../shared/OsehImage';
 import { IconButton } from '../../../shared/forms/IconButton';
 import { MinimalJourney } from '../lib/MinimalJourney';
 import styles from './HistoryItem.module.css';
@@ -8,6 +8,12 @@ import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/LoginContext';
 import { useFavoritedModal } from '../hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../hooks/useUnfavoritedModal';
+import { OsehImageState } from '../../../shared/OsehImage';
+import { OsehImageFromState } from '../../../shared/OsehImage';
+import { waitUntilNextImageStateUpdateCancelable } from '../../../shared/OsehImage';
+import { Callbacks } from '../../../shared/lib/Callbacks';
+import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
+import { createCancelableTimeout } from '../../../shared/lib/createCancelableTimeout';
 
 type HistoryItemProps = {
   /**
@@ -35,17 +41,34 @@ type HistoryItemProps = {
    * areas.
    */
   onClick?: () => void;
+
+  /**
+   * If specified, used for fetching the instructor images at a fixed size.
+   * This can implement caching for better performance.
+   */
+  instructorImages?: OsehImageStatesRef;
 };
 
 /**
  * Renders a minimal journey for the favorites or history tab.
  */
-export const HistoryItem = ({ item, setItem, separator, onClick }: HistoryItemProps) => {
+export const HistoryItem = ({
+  item,
+  setItem,
+  separator,
+  onClick,
+  instructorImages,
+}: HistoryItemProps) => {
   const loginContext = useContext(LoginContext);
   const [error, setError] = useState<ReactElement | null>(null);
   const [liking, setLiking] = useState(false);
   const [showLikedUntil, setShowLikedUntil] = useState<number | undefined>(undefined);
   const [showUnlikedUntil, setShowUnlikedUntil] = useState<number | undefined>(undefined);
+  const fallbackInstructorImages = useOsehImageStatesRef({});
+  const [instructorImage, setInstructorImage] = useState<{
+    uid: string;
+    state: OsehImageState;
+  } | null>(null);
 
   const onLike = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -125,6 +148,86 @@ export const HistoryItem = ({ item, setItem, separator, onClick }: HistoryItemPr
     [item, loginContext, setItem]
   );
 
+  useEffect(() => {
+    if (instructorImage !== null && instructorImage.uid === item.instructor.image.uid) {
+      return;
+    }
+
+    const images = instructorImages ?? fallbackInstructorImages;
+
+    let active = true;
+    const cancelers = new Callbacks<undefined>();
+    getImage();
+    return () => {
+      if (active) {
+        active = false;
+        cancelers.call(undefined);
+
+        const oldProps = images.handling.current.get(item.instructor.image.uid);
+        if (oldProps !== undefined) {
+          images.handling.current.delete(item.instructor.image.uid);
+          images.onHandlingChanged.current.call({
+            uid: item.instructor.image.uid,
+            old: oldProps,
+            current: null,
+          });
+        }
+      }
+    };
+
+    function ensureLoading() {
+      if (images.handling.current.has(item.instructor.image.uid)) {
+        return;
+      }
+
+      const props = {
+        uid: item.instructor.image.uid,
+        jwt: item.instructor.image.jwt,
+        displayWidth: 14,
+        displayHeight: 14,
+        alt: 'headshot',
+        isPublic: item.instructor.image.jwt === null,
+      };
+      images.handling.current.set(item.instructor.image.uid, props);
+      images.onHandlingChanged.current.call({
+        uid: item.instructor.image.uid,
+        old: null,
+        current: props,
+      });
+    }
+
+    async function getImage() {
+      while (true) {
+        const image = images.state.current.get(item.instructor.image.uid);
+        if (image !== undefined && !image.loading) {
+          setInstructorImage({ uid: item.instructor.image.uid, state: image });
+          return;
+        }
+
+        let loadCallback = waitUntilNextImageStateUpdateCancelable(images);
+        let cancelCallback = createCancelablePromiseFromCallbacks(cancelers);
+        let timeoutCallback = createCancelableTimeout(1000);
+        cancelCallback.promise.catch(() => {});
+        timeoutCallback.promise.catch(() => {});
+        ensureLoading();
+        await Promise.race([loadCallback.promise, cancelCallback.promise, timeoutCallback.promise]);
+        if (!active) {
+          loadCallback.cancel();
+          timeoutCallback.cancel();
+          return;
+        }
+
+        if (timeoutCallback.done()) {
+          loadCallback.cancel();
+          cancelCallback.cancel();
+          continue;
+        }
+
+        cancelCallback.cancel();
+      }
+    }
+  }, [item.instructor.image, instructorImages, fallbackInstructorImages, instructorImage]);
+
   useFavoritedModal(showLikedUntil);
   useUnfavoritedModal(showUnlikedUntil);
 
@@ -135,17 +238,12 @@ export const HistoryItem = ({ item, setItem, separator, onClick }: HistoryItemPr
       )}
       <div className={styles.container}>
         <div className={styles.titleAndInstructor}>
-          <div className={styles.title}>{item.title}</div>
+          <div className={styles.title}>
+            {item.title.length > 15 ? item.title.substring(0, 12) + '...' : item.title}
+          </div>
           <div className={styles.instructor}>
             <div className={styles.instructorPictureContainer}>
-              <OsehImage
-                uid={item.instructor.image.uid}
-                jwt={item.instructor.image.jwt}
-                displayWidth={14}
-                displayHeight={14}
-                alt="headshot"
-                isPublic={item.instructor.image.jwt === null}
-              />
+              {instructorImage && <OsehImageFromState {...instructorImage.state} />}
             </div>
             <div className={styles.instructorName}>{item.instructor.name}</div>
           </div>

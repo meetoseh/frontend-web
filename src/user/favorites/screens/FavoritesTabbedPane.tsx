@@ -1,10 +1,19 @@
 import { ReactElement, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { OsehImageFromState, OsehImageState } from '../../../shared/OsehImage';
+import {
+  OsehImageFromState,
+  OsehImageState,
+  OsehImageStatesRef,
+  useOsehImageStatesRef,
+} from '../../../shared/OsehImage';
 import styles from './FavoritesTabbedPane.module.css';
 import { MyProfilePicture } from '../../../shared/MyProfilePicture';
 import { LoginContext } from '../../../shared/LoginContext';
 import { combineClasses } from '../../../shared/lib/combineClasses';
-import { InfiniteListing, NetworkedInfiniteListing } from '../../../shared/lib/InfiniteListing';
+import {
+  InfiniteListing,
+  NetworkedInfiniteListing,
+  ProceduralInfiniteListing,
+} from '../../../shared/lib/InfiniteListing';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { MinimalJourney, minimalJourneyKeyMap } from '../lib/MinimalJourney';
 import { InfiniteList } from '../../../shared/components/InfiniteList';
@@ -30,6 +39,7 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
   loginContextRef.current = loginContext;
   const windowSize = useWindowSize();
   const [journey, setJourney] = useState<JourneyRef | null>(null);
+  const instructorImages = useOsehImageStatesRef({ cacheSize: 128 });
 
   const infiniteListing = useMemo<InfiniteListing<MinimalJourney>>(() => {
     const numVisible = Math.ceil(windowSize.height / 80) + 5;
@@ -177,9 +187,10 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
         setItem={setItem}
         items={items}
         index={index}
+        instructorImages={instructorImages}
       />
     );
-  }, [tab, gotoJourneyByUID]);
+  }, [tab, gotoJourneyByUID, instructorImages]);
 
   const listHeight = windowSize.height - 189;
 
@@ -241,6 +252,7 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
                 )}
               </div>
             }
+            keyFn={journeyKeyFn}
           />
         </div>
       </div>
@@ -249,6 +261,7 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
 };
 
 const compareHistoryItems = (a: MinimalJourney, b: MinimalJourney): boolean => a.uid === b.uid;
+const journeyKeyFn = (item: MinimalJourney): string => item.uid;
 
 const HistoryItemComponent = ({
   useSeparators,
@@ -257,6 +270,7 @@ const HistoryItemComponent = ({
   setItem,
   items,
   index,
+  instructorImages,
 }: {
   useSeparators: boolean;
   gotoJourneyByUid: (uid: string) => void;
@@ -264,6 +278,7 @@ const HistoryItemComponent = ({
   setItem: (item: MinimalJourney) => void;
   items: MinimalJourney[];
   index: number;
+  instructorImages: OsehImageStatesRef;
 }): ReactElement => {
   const gotoJourney = useCallback(() => {
     gotoJourneyByUid(item.uid);
@@ -280,6 +295,7 @@ const HistoryItemComponent = ({
             item.lastTakenAt?.toLocaleDateString())
       }
       onClick={gotoJourney}
+      instructorImages={instructorImages}
     />
   );
 };

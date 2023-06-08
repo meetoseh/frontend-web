@@ -59,6 +59,18 @@ type InfiniteListProps<T> = {
   initialComponentHeight: number;
 
   /**
+   * If specified, items are keyed by this function. This can be useful if
+   * the component is doing some level of lazy loading.
+   *
+   * The default implementation is (_, idx) => idx.toString()
+   *
+   * @param item The item to get the key for
+   * @param idx The index of the item in the list
+   * @returns The key for the item
+   */
+  keyFn?: (item: T, idx: number) => string;
+
+  /**
    * The element to show if the list is still loading
    */
   loadingElement?: ReactElement;
@@ -96,6 +108,7 @@ export function InfiniteList<T>({
   initialComponentHeight,
   loadingElement,
   emptyElement,
+  keyFn,
 }: InfiniteListProps<T>): ReactElement {
   const items = listing.items;
 
@@ -392,7 +405,10 @@ export function InfiniteList<T>({
         ref={paddingTopRef}></div>
       {items?.map((item, index) => {
         return (
-          <div key={index} className={styles.item} style={index === 0 ? firstItemStyle : undefined}>
+          <div
+            key={keyFn === undefined ? index.toString() : keyFn(item, index)}
+            className={styles.item}
+            style={index === 0 ? firstItemStyle : undefined}>
             {component(item, replaceItemByIndex[index], items, index)}
           </div>
         );
