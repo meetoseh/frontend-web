@@ -115,6 +115,10 @@ export function InfiniteList<T>({
   const setItemsCounter = useState(0)[1];
   const oldItemsRef = useRef<T[]>([]);
 
+  /*
+   * Scroll padding is specifically for ios; we could not have it and it'd still work on android.
+   * It's only necessary because safari doesn't support scroll anchoring
+   */
   const scrollPadding = useRef<ScrollPadding>() as MutableRefObject<ScrollPadding>;
   if (scrollPadding.current === undefined) {
     scrollPadding.current = {
@@ -402,8 +406,8 @@ export function InfiniteList<T>({
         return;
       }
 
-      // paddingBottom.style.minHeight = expectedBottom;
-      // paddingTop.style.minHeight = expectedTop;
+      paddingBottom.style.minHeight = expectedBottom;
+      paddingTop.style.minHeight = expectedTop;
     }
   }, []);
 
