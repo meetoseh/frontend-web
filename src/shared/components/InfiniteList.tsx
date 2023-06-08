@@ -131,6 +131,22 @@ export function InfiniteList<T>({
   const paddingTopRef = useRef<HTMLDivElement>(null);
   const paddingBottomRef = useRef<HTMLDivElement>(null);
 
+  // when listing changes, go back to the top
+  useEffect(() => {
+    const list = listRef.current;
+    if (list === null) {
+      return;
+    }
+
+    if (!listing.definitelyNoneAbove) {
+      // didn't really swap lists
+      return;
+    }
+
+    scrollPadding.current.set({ top: 0, bottom: listing.definitelyNoneBelow ? 20 : 500 });
+    list.scrollTo({ top: 0, behavior: 'auto' });
+  }, [listing]);
+
   // ensure listing or listing.items changes triggers a rerender
   useEffect(() => {
     const onItemsChanged = () => {
@@ -344,20 +360,8 @@ export function InfiniteList<T>({
         return;
       }
 
-      const rerender = () =>
-        list.offsetHeight +
-        list.scrollHeight +
-        paddingBottom.offsetHeight +
-        paddingBottom.scrollHeight;
-
-      rerender();
-      list.style.overflowAnchor = 'none';
-      rerender();
       paddingBottom.style.minHeight = expectedBottom;
       paddingTop.style.minHeight = expectedTop;
-      rerender();
-      list.style.removeProperty('overflow-anchor');
-      rerender();
     }
   }, []);
 
@@ -379,17 +383,6 @@ export function InfiniteList<T>({
     });
   }, [listing, items, itemComparer]);
 
-  const firstItemStyle = useMemo<React.CSSProperties>(() => {
-    if (items === null || listing.definitelyNoneAbove) {
-      return {};
-    }
-    return {
-      minHeight: `${initialComponentHeight}px`,
-      maxHeight: `${initialComponentHeight}px`,
-      overflowY: 'hidden',
-    };
-  }, [items, listing, initialComponentHeight]);
-
   if (loadingElement !== undefined && items === null) {
     return loadingElement;
   }
@@ -407,8 +400,7 @@ export function InfiniteList<T>({
         return (
           <div
             key={keyFn === undefined ? index.toString() : keyFn(item, index)}
-            className={styles.item}
-            style={index === 0 ? firstItemStyle : undefined}>
+            className={styles.item}>
             {component(item, replaceItemByIndex[index], items, index)}
           </div>
         );

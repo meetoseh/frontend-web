@@ -9,11 +9,7 @@ import styles from './FavoritesTabbedPane.module.css';
 import { MyProfilePicture } from '../../../shared/MyProfilePicture';
 import { LoginContext } from '../../../shared/LoginContext';
 import { combineClasses } from '../../../shared/lib/combineClasses';
-import {
-  InfiniteListing,
-  NetworkedInfiniteListing,
-  ProceduralInfiniteListing,
-} from '../../../shared/lib/InfiniteListing';
+import { InfiniteListing, NetworkedInfiniteListing } from '../../../shared/lib/InfiniteListing';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { MinimalJourney, minimalJourneyKeyMap } from '../lib/MinimalJourney';
 import { InfiniteList } from '../../../shared/components/InfiniteList';
@@ -97,7 +93,7 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
   //   const result = new ProceduralInfiniteListing<MinimalJourney>(
   //     (idx) => ({
   //       uid: `uid-${idx}`,
-  //       title: `Title ${idx}`,
+  //       title: `${tab} Title ${idx}`,
   //       instructor: {
   //         name: `Instructor ${idx}`,
   //         image: {
@@ -106,13 +102,13 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
   //         },
   //       },
   //       lastTakenAt: new Date(startAt - idx * 1000 * 60 * 60 * 3),
-  //       likedAt: idx % 3 === 0 ? new Date(startAt - idx * 1000 * 60 * 60 * 3) : null,
+  //       likedAt: idx % 3 === 0 ? new Date(startAt - idx * 1000 * 60 * 60 * 7) : null,
   //     }),
   //     Math.ceil(windowSize.height / 80) + 5
   //   );
   //   result.reset();
   //   return result;
-  // }, [windowSize.height]);
+  // }, [windowSize.height, tab]);
 
   const gotoFavorites = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

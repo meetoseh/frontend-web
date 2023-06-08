@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { OsehImageStatesRef, useOsehImageStatesRef } from '../../../shared/OsehImage';
 import { IconButton } from '../../../shared/forms/IconButton';
 import { MinimalJourney } from '../lib/MinimalJourney';
@@ -14,6 +14,7 @@ import { waitUntilNextImageStateUpdateCancelable } from '../../../shared/OsehIma
 import { Callbacks } from '../../../shared/lib/Callbacks';
 import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
 import { createCancelableTimeout } from '../../../shared/lib/createCancelableTimeout';
+import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';
 
 type HistoryItemProps = {
   /**
@@ -231,6 +232,8 @@ export const HistoryItem = ({
   useFavoritedModal(showLikedUntil);
   useUnfavoritedModal(showUnlikedUntil);
 
+  const ellipsedTitle = useMemo(() => textOverflowEllipses(item.title, 15), [item.title]);
+
   return (
     <div onClick={onClick}>
       {separator && item.lastTakenAt !== null && (
@@ -238,9 +241,7 @@ export const HistoryItem = ({
       )}
       <div className={styles.container}>
         <div className={styles.titleAndInstructor}>
-          <div className={styles.title}>
-            {item.title.length > 15 ? item.title.substring(0, 12) + '...' : item.title}
-          </div>
+          <div className={styles.title}>{ellipsedTitle}</div>
           <div className={styles.instructor}>
             <div className={styles.instructorPictureContainer}>
               {instructorImage && <OsehImageFromState {...instructorImage.state} />}
