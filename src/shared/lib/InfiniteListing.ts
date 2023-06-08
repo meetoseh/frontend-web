@@ -560,7 +560,9 @@ class CachedServerList<T> {
     // Standard case: we already have items ready to go
     if (this.before.length > 0) {
       const earlierItems = this.before.slice(0, this.rotationLength);
+      this.before = this.before.slice(this.rotationLength);
       const laterItems = this.visible.slice(this.visible.length - earlierItems.length);
+      this.visible = this.visible.slice(0, this.visible.length - earlierItems.length);
 
       this.visible.unshift(...earlierItems);
       this.after.unshift(...laterItems);
@@ -698,7 +700,9 @@ class CachedServerList<T> {
     // Standard case: we already have items ready to go
     if (this.after.length > 0) {
       const laterItems = this.after.slice(this.rotationLength);
+      this.after = this.after.slice(0, this.rotationLength);
       const earlierItems = this.visible.slice(0, laterItems.length);
+      this.visible = this.visible.slice(laterItems.length);
 
       this.visible.push(...laterItems);
       this.before.unshift(...earlierItems);
