@@ -178,12 +178,8 @@ export function InfiniteList<T>({
       return;
     }
 
-    if (!checkDownRotation() && !checkUpRotation()) {
-      console.log(
-        `unknown rotation\n  oldItems=${JSON.stringify(
-          oldItems.map((i: any) => i.title)
-        )}\n  items=${JSON.stringify(items.map((i: any) => i.title))}`
-      );
+    if (!checkDownRotation()) {
+      checkUpRotation();
     }
 
     if (listing.definitelyNoneAbove) {
@@ -226,7 +222,6 @@ export function InfiniteList<T>({
       // We will take the space created by the new item and reduce the padding
       // above by that amount
       const adjustment = (-initialComponentHeight - gap) * amt;
-      console.log(`down rotating ${amt} items causes adjustment of ${adjustment}`);
       scrollPadding.current.set({
         top: Math.max(scrollPadding.current.value.top + adjustment, 0),
         bottom: scrollPadding.current.value.bottom,
@@ -252,7 +247,6 @@ export function InfiniteList<T>({
       // top of the list, so theres less real space there, so we need more
       // padding above.
       const adjustment = (initialComponentHeight + gap) * amt;
-      console.log(`up rotating ${amt} items causes adjustment of ${adjustment}`);
       scrollPadding.current.set({
         top: scrollPadding.current.value.top + adjustment,
         bottom: scrollPadding.current.value.bottom,
