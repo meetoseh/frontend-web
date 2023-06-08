@@ -57,7 +57,7 @@ async def get_journey_public_link(code: Optional[str] = None):
             (code,),
         )
         if not response.results:
-            cache.set(bad_code_cache_key, b"1", expire=15)
+            cache.set(bad_code_cache_key, b"1", expire=15, tag="no-persist")
             return await get_base_index_html()
 
         journey_title: str = response.results[0][0]
@@ -153,7 +153,7 @@ async def get_cached(itgs: Itgs, key: str) -> Optional[Response]:
 
 async def set_cached(itgs: Itgs, key: str, val: bytes) -> None:
     cache = await itgs.local_cache()
-    cache.set(key, val, expire=60 * 5)
+    cache.set(key, val, expire=60 * 5, tag="no-persist")
 
 
 async def get_base_index_html() -> Response:

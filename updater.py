@@ -1,4 +1,5 @@
 """Handles updating when the repository is updated"""
+import time
 from itgs import Itgs
 from error_middleware import handle_warning
 import asyncio
@@ -7,12 +8,15 @@ import platform
 import secrets
 import socket
 import os
+import loguru
 
 
 async def _listen_forever():
     """Subscribes to the redis channel updates:frontend-web and upon
     recieving a message, calls /home/ec2-user/update_webapp.sh
     """
+
+    loguru.logger.info("Starting up, releasing lock...")
     async with Itgs() as itgs:
         await release_update_lock_if_held(itgs)
 
@@ -37,9 +41,12 @@ async def _listen_forever():
             )
             await asyncio.sleep(1)
 
+    loguru.logger.info("Recieved update request, awaiting lock...")
+
     async with Itgs() as itgs:
         await acquire_update_lock(itgs)
 
+    loguru.logger.info("Lock acquired, updating...")
     do_update()
 
 
@@ -48,13 +55,16 @@ async def acquire_update_lock(itgs: Itgs):
     local_cache = await itgs.local_cache()
 
     redis = await itgs.redis()
+    started_at = time.time()
     while True:
         local_cache.set(b"updater-lock-key", our_identifier, expire=310)
         success = await redis.set(
             b"updates:frontend-web:lock", our_identifier, nx=True, ex=300
         )
         if success:
+            loguru.logger.info(f"Lock acquired: {our_identifier}")
             break
+        loguru.logger.debug(f"[{time.time() - started_at:.1f}s] still waiting...")
         await asyncio.sleep(1)
 
 
@@ -76,8 +86,10 @@ async def release_update_lock_if_held(itgs: Itgs):
 
     our_identifier = local_cache.get(b"updater-lock-key")
     if our_identifier is None:
+        loguru.logger.info("No lock held")
         return
 
+    loguru.logger.info(f"Releasing lock: {our_identifier}")
     redis = await itgs.redis()
     await redis.eval(
         DELETE_IF_MATCH_SCRIPT, 1, b"updates:frontend-web:lock", our_identifier
