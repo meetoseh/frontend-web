@@ -174,8 +174,12 @@ export function InfiniteList<T>({
       return;
     }
 
-    if (checkDownRotation()) {
-      checkUpRotation();
+    if (!checkDownRotation() && !checkUpRotation()) {
+      console.log(
+        `unknown rotation\n  oldItems=${JSON.stringify(
+          oldItems.map((i: any) => i.title)
+        )}\n  items=${JSON.stringify(items.map((i: any) => i.title))}`
+      );
     }
 
     if (listing.definitelyNoneAbove) {
@@ -218,6 +222,7 @@ export function InfiniteList<T>({
       // We will take the space created by the new item and reduce the padding
       // above by that amount
       const adjustment = (-initialComponentHeight - gap) * amt;
+      console.log(`down rotating ${amt} items causes adjustment of ${adjustment}`);
       scrollPadding.current.set({
         top: Math.max(scrollPadding.current.value.top + adjustment, 0),
         bottom: scrollPadding.current.value.bottom,
@@ -243,6 +248,7 @@ export function InfiniteList<T>({
       // top of the list, so theres less real space there, so we need more
       // padding above.
       const adjustment = (initialComponentHeight + gap) * amt;
+      console.log(`up rotating ${amt} items causes adjustment of ${adjustment}`);
       scrollPadding.current.set({
         top: scrollPadding.current.value.top + adjustment,
         bottom: scrollPadding.current.value.bottom,
@@ -303,10 +309,10 @@ export function InfiniteList<T>({
       locked = true;
       try {
         const listRect = list.getBoundingClientRect();
-        const firstItem = list.children[1].getBoundingClientRect();
+        const fifthItem = list.children[5].getBoundingClientRect();
         const lastItem = list.children[list.children.length - 2].getBoundingClientRect();
 
-        let triggerTop = firstItem.bottom > listRect.top && !listing.definitelyNoneAbove;
+        let triggerTop = fifthItem.bottom > listRect.top && !listing.definitelyNoneAbove;
         let triggerBottom = lastItem.top < listRect.bottom && !listing.definitelyNoneBelow;
 
         if (triggerTop || triggerBottom) {
@@ -366,6 +372,9 @@ export function InfiniteList<T>({
     const paddingBottom = paddingBottomRef.current;
     const paddingTop = paddingTopRef.current;
 
+    paddingBottom.style.width = '100%';
+    paddingTop.style.width = '100%';
+
     let active = true;
     updateStyles();
     scrollPadding.current.changed.add(updateStyles);
@@ -393,8 +402,8 @@ export function InfiniteList<T>({
         return;
       }
 
-      paddingBottom.style.minHeight = expectedBottom;
-      paddingTop.style.minHeight = expectedTop;
+      // paddingBottom.style.minHeight = expectedBottom;
+      // paddingTop.style.minHeight = expectedTop;
     }
   }, []);
 
@@ -426,9 +435,7 @@ export function InfiniteList<T>({
 
   return (
     <div style={listStyle} className={styles.container} ref={listRef}>
-      <div
-        style={{ width: '100%', minHeight: scrollPadding.current.value.top }}
-        ref={paddingTopRef}></div>
+      <div ref={paddingTopRef}></div>
       {items?.map((item, index) => {
         return (
           <div
@@ -438,9 +445,7 @@ export function InfiniteList<T>({
           </div>
         );
       })}
-      <div
-        style={{ width: '100%', minHeight: scrollPadding.current.value.bottom }}
-        ref={paddingBottomRef}></div>
+      <div ref={paddingBottomRef}></div>
     </div>
   );
 }

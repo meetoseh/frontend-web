@@ -157,8 +157,12 @@ export class NetworkedInfiniteListing<T> {
   }
 
   /**
-   * Should be called when the first item becomes visible. This may remove
-   * the last item and add a new earlier item after a delay.
+   * Should be called when an item near the top becomes visible. This may remove
+   * the last item and add a new earlier item after a delay. Note that it's
+   * usually better to trigger this before the first item becomes visible as
+   * inserting items above the visible content is generally more sensitive than
+   * inserting items below it, so you want to ensure the rotation actually occurs
+   * before the first item becomes visible.
    */
   onFirstVisible(): void {
     const result = this.cachedList.tryPopAndUnshift();
