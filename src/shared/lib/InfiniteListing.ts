@@ -487,6 +487,14 @@ class CachedServerList<T> {
     pageSize: number,
     rotationLength: number
   ) {
+    console.log(
+      'CachedServerList initialized with preloadLimit=',
+      preloadLimit,
+      'pageSize=',
+      pageSize,
+      'rotationLength=',
+      rotationLength
+    );
     this.serverList = serverList;
     this.rotationLength = rotationLength;
     this.before = [];
@@ -559,10 +567,11 @@ class CachedServerList<T> {
 
     // Standard case: we already have items ready to go
     if (this.before.length > 0) {
-      const earlierItems = this.before.slice(0, this.rotationLength);
-      this.before = this.before.slice(this.rotationLength);
-      const laterItems = this.visible.slice(this.visible.length - earlierItems.length);
-      this.visible = this.visible.slice(0, this.visible.length - earlierItems.length);
+      const earlierItems = this.before.splice(0, this.rotationLength).reverse();
+      const laterItems = this.visible.splice(
+        this.visible.length - earlierItems.length,
+        earlierItems.length
+      );
 
       this.visible.unshift(...earlierItems);
       this.after.unshift(...laterItems);
@@ -710,7 +719,7 @@ class CachedServerList<T> {
       const earlierItems = this.visible.splice(0, laterItems.length);
 
       this.visible.push(...laterItems);
-      this.before.unshift(...earlierItems);
+      this.before.unshift(...earlierItems.reverse());
       console.log(
         `after tryShiftAndPush case 1: \n  before: ${JSON.stringify(
           this.before.map((i: any) => i.title)
@@ -1070,6 +1079,9 @@ class CachedServerList<T> {
       return;
     }
 
+    console.log(
+      `Unloading items to save memory; we have ${this.before.length} cached before, but will keep only ${this.preloadLimit}`
+    );
     this.before = this.before.slice(0, this.preloadLimit);
   }
 
@@ -1085,6 +1097,9 @@ class CachedServerList<T> {
       return;
     }
 
+    console.log(
+      `Unloading items to save memory; we have ${this.after.length} cached after, but will keep only ${this.preloadLimit}`
+    );
     this.after = this.after.slice(0, this.preloadLimit);
   }
 }
