@@ -567,6 +567,13 @@ class CachedServerList<T> {
 
     // Standard case: we already have items ready to go
     if (this.before.length > 0) {
+      console.log(
+        `tryPopAndUnshift case 1: we already have items ready to go\n  before: ${JSON.stringify(
+          this.before.map((i: any) => i.title)
+        )}\n  visible: ${JSON.stringify(
+          this.visible.map((i: any) => i.title)
+        )}\n  after: ${JSON.stringify(this.after.map((i: any) => i.title))}`
+      );
       const earlierItems = this.before.splice(0, this.rotationLength).reverse();
       const laterItems = this.visible.splice(
         this.visible.length - earlierItems.length,
@@ -575,6 +582,14 @@ class CachedServerList<T> {
 
       this.visible.unshift(...earlierItems);
       this.after.unshift(...laterItems);
+
+      console.log(
+        `tryPopAndUnshift case 1: result\n  before: ${JSON.stringify(
+          this.before.map((i: any) => i.title)
+        )}\n  visible: ${JSON.stringify(
+          this.visible.map((i: any) => i.title)
+        )}\n  after: ${JSON.stringify(this.after.map((i: any) => i.title))}`
+      );
 
       this._maybeUnloadAfter();
       this._maybeFetchBefore();
