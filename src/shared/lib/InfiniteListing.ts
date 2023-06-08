@@ -699,13 +699,25 @@ class CachedServerList<T> {
 
     // Standard case: we already have items ready to go
     if (this.after.length > 0) {
-      const laterItems = this.after.slice(this.rotationLength);
-      this.after = this.after.slice(0, this.rotationLength);
-      const earlierItems = this.visible.slice(0, laterItems.length);
-      this.visible = this.visible.slice(laterItems.length);
+      console.log(
+        `tryShiftAndPush case 1: we already have items ready to go:\n  before: ${JSON.stringify(
+          this.before.map((i: any) => i.title)
+        )}\n  visible: ${JSON.stringify(
+          this.visible.map((i: any) => i.title)
+        )}\n  after: ${JSON.stringify(this.after.map((i: any) => i.title))}`
+      );
+      const laterItems = this.after.splice(0, this.rotationLength);
+      const earlierItems = this.visible.splice(0, laterItems.length);
 
       this.visible.push(...laterItems);
       this.before.unshift(...earlierItems);
+      console.log(
+        `after tryShiftAndPush case 1: \n  before: ${JSON.stringify(
+          this.before.map((i: any) => i.title)
+        )}\n  visible: ${JSON.stringify(
+          this.visible.map((i: any) => i.title)
+        )}\n  after: ${JSON.stringify(this.after.map((i: any) => i.title))}`
+      );
       this._maybeUnloadBefore();
       this._maybeFetchAfter();
       return {
@@ -717,6 +729,7 @@ class CachedServerList<T> {
 
     // Standard case: there is nothing after
     if (this.fetchingAfter === null && !this.moreAfter) {
+      console.log('tryShiftAndPush case 2: there is nothing after');
       return {
         done: () => true,
         promise: Promise.resolve(null),
@@ -727,6 +740,7 @@ class CachedServerList<T> {
     // Fallback case: we reached the end of our preloaded list, so we need
     // to wait for the fetch to complete. Note that since we yield control,
     // we'll have to recheck everything when we get control back.
+    console.log('tryShiftAndPush case 3: fallback');
     this.locked = true;
     let active = true;
     const cancelers = new Callbacks<undefined>();
