@@ -113,8 +113,15 @@ export function InfiniteList<T>({
   const items = listing.items;
 
   const setItemsCounter = useState(0)[1];
-  const oldItemsRef = useRef<T[]>([]);
-  const oldItemHeightsRef = useRef<number[] | null>(null);
+  const renderedItemsRef = useRef<T[]>([]);
+  const renderedItemHeightsRef = useRef<number[] | null>(null);
+  const renderedItemsChangedRef = useRef<Callbacks<undefined>>(null) as MutableRefObject<
+    Callbacks<undefined>
+  >;
+
+  if (renderedItemsChangedRef.current === null) {
+    renderedItemsChangedRef.current = new Callbacks();
+  }
 
   /*
    * Scroll padding is specifically for ios; we could not have it and it'd still work on android.
@@ -169,7 +176,8 @@ export function InfiniteList<T>({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (items === null) {
-      oldItemsRef.current = [];
+      renderedItemsRef.current = [];
+      renderedItemsChangedRef.current.call(undefined);
       return;
     }
 
@@ -178,13 +186,14 @@ export function InfiniteList<T>({
     }
     const list = listRef.current;
 
-    const oldItems = oldItemsRef.current;
-    const oldHeights = oldItemHeightsRef.current;
+    const oldItems = renderedItemsRef.current;
+    const oldHeights = renderedItemHeightsRef.current;
     const heights = getHeights();
 
     if (items.length !== oldItems.length || oldHeights === null) {
-      oldItemsRef.current = items;
-      oldItemHeightsRef.current = heights;
+      renderedItemsRef.current = items;
+      renderedItemHeightsRef.current = heights;
+      renderedItemsChangedRef.current.call(undefined);
       return;
     }
 
@@ -208,8 +217,10 @@ export function InfiniteList<T>({
       }
     }
 
-    oldItemsRef.current = items;
-    oldItemHeightsRef.current = heights;
+    renderedItemsRef.current = items;
+    renderedItemHeightsRef.current = heights;
+    renderedItemsChangedRef.current.call(undefined);
+    return;
 
     function checkDownRotation(): boolean {
       if (items === null) {
@@ -233,10 +244,21 @@ export function InfiniteList<T>({
       // We will take the space created by the new item and reduce the padding
       // above by that amount
 
-      const topOfFirstAddedItem = list.children[1].getBoundingClientRect().top;
-      const bottomOfLastAddedItem = list.children[amt].getBoundingClientRect().bottom + gap;
+      let adjustment: number;
+      if (oldHeights === null) {
+        const topOfFirstAddedItem = list.children[1].getBoundingClientRect().top;
+        const bottomOfLastAddedItem = list.children[amt].getBoundingClientRect().bottom + gap;
+        adjustment = topOfFirstAddedItem - bottomOfLastAddedItem;
+      } else {
+        const idxOfTopInOld = 5;
+        const idxOfTopInNew = idxOfTopInOld + amt;
 
-      const adjustment = topOfFirstAddedItem - bottomOfLastAddedItem;
+        const yBefore = computeTopUsingHeights(0, oldHeights, idxOfTopInOld);
+        const yAfter = computeTopUsingHeights(0, heights, idxOfTopInNew);
+
+        adjustment = yBefore - yAfter;
+      }
+
       scrollPadding.current.set({
         top: Math.max(scrollPadding.current.value.top + adjustment, 0),
         bottom: scrollPadding.current.value.bottom,
@@ -265,9 +287,13 @@ export function InfiniteList<T>({
       if (oldHeights === null) {
         heightRemoved = (initialComponentHeight + gap) * amt;
       } else {
-        for (let i = 0; i < amt; i++) {
-          heightRemoved += (oldHeights[i] ?? initialComponentHeight) + gap;
-        }
+        const idxOfBottomInOld = oldItems.length - 1;
+        const idxOfBottomInNew = oldItems.length - 1 - amt;
+
+        const yBefore = computeTopUsingHeights(0, oldHeights, idxOfBottomInOld);
+        const yAfter = computeTopUsingHeights(0, heights, idxOfBottomInNew);
+
+        heightRemoved = yBefore - yAfter;
       }
       const adjustment = heightRemoved;
       scrollPadding.current.set({
@@ -282,6 +308,14 @@ export function InfiniteList<T>({
         res.push(list.children[i].getBoundingClientRect().height);
       }
       return res;
+    }
+
+    function computeTopUsingHeights(padding: number, heights: number[], idx: number) {
+      let y = padding;
+      for (let i = 0; i < idx; i++) {
+        y += heights[i] + gap;
+      }
+      return y;
     }
   });
 
@@ -303,12 +337,12 @@ export function InfiniteList<T>({
     let locked = false;
 
     let active = true;
-    listing.itemsChanged.add(onItemsChanged);
+    renderedItemsChangedRef.current.add(onItemsChanged);
     list.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       if (active) {
         active = false;
-        listing.itemsChanged.remove(onItemsChanged);
+        renderedItemsChangedRef.current.remove(onItemsChanged);
         list.removeEventListener('scroll', onScroll, { capture: false });
         if (waitingForItemsChangedTimeout !== null) {
           clearTimeout(waitingForItemsChangedTimeout);
