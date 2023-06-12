@@ -110,7 +110,7 @@ export const TryAIJourneyStep: OnboardingStep<TryAIJourneyState, TryAIJourneyRes
         if (loginContext.userAttributes !== null) {
           // this is just a superfluous check to ensure that this step is
           // disabled for now
-          setJourney(null);
+          setJourney(undefined);
           onDone();
           return;
         }
