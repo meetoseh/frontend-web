@@ -95,12 +95,6 @@ export const TryAIJourneyStep: OnboardingStep<TryAIJourneyState, TryAIJourneyRes
 
     useSingletonEffect(
       (onDone) => {
-        if (true) {
-          setJourney(null);
-          onDone();
-          return;
-        }
-
         if (loginContext.state === 'loading') {
           setJourney(null);
           onDone();
@@ -109,6 +103,14 @@ export const TryAIJourneyStep: OnboardingStep<TryAIJourneyState, TryAIJourneyRes
 
         if (loginContext.state !== 'logged-in') {
           setJourney(undefined);
+          onDone();
+          return;
+        }
+
+        if (loginContext.userAttributes !== null) {
+          // this is just a superfluous check to ensure that this step is
+          // disabled for now
+          setJourney(null);
           onDone();
           return;
         }
