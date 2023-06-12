@@ -28,6 +28,7 @@ const feedbackUserKeyMap: CrudFetcherKeyMap<FeedbackUser> = {
 type Feedback = {
   user: FeedbackUser;
   liked: boolean;
+  strength: number;
   createdAt: Date;
 };
 
@@ -155,7 +156,7 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
           rows: item.feedback.map((f) => [
             `${f.user.givenName} ${f.user.familyName}`.trim(),
             f.user.email,
-            f.liked ? 'Yes' : 'No',
+            `${f.liked ? 'Yes' : 'No'} (${f.strength})`,
           ]),
         },
       }))

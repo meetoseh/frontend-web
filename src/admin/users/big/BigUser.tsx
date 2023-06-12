@@ -8,6 +8,7 @@ import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { BigUserAttribution } from './BigUserAttribution';
 import { BigUserInappNotifications } from './BigUserInappNotifications';
+import { BigUserSuggestionFlow } from './BigUserSuggestionFlow';
 
 /**
  * Acts as a dashboard for a specific user, aka a traditional user show page,
@@ -122,6 +123,9 @@ export const BigUser = (): ReactElement => {
         </div>
         <div className={styles.wide}>
           <BigUserInappNotifications user={user} />
+        </div>
+        <div className={styles.wide}>
+          <BigUserSuggestionFlow user={user} />
         </div>
       </div>
     </div>

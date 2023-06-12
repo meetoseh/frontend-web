@@ -63,8 +63,8 @@ export const DashboardTable = ({ columnHeaders, rows }: DashboardTableProps): Re
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, index) => (
-            <tr key={index}>
+          {rows.map((row, outerIndex) => (
+            <tr key={outerIndex}>
               {row.map((cell, index) => (
                 <td key={index}>{typeof cell === 'string' ? cell : cell.display}</td>
               ))}

@@ -1,0 +1,59 @@
+.explanation {
+  margin-top: 12px;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  color: #4a4a4a;
+}
+
+.explanation ul {
+  padding-left: 40px;
+}
+
+.explanation h2 {
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
+.select {
+  composes: sortSelect from '../../crud/standard.module.css';
+}
+
+.instructorCategoryCounts {
+  max-height: 350px;
+  overflow: auto;
+}
+
+.scoreFunctionContainer,
+.adjustedScoreFunctionContainer,
+.comparisonFunctionContainer {
+  margin: 12px 0;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.scoreFunctionIcon {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 42.062ex;
+  height: 7.41ex;
+  background-image: url('../icons/score.svg');
+}
+
+.comparisonFunctionIcon {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 69.637ex;
+  height: 7.804ex;
+  background-image: url('../icons/comparison.svg');
+}
+
+.adjustedScoreFunctionIcon {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 41.256ex;
+  height: 8.269ex;
+  background-image: url('../icons/adjusted-score.svg');
+}
