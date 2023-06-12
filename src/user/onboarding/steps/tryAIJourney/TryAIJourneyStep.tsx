@@ -95,6 +95,12 @@ export const TryAIJourneyStep: OnboardingStep<TryAIJourneyState, TryAIJourneyRes
 
     useSingletonEffect(
       (onDone) => {
+        if (true) {
+          setJourney(null);
+          onDone();
+          return;
+        }
+
         if (loginContext.state === 'loading') {
           setJourney(null);
           onDone();
