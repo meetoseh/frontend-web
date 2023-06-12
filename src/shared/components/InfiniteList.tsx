@@ -98,6 +98,12 @@ type ScrollPadding = {
  * to load items, so long as there are items to load, without incurring
  * an increasing cost as time goes on.
  *
+ * This element could be swapped with libraries like `react-window` or
+ * `react-virtuoso`. In terms of implementation, this is implemented like
+ * `react-virtuoso`, but rather than attaching listeners to all the children
+ * to detect whenever their heights change, this assumes heights only change
+ * if the listing.items are rotated. This could be extended to whenever
+ * listing.items changes at all if user interaction is changing heights.
  */
 export function InfiniteList<T>({
   listing,
