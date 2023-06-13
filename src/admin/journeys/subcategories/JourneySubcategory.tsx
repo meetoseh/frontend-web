@@ -18,4 +18,10 @@ export type JourneySubcategory = {
    * The display name for the subcategory, typically less specific
    */
   externalName: string;
+
+  /**
+   * A non-negative number generally less than one which influences content
+   * selection towards this subcategory. Higher numbers are more influential.
+   */
+  bias: number;
 };

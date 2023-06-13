@@ -26,10 +26,19 @@ export const CreateJourneySubcategory = ({
   const loginContext = useContext(LoginContext);
   const [internalName, setInternalName] = useState('');
   const [externalName, setExternalName] = useState('');
+  const [bias, setBias] = useState<{ str: string; num: number | undefined }>({
+    str: '0.00',
+    num: 0,
+  });
   const [error, setError] = useState<ReactElement | null>();
   const [saving, setSaving] = useState(false);
 
   const save = useCallback(async () => {
+    if (bias.num === undefined) {
+      setError(<>Bias must be a number.</>);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
@@ -45,6 +54,7 @@ export const CreateJourneySubcategory = ({
             body: JSON.stringify({
               internal_name: internalName,
               external_name: externalName,
+              bias: bias.num,
             }),
           },
           loginContext
@@ -65,10 +75,11 @@ export const CreateJourneySubcategory = ({
       onCreated(subcat);
       setInternalName('');
       setExternalName('');
+      setBias({ str: '0.00', num: 0 });
     } finally {
       setSaving(false);
     }
-  }, [internalName, externalName, loginContext, onCreated]);
+  }, [internalName, externalName, loginContext, bias, onCreated]);
 
   return (
     <CrudCreateBlock>
@@ -95,6 +106,27 @@ export const CreateJourneySubcategory = ({
           inputStyle="normal"
           onChange={setExternalName}
           html5Validation={{ required: true }}
+        />
+        <TextInput
+          label="Bias"
+          value={bias.str}
+          help="A non-negative number generally less than one which influences content selection towards this subcategory. Higher numbers are more influential."
+          disabled={false}
+          inputStyle="normal"
+          onChange={(bias) => {
+            try {
+              const parsed = parseFloat(bias);
+              if (isNaN(parsed)) {
+                setBias({ str: bias, num: undefined });
+              } else {
+                setBias({ str: bias, num: parsed });
+              }
+            } catch (e) {
+              setBias({ str: bias, num: undefined });
+            }
+          }}
+          html5Validation={{ required: true, min: 0, step: 0.01 }}
+          type="number"
         />
         {error && <ErrorBlock>{error}</ErrorBlock>}
         <div className={styles.submitContainer}>

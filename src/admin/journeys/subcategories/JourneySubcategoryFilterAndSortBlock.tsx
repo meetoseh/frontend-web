@@ -61,6 +61,20 @@ const SORTS: { name: string; sort: CrudFetcherSort }[] = [
     name: 'External Name (Z-A)',
     sort: [{ key: 'external_name', dir: 'desc', after: null, before: null }],
   },
+  {
+    name: 'Bias (Most to Least)',
+    sort: [
+      { key: 'bias', dir: 'desc', after: null, before: null },
+      { key: 'internal_name', dir: 'asc', after: null, before: null },
+    ],
+  },
+  {
+    name: 'Bias (Least to Most)',
+    sort: [
+      { key: 'bias', dir: 'asc', after: null, before: null },
+      { key: 'internal_name', dir: 'asc', after: null, before: null },
+    ],
+  },
 ];
 
 export const JourneySubcategoryFilterAndSortBlock = ({

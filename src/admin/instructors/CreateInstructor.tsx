@@ -19,12 +19,21 @@ type CreateInstructorProps = {
 export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [name, setName] = useState('');
+  const [bias, setBias] = useState<{ str: string; parsed: number | undefined }>({
+    str: '0.00',
+    parsed: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ReactElement | null>(null);
 
   const createInstructor = useCallback(async () => {
     if (loginContext.state !== 'logged-in') {
       setError(<>You must be logged in to create an instructor</>);
+      return;
+    }
+
+    if (bias.parsed === undefined) {
+      setError(<>Bias must be a number</>);
       return;
     }
 
@@ -40,7 +49,7 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
           },
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name, bias: bias.parsed }),
         },
         loginContext
       );
@@ -61,13 +70,15 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
     onCreated({
       uid: body.uid,
       name: body.name,
+      bias: body.bias,
       picture: null,
       createdAt: new Date(body.created_at * 1000),
       deletedAt: null,
     });
     setName('');
+    setBias({ str: '0.00', parsed: 0 });
     setLoading(false);
-  }, [onCreated, name, loginContext]);
+  }, [onCreated, name, bias, loginContext]);
 
   return (
     <CrudCreateBlock>
@@ -83,6 +94,28 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
             setError(null);
           }}
           html5Validation={{ required: true }}
+        />
+        <TextInput
+          label="Bias"
+          value={bias.str}
+          help="A non-negative number generally less than one which influences content selection towards this instructor. Higher numbers are more influential."
+          disabled={false}
+          inputStyle="normal"
+          onChange={(bias) => {
+            try {
+              const parsed = parseFloat(bias);
+              if (isNaN(parsed)) {
+                setBias({ str: bias, parsed: undefined });
+              } else {
+                setBias({ str: bias, parsed });
+              }
+            } catch (e) {
+              setBias({ str: bias, parsed: undefined });
+            }
+            setError(null);
+          }}
+          html5Validation={{ required: true, min: 0, step: 0.01 }}
+          type="number"
         />
         {error && <ErrorBlock>{error}</ErrorBlock>}
         <div className={styles.buttonContainer}>

@@ -66,6 +66,20 @@ const SORTS: { name: string; sort: CrudFetcherSort }[] = [
     name: 'Name (Z-A)',
     sort: [{ key: 'name', dir: 'desc', after: null, before: null }],
   },
+  {
+    name: 'Bias (Most to Least)',
+    sort: [
+      { key: 'bias', dir: 'desc', after: null, before: null },
+      { key: 'name', dir: 'asc', after: null, before: null },
+    ],
+  },
+  {
+    name: 'Bias (Least to Most)',
+    sort: [
+      { key: 'bias', dir: 'asc', after: null, before: null },
+      { key: 'name', dir: 'asc', after: null, before: null },
+    ],
+  },
 ];
 
 /**

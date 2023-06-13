@@ -30,6 +30,10 @@ export const InstructorBlock = ({
   const loginContext = useContext(LoginContext);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState(instructor.name);
+  const [newBias, setNewBias] = useState<{ str: string; parsed: number | undefined }>({
+    str: instructor.bias.toString(),
+    parsed: instructor.bias,
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ReactElement | null>(null);
   const [newPicture, setNewPicture] = useState<File | null>(null);
@@ -40,6 +44,7 @@ export const InstructorBlock = ({
     setError(null);
     if (
       newName === instructor.name &&
+      newBias.parsed === instructor.bias &&
       newPicture === null &&
       newDeleted === (instructor.deletedAt !== null)
     ) {
@@ -47,9 +52,14 @@ export const InstructorBlock = ({
       return;
     }
 
+    if (newBias.parsed === undefined) {
+      setError(<>Bias must be a number</>);
+      return;
+    }
+
     setSaving(true);
     try {
-      if (newName !== instructor.name) {
+      if (newName !== instructor.name || newBias.parsed !== instructor.bias) {
         const response = await apiFetch(
           `/api/1/instructors/${instructor.uid}`,
           {
@@ -59,6 +69,7 @@ export const InstructorBlock = ({
             },
             body: JSON.stringify({
               name: newName,
+              bias: newBias.parsed,
             }),
           },
           loginContext
@@ -205,7 +216,7 @@ export const InstructorBlock = ({
       setUploadHandler(null);
       setSaving(false);
     }
-  }, [newName, instructor, loginContext, setInstructor, newPicture, newDeleted]);
+  }, [newName, instructor, loginContext, setInstructor, newPicture, newDeleted, newBias]);
 
   useEffect(() => {
     if (saving) {
@@ -213,6 +224,7 @@ export const InstructorBlock = ({
     }
 
     setNewName(instructor.name);
+    setNewBias({ parsed: instructor.bias, str: instructor.bias.toString() });
     setNewDeleted(instructor.deletedAt !== null);
     setNewPicture(null);
   }, [instructor, saving]);
@@ -250,6 +262,27 @@ export const InstructorBlock = ({
             disabled={false}
             inputStyle="normal"
             html5Validation={{ required: true }}
+          />
+          <TextInput
+            label="Bias"
+            value={newBias.str}
+            help="A non-negative number generally less than one which influences content selection towards this instructor. Higher numbers are more influential."
+            disabled={false}
+            inputStyle="normal"
+            onChange={(bias) => {
+              try {
+                const parsed = parseFloat(bias);
+                if (isNaN(parsed)) {
+                  setNewBias({ str: bias, parsed: undefined });
+                } else {
+                  setNewBias({ str: bias, parsed });
+                }
+              } catch (e) {
+                setNewBias({ str: bias, parsed: undefined });
+              }
+            }}
+            html5Validation={{ required: true, min: 0, step: 0.01 }}
+            type="number"
           />
           <CrudFormElement title="Picture">
             <div className={styles.editPictureContainer}>
@@ -296,6 +329,7 @@ export const InstructorBlock = ({
               </CrudFormElement>
             </div>
           ) : null}
+          <CrudFormElement title="Bias">{instructor.bias.toLocaleString()}</CrudFormElement>
           <CrudFormElement title="Picture">
             {instructor.picture === null ? (
               <p>No picture</p>

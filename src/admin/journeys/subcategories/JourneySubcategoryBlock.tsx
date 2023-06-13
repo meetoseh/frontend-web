@@ -35,14 +35,24 @@ export const JourneySubcategoryBlock = ({
   const [error, setError] = useState<ReactElement | null>(null);
   const [newInternalName, setNewInternalName] = useState(journeySubcategory.internalName);
   const [newExternalName, setNewExternalName] = useState(journeySubcategory.externalName);
+  const [newBias, setNewBias] = useState<{ str: string; num: number | undefined }>({
+    str: journeySubcategory.bias.toString(),
+    num: journeySubcategory.bias,
+  });
 
   const save = useCallback(async () => {
     if (
       newInternalName === journeySubcategory.internalName &&
-      newExternalName === journeySubcategory.externalName
+      newExternalName === journeySubcategory.externalName &&
+      newBias.num === journeySubcategory.bias
     ) {
       setError(null);
       setEditing(false);
+      return;
+    }
+
+    if (newBias.num === undefined) {
+      setError(<>Bias must be a number.</>);
       return;
     }
 
@@ -61,6 +71,7 @@ export const JourneySubcategoryBlock = ({
             body: JSON.stringify({
               internal_name: newInternalName,
               external_name: newExternalName,
+              bias: newBias.num,
             }),
           },
           loginContext
@@ -82,12 +93,20 @@ export const JourneySubcategoryBlock = ({
     } finally {
       setSaving(false);
     }
-  }, [newInternalName, newExternalName, journeySubcategory, loginContext, setJourneySubcategory]);
+  }, [
+    newInternalName,
+    newExternalName,
+    newBias,
+    journeySubcategory,
+    loginContext,
+    setJourneySubcategory,
+  ]);
 
   useEffect(() => {
     if (!editing) {
       setNewInternalName(journeySubcategory.internalName);
       setNewExternalName(journeySubcategory.externalName);
+      setNewBias({ str: journeySubcategory.bias.toString(), num: journeySubcategory.bias });
     }
   }, [editing, journeySubcategory]);
 
@@ -135,7 +154,27 @@ export const JourneySubcategoryBlock = ({
             inputStyle={'normal'}
             html5Validation={{ required: true }}
           />
-
+          <TextInput
+            label="Bias"
+            value={newBias.str}
+            help="A non-negative number generally less than one which influences content selection towards this subcategory. Higher numbers are more influential."
+            disabled={false}
+            inputStyle="normal"
+            onChange={(bias) => {
+              try {
+                const parsed = parseFloat(bias);
+                if (isNaN(parsed)) {
+                  setNewBias({ str: bias, num: undefined });
+                } else {
+                  setNewBias({ str: bias, num: parsed });
+                }
+              } catch (e) {
+                setNewBias({ str: bias, num: undefined });
+              }
+            }}
+            html5Validation={{ required: true, min: 0, step: 0.01 }}
+            type="number"
+          />
           {error && <ErrorBlock>{error}</ErrorBlock>}
 
           <button type="submit" disabled={saving} hidden>
@@ -145,6 +184,7 @@ export const JourneySubcategoryBlock = ({
       ) : (
         <>
           <CrudFormElement title="External Name">{journeySubcategory.externalName}</CrudFormElement>
+          <CrudFormElement title="Bias">{journeySubcategory.bias.toLocaleString()}</CrudFormElement>
         </>
       )}
     </CrudItemBlock>

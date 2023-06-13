@@ -12,7 +12,11 @@ export type Instructor = {
    * The display name
    */
   name: string;
-
+  /**
+   * A non-negative number generally less than one which influences content
+   * selection towards this instructor. Higher numbers are more influential.
+   */
+  bias: number;
   /**
    * If a picture is set, a reference to the picture
    */
