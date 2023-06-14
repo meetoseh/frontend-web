@@ -63,7 +63,7 @@
 
 .adjustedScoreFunctionIcon {
   composes: icon from '../../../shared/icons.module.css';
-  width: 41.256ex;
-  height: 8.269ex;
+  width: 36.499ex;
+  height: 5.554ex;
   background-image: url('../icons/adjusted-score.svg');
 }
