@@ -1,138 +1,116 @@
-import { ReactElement, useMemo } from 'react';
+import { ReactElement, useContext, useEffect, useMemo, useState } from 'react';
 import { User } from '../User';
 import { CrudItemBlock } from '../../crud/CrudItemBlock';
 import styles from './BigUserSuggestionFlow.module.css';
 import { CrudFormElement } from '../../crud/CrudFormElement';
 import { DashboardTable, DashboardTableProps } from '../../dashboard/subComponents/DashboardTable';
 import { Button } from '../../../shared/forms/Button';
+import { apiFetch } from '../../../shared/ApiConstants';
+import { LoginContext } from '../../../shared/LoginContext';
+import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
+import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/ModalContext';
+import { ModalWrapper } from '../../../shared/ModalWrapper';
 
-const fakeInstructorCategoryCounts = [
-  {
-    instructor: 'Dylan Werner',
-    category: 'meditation',
-    lowestViewCount: 1,
-    score: 15.5,
-    instructorBias: 0.1,
-    categoryBias: 0.1,
-    timesSeenToday: 1,
-  },
-  {
-    instructor: 'Dylan Werner',
-    category: 'mindful talk',
-    lowestViewCount: 0,
-    score: -1,
-    instructorBias: 0.1,
-    categoryBias: 0,
-    timesSeenToday: 0,
-  },
-  {
-    instructor: 'Dylan Werner',
-    category: 'breathwork',
-    lowestViewCount: 0,
-    score: -3,
-    instructorBias: 0.1,
-    categoryBias: 0.025,
-    timesSeenToday: 0,
-  },
-  {
-    instructor: 'Donte Quinine',
-    category: 'meditation',
-    lowestViewCount: 2,
-    score: 30.5,
-    instructorBias: 0,
-    categoryBias: 0.1,
-    timesSeenToday: 0,
-  },
-  {
-    instructor: 'Donte Quinine',
-    category: 'mindful talk',
-    lowestViewCount: 1,
-    score: 0,
-    instructorBias: 0,
-    categoryBias: 0,
-    timesSeenToday: 0,
-  },
-  {
-    instructor: 'Alisa Galper',
-    category: 'instrumental',
-    lowestViewCount: 0,
-    score: -2,
-    instructorBias: 0,
-    categoryBias: 0,
-    timesSeenToday: 0,
-  },
-  {
-    instructor: 'Isaiah Quinn',
-    category: 'poetry',
-    lowestViewCount: 0,
-    score: -1.95,
-    instructorBias: 0,
-    categoryBias: 0,
-    timesSeenToday: 0,
-  },
-  {
-    instructor: 'Natalie Wong',
-    category: 'affirmations',
-    lowestViewCount: 0,
-    score: -0.05,
-    instructorBias: 0,
-    categoryBias: 0,
-    timesSeenToday: 0,
-  },
-];
-
-const fakeJourneys = [
-  {
-    title: 'Cultivate Presence',
-    views: 1,
-    created: new Date(1682352922387),
-  },
-  {
-    title: 'Quiet Mind',
-    views: 1,
-    created: new Date(1682352511720),
-  },
-  {
-    title: 'Anxiety Release',
-    views: 1,
-    created: new Date(1682101843871),
-  },
-  {
-    title: 'Forgiveness',
-    views: 2,
-    created: new Date(1682959941622),
-  },
-];
-
-const computeFixedScore = ({
-  score,
-  timesSeenToday,
-}: {
-  score: number;
-  timesSeenToday: number;
-}): number => {
-  if (score < 0) {
-    return score * (timesSeenToday + 1);
-  }
-  if (score < 2 && timesSeenToday === 0) {
-    return 2;
-  }
-  return score * Math.pow(0.5, timesSeenToday);
+type Instructor = {
+  uid: string;
+  name: string;
+  bias: number;
 };
 
-const compareInstructorCategories = (
-  a: { lowestViewCount: number; score: number; timesSeenToday: number },
-  b: { lowestViewCount: number; score: number; timesSeenToday: number }
-): number => {
-  const fixedScoreA = computeFixedScore(a);
-  const fixedScoreB = computeFixedScore(b);
-  if (a.lowestViewCount === b.lowestViewCount) {
-    return fixedScoreB - fixedScoreA;
-  }
-  if ((fixedScoreA >= 0 && fixedScoreB >= 0) || (fixedScoreA < 0 && fixedScoreB < 0)) {
-    return a.lowestViewCount - b.lowestViewCount;
-  }
-  return Math.sign(fixedScoreB) - Math.sign(fixedScoreA);
+type Category = {
+  uid: string;
+  internal_name: string;
+  bias: number;
+};
+
+type Combination = {
+  instructor: Instructor;
+  category: Category;
+};
+
+type FindCombinationsResponse = {
+  combinations: Combination[];
+  computation_time: number;
+};
+
+type ViewCountItem = Combination & { view_count: number };
+
+type ViewCountResponse = {
+  rows: ViewCountItem[];
+  computation_time: number;
+};
+
+type Feedback = {
+  feedback_uid: string;
+  journey_uid: string;
+  journey_title: string;
+  instructor_uid: string;
+  instructor_name: string;
+  category_uid: string;
+  category_internal_name: string;
+  feedback_at: number;
+  feedback_version: number;
+  feedback_response: number;
+};
+
+type FeedbackTerm = {
+  feedback: Feedback;
+  age_term: number;
+  category_relevance_term: number;
+  instructor_relevance_term: number;
+  net_score_scale: number;
+  net_score: number;
+};
+
+type FeedbackScore = {
+  score: number;
+  terms: FeedbackTerm[];
+  terms_sum: number;
+  instructor_bias: number;
+  category_bias: number;
+  bias_sum: number;
+};
+
+type FeedbackItem = Combination & { feedback_score: FeedbackScore };
+
+type FeedbackResponse = {
+  rows: FeedbackItem[];
+  computation_time: number;
+};
+
+type AdjustedScoreItem = Combination & { times_seen_today: number; score: number };
+
+type AdjustedScoreResponse = {
+  rows: AdjustedScoreItem[];
+  computation_time: number;
+};
+
+type BestCategoryItem = Combination & { ties_with_next: boolean };
+
+type BestCategoriesResponse = {
+  rows: BestCategoryItem[];
+  computation_time: number;
+};
+
+type BestJourneyItem = {
+  journey_uid: string;
+  journey_title: string;
+  journey_created_at: number;
+  user_views: number;
+};
+
+type BestJourneysResponse = {
+  rows: BestJourneyItem[];
+  computation_time: number;
+};
+
+type AnalyzeResponse = {
+  find_combinations: FindCombinationsResponse;
+  find_lowest_view_counts: ViewCountResponse;
+  find_feedback_score: FeedbackResponse;
+  find_adjusted_scores: AdjustedScoreResponse;
+  find_best_categories: BestCategoriesResponse;
+  find_best_journeys: BestJourneysResponse;
 };
 
 /**
@@ -140,111 +118,328 @@ const compareInstructorCategories = (
  * the given sub.
  */
 export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement => {
-  // Currently I'm just setting up how it will look, not attaching it to the backend.
+  const loginContext = useContext(LoginContext);
+  const modalContext = useContext(ModalContext);
+  const [error, setError] = useState<ReactElement | null>(null);
+  const [emotions, setEmotions] = useState<string[]>(() => ['calm']);
+  const [emotion, setEmotion] = useState('calm');
+  const [analyzeResponse, setAnalyzeResponse] = useState<AnalyzeResponse | null>(null);
+  const [inspectingFeedbackScore, setInspectingFeedbackScore] = useState<FeedbackScore | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    let active = true;
+    fetchEmotions();
+    return () => {
+      active = false;
+    };
+
+    async function fetchEmotionsInner() {
+      const response = await apiFetch(
+        '/api/1/emotions/search',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          body: JSON.stringify({
+            sort: [
+              {
+                key: 'word',
+                dir: 'asc',
+                before: null,
+                after: null,
+              },
+            ],
+            limit: 1000,
+          }),
+        },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data: { items: { word: string }[] } = await response.json();
+      if (active) {
+        setEmotions(data.items.map((item) => item.word));
+      }
+    }
+
+    async function fetchEmotions() {
+      try {
+        await fetchEmotionsInner();
+      } catch (e) {
+        console.log('failed to fetch emotions: ', e);
+      }
+    }
+  }, [loginContext]);
+
+  useEffect(() => {
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    let active = true;
+    analyze();
+    return () => {
+      active = false;
+    };
+
+    async function analyzeInner() {
+      const response = await apiFetch(
+        `/api/1/personalization/analyze?emotion=${encodeURIComponent(
+          emotion
+        )}&user_sub=${encodeURIComponent(user.sub)}`,
+        { method: 'GET' },
+        loginContext
+      );
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data: AnalyzeResponse = await response.json();
+      if (active) {
+        setAnalyzeResponse(data);
+      }
+    }
+
+    async function analyze() {
+      setError(null);
+      try {
+        await analyzeInner();
+      } catch (e) {
+        const err = await describeError(e);
+        if (active) {
+          setError(err);
+          setAnalyzeResponse(null);
+        }
+      }
+    }
+  }, [loginContext, user.sub, emotion]);
 
   const instructorCategories = useMemo<DashboardTableProps>(
     () => ({
       columnHeaders: ['Instructor', 'Category', 'Instructor Bias', 'Category Bias'],
-      rows: fakeInstructorCategoryCounts.map(
-        ({ instructor, category, instructorBias, categoryBias }) => [
-          instructor,
-          category,
-          instructorBias.toLocaleString(),
-          categoryBias.toLocaleString(),
-        ]
-      ),
+      rows:
+        analyzeResponse === null
+          ? []
+          : analyzeResponse.find_combinations.combinations.map(({ instructor, category }) => [
+              instructor.name,
+              category.internal_name,
+              instructor.bias.toLocaleString(),
+              category.bias.toLocaleString(),
+            ]),
     }),
-    []
+    [analyzeResponse]
   );
 
   const instructorCategoryCounts = useMemo<DashboardTableProps>(
     () => ({
       columnHeaders: ['Instructor', 'Category', 'Lowest View Count'],
-      rows: fakeInstructorCategoryCounts.map(({ instructor, category, lowestViewCount }) => [
-        instructor,
-        category,
-        lowestViewCount.toLocaleString(),
-      ]),
+      rows:
+        analyzeResponse === null
+          ? []
+          : analyzeResponse.find_lowest_view_counts.rows.map(
+              ({ instructor, category, view_count }) => [
+                instructor.name,
+                category.internal_name,
+                view_count.toLocaleString(),
+              ]
+            ),
     }),
-    []
+    [analyzeResponse]
   );
 
   const instructorCategoryScores = useMemo<DashboardTableProps>(
     () => ({
       columnHeaders: ['Instructor', 'Category', 'Score', 'View Breakdown'],
-      rows: fakeInstructorCategoryCounts.map(({ instructor, category, score }) => [
-        instructor,
-        category,
-        score.toLocaleString(),
-        {
-          csv: 'NA',
-          display: (
-            <Button type="button" variant="link-small">
-              View
-            </Button>
-          ),
-        },
-      ]),
+      rows:
+        analyzeResponse === null
+          ? []
+          : analyzeResponse.find_feedback_score.rows.map(
+              ({ instructor, category, feedback_score }) => [
+                instructor.name,
+                category.internal_name,
+                feedback_score.score.toLocaleString(),
+                {
+                  csv: 'NA',
+                  display: (
+                    <Button
+                      type="button"
+                      variant="link-small"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setInspectingFeedbackScore(feedback_score);
+                      }}>
+                      View
+                    </Button>
+                  ),
+                },
+              ]
+            ),
     }),
-    []
+    [analyzeResponse]
   );
 
   const instructorCategoryAdjScores = useMemo<DashboardTableProps>(
     () => ({
       columnHeaders: ['Instructor', 'Category', 'Adj. Score'],
-      rows: fakeInstructorCategoryCounts.map((i) => [
-        i.instructor,
-        i.category,
-        computeFixedScore(i).toLocaleString(),
-      ]),
+      rows:
+        analyzeResponse === null
+          ? []
+          : analyzeResponse.find_adjusted_scores.rows.map(({ instructor, category, score }) => [
+              instructor.name,
+              category.internal_name,
+              score.toLocaleString(),
+            ]),
     }),
-    []
+    [analyzeResponse]
   );
 
   const instructorCategoryTimesSeenToday = useMemo<DashboardTableProps>(
     () => ({
       columnHeaders: ['Instructor', 'Category', 'Times Seen Today'],
-      rows: fakeInstructorCategoryCounts.map(({ instructor, category, timesSeenToday }) => [
-        instructor,
-        category,
-        timesSeenToday.toLocaleString(),
-      ]),
+      rows:
+        analyzeResponse === null
+          ? []
+          : analyzeResponse.find_adjusted_scores.rows.map(
+              ({ instructor, category, times_seen_today }) => [
+                instructor.name,
+                category.internal_name,
+                times_seen_today.toLocaleString(),
+              ]
+            ),
     }),
-    []
+    [analyzeResponse]
   );
 
   const sortedInstructorCategories = useMemo<DashboardTableProps>(
     () => ({
       columnHeaders: ['Instructor', 'Category', 'Lowest View Count', 'Adj. Score'],
-      rows: fakeInstructorCategoryCounts
-        .slice()
-        .sort(compareInstructorCategories)
-        .map((i) => [
-          i.instructor,
-          i.category,
-          i.lowestViewCount.toLocaleString(),
-          computeFixedScore(i).toLocaleString(),
-        ]),
+      rows:
+        analyzeResponse === null
+          ? []
+          : analyzeResponse.find_best_categories.rows.map(({ instructor, category }) => [
+              instructor.name,
+              category.internal_name,
+              analyzeResponse.find_lowest_view_counts.rows
+                .find(
+                  (i) => i.category.uid === category.uid && i.instructor.uid === instructor.uid
+                )!
+                .view_count.toLocaleString(),
+              analyzeResponse.find_adjusted_scores.rows
+                .find(
+                  (i) => i.category.uid === category.uid && i.instructor.uid === instructor.uid
+                )!
+                .score.toLocaleString(),
+            ]),
     }),
-    []
+    [analyzeResponse]
   );
 
   const journeys = useMemo<DashboardTableProps>(
     () => ({
       columnHeaders: ['Title', 'Views', 'Created'],
-      rows: fakeJourneys.map(({ title, views, created }) => [
-        title,
-        views.toLocaleString(),
-        created.toLocaleString(),
-      ]),
+      rows:
+        analyzeResponse === null
+          ? []
+          : analyzeResponse.find_best_journeys.rows.map(
+              ({ journey_title, journey_created_at, user_views }) => [
+                journey_title,
+                user_views.toLocaleString(),
+                new Date(journey_created_at * 1000).toLocaleString(),
+              ]
+            ),
     }),
-    []
+    [analyzeResponse]
   );
+
+  useEffect(() => {
+    if (inspectingFeedbackScore === null) {
+      return;
+    }
+
+    let total = 0;
+
+    return addModalWithCallbackToRemove(
+      modalContext.setModals,
+      <ModalWrapper onClosed={() => setInspectingFeedbackScore(null)}>
+        <div className={styles.explanation}>The feedback portion:</div>
+        <DashboardTable
+          columnHeaders={[
+            'Journey Title',
+            'Age Term',
+            'Category Indicator',
+            'Instructor Indicator',
+            'Feedback Version',
+            'Feedback Response',
+            'Summand',
+            'Running Total',
+          ]}
+          rows={inspectingFeedbackScore.terms.map(
+            ({
+              feedback,
+              age_term,
+              category_relevance_term,
+              instructor_relevance_term,
+              net_score,
+            }) => [
+              feedback.journey_title,
+              age_term.toLocaleString(),
+              category_relevance_term.toLocaleString(),
+              instructor_relevance_term.toLocaleString(),
+              feedback.feedback_version.toLocaleString(),
+              (() => {
+                if (feedback.feedback_version === 1 || feedback.feedback_version === 2) {
+                  if (feedback.feedback_response === 1) {
+                    return 'Liked';
+                  } else if (feedback.feedback_response === 2) {
+                    return 'Disliked';
+                  } else {
+                    return feedback.feedback_response.toLocaleString();
+                  }
+                } else if (feedback.feedback_version === 3) {
+                  return (
+                    {
+                      1: 'Way more',
+                      2: 'More',
+                      3: 'Less',
+                      4: 'Way less',
+                    }[feedback.feedback_response] || feedback.feedback_response.toLocaleString()
+                  );
+                } else {
+                  return feedback.feedback_response.toLocaleString();
+                }
+              })(),
+              net_score.toFixed(4),
+              (() => {
+                total += net_score;
+                return total.toFixed(4);
+              })(),
+            ]
+          )}
+        />
+        <div className={styles.explanation}>
+          Instructor bias: {inspectingFeedbackScore.instructor_bias.toFixed(4)}, Category bias:{' '}
+          {inspectingFeedbackScore.category_bias.toFixed(4)}, Total Score:{' '}
+          {inspectingFeedbackScore.score.toFixed(4)}
+        </div>
+      </ModalWrapper>
+    );
+  }, [modalContext.setModals, inspectingFeedbackScore]);
 
   const identifier = user.givenName ?? user.email;
 
   return (
     <CrudItemBlock title="Content Personalization Inspect Tool" controls={null}>
+      {error && <ErrorBlock>{error}</ErrorBlock>}
       <div className={styles.explanation}>
         This tool allows deep inspection of how content is surfaced to this user. Currently, users
         are shown a selection of emotions based on how much content we have for each emotion and
@@ -254,28 +449,48 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
         emotion.
       </div>
       <CrudFormElement title="Emotion">
-        <select value="calm" className={styles.select} onChange={() => {}}>
-          <option value="calm">calm</option>
-          <option value="relaxed">relaxed</option>
-          <option value="grounded">grounded</option>
+        <select
+          value={emotion}
+          className={styles.select}
+          onChange={(e) => {
+            setAnalyzeResponse(null);
+            setEmotion(e.target.value);
+          }}>
+          {emotions.map((e) => (
+            <option key={e} value={e}>
+              {e}
+            </option>
+          ))}
         </select>
       </CrudFormElement>
       <div className={styles.explanation}>
         <h2>Step 1</h2>
+        <div className={styles.timing}>
+          {analyzeResponse === null
+            ? null
+            : analyzeResponse.find_combinations.computation_time.toFixed(6)}
+          s
+        </div>
         The first step is to determine what instructor/category combinations are available within
         this emotion and what fixed bias they have. Note that this step does not depend on the user,
-        and thus can be calculated in advance. For calm, we have:
+        and thus can be calculated in advance. For {emotion}, we have:
       </div>
       <div className={styles.instructorCategoryCounts}>
         <DashboardTable {...instructorCategories} />
       </div>
       <div className={styles.explanation}>
         <h2>Step 2</h2>
+        <div className={styles.timing}>
+          {analyzeResponse === null
+            ? null
+            : analyzeResponse.find_lowest_view_counts.computation_time.toFixed(6)}
+          s
+        </div>
         The second step is to determine the journey with the fewest views by this user within each
         instructor/category combination. For example, if there is any journey within "Dylan Werner,
-        meditation" tagged calm which the user hasn't seen, this value is 0. If the user has seen
-        them all at least 3 times but at least 1 exactly 3 times, this is 3, etc. For {identifier},
-        this gives:
+        meditation" tagged {emotion} which the user hasn't seen, this value is 0. If the user has
+        seen them all at least 3 times but at least 1 exactly 3 times, this is 3, etc. For{' '}
+        {identifier}, this gives:
       </div>
       <div className={styles.instructorCategoryCounts}>
         <DashboardTable {...instructorCategoryCounts} />
@@ -283,6 +498,12 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
       <div className={styles.explanation}>This number is not used until step 5.</div>
       <div className={styles.explanation}>
         <h2>Step 3</h2>
+        <div className={styles.timing}>
+          {analyzeResponse === null
+            ? null
+            : analyzeResponse.find_feedback_score.computation_time.toFixed(6)}
+          s
+        </div>
         The third step is we assign a score for this user to each of these combinations. The score
         is computed as the sum of:
         <ul>
@@ -323,6 +544,12 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
       </div>
       <div className={styles.explanation}>
         <h2>Step 4</h2>
+        <div className={styles.timing}>
+          {analyzeResponse === null
+            ? null
+            : analyzeResponse.find_adjusted_scores.computation_time.toFixed(6)}
+          s
+        </div>
         The fourth step is intended to ensure the user sees an adequate amount of variety within the
         content that they like. The general idea is that the user is biased away from combinations
         they've seen today, but not enough to flip a score from positive to negative. First, we
@@ -350,6 +577,12 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
       </div>
       <div className={styles.explanation}>
         <h2>Step 5</h2>
+        <div className={styles.timing}>
+          {analyzeResponse === null
+            ? null
+            : analyzeResponse.find_best_categories.computation_time.toFixed(6)}
+          s
+        </div>
         The lowest view count is used to avoid content repetition whenever possible, while still
         respecting the users feedback. The primary goal is that if there is an instructor/category
         with a neutral or positive rating, we should use that instead of repeating content from
@@ -386,6 +619,12 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
       </div>
       <div className={styles.explanation}>
         <h2>Step 6</h2>
+        <div className={styles.timing}>
+          {analyzeResponse === null
+            ? null
+            : analyzeResponse.find_best_journeys.computation_time.toFixed(6)}
+          s
+        </div>
         Finally, we find the best journey within the best instructor/category combination. This uses
         a basic sequenced comparison: prefer fewer views by the user, then prefer more recently
         uploaded. Although in practice this doesn't require fetching and fully sorting the journeys,
@@ -395,7 +634,13 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
         <DashboardTable {...journeys} />
       </div>
       <div className={styles.explanation}>
-        Hence, if {identifier} picked calm, they would get <strong>{fakeJourneys[0].title}</strong>.
+        Hence, if {identifier} picked {emotion}, they would get{' '}
+        <strong>
+          {analyzeResponse === null
+            ? 'loading'
+            : analyzeResponse.find_best_journeys.rows[0].journey_title}
+        </strong>
+        .
       </div>
     </CrudItemBlock>
   );
