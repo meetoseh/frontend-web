@@ -8,8 +8,8 @@ import styles from './UserApp.module.css';
 import { apiFetch } from '../shared/ApiConstants';
 import { useFonts } from '../shared/lib/useFonts';
 import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenContext';
-import { useOnboardingState } from './onboarding/hooks/useOnboardingState';
-import { OnboardingRouter } from './onboarding/OnboardingRouter';
+import { useFeaturesState } from './core/hooks/useFeaturesState';
+import { FeaturesRouter } from './core/FeaturesRouter';
 import { InterestsAutoProvider } from '../shared/InterestsContext';
 import { useTimedValue } from '../shared/hooks/useTimedValue';
 
@@ -38,15 +38,15 @@ const requiredFonts = [
 /**
  * Originally, this would select what to do and pass functions around to
  * change the state. Now, this is essentially a thin wrapper around the
- * OnboardingRouter to add loading fonts, injecting a login screen, requesting
+ * FeaturesRouter to add loading fonts, injecting a login screen, requesting
  * fullscreen, and showing a splash screen while loading
  */
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const fullscreenContext = useContext(FullscreenContext);
-  const [state, setState] = useState<'loading' | 'onboarding' | 'login'>('loading');
+  const [state, setState] = useState<'loading' | 'features' | 'login'>('loading');
   const fontsLoaded = useFonts(requiredFonts);
-  const onboarding = useOnboardingState();
+  const features = useFeaturesState();
 
   // Since on first load the user likely sees white anyway, it's better to leave
   // it white and then go straight to the content if we can do so rapidly, rather
@@ -126,19 +126,19 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
-    if (onboarding.loading) {
+    if (features.loading) {
       setState('loading');
       return;
     }
 
-    if (onboarding.required) {
-      setState('onboarding');
+    if (features.required) {
+      setState('features');
       return;
     }
 
     console.warn("No state matched, defaulting to 'loading' (this should never happen)");
     setState('loading');
-  }, [loginContext.state, fontsLoaded, handlingCheckout, onboarding.required, onboarding.loading]);
+  }, [loginContext.state, fontsLoaded, handlingCheckout, features.required, features.loading]);
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in') {
@@ -157,7 +157,7 @@ const UserAppInner = (): ReactElement => {
   ]);
 
   useEffect(() => {
-    if (state === 'onboarding' && !beenLoaded) {
+    if (state === 'features' && !beenLoaded) {
       setBeenLoaded(true);
     }
   }, [state, beenLoaded]);
@@ -168,9 +168,9 @@ const UserAppInner = (): ReactElement => {
         <SplashScreen type={beenLoaded ? 'brandmark' : 'wordmark'} />
       ) : null}
       {state === 'login' ? <LoginApp /> : null}
-      {onboarding.required ? (
-        <div className={state !== 'onboarding' ? styles.displayNone : ''}>
-          <OnboardingRouter state={onboarding} />
+      {features.required ? (
+        <div className={state !== 'features' ? styles.displayNone : ''}>
+          <FeaturesRouter state={features} />
         </div>
       ) : null}
     </div>

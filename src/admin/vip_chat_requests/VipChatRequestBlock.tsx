@@ -3,10 +3,10 @@ import { CrudItemBlock } from '../crud/CrudItemBlock';
 import { VipChatRequest } from './VipChatRequest';
 import { CrudFormElement } from '../crud/CrudFormElement';
 import { Button } from '../../shared/forms/Button';
-import { VipChatRequestState } from '../../user/onboarding/steps/vipChatRequest/VipChatRequestState';
-import { VipChatRequestStep } from '../../user/onboarding/steps/vipChatRequest/VipChatRequestStep';
-import { OnboardingAllStates } from '../../user/onboarding/models/OnboardingAllStates';
-import { VipChatRequestComponent } from '../../user/onboarding/steps/vipChatRequest/VipChatRequestComponent';
+import { VipChatRequestState } from '../../user/core/features/vipChatRequest/VipChatRequestState';
+import { VipChatRequestFeature } from '../../user/core/features/vipChatRequest/VipChatRequestFeature';
+import { FeatureAllStates } from '../../user/core/models/FeatureAllStates';
+import { VipChatRequestComponent } from '../../user/core/features/vipChatRequest/VipChatRequestComponent';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import styles from './VipChatRequestBlock.module.css';
 
@@ -44,7 +44,7 @@ export const VipChatRequestBlock = ({
       suppressEvents: true,
     };
   }, [chatRequest, windowSize.width]);
-  const resources = VipChatRequestStep.useResources(state, true, {} as OnboardingAllStates);
+  const resources = VipChatRequestFeature.useResources(state, true, {} as FeatureAllStates);
 
   return (
     <CrudItemBlock title={chatRequest.user.email} controls={null}>
