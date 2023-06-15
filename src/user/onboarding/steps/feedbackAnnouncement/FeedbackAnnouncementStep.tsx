@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { OnboardingStep } from '../../models/OnboardingStep';
-import { FavoritesAnnouncementResources } from './FavoritesAnnouncementResources';
-import { FavoritesAnnouncementState } from './FavoritesAnnouncementState';
+import { FeedbackAnnouncementResources } from './FeedbackAnnouncementResources';
+import { FeedbackAnnouncementState } from './FeedbackAnnouncementState';
 import { OsehImageProps, useOsehImageState } from '../../../../shared/OsehImage';
-import { FavoritesAnnouncement } from './FavoritesAnnouncement';
+import { FeedbackAnnouncment } from './FeedbackAnnouncement';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 
 const imageProps: OsehImageProps = {
-  uid: 'oseh_if_IpfCWgN-6w_c1VxR4OX_Vg',
+  uid: 'oseh_if_WEfZfgv6MDMOnNlUsB1cbA',
   jwt: null,
   displayWidth: 326,
   displayHeight: 257,
@@ -17,23 +17,23 @@ const imageProps: OsehImageProps = {
 };
 
 /**
- * Informs users about the new favorites feature
+ * Informs users about the new feedback feature
  */
-export const FavoritesAnnouncementStep: OnboardingStep<
-  FavoritesAnnouncementState,
-  FavoritesAnnouncementResources
+export const FeedbackAnnouncementStep: OnboardingStep<
+  FeedbackAnnouncementState,
+  FeedbackAnnouncementResources
 > = {
-  identifier: 'favoritesAnnouncement',
+  identifier: 'feedbackAnnouncement',
   useWorldState: () => {
-    const ian = useInappNotification('oseh_ian_rLkvxKAwvgI2Vpcvu0bjsg', Date.now() > 1688223600000);
+    const ian = useInappNotification('oseh_ian_T7AwwYHKJlfFc33muX6Fdg', Date.now() > 1688223600000);
 
-    return useMemo<FavoritesAnnouncementState>(() => ({ ian }), [ian]);
+    return useMemo<FeedbackAnnouncementState>(() => ({ ian }), [ian]);
   },
   useResources: (state) => {
     const session = useInappNotificationSession(state.ian?.uid ?? null);
     const image = useOsehImageState(imageProps);
 
-    return useMemo<FavoritesAnnouncementResources>(
+    return useMemo<FeedbackAnnouncementResources>(
       () => ({ session, image, loading: session === null || image.loading }),
       [session, image]
     );
@@ -46,7 +46,7 @@ export const FavoritesAnnouncementStep: OnboardingStep<
   },
   component(worldState, resources, doAnticipateState) {
     return (
-      <FavoritesAnnouncement
+      <FeedbackAnnouncment
         state={worldState}
         resources={resources}
         doAnticipateState={doAnticipateState}

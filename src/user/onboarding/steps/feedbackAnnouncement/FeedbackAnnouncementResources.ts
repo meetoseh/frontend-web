@@ -1,7 +1,7 @@
 import { OsehImageState } from '../../../../shared/OsehImage';
 import { InappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 
-export type FavoritesAnnouncementResources = {
+export type FeedbackAnnouncementResources = {
   /**
    * The notification session for tracking, null if it's loading
    */

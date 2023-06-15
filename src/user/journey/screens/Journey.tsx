@@ -29,9 +29,9 @@ export const Journey = ({
   onCloseEarly,
 }: JourneyScreenProps & {
   /**
-   * If specified, instead of just using setScreen('post') for both the
+   * If specified, instead of just using setScreen('feedback') for both the
    * audio ending normally and the user clicking the x to skip the remaining
-   * audio, instead we use setScreen('post') if it ends normally and
+   * audio, instead we use setScreen('feedback') if it ends normally and
    * onCloseEarly if the user clicks the x to skip the remaining audio.
    */
   onCloseEarly?: (currentTime: number, totalTime: number) => void;
@@ -55,7 +55,7 @@ export const Journey = ({
     }
 
     const handler = () => {
-      setScreen('post', false);
+      setScreen('feedback', false);
     };
 
     if (audio.ended) {
@@ -145,7 +145,7 @@ export const Journey = ({
     if (onCloseEarly !== undefined) {
       onCloseEarly(currentTime, journey.durationSeconds);
     } else {
-      setScreen('post', true);
+      setScreen('feedback', true);
     }
   }, [setScreen, shared.audio, currentTime, journey.durationSeconds, onCloseEarly]);
 

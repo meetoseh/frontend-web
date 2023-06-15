@@ -1,24 +1,24 @@
 import { ReactElement, useCallback } from 'react';
 import { OnboardingStepComponentProps } from '../../models/OnboardingStep';
-import { FavoritesAnnouncementResources } from './FavoritesAnnouncementResources';
-import { FavoritesAnnouncementState } from './FavoritesAnnouncementState';
+import { FeedbackAnnouncementResources } from './FeedbackAnnouncementResources';
+import { FeedbackAnnouncementState } from './FeedbackAnnouncementState';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { SplashScreen } from '../../../splash/SplashScreen';
-import styles from './FavoritesAnnouncement.module.css';
+import styles from './FeedbackAnnouncement.module.css';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { Button } from '../../../../shared/forms/Button';
 import { OsehImageFromState } from '../../../../shared/OsehImage';
 
 /**
- * Shows the announcement for the new favorites feature
+ * Shows the announcement for the new feedback feature
  */
-export const FavoritesAnnouncement = ({
+export const FeedbackAnnouncment = ({
   state,
   resources,
   doAnticipateState,
 }: OnboardingStepComponentProps<
-  FavoritesAnnouncementState,
-  FavoritesAnnouncementResources
+  FeedbackAnnouncementState,
+  FeedbackAnnouncementResources
 >): ReactElement => {
   const windowSize = useWindowSize();
   useStartSession(resources.session);
@@ -48,14 +48,13 @@ export const FavoritesAnnouncement = ({
       <div className={styles.content}>
         <div className={styles.locator}>
           <div className={styles.locatorDot} />
-          <div className={styles.locatorText}>Feature Announcement</div>
+          <div className={styles.locatorText}>Introducing Oseh 2.2</div>
         </div>
-        <div className={styles.title}>
-          Introducing <em>favorites</em>
-        </div>
+        <div className={styles.title}>Classes just for you</div>
         <div className={styles.horizontalRule} />
         <div className={styles.info}>
-          All of your favorite classes, all of the time. Save and listen to any class on-demand.
+          More of what you love, all of the time. Share how you liked a class and we’ll curate your
+          next class, just for you.
         </div>
         <div className={styles.contentImageContainer}>
           <div className={styles.contentImageOverlay} />

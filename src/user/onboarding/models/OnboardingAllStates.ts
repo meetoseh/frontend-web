@@ -1,5 +1,5 @@
 import { CourseClassesState } from '../steps/courseClasses/CourseClassesState';
-import { FavoritesAnnouncementState } from '../steps/favoritesAnnouncement/FavoritesAnnouncementState';
+import { FeedbackAnnouncementState } from '../steps/feedbackAnnouncement/FeedbackAnnouncementState';
 import { GoalDaysPerWeekState } from '../steps/goalDaysPerWeek/GoalDaysPerWeekState';
 import { PickEmotionJourneyState } from '../steps/pickEmotionJourney/PickEmotionJourneyState';
 import { RequestNameState } from '../steps/requestName/RequestNameState';
@@ -11,7 +11,7 @@ import { VipChatRequestState } from '../steps/vipChatRequest/VipChatRequestState
 
 export type OnboardingAllStates = {
   courseClasses: CourseClassesState;
-  favoritesAnnouncement: FavoritesAnnouncementState;
+  feedbackAnnouncement: FeedbackAnnouncementState;
   requestName: RequestNameState;
   requestPhone: RequestPhoneState;
   signupReward: SignupRewardState;

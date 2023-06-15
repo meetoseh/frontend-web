@@ -34,6 +34,7 @@ import { JourneyStart } from '../../../journey/screens/JourneyStart';
 import { MyProfilePicture } from '../../../../shared/MyProfilePicture';
 import { LoginContext } from '../../../../shared/LoginContext';
 import { apiFetch } from '../../../../shared/ApiConstants';
+import { JourneyFeedbackScreen } from '../../../journey/screens/JourneyFeedbackScreen';
 
 /**
  * Ensures we display at least 12 options, faking the rest if necessary.
@@ -202,6 +203,10 @@ export const PickEmotionJourney = ({
     return <Journey {...props} />;
   }
 
+  if (step.step === 'feedback') {
+    return <JourneyFeedbackScreen {...props} />;
+  }
+
   if (step.step === 'post') {
     return <JourneyPostScreen {...props} classesTakenToday={state.classesTakenThisSession} />;
   }
@@ -214,7 +219,13 @@ export const PickEmotionJourney = ({
     return <JourneyShareScreen {...props} />;
   }
 
-  throw new Error('unknown step: ' + step);
+  throw new Error(createUnknownStepMessage(step.step));
+};
+
+// This function will allow the type checker to catch any missing steps
+// as they will cause step not to have the `never` type
+const createUnknownStepMessage = (step: never) => {
+  return `Unknown step: ${JSON.stringify(step)}`;
 };
 
 /**

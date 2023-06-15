@@ -53,6 +53,17 @@
       "comment": "Used for the favorites feature announcement",
       "source": "server_images/favorites_announcement.jpg",
       "resolutions": [[326, 257]]
+    },
+    {
+      "uid": "oseh_if_WEfZfgv6MDMOnNlUsB1cbA",
+      "name": "feedback-announcement",
+      "comment": "Used for the feedback feature announcement",
+      "source": "server_images/feedback-announcement.png",
+      "resolutions": [
+        [326, 257],
+        [652, 514],
+        [978, 771]
+      ]
     }
   ]
 }

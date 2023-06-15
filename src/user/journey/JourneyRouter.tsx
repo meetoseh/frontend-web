@@ -10,6 +10,7 @@ import { JourneyLobbyScreen } from './screens/JourneyLobbyScreen';
 import { JourneyPostScreen } from './screens/JourneyPostScreen';
 import { JourneyShareScreen } from './screens/JourneyShareScreen';
 import { JourneyStart } from './screens/JourneyStart';
+import { JourneyFeedbackScreen } from './screens/JourneyFeedbackScreen';
 
 type JourneyRouterProps = {
   /**
@@ -28,7 +29,7 @@ type JourneyRouterProps = {
   isOnboarding: boolean;
 };
 
-export type JourneyRouterScreenId = 'lobby' | 'start' | 'journey' | 'post' | 'share';
+export type JourneyRouterScreenId = 'lobby' | 'start' | 'journey' | 'feedback' | 'post' | 'share';
 
 export const JourneyRouter = ({
   journey,
@@ -95,6 +96,10 @@ export const JourneyRouter = ({
 
   if (sharedState.blurredImageLoading) {
     return <SplashScreen />;
+  }
+
+  if (screen === 'feedback') {
+    return <JourneyFeedbackScreen {...screenProps} />;
   }
 
   if (screen === 'post') {
