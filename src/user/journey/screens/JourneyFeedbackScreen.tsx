@@ -286,7 +286,7 @@ export const JourneyFeedbackScreen = ({
               </button>
               <button className={classNameForResponse(4)} onClick={clickResponse[3]}>
                 <div className={styles.answerEmoji} ref={setEmojiRefs[3]}>
-                  👿
+                  ☹️
                 </div>
                 <div className={styles.answerText}>Hated</div>
               </button>
