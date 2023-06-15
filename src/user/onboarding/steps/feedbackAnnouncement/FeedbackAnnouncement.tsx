@@ -53,8 +53,8 @@ export const FeedbackAnnouncment = ({
         <div className={styles.title}>Classes just for you</div>
         <div className={styles.horizontalRule} />
         <div className={styles.info}>
-          More of what you love, all of the time. Share how you liked a class and we’ll curate your
-          next class, just for you.
+          More of what you love, all of the time. Share how you liked a class and we&rsquo;ll curate
+          your next class, just for you.
         </div>
         <div className={styles.contentImageContainer}>
           <div className={styles.contentImageOverlay} />

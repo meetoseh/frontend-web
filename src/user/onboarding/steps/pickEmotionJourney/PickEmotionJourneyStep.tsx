@@ -168,6 +168,7 @@ export const PickEmotionJourneyStep: OnboardingStep<
         };
 
         async function fetchOptionsInner() {
+          const now = new Date();
           const response = await apiFetch(
             '/api/1/emotions/personalized',
             {
@@ -177,6 +178,10 @@ export const PickEmotionJourneyStep: OnboardingStep<
                 recently_seen: state.recentlyViewed
                   .slice(-5)
                   .map((r) => r.words.map((w) => w.word)),
+                local_time: {
+                  hour_24: now.getHours(),
+                  minute: now.getMinutes(),
+                },
                 num_emotions: 12,
               }),
             },
