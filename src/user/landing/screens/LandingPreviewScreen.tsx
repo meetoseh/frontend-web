@@ -1,9 +1,11 @@
 import { ReactElement, useMemo } from 'react';
 import styles from './LandingPreviewScreen.module.css';
-import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../../shared/OsehImage';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { SplashScreen } from '../../splash/SplashScreen';
 import { Button } from '../../../shared/forms/Button';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../shared/images/useOsehImageState';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 type LandingPreviewScreenProps = {
   /**
@@ -27,6 +29,7 @@ export const LandingPreviewScreen = ({ title, onContinue }: LandingPreviewScreen
   }
 
   const windowSize = useWindowSize();
+  const imageHandler = useOsehImageStateRequestHandler({});
   const backgroundSize = useMemo(() => {
     if (windowSize.width >= 633 && windowSize.height >= 390) {
       return { width: 241, height: 391 };
@@ -37,18 +40,17 @@ export const LandingPreviewScreen = ({ title, onContinue }: LandingPreviewScreen
       height: Math.round(windowSize.height / 1.618),
     };
   }, [windowSize]);
-  const backgroundProps = useMemo<OsehImageProps>(
-    () => ({
+  const background = useOsehImageState(
+    {
       uid: 'oseh_if_0ykGW_WatP5-mh-0HRsrNw',
       jwt: null,
       displayWidth: backgroundSize.width,
       displayHeight: backgroundSize.height,
       isPublic: true,
       alt: '',
-    }),
-    [backgroundSize]
+    },
+    imageHandler
   );
-  const background = useOsehImageState(backgroundProps);
 
   if (background.loading) {
     return <SplashScreen />;

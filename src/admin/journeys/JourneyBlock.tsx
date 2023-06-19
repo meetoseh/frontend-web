@@ -1,7 +1,7 @@
 import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { IconButton } from '../../shared/forms/IconButton';
 import { OsehContent } from '../../shared/OsehContent';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import { CrudFormElement } from '../crud/CrudFormElement';
 import { CrudItemBlock } from '../crud/CrudItemBlock';
 import { Journey } from './Journey';
@@ -25,6 +25,7 @@ import { Checkbox } from '../../shared/forms/Checkbox';
 import { InstructorPicker } from '../instructors/InstructorPicker';
 import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
 import { JourneyEmotionsBlock } from './emotions/JourneyEmotionsBlock';
+import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type JourneyBlockProps = {
   /**
@@ -36,12 +37,21 @@ type JourneyBlockProps = {
    * Used to update the journey after a confirmation from the server
    */
   setJourney: (this: void, journey: Journey) => void;
+
+  /**
+   * The handler for loading images
+   */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
  * Shows a journey and allows editing it, including soft-deleting
  */
-export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactElement => {
+export const JourneyBlock = ({
+  journey,
+  setJourney,
+  imageHandler,
+}: JourneyBlockProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
@@ -129,10 +139,11 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
             setNewBackgroundImage(image);
             setShowChooseImage(false);
           }}
+          imageHandler={imageHandler}
         />
       </ModalWrapper>
     );
-  }, [showChooseImage, modalContext.setModals]);
+  }, [showChooseImage, modalContext.setModals, imageHandler]);
 
   const save = useCallback(async () => {
     setSaving(true);
@@ -320,6 +331,7 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
                   displayWidth={isMobile ? 180 : 480}
                   displayHeight={isMobile ? 368 : 270}
                   alt="Background"
+                  handler={imageHandler}
                 />
               </div>
               <div className={styles.backgroundImageEditButtons}>
@@ -347,6 +359,7 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
                 displayWidth={isMobile ? 180 : 480}
                 displayHeight={isMobile ? 368 : 270}
                 alt="Background"
+                handler={imageHandler}
               />
             </div>
           )}
@@ -374,6 +387,7 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
                 query={instructorQuery}
                 setQuery={setInstructorQuery}
                 setSelected={onInstructorSelected}
+                imageHandler={imageHandler}
               />
             </div>
           )) || (
@@ -386,6 +400,7 @@ export const JourneyBlock = ({ journey, setJourney }: JourneyBlockProps): ReactE
                     displayWidth={60}
                     displayHeight={60}
                     alt="Instructor"
+                    handler={imageHandler}
                   />
                 </div>
               )}

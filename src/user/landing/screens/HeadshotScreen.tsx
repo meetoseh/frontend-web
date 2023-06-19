@@ -1,10 +1,12 @@
-import { ReactElement, useMemo } from 'react';
+import { ReactElement } from 'react';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
-import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../../shared/OsehImage';
 import styles from './HeadshotScreen.module.css';
 import { useProviderUrls } from '../../login/LoginApp';
 import { SplashScreen } from '../../splash/SplashScreen';
 import { SocialSignins } from '../../login/LoginApp';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../shared/images/useOsehImageState';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 type HeadshotScreenProps = {
   /**
@@ -50,8 +52,9 @@ export const HeadshotScreen = ({
   const urls = useProviderUrls();
 
   const windowSize = useWindowSize();
-  const backgroundProps = useMemo<OsehImageProps>(
-    () => ({
+  const imageHandler = useOsehImageStateRequestHandler({});
+  const background = useOsehImageState(
+    {
       uid: 'oseh_if_hH68hcmVBYHanoivLMgstg',
       jwt: null,
       displayWidth: windowSize.width,
@@ -59,13 +62,11 @@ export const HeadshotScreen = ({
       alt: '',
       isPublic: true,
       placeholderColor: '#021a1e',
-    }),
-    [windowSize]
+    },
+    imageHandler
   );
-  const background = useOsehImageState(backgroundProps);
-
-  const headshotProps = useMemo<OsehImageProps>(
-    () => ({
+  const headshot = useOsehImageState(
+    {
       uid: headshotUid,
       jwt: null,
       displayWidth: 56,
@@ -73,10 +74,9 @@ export const HeadshotScreen = ({
       alt: '',
       isPublic: true,
       placeholderColor: '#f9f9f9',
-    }),
-    [headshotUid]
+    },
+    imageHandler
   );
-  const headshot = useOsehImageState(headshotProps);
 
   if (urls === null || headshot.loading) {
     return <SplashScreen />;

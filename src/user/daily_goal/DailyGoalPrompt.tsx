@@ -1,10 +1,12 @@
-import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 import { usePublicInteractivePrompt } from '../../shared/hooks/usePublicInteractivePrompt';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../shared/OsehImage';
 import styles from './DailyGoalPrompt.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { InteractivePromptRouter } from '../interactive_prompt/components/InteractivePromptRouter';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../shared/images/useOsehImageState';
+import { OsehImageFromState } from '../../shared/images/OsehImageFromState';
 
 type DailyGoalPromptProps = {
   /**
@@ -28,18 +30,18 @@ type DailyGoalPromptProps = {
 export const DailyGoalPrompt = ({ onLoaded, onFinished }: DailyGoalPromptProps): ReactElement => {
   const publicPrompt = usePublicInteractivePrompt({ identifier: 'onboarding-prompt-feeling' });
   const windowSize = useWindowSize();
-  const backgroundImageProps = useMemo<OsehImageProps>(
-    () => ({
+  const imageHandler = useOsehImageStateRequestHandler({});
+  const backgroundImage = useOsehImageState(
+    {
       uid: 'oseh_if_0ykGW_WatP5-mh-0HRsrNw',
       jwt: null,
       displayWidth: windowSize.width,
       displayHeight: windowSize.height,
       alt: '',
       isPublic: true,
-    }),
-    [windowSize.width, windowSize.height]
+    },
+    imageHandler
   );
-  const backgroundImage = useOsehImageState(backgroundImageProps);
   const [response, setResponse] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const leavingCallback = useRef<(() => void) | null>(null);

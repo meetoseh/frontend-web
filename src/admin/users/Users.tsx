@@ -6,6 +6,7 @@ import { UserFilterAndSortBlock, defaultFilter, defaultSort } from './UserFilter
 import { Crud } from '../crud/Crud';
 import { CrudListing } from '../crud/CrudListing';
 import { UserBlock } from './UserBlock';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 const limit = 5;
 const path = '/api/1/users/search';
@@ -22,6 +23,7 @@ export const Users = (): ReactElement => {
   const [sort, setSort] = useState<CrudFetcherSort>(defaultSort);
   const [loading, setLoading] = useState(true);
   const [haveMore, setHaveMore] = useState(false);
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   const fetcher = useMemo(
     () => new CrudFetcher(path, userKeyMap, setItems, setLoading, setHaveMore),
@@ -66,6 +68,7 @@ export const Users = (): ReactElement => {
                   return newItems;
                 });
               }}
+              imageHandler={imageHandler}
             />
           )}
           loading={loading}

@@ -92,7 +92,7 @@ function App() {
           element={
             <LoginProvider>
               <InterestsAutoProvider>
-                <OsehPlusUpgradePrompt setLoaded={() => {}} />
+                <OsehPlusUpgradePrompt />
               </InterestsAutoProvider>
             </LoginProvider>
           }

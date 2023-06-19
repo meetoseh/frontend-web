@@ -1,6 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
-import { OsehImageFromState } from '../../../shared/OsehImage';
 import styles from './Journey.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
@@ -10,6 +9,7 @@ import { useUnfavoritedModal } from '../../favorites/hooks/useUnfavoritedModal';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/LoginContext';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 const HIDE_TIME = 10000;
 const HIDING_TIME = 365;
@@ -205,7 +205,7 @@ export const Journey = ({
   return (
     <div className={styles.container} ref={containerRef}>
       <div className={styles.backgroundImageContainer}>
-        {shared.image && <OsehImageFromState {...shared.image} />}
+        <OsehImageFromState {...shared.darkenedImage} />
       </div>
       <div
         className={`${styles.closeButtonContainer} ${styles.control} ${

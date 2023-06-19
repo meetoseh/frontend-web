@@ -1,6 +1,5 @@
 import { FeatureComponentProps } from '../../models/Feature';
 import styles from './RequestNotificationTime.module.css';
-import { OsehImageFromState } from '../../../../shared/OsehImage';
 import { ErrorBlock } from '../../../../shared/forms/ErrorBlock';
 import { InteractivePromptRouter } from '../../../interactive_prompt/components/InteractivePromptRouter';
 import { useCallback, useContext, useRef } from 'react';
@@ -11,6 +10,7 @@ import { useStartSession } from '../../../../shared/hooks/useInappNotificationSe
 import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/LoginContext';
+import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 /**
  * Asks the user to consider how they are feeling
@@ -70,7 +70,7 @@ export const RequestNotificationTime = ({
     [onFinish]
   );
 
-  if (resources.background === null || resources.prompt === null || resources.prompt.loading) {
+  if (resources.prompt === null || resources.prompt.loading) {
     return <></>;
   }
 

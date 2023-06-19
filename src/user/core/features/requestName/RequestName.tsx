@@ -1,5 +1,5 @@
 import { ReactElement, useCallback, useContext, useState } from 'react';
-import { OsehImageFromState } from '../../../../shared/OsehImage';
+import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import styles from './RequestName.module.css';
 import { TextInput } from '../../../../shared/forms/TextInput';
 import { apiFetch } from '../../../../shared/ApiConstants';
@@ -73,10 +73,6 @@ export const RequestName = ({
     },
     [loginContext, firstName, lastName, doAnticipateState]
   );
-
-  if (resources.background === null) {
-    return <></>;
-  }
 
   return (
     <div className={styles.container}>

@@ -1,5 +1,5 @@
 import { ReactElement } from 'react';
-import { OsehImageState } from '../../../../shared/OsehImage';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { JourneyRef } from '../../../journey/models/JourneyRef';
 import { JourneyShared } from '../../../journey/models/JourneyShared';
 import { Emotion } from './Emotion';

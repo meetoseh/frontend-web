@@ -8,6 +8,7 @@ import { CompactJourney } from '../CompactJourney';
 import { LoginContext } from '../../../shared/LoginContext';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../shared/ApiConstants';
+import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 
 type IntroductoryJourneyBlockProps = {
   journey: IntroductoryJourney;
@@ -24,6 +25,11 @@ type IntroductoryJourneyBlockProps = {
    * journey.
    */
   onChanged: (this: undefined, newItem: IntroductoryJourney) => void;
+
+  /**
+   * The handler for fetching images
+   */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
@@ -34,6 +40,7 @@ export const IntroductoryJourneyBlock = ({
   journey,
   onDeleted,
   onChanged,
+  imageHandler,
 }: IntroductoryJourneyBlockProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [error, setError] = useState<ReactElement | null>(null);
@@ -83,7 +90,7 @@ export const IntroductoryJourneyBlock = ({
       }>
       <div className={styles.container}>
         {error && <ErrorBlock>{error}</ErrorBlock>}
-        <CompactJourney journey={journey.journey} />
+        <CompactJourney journey={journey.journey} imageHandler={imageHandler} />
       </div>
     </CrudItemBlock>
   );

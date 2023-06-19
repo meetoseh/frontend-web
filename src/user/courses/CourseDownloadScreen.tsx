@@ -1,12 +1,13 @@
 import { ReactElement, useMemo, useState } from 'react';
 import styles from './CourseDownloadScreen.module.css';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { Button } from '../../shared/forms/Button';
 import { useSingletonEffect } from '../../shared/lib/useSingletonEffect';
 import { apiFetch } from '../../shared/ApiConstants';
 import { SplashScreen } from '../splash/SplashScreen';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type CourseRef = {
   uid: string;
@@ -26,6 +27,7 @@ export const CourseDownloadScreen = (): ReactElement => {
   }, []);
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
+  const imageHandler = useOsehImageStateRequestHandler({});
   const windowSize = useWindowSize();
 
   useSingletonEffect(
@@ -117,6 +119,7 @@ export const CourseDownloadScreen = (): ReactElement => {
           alt=""
           isPublic={true}
           placeholderColor="#01181e"
+          handler={imageHandler}
         />
       </div>
       <div className={styles.innerContainer}>

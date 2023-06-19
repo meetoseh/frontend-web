@@ -1,4 +1,4 @@
-import { OsehImageState } from '../../../../shared/OsehImage';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { InappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 
 /**
@@ -13,9 +13,9 @@ export type RequestPhoneResources = {
   session: InappNotificationSession | null;
 
   /**
-   * The background image to display, if loaded
+   * The background image to display
    */
-  background: OsehImageState | null;
+  background: OsehImageState;
 
   /**
    * True if still waiting for more resources to load, false otherwise.

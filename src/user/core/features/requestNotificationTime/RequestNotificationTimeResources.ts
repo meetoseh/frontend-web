@@ -1,6 +1,6 @@
-import { OsehImageState } from '../../../../shared/OsehImage';
 import { InappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { PublicInteractivePrompt } from '../../../../shared/hooks/usePublicInteractivePrompt';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
 
 /**
  * The resources required to render
@@ -20,7 +20,7 @@ export type RequestNotificationTimeResources = {
   /**
    * The background to use, if it's been loaded, null otherwise.
    */
-  background: OsehImageState | null;
+  background: OsehImageState;
 
   /**
    * True if we're still loading resources, false if we're ready to present.

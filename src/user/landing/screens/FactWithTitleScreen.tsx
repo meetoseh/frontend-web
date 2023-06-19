@@ -1,9 +1,11 @@
-import { ReactElement, useMemo } from 'react';
+import { ReactElement } from 'react';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
-import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../../shared/OsehImage';
 import styles from './FactWithTitleScreen.module.css';
 import { DidYouKnow } from '../../../shared/components/DidYouKnow';
 import { Button } from '../../../shared/forms/Button';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../shared/images/useOsehImageState';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 type FactWithTitleScreenProps = {
   /**
@@ -51,8 +53,9 @@ export const FactWithTitleScreen = ({
   );
 
   const windowSize = useWindowSize();
-  const backgroundProps = useMemo<OsehImageProps>(
-    () => ({
+  const imageHandler = useOsehImageStateRequestHandler({});
+  const background = useOsehImageState(
+    {
       uid: 'oseh_if_hH68hcmVBYHanoivLMgstg',
       jwt: null,
       displayWidth: windowSize.width,
@@ -60,10 +63,9 @@ export const FactWithTitleScreen = ({
       alt: '',
       isPublic: true,
       placeholderColor: '#021a1e',
-    }),
-    [windowSize]
+    },
+    imageHandler
   );
-  const background = useOsehImageState(backgroundProps);
 
   return (
     <div className={styles.container}>

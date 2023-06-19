@@ -4,14 +4,10 @@ import { VipChatRequestResources } from './VipChatRequestResources';
 import { VipChatRequestState, VipChatRequest, convertVipChatRequest } from './VipChatRequestState';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/LoginContext';
-import {
-  OsehImageProps,
-  OsehImageState,
-  OsehImageStateChangedEvent,
-  useOsehImageStatesRef,
-} from '../../../../shared/OsehImage';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { VipChatRequestComponent } from './VipChatRequestComponent';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 
 /**
  * Determines when we last showed the vip chat request for the user with the
@@ -159,81 +155,37 @@ export const VipChatRequestFeature: Feature<VipChatRequestState, VipChatRequestR
 
   useResources(state, required) {
     const windowSize = useWindowSize(state.forcedWindowSize);
-    const images = useOsehImageStatesRef({ cacheSize: 4 });
-    const [image, setImage] = useState<OsehImageState | null>(null);
-    const [background, setBackground] = useState<OsehImageState | null>(null);
-
-    useEffect(() => {
-      if (!required) {
-        return;
-      }
-
-      if (state.chatRequest === null || state.chatRequest === undefined) {
-        return;
-      }
-
-      const imageRef = state.chatRequest.variant.image;
-      const bkndRef = state.chatRequest.variant.backgroundImage;
-
-      const imageProps: OsehImageProps = {
-        uid: imageRef.uid,
-        jwt: imageRef.jwt,
+    const images = useOsehImageStateRequestHandler({});
+    const image = useOsehImageState(
+      {
+        uid: state.chatRequest?.variant?.image?.uid ?? null,
+        jwt: state.chatRequest?.variant?.image?.jwt ?? null,
         displayWidth: 189,
         displayHeight: 189,
         alt: '',
-      };
-
-      const bkndProps: OsehImageProps = {
-        uid: bkndRef.uid,
-        jwt: bkndRef.jwt,
+      },
+      images
+    );
+    const background = useOsehImageState(
+      {
+        uid: state.chatRequest?.variant?.backgroundImage?.uid ?? null,
+        jwt: state.chatRequest?.variant?.backgroundImage?.jwt ?? null,
         displayWidth: windowSize.width,
         displayHeight: windowSize.height,
         alt: '',
-      };
-
-      images.onStateChanged.current.add(handleStateChanged);
-
-      images.handling.current.set(imageRef.uid, imageProps);
-      images.onHandlingChanged.current.call({ uid: imageRef.uid, old: null, current: imageProps });
-
-      images.handling.current.set(bkndRef.uid, bkndProps);
-      images.onHandlingChanged.current.call({ uid: bkndRef.uid, old: null, current: bkndProps });
-
-      return () => {
-        images.onStateChanged.current.remove(handleStateChanged);
-
-        images.handling.current.delete(imageRef.uid);
-        images.onHandlingChanged.current.call({
-          uid: imageRef.uid,
-          old: imageProps,
-          current: null,
-        });
-
-        images.handling.current.delete(bkndRef.uid);
-        images.onHandlingChanged.current.call({ uid: bkndRef.uid, old: bkndProps, current: null });
-      };
-
-      function handleStateChanged(e: OsehImageStateChangedEvent) {
-        if (e.uid === imageRef.uid) {
-          setImage(e.current);
-        } else if (e.uid === bkndRef.uid) {
-          setBackground(e.current);
-        }
-      }
-    }, [required, state.chatRequest, images, windowSize]);
-
+      },
+      images
+    );
     return useMemo(
       () => ({
-        loading:
-          !required || image === null || background === null || image.loading || background.loading,
+        loading: !required || image.loading || background.loading,
         windowSize,
-        variant:
-          !required || image === null || background === null
-            ? null
-            : {
-                image,
-                background,
-              },
+        variant: !required
+          ? null
+          : {
+              image,
+              background,
+            },
       }),
       [required, image, background, windowSize]
     );

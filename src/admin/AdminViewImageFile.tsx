@@ -1,12 +1,15 @@
 import { CSSProperties, ReactElement, useEffect, useState } from 'react';
 import { apiFetch } from '../shared/ApiConstants';
-import { OsehImage, OsehImageRef } from '../shared/OsehImage';
+import { useOsehImageStateRequestHandler } from '../shared/images/useOsehImageStateRequestHandler';
+import { OsehImageRef } from '../shared/images/OsehImageRef';
+import { OsehImage } from '../shared/images/OsehImage';
 
 export const AdminViewImageFile = (): ReactElement => {
   const [uid, setUid] = useState<string>('');
   const [width, setWidth] = useState<number>(393);
   const [height, setHeight] = useState<number>(852);
   const [imgRef, setImgRef] = useState<OsehImageRef | null>(null);
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   useEffect(() => {
     let active = true;
@@ -67,7 +70,8 @@ export const AdminViewImageFile = (): ReactElement => {
           jwt={imgRef.jwt}
           displayWidth={width}
           displayHeight={height}
-          alt="Profile picture"
+          alt="Requested"
+          handler={imageHandler}
         />
       )}
     </div>

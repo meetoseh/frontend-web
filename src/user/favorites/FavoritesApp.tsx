@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useMemo } from 'react';
+import { ReactElement, useContext } from 'react';
 import { useFonts } from '../../shared/lib/useFonts';
 import { LoginContext } from '../../shared/LoginContext';
 import { useTimedValue } from '../../shared/hooks/useTimedValue';
@@ -6,7 +6,8 @@ import { LoginApp } from '../login/LoginApp';
 import { SplashScreen } from '../splash/SplashScreen';
 import { FavoritesTabbedPane } from './screens/FavoritesTabbedPane';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { OsehImageProps, useOsehImageState } from '../../shared/OsehImage';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../shared/images/useOsehImageState';
 
 const requiredFonts = ['400 1em Open Sans', '600 1em Open Sans', '700 1em Open Sans'];
 
@@ -22,19 +23,18 @@ export const FavoritesApp = (): ReactElement => {
   const fontsLoaded = useFonts(requiredFonts);
   const flashWhiteInsteadOfSplash = useTimedValue<boolean>(true, false, 250);
   const windowSize = useWindowSize();
-
-  const backgroundProps = useMemo<OsehImageProps>(
-    () => ({
+  const imageHandler = useOsehImageStateRequestHandler({});
+  const background = useOsehImageState(
+    {
       uid: 'oseh_if_0ykGW_WatP5-mh-0HRsrNw',
       jwt: null,
       displayWidth: windowSize.width,
       displayHeight: windowSize.height,
       alt: '',
       isPublic: true,
-    }),
-    [windowSize]
+    },
+    imageHandler
   );
-  const background = useOsehImageState(backgroundProps);
 
   if (loginContext.state === 'logged-out') {
     return <LoginApp redirectUrl="/favorites" />;

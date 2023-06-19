@@ -1,4 +1,4 @@
-import { OsehImageState } from '../../../shared/OsehImage';
+import { OsehImageState } from '../../../shared/images/OsehImageState';
 import { JourneyAudio } from '../hooks/useJourneyAudio';
 
 /**
@@ -8,14 +8,17 @@ import { JourneyAudio } from '../hooks/useJourneyAudio';
 export type JourneyShared = {
   /** As if from useWindowSize */
   windowSize: { width: number; height: number };
+  /**
+   * The original background image, prior to darkening.
+   * This should be used selectively, since contrast may be poor. It is
+   * only shown within a preview for the share export, and hence is loaded
+   * at a lowered resolution.
+   */
+  originalImage: OsehImageState;
   /** This is actually the darkened image, since we don't need the original */
-  image: OsehImageState | null;
-  /** If we're still loading the darkened image */
-  imageLoading: boolean;
+  darkenedImage: OsehImageState;
   /** The blurred image so the share screen comes up quick */
-  blurredImage: OsehImageState | null;
-  /** If we're still loading the blurred image */
-  blurredImageLoading: boolean;
+  blurredImage: OsehImageState;
   /**
    * The audio for the journey; has loaded state inside
    * (audio.loaded)

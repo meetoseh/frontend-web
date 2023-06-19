@@ -4,13 +4,6 @@ import { PickEmotionJourneyResources } from './PickEmotionJourneyResources';
 import { PickEmotionJourneyState } from './PickEmotionJourneyState';
 import { LoginContext } from '../../../../shared/LoginContext';
 import { JourneyRef, journeyRefKeyMap } from '../../../journey/models/JourneyRef';
-import {
-  OsehImageRef,
-  OsehImageState,
-  OsehImageProps,
-  useOsehImageStatesRef,
-  useOsehImageStates,
-} from '../../../../shared/OsehImage';
 import { useJourneyShared } from '../../../journey/hooks/useJourneyShared';
 import { useSingletonEffect } from '../../../../shared/lib/useSingletonEffect';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
@@ -19,6 +12,10 @@ import { Emotion } from './Emotion';
 import { convertUsingKeymap } from '../../../../admin/crud/CrudFetcher';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { PickEmotionJourney } from './PickEmotionJourney';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
+import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
+import { OsehImageRef } from '../../../../shared/images/OsehImageRef';
 
 export const PickEmotionJourneyFeature: Feature<
   PickEmotionJourneyState,
@@ -113,26 +110,21 @@ export const PickEmotionJourneyFeature: Feature<
       skipsStats: boolean;
     } | null>(null);
     const journeyShared = useJourneyShared(selected === null ? null : selected.journey);
-    const images = useOsehImageStatesRef({});
+    const images = useOsehImageStateRequestHandler({});
     const [profilePictures, setProfilePictures] = useState<OsehImageState[]>([]);
     const [error, setError] = useState<{ ctr: number; value: ReactElement } | null>(null);
     const windowSize = useWindowSize();
-    const backgroundProps = useMemo<OsehImageProps[]>(() => {
-      if (!required) {
-        return [];
-      }
-      return [
-        {
-          uid: 'oseh_if_0ykGW_WatP5-mh-0HRsrNw',
-          jwt: null,
-          displayWidth: windowSize.width,
-          displayHeight: windowSize.height,
-          alt: '',
-          isPublic: true,
-        },
-      ];
-    }, [required, windowSize]);
-    const background = useOsehImageStates(backgroundProps);
+    const background = useOsehImageState(
+      {
+        uid: required ? 'oseh_if_0ykGW_WatP5-mh-0HRsrNw' : null,
+        jwt: null,
+        displayWidth: windowSize.width,
+        displayHeight: windowSize.height,
+        alt: '',
+        isPublic: true,
+      },
+      images
+    );
     const [forceSplash, setForceSplash] = useState<boolean>(false);
 
     useSingletonEffect(
@@ -283,47 +275,31 @@ export const PickEmotionJourneyFeature: Feature<
         return;
       }
       const refs = selected.profilePictures;
-
-      images.onStateChanged.current.add(handleStateChanged);
-      handleStateChanged();
-
-      for (const ref of refs) {
-        const old = images.handling.current.get(ref.uid);
-        if (old === undefined) {
-          const props: OsehImageProps = {
-            uid: ref.uid,
-            jwt: ref.jwt,
-            displayWidth: 38,
-            displayHeight: 38,
-            alt: '',
-            placeholderColor: '#cccccc',
-          };
-          images.handling.current.set(ref.uid, props);
-          images.onHandlingChanged.current.call({ uid: ref.uid, old: null, current: props });
-        }
+      const requests = refs.map((ref) =>
+        images.request({
+          uid: ref.uid,
+          jwt: ref.jwt,
+          displayWidth: 38,
+          displayHeight: 38,
+          alt: '',
+          placeholderColor: '#cccccc',
+        })
+      );
+      for (let r of requests) {
+        r.stateChanged.add(handleStateChanged);
       }
+      handleStateChanged();
 
       return () => {
         setProfilePictures([]);
-        images.onStateChanged.current.remove(handleStateChanged);
-        for (const ref of refs) {
-          const old = images.handling.current.get(ref.uid);
-          if (old !== undefined) {
-            images.handling.current.delete(ref.uid);
-            images.onHandlingChanged.current.call({ uid: ref.uid, old, current: null });
-          }
+        for (let r of requests) {
+          r.stateChanged.remove(handleStateChanged);
+          r.release();
         }
       };
 
       function handleStateChanged() {
-        const pics: OsehImageState[] = [];
-        for (const ref of refs) {
-          const existingState = images.state.current.get(ref.uid);
-          if (existingState !== undefined) {
-            pics.push(existingState);
-          }
-        }
-        setProfilePictures(pics);
+        setProfilePictures(requests.map((r) => r.state));
       }
     }, [selected?.profilePictures, images]);
 
@@ -351,9 +327,7 @@ export const PickEmotionJourneyFeature: Feature<
       const realOptions = options === null || options.ctr !== optionsCounter ? null : options;
       const realSelected = selected === null || selected.ctr !== optionsCounter ? null : selected;
       return {
-        loading:
-          realError === null &&
-          (realOptions === null || background.length === 0 || background[0].loading),
+        loading: realError === null && (realOptions === null || background.loading),
         error: realError,
         options:
           realError !== null || realOptions === null
@@ -375,7 +349,7 @@ export const PickEmotionJourneyFeature: Feature<
                 profilePictures,
                 skipsStats: realSelected.skipsStats,
               },
-        background: background.length > 0 ? background[0] : null,
+        background: background,
         forceSplash,
         onSelect,
         onFinishedJourney,

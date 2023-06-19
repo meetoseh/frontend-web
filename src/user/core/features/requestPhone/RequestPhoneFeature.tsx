@@ -1,10 +1,4 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  OsehImageProps,
-  OsehImageState,
-  OsehImageStateChangedEvent,
-  useOsehImageStatesRef,
-} from '../../../../shared/OsehImage';
 import { Feature } from '../../models/Feature';
 import { LoginContext } from '../../../../shared/LoginContext';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
@@ -14,6 +8,8 @@ import { RequestPhone } from './RequestPhone';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { InterestsContext } from '../../../../shared/InterestsContext';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 
 const backgroundImageUid = 'oseh_if_hH68hcmVBYHanoivLMgstg';
 
@@ -74,9 +70,8 @@ export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResourc
   },
 
   useResources: (state, required) => {
-    const images = useOsehImageStatesRef({});
+    const images = useOsehImageStateRequestHandler({});
     const windowSize = useWindowSize();
-    const [background, setBackground] = useState<OsehImageState | null>(null);
     const session = useInappNotificationSession(
       state.phoneNumberIAN?.showNow
         ? state.phoneNumberIAN.uid
@@ -85,68 +80,23 @@ export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResourc
         : null
     );
     const interests = useContext(InterestsContext);
-
-    useEffect(() => {
-      const oldProps = images.handling.current.get(backgroundImageUid);
-      if (!required) {
-        if (oldProps !== undefined) {
-          images.handling.current.delete(backgroundImageUid);
-          images.onHandlingChanged.current.call({
-            old: oldProps,
-            current: null,
-            uid: backgroundImageUid,
-          });
-        }
-        return;
-      }
-
-      if (
-        oldProps?.displayWidth === windowSize.width &&
-        oldProps?.displayHeight === windowSize.height
-      ) {
-        return;
-      }
-
-      const newProps: OsehImageProps = {
-        uid: backgroundImageUid,
+    const background = useOsehImageState(
+      {
+        uid: required ? backgroundImageUid : null,
         jwt: null,
         displayWidth: windowSize.width,
         displayHeight: windowSize.height,
         alt: '',
         isPublic: true,
-      };
-
-      images.handling.current.set(backgroundImageUid, newProps);
-      images.onHandlingChanged.current.call({
-        old: oldProps ?? null,
-        current: newProps,
-        uid: backgroundImageUid,
-      });
-    }, [required, windowSize, images]);
-
-    useEffect(() => {
-      const background = images.state.current.get(backgroundImageUid);
-      setBackground(background ?? null);
-
-      images.onStateChanged.current.add(handleStateChanged);
-      return () => {
-        images.onStateChanged.current.remove(handleStateChanged);
-      };
-
-      function handleStateChanged(e: OsehImageStateChangedEvent) {
-        if (e.uid !== backgroundImageUid) {
-          return;
-        }
-
-        setBackground(e.current);
-      }
-    }, [images]);
+      },
+      images
+    );
 
     return useMemo<RequestPhoneResources>(
       () => ({
         session,
         background,
-        loading: background === null || background.loading || interests.state === 'loading',
+        loading: background.loading || interests.state === 'loading',
       }),
       [session, background, interests.state]
     );

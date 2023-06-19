@@ -1,13 +1,13 @@
 import { FeatureComponentProps } from '../../models/Feature';
 import { SignupRewardResources } from './SignupRewardResources';
 import styles from './SignupReward.module.css';
-import { OsehImageFromState } from '../../../../shared/OsehImage';
 import { useCallback, useContext } from 'react';
 import { Button } from '../../../../shared/forms/Button';
 import { SignupRewardState } from './SignupRewardState';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { InterestsContext } from '../../../../shared/InterestsContext';
+import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 /**
  * Rewards the user for completing signup.
@@ -31,10 +31,6 @@ export const SignupReward = ({
 
     doAnticipateState(newState, Promise.resolve());
   }, [doAnticipateState, state, resources.session]);
-
-  if (resources.image === null) {
-    return <></>;
-  }
 
   return (
     <div className={styles.container}>

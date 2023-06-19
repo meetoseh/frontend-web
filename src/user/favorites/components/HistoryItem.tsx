@@ -1,5 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { OsehImageStatesRef, useOsehImageStatesRef } from '../../../shared/OsehImage';
+import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import { MinimalJourney } from '../lib/MinimalJourney';
 import styles from './HistoryItem.module.css';
@@ -8,13 +7,10 @@ import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/LoginContext';
 import { useFavoritedModal } from '../hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../hooks/useUnfavoritedModal';
-import { OsehImageState } from '../../../shared/OsehImage';
-import { OsehImageFromState } from '../../../shared/OsehImage';
-import { waitUntilNextImageStateUpdateCancelable } from '../../../shared/OsehImage';
-import { Callbacks } from '../../../shared/lib/Callbacks';
-import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
-import { createCancelableTimeout } from '../../../shared/lib/createCancelableTimeout';
 import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';
+import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../shared/images/useOsehImageState';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 type HistoryItemProps = {
   /**
@@ -44,10 +40,9 @@ type HistoryItemProps = {
   onClick?: () => void;
 
   /**
-   * If specified, used for fetching the instructor images at a fixed size.
-   * This can implement caching for better performance.
+   * The request handler to use for instructor images
    */
-  instructorImages?: OsehImageStatesRef;
+  instructorImages: OsehImageStateRequestHandler;
 };
 
 /**
@@ -65,12 +60,15 @@ export const HistoryItem = ({
   const [liking, setLiking] = useState(false);
   const [showLikedUntil, setShowLikedUntil] = useState<number | undefined>(undefined);
   const [showUnlikedUntil, setShowUnlikedUntil] = useState<number | undefined>(undefined);
-  const fallbackInstructorImages = useOsehImageStatesRef({});
-  const [instructorImage, setInstructorImage] = useState<{
-    uid: string;
-    state: OsehImageState;
-  } | null>(null);
-
+  const instructorImage = useOsehImageState(
+    {
+      ...item.instructor.image,
+      displayWidth: 14,
+      displayHeight: 14,
+      alt: 'profile',
+    },
+    instructorImages
+  );
   const onLike = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
@@ -149,86 +147,6 @@ export const HistoryItem = ({
     [item, loginContext, setItem]
   );
 
-  useEffect(() => {
-    if (instructorImage !== null && instructorImage.uid === item.instructor.image.uid) {
-      return;
-    }
-
-    const images = instructorImages ?? fallbackInstructorImages;
-
-    let active = true;
-    const cancelers = new Callbacks<undefined>();
-    getImage();
-    return () => {
-      if (active) {
-        active = false;
-        cancelers.call(undefined);
-
-        const oldProps = images.handling.current.get(item.instructor.image.uid);
-        if (oldProps !== undefined) {
-          images.handling.current.delete(item.instructor.image.uid);
-          images.onHandlingChanged.current.call({
-            uid: item.instructor.image.uid,
-            old: oldProps,
-            current: null,
-          });
-        }
-      }
-    };
-
-    function ensureLoading() {
-      if (images.handling.current.has(item.instructor.image.uid)) {
-        return;
-      }
-
-      const props = {
-        uid: item.instructor.image.uid,
-        jwt: item.instructor.image.jwt,
-        displayWidth: 14,
-        displayHeight: 14,
-        alt: 'headshot',
-        isPublic: item.instructor.image.jwt === null,
-      };
-      images.handling.current.set(item.instructor.image.uid, props);
-      images.onHandlingChanged.current.call({
-        uid: item.instructor.image.uid,
-        old: null,
-        current: props,
-      });
-    }
-
-    async function getImage() {
-      while (true) {
-        const image = images.state.current.get(item.instructor.image.uid);
-        if (image !== undefined && !image.loading) {
-          setInstructorImage({ uid: item.instructor.image.uid, state: image });
-          return;
-        }
-
-        let loadCallback = waitUntilNextImageStateUpdateCancelable(images);
-        let cancelCallback = createCancelablePromiseFromCallbacks(cancelers);
-        let timeoutCallback = createCancelableTimeout(1000);
-        cancelCallback.promise.catch(() => {});
-        timeoutCallback.promise.catch(() => {});
-        ensureLoading();
-        await Promise.race([loadCallback.promise, cancelCallback.promise, timeoutCallback.promise]);
-        if (!active) {
-          loadCallback.cancel();
-          timeoutCallback.cancel();
-          return;
-        }
-
-        if (timeoutCallback.done()) {
-          loadCallback.cancel();
-          cancelCallback.cancel();
-          continue;
-        }
-
-        cancelCallback.cancel();
-      }
-    }
-  }, [item.instructor.image, instructorImages, fallbackInstructorImages, instructorImage]);
-
   useFavoritedModal(showLikedUntil);
   useUnfavoritedModal(showUnlikedUntil);
 
@@ -244,7 +162,7 @@ export const HistoryItem = ({
           <div className={styles.title}>{ellipsedTitle}</div>
           <div className={styles.instructor}>
             <div className={styles.instructorPictureContainer}>
-              {instructorImage && <OsehImageFromState {...instructorImage.state} />}
+              <OsehImageFromState {...instructorImage} />
             </div>
             <div className={styles.instructorName}>{item.instructor.name}</div>
           </div>

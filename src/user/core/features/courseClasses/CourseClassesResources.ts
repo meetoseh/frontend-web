@@ -1,4 +1,4 @@
-import { OsehImageState } from '../../../../shared/OsehImage';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { JourneyRef } from '../../../journey/models/JourneyRef';
 import { JourneyShared } from '../../../journey/models/JourneyShared';
 
@@ -20,14 +20,14 @@ export type CourseClassesResources = {
    * The background to use for the start screen, null if it hasn't been loaded
    * yet.
    */
-  startBackground: OsehImageState | null;
+  startBackground: OsehImageState;
 
   /**
    * The square image intended to be cropped to a circle and is used
    * to identify the course, null if it either hasn't been loaded yet
    * or the course doesn't have such an image.
    */
-  courseCircle: OsehImageState | null;
+  courseCircle: OsehImageState;
 
   /**
    * True if some resources are still being loaded, false otherwise

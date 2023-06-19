@@ -1,16 +1,12 @@
-import { useContext, useEffect, useMemo, useState } from 'react';
-import {
-  OsehImageProps,
-  OsehImageState,
-  OsehImageStateChangedEvent,
-  useOsehImageStatesRef,
-} from '../../../../shared/OsehImage';
+import { useContext, useMemo } from 'react';
 import { Feature } from '../../models/Feature';
 import { LoginContext } from '../../../../shared/LoginContext';
 import { RequestNameState } from './RequestNameState';
 import { RequestNameResources } from './RequestNameResources';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { RequestName } from './RequestName';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 
 const backgroundImageUid = 'oseh_if_hH68hcmVBYHanoivLMgstg';
 
@@ -28,65 +24,19 @@ export const RequestNameFeature: Feature<RequestNameState, RequestNameResources>
   },
 
   useResources: (worldState, required) => {
-    const images = useOsehImageStatesRef({});
+    const images = useOsehImageStateRequestHandler({});
     const windowSize = useWindowSize();
-    const [background, setBackground] = useState<OsehImageState | null>(null);
-
-    useEffect(() => {
-      const oldProps = images.handling.current.get(backgroundImageUid);
-      if (!required) {
-        if (oldProps !== undefined) {
-          images.handling.current.delete(backgroundImageUid);
-          images.onHandlingChanged.current.call({
-            old: oldProps,
-            current: null,
-            uid: backgroundImageUid,
-          });
-        }
-        return;
-      }
-
-      if (
-        oldProps?.displayWidth === windowSize.width &&
-        oldProps?.displayHeight === windowSize.height
-      ) {
-        return;
-      }
-
-      const newProps: OsehImageProps = {
-        uid: backgroundImageUid,
+    const background = useOsehImageState(
+      {
+        uid: required ? backgroundImageUid : null,
         jwt: null,
         displayWidth: windowSize.width,
         displayHeight: windowSize.height,
         alt: '',
         isPublic: true,
-      };
-
-      images.handling.current.set(backgroundImageUid, newProps);
-      images.onHandlingChanged.current.call({
-        old: oldProps ?? null,
-        current: newProps,
-        uid: backgroundImageUid,
-      });
-    }, [required, windowSize, images]);
-
-    useEffect(() => {
-      const background = images.state.current.get(backgroundImageUid);
-      setBackground(background ?? null);
-
-      images.onStateChanged.current.add(handleStateChanged);
-      return () => {
-        images.onStateChanged.current.remove(handleStateChanged);
-      };
-
-      function handleStateChanged(e: OsehImageStateChangedEvent) {
-        if (e.uid !== backgroundImageUid) {
-          return;
-        }
-
-        setBackground(e.current);
-      }
-    }, [images]);
+      },
+      images
+    );
 
     return useMemo<RequestNameResources>(
       () => ({

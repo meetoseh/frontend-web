@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { Callbacks } from '../../../shared/lib/Callbacks';
 import { kFormatter } from '../../../shared/lib/kFormatter';
-import { OsehImageState } from '../../../shared/OsehImage';
 import {
   ProfilePicturesStateChangedEvent,
   ProfilePicturesStateRef,
 } from '../hooks/useProfilePictures';
 import styles from './ProfilePictures.module.css';
 import { combineClasses } from '../../../shared/lib/combineClasses';
+import { OsehImageState } from '../../../shared/images/OsehImageState';
 
 const FADE_TIME = 350;
 

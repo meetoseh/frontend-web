@@ -1,10 +1,4 @@
 import { ReactElement, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import {
-  OsehImageFromState,
-  OsehImageState,
-  OsehImageStatesRef,
-  useOsehImageStatesRef,
-} from '../../../shared/OsehImage';
 import styles from './FavoritesTabbedPane.module.css';
 import { MyProfilePicture } from '../../../shared/MyProfilePicture';
 import { LoginContext } from '../../../shared/LoginContext';
@@ -19,6 +13,12 @@ import { JourneyRef, journeyRefKeyMap } from '../../journey/models/JourneyRef';
 import { JourneyRouter } from '../../journey/JourneyRouter';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
+import { OsehImageState } from '../../../shared/images/OsehImageState';
+import {
+  OsehImageStateRequestHandler,
+  useOsehImageStateRequestHandler,
+} from '../../../shared/images/useOsehImageStateRequestHandler';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 export type FavoritesTabbedPaneProps = {
   /**
@@ -35,7 +35,7 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
   loginContextRef.current = loginContext;
   const windowSize = useWindowSize();
   const [journey, setJourney] = useState<JourneyRef | null>(null);
-  const instructorImages = useOsehImageStatesRef({ cacheSize: 128 });
+  const instructorImagesHandler = useOsehImageStateRequestHandler({});
 
   const infiniteListing = useMemo<InfiniteListing<MinimalJourney>>(() => {
     const numVisible = Math.ceil(windowSize.height / 80) + 15;
@@ -185,10 +185,10 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
         setItem={setItem}
         items={items}
         index={index}
-        instructorImages={instructorImages}
+        instructorImages={instructorImagesHandler}
       />
     );
-  }, [tab, gotoJourneyByUID, instructorImages]);
+  }, [tab, gotoJourneyByUID, instructorImagesHandler]);
 
   const listHeight = windowSize.height - 189;
 
@@ -276,7 +276,7 @@ const HistoryItemComponent = ({
   setItem: (item: MinimalJourney) => void;
   items: MinimalJourney[];
   index: number;
-  instructorImages: OsehImageStatesRef;
+  instructorImages: OsehImageStateRequestHandler;
 }): ReactElement => {
   const gotoJourney = useCallback(() => {
     gotoJourneyByUid(item.uid);

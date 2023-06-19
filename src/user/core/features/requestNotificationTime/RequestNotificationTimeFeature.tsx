@@ -1,12 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { Feature } from '../../models/Feature';
 import { LoginContext } from '../../../../shared/LoginContext';
-import {
-  OsehImageProps,
-  OsehImageState,
-  OsehImageStateChangedEvent,
-  useOsehImageStatesRef,
-} from '../../../../shared/OsehImage';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import {
   PublicInteractivePrompt,
@@ -19,6 +13,8 @@ import { RequestNotificationTime } from './RequestNotificationTime';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { InterestsContext } from '../../../../shared/InterestsContext';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 
 const backgroundImageUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -102,71 +98,25 @@ export const RequestNotificationTimeFeature: Feature<
   useResources: (worldState, required) => {
     const loginContext = useContext(LoginContext);
     const givenName = loginContext.userAttributes?.givenName ?? null;
-    const images = useOsehImageStatesRef({});
+    const images = useOsehImageStateRequestHandler({});
     const windowSize = useWindowSize();
-    const [background, setBackground] = useState<OsehImageState | null>(null);
     const session = useInappNotificationSession(worldState.ian?.uid ?? null);
     const interests = useContext(InterestsContext);
     const prompt = usePublicInteractivePrompt({
       identifier: 'notification-time',
       load: required,
     });
-
-    useEffect(() => {
-      const oldProps = images.handling.current.get(backgroundImageUid);
-      if (!required) {
-        if (oldProps !== undefined) {
-          images.handling.current.delete(backgroundImageUid);
-          images.onHandlingChanged.current.call({
-            old: oldProps,
-            current: null,
-            uid: backgroundImageUid,
-          });
-        }
-        return;
-      }
-
-      if (
-        oldProps?.displayWidth === windowSize.width &&
-        oldProps?.displayHeight === windowSize.height
-      ) {
-        return;
-      }
-
-      const newProps: OsehImageProps = {
-        uid: backgroundImageUid,
+    const background = useOsehImageState(
+      {
+        uid: required ? backgroundImageUid : null,
         jwt: null,
         displayWidth: windowSize.width,
         displayHeight: windowSize.height,
         alt: '',
         isPublic: true,
-      };
-
-      images.handling.current.set(backgroundImageUid, newProps);
-      images.onHandlingChanged.current.call({
-        old: oldProps ?? null,
-        current: newProps,
-        uid: backgroundImageUid,
-      });
-    }, [required, windowSize, images]);
-
-    useEffect(() => {
-      const background = images.state.current.get(backgroundImageUid);
-      setBackground(background ?? null);
-
-      images.onStateChanged.current.add(handleStateChanged);
-      return () => {
-        images.onStateChanged.current.remove(handleStateChanged);
-      };
-
-      function handleStateChanged(e: OsehImageStateChangedEvent) {
-        if (e.uid !== backgroundImageUid) {
-          return;
-        }
-
-        setBackground(e.current);
-      }
-    }, [images]);
+      },
+      images
+    );
 
     const personalizedPrompt = useMemo<PublicInteractivePrompt>(() => {
       if (interests.state !== 'loaded' || prompt.loading || prompt.prompt === null) {
@@ -195,7 +145,7 @@ export const RequestNotificationTimeFeature: Feature<
         givenName,
         background,
         prompt: personalizedPrompt,
-        loading: background === null || background.loading || interests.state === 'loading',
+        loading: background.loading || interests.state === 'loading',
       }),
       [session, givenName, background, personalizedPrompt, interests.state]
     );

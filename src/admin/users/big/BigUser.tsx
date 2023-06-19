@@ -9,6 +9,7 @@ import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { BigUserAttribution } from './BigUserAttribution';
 import { BigUserInappNotifications } from './BigUserInappNotifications';
 import { BigUserSuggestionFlow } from './BigUserSuggestionFlow';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 
 /**
  * Acts as a dashboard for a specific user, aka a traditional user show page,
@@ -21,6 +22,7 @@ export const BigUser = (): ReactElement => {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('sub');
   }, []);
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   if (sub === null) {
     window.location.href = '/admin/users';
@@ -116,10 +118,10 @@ export const BigUser = (): ReactElement => {
       <div className={styles.title}>User</div>
       <div className={styles.row}>
         <div className={styles.narrow}>
-          <BigUserBasicInfo user={user} />
+          <BigUserBasicInfo user={user} imageHandler={imageHandler} />
         </div>
         <div className={styles.wide}>
-          <BigUserAttribution user={user} />
+          <BigUserAttribution user={user} imageHandler={imageHandler} />
         </div>
         <div className={styles.wide}>
           <BigUserInappNotifications user={user} />

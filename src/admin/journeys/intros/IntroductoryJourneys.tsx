@@ -6,6 +6,7 @@ import { CrudListing } from '../../crud/CrudListing';
 import { CreateIntroductoryJourney } from './CreateIntroductoryJourney';
 import { IntroductoryJourney, keyMap } from './IntroductoryJourney';
 import { IntroductoryJourneyBlock } from './IntroductoryJourneyBlock';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 
 const path = '/api/1/journeys/introductory/search';
 const limit = 8;
@@ -25,6 +26,7 @@ export const IntroductoryJourneys = (): ReactElement => {
   const [haveMore, setHaveMore] = useState(false);
   const filters = defaultFilter;
   const sort = defaultSort;
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   const createComponent = useMemo(() => {
     return (
@@ -32,27 +34,32 @@ export const IntroductoryJourneys = (): ReactElement => {
         onCreated={(newJourney) => {
           setJourneys((oldJourneys) => [...oldJourneys, newJourney]);
         }}
+        imageHandler={imageHandler}
       />
     );
-  }, []);
+  }, [imageHandler]);
 
-  const component = useCallback((journey: IntroductoryJourney) => {
-    return (
-      <IntroductoryJourneyBlock
-        journey={journey}
-        onChanged={(newJourney) => {
-          setJourneys((oldJourneys) => {
-            return oldJourneys.map((j) => (j.uid === journey.uid ? newJourney : j));
-          });
-        }}
-        onDeleted={() => {
-          setJourneys((oldJourneys) => {
-            return oldJourneys.filter((j) => j.uid !== journey.uid);
-          });
-        }}
-      />
-    );
-  }, []);
+  const component = useCallback(
+    (journey: IntroductoryJourney) => {
+      return (
+        <IntroductoryJourneyBlock
+          journey={journey}
+          onChanged={(newJourney) => {
+            setJourneys((oldJourneys) => {
+              return oldJourneys.map((j) => (j.uid === journey.uid ? newJourney : j));
+            });
+          }}
+          onDeleted={() => {
+            setJourneys((oldJourneys) => {
+              return oldJourneys.filter((j) => j.uid !== journey.uid);
+            });
+          }}
+          imageHandler={imageHandler}
+        />
+      );
+    },
+    [imageHandler]
+  );
 
   const fetcher = useMemo(
     () => new CrudFetcher(path, keyMap, setJourneys, setLoading, setHaveMore),

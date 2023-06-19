@@ -12,7 +12,7 @@ import { FeatureComponentProps } from '../../models/Feature';
 import { PickEmotionJourneyResources } from './PickEmotionJourneyResources';
 import { PickEmotionJourneyState } from './PickEmotionJourneyState';
 import styles from './PickEmotionJourney.module.css';
-import { OsehImageFromState } from '../../../../shared/OsehImage';
+import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 import { ErrorBlock } from '../../../../shared/forms/ErrorBlock';
@@ -174,7 +174,7 @@ export const PickEmotionJourney = ({
   };
 
   if (step.step === 'lobby') {
-    if (sel.shared.imageLoading) {
+    if (sel.shared.darkenedImage.loading) {
       return <SplashScreen />;
     }
 
@@ -183,7 +183,7 @@ export const PickEmotionJourney = ({
 
   if (step.step === 'start') {
     if (
-      sel.shared.blurredImageLoading ||
+      sel.shared.blurredImage.loading ||
       sel.shared.audio === null ||
       !sel.shared.audio.loaded ||
       sel.shared.audio.play === null
@@ -209,7 +209,7 @@ export const PickEmotionJourney = ({
   }
 
   if (step.step === 'share') {
-    if (sel.shared.blurredImageLoading) {
+    if (sel.shared.blurredImage.loading || sel.shared.originalImage.loading) {
       return <SplashScreen />;
     }
 

@@ -11,7 +11,6 @@ import {
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import styles from './JourneyFeedbackScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
-import { OsehImageFromState } from '../../../shared/OsehImage';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/LoginContext';
 import { combineClasses } from '../../../shared/lib/combineClasses';
@@ -23,6 +22,7 @@ import {
   animIsComplete,
   calculateAnimValue,
 } from '../../../shared/lib/BezierAnimation';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 /**
  * Asks the user for feedback about the journey so that we can curate the
@@ -250,7 +250,7 @@ export const JourneyFeedbackScreen = ({
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...shared.blurredImage!} />
+        <OsehImageFromState {...shared.blurredImage} />
       </div>
       <div className={styles.innerContainer}>
         <div className={styles.closeButtonContainer}>

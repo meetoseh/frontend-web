@@ -16,15 +16,13 @@ import assistiveStyles from '../../shared/assistive.module.css';
 import { SplashScreen } from '../splash/SplashScreen';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import {
-  OsehImage,
-  OsehImageFromState,
-  OsehImageProps,
-  useOsehImageState,
-} from '../../shared/OsehImage';
 import { SocialSignins, useProviderUrls, useRedirectUrl } from '../login/LoginApp';
 import { Button } from '../../shared/forms/Button';
 import { CourseAttachScreen } from './CourseAttachScreen';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../shared/images/useOsehImageState';
+import { OsehImage } from '../../shared/images/OsehImage';
+import { OsehImageFromState } from '../../shared/images/OsehImageFromState';
 
 /**
  * The activation screen for a course, which should be the first screen after a
@@ -38,6 +36,7 @@ import { CourseAttachScreen } from './CourseAttachScreen';
 export const CourseActivateScreen = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [visitor, setVisitor] = useState<StoredVisitor | null>(() => loadVisitorFromStore());
+  const imageHandler = useOsehImageStateRequestHandler({});
   const timezone = useTimezone();
   const utm = useMemo(() => {
     return getUTMFromURL();
@@ -215,27 +214,17 @@ export const CourseActivateScreen = (): ReactElement => {
 
   const windowSize = useWindowSize();
   const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
-  const backgroundProps = useMemo<OsehImageProps>(() => {
-    if (course === null) {
-      return {
-        uid: null,
-        jwt: null,
-        displayWidth: windowSize.width,
-        displayHeight: windowSize.height,
-        alt: '',
-        placeholderColor: '#121111',
-      };
-    }
-    return {
-      uid: course.backgroundImage.uid,
-      jwt: course.backgroundImage.jwt,
+  const background = useOsehImageState(
+    {
+      uid: course?.backgroundImage?.uid ?? null,
+      jwt: course?.backgroundImage?.jwt ?? null,
       displayWidth: windowSize.width,
       displayHeight: windowSize.height,
       alt: '',
       placeholderColor: '#121111',
-    };
-  }, [course, windowSize]);
-  const background = useOsehImageState(backgroundProps);
+    },
+    imageHandler
+  );
   const urls = useProviderUrls(loginContext.state === 'logged-out');
 
   if (slug === null || session === null) {
@@ -253,6 +242,7 @@ export const CourseActivateScreen = (): ReactElement => {
             displayHeight={windowSize.height}
             alt=""
             isPublic={true}
+            handler={imageHandler}
           />
         </div>
         <div className={styles.innerContainer}>

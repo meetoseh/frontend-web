@@ -13,6 +13,7 @@ import { LoginContext } from '../../../shared/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { CrudFormElement } from '../../crud/CrudFormElement';
 import { CompactJourney } from '../../journeys/CompactJourney';
+import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 
 type UTMClick = UTM & {
   clickedAt: Date;
@@ -60,7 +61,13 @@ const attributionInfoKeyMap: CrudFetcherKeyMap<AttributionInfo> = {
  * Displays attribution information about a user, i.e., utms they clicked
  * before getting here, etc.
  */
-export const BigUserAttribution = ({ user }: { user: User }): ReactElement => {
+export const BigUserAttribution = ({
+  user,
+  imageHandler,
+}: {
+  user: User;
+  imageHandler: OsehImageStateRequestHandler;
+}): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [attributionInfo, setAttributionInfo] = useState<
     { sub: string; info: AttributionInfo | null } | undefined
@@ -167,7 +174,7 @@ export const BigUserAttribution = ({ user }: { user: User }): ReactElement => {
         {attributionInfo.info.journeyPublicLinks.map((link, i) => {
           return (
             <div className={styles.attributionInfoContainer} key={i}>
-              <CompactJourney journey={link.journey} />
+              <CompactJourney journey={link.journey} imageHandler={imageHandler} />
               <CrudFormElement title="Code">{link.code}</CrudFormElement>
               <CrudFormElement title="Clicked at">
                 {link.clickedAt.toLocaleString()}

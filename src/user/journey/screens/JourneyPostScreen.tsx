@@ -1,6 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
-import { OsehImageFromState } from '../../../shared/OsehImage';
 import styles from './JourneyPostScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { LoginContext } from '../../../shared/LoginContext';
@@ -11,6 +10,7 @@ import { combineClasses } from '../../../shared/lib/combineClasses';
 import { Button } from '../../../shared/forms/Button';
 import { useFavoritedModal } from '../../favorites/hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../../favorites/hooks/useUnfavoritedModal';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 const DAYS_OF_WEEK: DayOfWeek[] = [
@@ -307,7 +307,7 @@ export const JourneyPostScreen = ({
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...shared.blurredImage!} />
+        <OsehImageFromState {...shared.blurredImage} />
       </div>
       <div className={styles.innerContainer}>
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}

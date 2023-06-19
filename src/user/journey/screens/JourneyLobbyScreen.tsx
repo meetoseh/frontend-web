@@ -1,11 +1,11 @@
 import { ReactElement, useCallback, useContext, useRef } from 'react';
 import { LoginContext } from '../../../shared/LoginContext';
-import { OsehImageFromState } from '../../../shared/OsehImage';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import '../../../assets/fonts.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import styles from './JourneyLobbyScreen.module.css';
 import { JourneyPrompt } from '../components/JourneyPrompt';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 /**
  * Shows the screen for the lobby prior to the actual class, where the user
@@ -41,7 +41,7 @@ export const JourneyLobbyScreen = ({
   return (
     <div className={styles.container}>
       <div className={styles.backgroundImageContainer}>
-        {shared.image && <OsehImageFromState {...shared.image} />}
+        <OsehImageFromState {...shared.darkenedImage} />
       </div>
       <div className={styles.closeButtonContainer}>
         <div className={styles.closeButtonInnerContainer}>

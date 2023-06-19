@@ -1,5 +1,5 @@
 import { CrudFetcherKeyMap } from '../../../admin/crud/CrudFetcher';
-import { OsehImageRef } from '../../../shared/OsehImage';
+import { OsehImageRef } from '../../../shared/images/OsehImageRef';
 
 /**
  * A course that a user can enroll in. Typically paid, this is a programmed

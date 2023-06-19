@@ -3,9 +3,11 @@ import { useInappNotification } from '../../../../shared/hooks/useInappNotificat
 import { Feature } from '../../models/Feature';
 import { FeedbackAnnouncementResources } from './FeedbackAnnouncementResources';
 import { FeedbackAnnouncementState } from './FeedbackAnnouncementState';
-import { OsehImageProps, useOsehImageState } from '../../../../shared/OsehImage';
 import { FeedbackAnnouncment } from './FeedbackAnnouncement';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
+import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
 
 const imageProps: OsehImageProps = {
   uid: 'oseh_if_WEfZfgv6MDMOnNlUsB1cbA',
@@ -29,9 +31,10 @@ export const FeedbackAnnouncementFeature: Feature<
 
     return useMemo<FeedbackAnnouncementState>(() => ({ ian }), [ian]);
   },
-  useResources: (state) => {
+  useResources: (state, required) => {
     const session = useInappNotificationSession(state.ian?.uid ?? null);
-    const image = useOsehImageState(imageProps);
+    const images = useOsehImageStateRequestHandler({});
+    const image = useOsehImageState(required ? imageProps : { ...imageProps, uid: null }, images);
 
     return useMemo<FeedbackAnnouncementResources>(
       () => ({ session, image, loading: session === null || image.loading }),

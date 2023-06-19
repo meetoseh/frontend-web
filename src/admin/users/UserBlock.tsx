@@ -2,15 +2,17 @@ import { ReactElement } from 'react';
 import { User } from './User';
 import styles from './UserBlock.module.css';
 import { CrudItemBlock } from '../crud/CrudItemBlock';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import { IconButton } from '../../shared/forms/IconButton';
+import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type UserBlockProps = {
   user: User;
   setUser: (user: User) => void;
+  imageHandler: OsehImageStateRequestHandler;
 };
 
-export const UserBlock = ({ user }: UserBlockProps): ReactElement => {
+export const UserBlock = ({ user, imageHandler }: UserBlockProps): ReactElement => {
   return (
     <CrudItemBlock
       title={user.email}
@@ -32,6 +34,7 @@ export const UserBlock = ({ user }: UserBlockProps): ReactElement => {
               displayWidth={60}
               displayHeight={60}
               alt=""
+              handler={imageHandler}
             />
           </div>
         )}

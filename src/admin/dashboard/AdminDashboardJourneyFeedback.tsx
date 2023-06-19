@@ -10,6 +10,7 @@ import { keyMap as journeyKeyMap } from '../journeys/Journeys';
 import styles from './AdminDashboardJourneyFeedback.module.css';
 import { AdminDashboardLargeChartPlaceholder } from './AdminDashboardLargeChartPlaceholder';
 import { DashboardTable, DashboardTableProps } from './subComponents/DashboardTable';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type FeedbackUser = {
   sub: string;
@@ -79,6 +80,7 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
   const [tableProps, setTableProps] = useState<{ journey: Journey; table: DashboardTableProps }[]>(
     []
   );
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   const onPlaceholderVisible = useCallback(() => {
     setShowingPlaceholder(false);
@@ -186,7 +188,7 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
         {tableProps.map((props) => (
           <div className={styles.tableContainer} key={props.journey.uid}>
             <div className={styles.tableHeader}>
-              <CompactJourney journey={props.journey} />
+              <CompactJourney journey={props.journey} imageHandler={imageHandler} />
             </div>
             <DashboardTable {...props.table} />
           </div>

@@ -3,14 +3,6 @@ import { apiFetch } from '../../../shared/ApiConstants';
 import { Callbacks } from '../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
 import { LoginContext } from '../../../shared/LoginContext';
-import {
-  OsehImageProps,
-  OsehImageRef,
-  OsehImageState,
-  OsehImageStateChangedEvent,
-  useOsehImageStatesRef,
-  waitUntilNextImageStateUpdateCancelable,
-} from '../../../shared/OsehImage';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import {
   PromptTime,
@@ -18,6 +10,13 @@ import {
   waitUntilUsingPromptTimeCancelable,
 } from './usePromptTime';
 import { PromptStats, StatsChangedEvent, waitUntilNextStatsUpdateCancelable } from './useStats';
+import { OsehImageState } from '../../../shared/images/OsehImageState';
+import {
+  OsehImageRequestedState,
+  useOsehImageStateRequestHandler,
+} from '../../../shared/images/useOsehImageStateRequestHandler';
+import { OsehImageRef } from '../../../shared/images/OsehImageRef';
+import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
 
 /**
  * The actual state which is maintained by useProfilePictures - though this
@@ -101,7 +100,11 @@ export const useProfilePictures = ({
     Callbacks<ProfilePicturesStateChangedEvent>
   >() as MutableRefObject<Callbacks<ProfilePicturesStateChangedEvent>>;
   const loginContext = useContext(LoginContext);
-  const imagesRef = useOsehImageStatesRef({ cacheSize: 128 });
+  const imagesHandler = useOsehImageStateRequestHandler({
+    playlistCacheSize: 128,
+    imageCacheSize: 128,
+    cropCacheSize: 128,
+  });
 
   if (stateRef.current === undefined) {
     stateRef.current = { pictures: [], additionalUsers: 0 };
@@ -122,7 +125,7 @@ export const useProfilePictures = ({
       cancelers.call(undefined);
     };
 
-    const imageRefsByPromptTime = new Map<number, OsehImageRef[]>();
+    const imageRequestsByPromptTime = new Map<number, OsehImageRequestedState[]>();
 
     getImageRefs();
     handlePictures();
@@ -174,7 +177,16 @@ export const useProfilePictures = ({
 
           const data: { items: { picture: OsehImageRef }[] } = await response.json();
           const imageRefs = data.items.map((item) => item.picture);
-          imageRefsByPromptTime.set(bin, imageRefs);
+          const imageRequests = imageRefs.map((ref) =>
+            imagesHandler.request({
+              uid: ref.uid,
+              jwt: ref.jwt,
+              displayWidth,
+              displayHeight,
+              alt: '',
+            })
+          );
+          imageRequestsByPromptTime.set(bin, imageRequests);
         } catch (e) {
           console.error(
             'failed to fetch profile pictures for prompt ',
@@ -184,44 +196,60 @@ export const useProfilePictures = ({
             ': ',
             e
           );
-          imageRefsByPromptTime.set(bin, []);
+          imageRequestsByPromptTime.set(bin, []);
         }
 
-        imageRefsByPromptTime.delete(currentBin - 1);
+        const deletedBin = imageRequestsByPromptTime.get(currentBin - 1);
+        if (deletedBin !== undefined) {
+          imageRequestsByPromptTime.delete(currentBin - 1);
+          for (const req of deletedBin) {
+            req.release();
+          }
+        }
         nextBinToLoad += 1;
       }
     }
 
     async function handlePictures() {
       let timePromise: CancelablePromise<void> | null = null;
-      let imageLoadedPromise: CancelablePromise<OsehImageStateChangedEvent> | null = null;
       let statsChangedPromise: CancelablePromise<StatsChangedEvent> | null = null;
+      let imageLoadedPromise: CancelablePromise<void> | null = null;
+      const imageLoadedCallbacks = new Callbacks<undefined>();
       const canceledPromise = new Promise<void>((resolve) => {
         cancelers.add(() => resolve());
       });
 
       while (active) {
         const currentBin = Math.max(0, Math.floor(promptTime.time.current / 2000));
-        const imageRefs = imageRefsByPromptTime.get(currentBin);
-        if (imageRefs === undefined) {
+        const imageRequests = imageRequestsByPromptTime.get(currentBin);
+        if (imageRequests === undefined) {
           await Promise.race([
             waitUntilUsingPromptTime(promptTime, (event) => {
               const newCurrentBin = Math.floor(event.current / 2000);
-              return imageRefsByPromptTime.has(newCurrentBin);
+              return imageRequestsByPromptTime.has(newCurrentBin);
             }),
             canceledPromise,
           ]);
           continue;
         }
 
-        const nextImageRefs = imageRefsByPromptTime.get(currentBin + 1);
-        ensureLoading(imageRefs.concat(nextImageRefs || []));
-
         const loadedImages: OsehImageState[] = [];
-        for (const imgRef of imageRefs) {
-          const state = imagesRef.state.current.get(imgRef.uid);
-          if (state && !state.loading) {
+        imageLoadedPromise = null;
+        for (const imgReq of imageRequests) {
+          const state = imgReq.state;
+          if (!state.loading) {
             loadedImages.push(state);
+          } else {
+            if (imageLoadedPromise === null) {
+              imageLoadedPromise = createCancelablePromiseFromCallbacks(imageLoadedCallbacks);
+            }
+            (() => {
+              const handler = () => {
+                imageLoadedCallbacks.call(undefined);
+                imgReq.stateChanged.remove(handler);
+              };
+              imgReq.stateChanged.add(handler);
+            })();
           }
         }
 
@@ -242,17 +270,13 @@ export const useProfilePictures = ({
           });
         }
 
-        if (imageLoadedPromise === null || imageLoadedPromise.done()) {
-          imageLoadedPromise = waitUntilNextImageStateUpdateCancelable(imagesRef);
-        }
-
         if (statsChangedPromise === null || statsChangedPromise.done()) {
           statsChangedPromise = waitUntilNextStatsUpdateCancelable(stats);
         }
 
         await Promise.race([
           timePromise.promise,
-          imageLoadedPromise.promise,
+          ...(imageLoadedPromise ? [imageLoadedPromise.promise] : []),
           statsChangedPromise.promise,
           canceledPromise,
         ]);
@@ -263,47 +287,7 @@ export const useProfilePictures = ({
       statsChangedPromise?.cancel();
       unmount();
     }
-
-    function ensureLoading(imageRefs: OsehImageRef[]) {
-      const uidSet = new Set(imageRefs.map((ref) => ref.uid));
-      const toRemoveUids: string[] = [];
-      imagesRef.handling.current.forEach((_, uid) => {
-        if (!uidSet.has(uid)) {
-          toRemoveUids.push(uid);
-        }
-      });
-      for (const toRemoveUid of toRemoveUids) {
-        const old = imagesRef.handling.current.get(toRemoveUid);
-        if (old) {
-          imagesRef.handling.current.delete(toRemoveUid);
-          imagesRef.onHandlingChanged.current.call({
-            uid: toRemoveUid,
-            old,
-            current: null,
-          });
-        }
-      }
-
-      for (const ref of imageRefs) {
-        if (!imagesRef.handling.current.has(ref.uid)) {
-          const imageProps: OsehImageProps = {
-            uid: ref.uid,
-            jwt: ref.jwt,
-            displayWidth,
-            displayHeight,
-            alt: 'Profile',
-          };
-
-          imagesRef.handling.current.set(ref.uid, imageProps);
-          imagesRef.onHandlingChanged.current.call({
-            uid: ref.uid,
-            old: null,
-            current: imageProps,
-          });
-        }
-      }
-    }
-  }, [prompt, promptTime, stats, loginContext, imagesRef]);
+  }, [prompt, promptTime, stats, loginContext, imagesHandler]);
 
   return useMemo(
     () => ({

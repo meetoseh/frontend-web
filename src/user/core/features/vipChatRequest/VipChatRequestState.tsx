@@ -1,5 +1,5 @@
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../../../../admin/crud/CrudFetcher';
-import { OsehImageRef } from '../../../../shared/OsehImage';
+import { OsehImageRef } from '../../../../shared/images/OsehImageRef';
 
 /**
  * The display data used for the phone-04102023 variant of the chat request

@@ -10,9 +10,10 @@ import { JourneyRef, journeyRefKeyMap } from '../../../journey/models/JourneyRef
 import { convertUsingKeymap } from '../../../../admin/crud/CrudFetcher';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
-import { OsehImageProps, useOsehImageStates } from '../../../../shared/OsehImage';
 import { useJourneyShared } from '../../../journey/hooks/useJourneyShared';
 import { TryAIJourney } from './TryAIJourney';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 
 const backgroundImageUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -205,24 +206,18 @@ export const TryAIJourneyFeature: Feature<TryAIJourneyState, TryAIJourneyResourc
   useResources: (state, required) => {
     const session = useInappNotificationSession(state.ian?.uid ?? null);
     const windowSize = useWindowSize();
-    const imageProps = useMemo<OsehImageProps[]>(() => {
-      if (!required) {
-        return [];
-      }
-
-      return [
-        {
-          uid: backgroundImageUid,
-          jwt: null,
-          displayWidth: windowSize.width,
-          displayHeight: windowSize.height,
-          alt: '',
-          isPublic: true,
-        },
-      ];
-    }, [windowSize.width, windowSize.height, required]);
-    const images = useOsehImageStates(imageProps);
-    const background = images[0] ?? null;
+    const imageHandler = useOsehImageStateRequestHandler({});
+    const background = useOsehImageState(
+      {
+        uid: required ? backgroundImageUid : null,
+        jwt: null,
+        displayWidth: windowSize.width,
+        displayHeight: windowSize.height,
+        alt: '',
+        isPublic: true,
+      },
+      imageHandler
+    );
     const shared = useJourneyShared(required ? state.journey ?? null : null);
 
     return useMemo<TryAIJourneyResources>(
@@ -238,9 +233,8 @@ export const TryAIJourneyFeature: Feature<TryAIJourneyState, TryAIJourneyResourc
           state.streakDays === undefined ||
           state.journey === null ||
           state.journey === undefined ||
-          background === null ||
           background.loading ||
-          shared.imageLoading,
+          shared.darkenedImage.loading,
       }),
       [required, session, state, background, shared]
     );

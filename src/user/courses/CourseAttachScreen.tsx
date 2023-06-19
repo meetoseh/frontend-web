@@ -1,6 +1,6 @@
 import { ReactElement, useContext, useRef, useState } from 'react';
 import styles from './CourseAttachScreen.module.css';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { Button } from '../../shared/forms/Button';
 import { SplashScreen } from '../splash/SplashScreen';
@@ -8,6 +8,7 @@ import { useSingletonEffect } from '../../shared/lib/useSingletonEffect';
 import { LoginContext } from '../../shared/LoginContext';
 import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 /**
  * The screen for associating a checkout, previously made by a guest, to a user.
@@ -18,6 +19,7 @@ import { apiFetch } from '../../shared/ApiConstants';
 export const CourseAttachScreen = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const windowSize = useWindowSize();
+  const imageHandler = useOsehImageStateRequestHandler({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ReactElement | null>(null);
 
@@ -116,6 +118,7 @@ export const CourseAttachScreen = (): ReactElement => {
           alt=""
           isPublic={true}
           placeholderColor="#01181e"
+          handler={imageHandler}
         />
       </div>
       <div className={styles.innerContainer}>

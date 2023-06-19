@@ -1,5 +1,6 @@
 import { CrudFetcherKeyMap } from '../../../admin/crud/CrudFetcher';
-import { OsehImageRef, OsehPublicImageRef } from '../../../shared/OsehImage';
+import { OsehImageRef } from '../../../shared/images/OsehImageRef';
+import { OsehPublicImageRef } from '../../../shared/images/OsehPublicImageRef';
 
 /**
  * A minimal representation of a journey, which is used for listing large

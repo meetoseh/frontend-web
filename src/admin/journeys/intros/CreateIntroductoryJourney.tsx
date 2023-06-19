@@ -11,6 +11,7 @@ import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { keyMap as introductoryJourneyKeyMap } from './IntroductoryJourney';
 import { CompactJourney } from '../CompactJourney';
+import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 
 type CreateIntroductoryJourneyProps = {
   /**
@@ -19,6 +20,11 @@ type CreateIntroductoryJourneyProps = {
    * on the screen without having to refresh the page.
    */
   onCreated: (this: undefined, item: IntroductoryJourney) => void;
+
+  /**
+   * The handler for fetching images
+   */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
@@ -26,6 +32,7 @@ type CreateIntroductoryJourneyProps = {
  */
 export const CreateIntroductoryJourney = ({
   onCreated,
+  imageHandler,
 }: CreateIntroductoryJourneyProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [valid, setValid] = useState(false);
@@ -104,7 +111,7 @@ export const CreateIntroductoryJourney = ({
             />
           ) : (
             <div className={styles.journeyPickedContainer}>
-              <CompactJourney journey={journey} />
+              <CompactJourney journey={journey} imageHandler={imageHandler} />
               <div className={styles.journeyClearContainer}>
                 <Button type="button" variant="link" onClick={clearJourney} disabled={saving}>
                   Clear

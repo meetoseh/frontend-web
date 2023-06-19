@@ -1,7 +1,14 @@
 import { ReactElement, useContext, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from './ApiConstants';
 import { LoginContext, LoginContextValue } from './LoginContext';
-import { OsehImage, OsehImageRef, OsehImageState, useOsehImageState } from './OsehImage';
+import {
+  OsehImageStateRequestHandler,
+  useOsehImageStateRequestHandler,
+} from './images/useOsehImageStateRequestHandler';
+import { OsehImageRef } from './images/OsehImageRef';
+import { OsehImage } from './images/OsehImage';
+import { useOsehImageState } from './images/useOsehImageState';
+import { OsehImageState } from './images/OsehImageState';
 
 type MyProfilePictureProps = {
   /**
@@ -36,6 +43,7 @@ export const MyProfilePicture = ({
 }: MyProfilePictureProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [profileImage, setProfileImage] = useState<OsehImageRef | null>(null);
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in') {
@@ -95,6 +103,7 @@ export const MyProfilePicture = ({
           displayWidth={displayWidth}
           displayHeight={displayHeight}
           alt="Profile picture"
+          handler={imageHandler}
         />
       )}
     </>
@@ -117,6 +126,11 @@ type MyProfilePictureStateProps = {
    * Desired display height of the image
    */
   displayHeight: number;
+
+  /**
+   * The image handler to use
+   */
+  handler: OsehImageStateRequestHandler;
 };
 
 export type MyProfilePictureState =
@@ -132,20 +146,20 @@ export const useMyProfilePictureState = ({
   loginContext,
   displayWidth,
   displayHeight,
+  handler,
 }: MyProfilePictureStateProps): MyProfilePictureState => {
   const [imgRef, setImgRef] = useState<{ sub: string; img: OsehImageRef } | null>(null);
   const [loadingImageRefFailed, setLoadingImageRefFailed] = useState<string | null>(null);
-  const imgArgs = useMemo(
-    () => ({
+  const img = useOsehImageState(
+    {
       uid: imgRef?.img?.uid ?? null,
       jwt: imgRef?.img?.jwt ?? null,
       displayWidth,
       displayHeight,
       alt: 'Profile',
-    }),
-    [imgRef?.img?.uid, imgRef?.img?.jwt, displayWidth, displayHeight]
+    },
+    handler
   );
-  const img = useOsehImageState(imgArgs);
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in') {

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { OsehImageFromState } from '../../../../../shared/OsehImage';
+import { OsehImageFromState } from '../../../../../shared/images/OsehImageFromState';
 import { IconButton } from '../../../../../shared/forms/IconButton';
 import { SplashScreen } from '../../../../splash/SplashScreen';
 import { TryAIJourneyResources } from '../TryAIJourneyResources';

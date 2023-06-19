@@ -1,11 +1,11 @@
 import { ReactElement, useCallback, useRef } from 'react';
 import { Button } from '../../../shared/forms/Button';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
-import { OsehImageFromState } from '../../../shared/OsehImage';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import styles from './JourneyStart.module.css';
 import { Journey } from './Journey';
 import { combineClasses } from '../../../shared/lib/combineClasses';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 /**
  * Shows a screen allowing the user to perform an interaction to start the
@@ -41,7 +41,7 @@ export const JourneyStart = ({
     return (
       <div className={styles.container} ref={containerRef}>
         <div className={styles.backgroundImageContainer}>
-          {shared.image && <OsehImageFromState {...shared.image} />}
+          <OsehImageFromState {...shared.darkenedImage} />
         </div>
 
         <div className={styles.innerContainer}>

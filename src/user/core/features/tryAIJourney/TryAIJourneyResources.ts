@@ -1,4 +1,4 @@
-import { OsehImageState } from '../../../../shared/OsehImage';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { InappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { JourneyShared } from '../../../journey/models/JourneyShared';
 
@@ -16,7 +16,7 @@ export type TryAIJourneyResources = {
    * The background image to use for the question of if they want to start the
    * journey, or null if it's still loading
    */
-  promptBackground: OsehImageState | null;
+  promptBackground: OsehImageState;
 
   /**
    * The shared journey state of the journey being started

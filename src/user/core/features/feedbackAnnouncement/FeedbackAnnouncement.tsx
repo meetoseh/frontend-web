@@ -3,11 +3,10 @@ import { FeatureComponentProps } from '../../models/Feature';
 import { FeedbackAnnouncementResources } from './FeedbackAnnouncementResources';
 import { FeedbackAnnouncementState } from './FeedbackAnnouncementState';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
-import { SplashScreen } from '../../../splash/SplashScreen';
 import styles from './FeedbackAnnouncement.module.css';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { Button } from '../../../../shared/forms/Button';
-import { OsehImageFromState } from '../../../../shared/OsehImage';
+import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 /**
  * Shows the announcement for the new feedback feature
@@ -35,11 +34,6 @@ export const FeedbackAnnouncment = ({
     },
     [state, resources.session, doAnticipateState]
   );
-
-  if (resources.image === null) {
-    return <SplashScreen />;
-  }
-
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>

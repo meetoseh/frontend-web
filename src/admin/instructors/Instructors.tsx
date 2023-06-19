@@ -16,6 +16,7 @@ import {
   defaultSort,
   InstructorFilterAndSortBlock,
 } from './InstructorFilterAndSortBlock';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 const limit = 6;
 const path = '/api/1/instructors/search';
@@ -35,6 +36,7 @@ export const Instructors = (): ReactElement => {
   const [sort, setSort] = useState<CrudFetcherSort>(defaultSort);
   const [loading, setLoading] = useState(true);
   const [haveMore, setHaveMore] = useState(false);
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   const fetcher = useMemo(
     () => new CrudFetcher(path, keyMap, setItems, setLoading, setHaveMore),
@@ -83,6 +85,7 @@ export const Instructors = (): ReactElement => {
                   return newItems;
                 });
               }}
+              imageHandler={imageHandler}
             />
           )}
           loading={loading}

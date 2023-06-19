@@ -8,10 +8,11 @@ import { JourneyRef, journeyRefKeyMap } from '../../../journey/models/JourneyRef
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { useSingletonEffect } from '../../../../shared/lib/useSingletonEffect';
 import { convertUsingKeymap } from '../../../../admin/crud/CrudFetcher';
-import { OsehImageProps, useOsehImageState } from '../../../../shared/OsehImage';
 import { useJourneyShared } from '../../../journey/hooks/useJourneyShared';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { CourseClasses } from './CourseClasses';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 
 /**
  * Determines when the user last decided to suppress taking the next
@@ -285,22 +286,21 @@ export const CourseClassesFeature: Feature<CourseClassesState, CourseClassesReso
     const [journey, setJourney] = useState<JourneyRef | null>(null);
     const journeyShared = useJourneyShared(journey);
 
+    const imageHandler = useOsehImageStateRequestHandler({});
     const windowSize = useWindowSize();
-    const startBackgroundProps = useMemo<OsehImageProps>(
-      () => ({
+    const startBackground = useOsehImageState(
+      {
         uid: required ? startBackgroundUid : null,
         jwt: null,
         displayWidth: windowSize.width,
         displayHeight: windowSize.height,
         alt: '',
         isPublic: true,
-      }),
-      [required, windowSize]
+      },
+      imageHandler
     );
-    const startBackground = useOsehImageState(startBackgroundProps);
-
-    const courseCircleProps = useMemo<OsehImageProps>(
-      () => ({
+    const courseCircle = useOsehImageState(
+      {
         uid:
           required && state.course?.circleImage?.uid !== undefined
             ? state.course.circleImage.uid
@@ -312,10 +312,9 @@ export const CourseClassesFeature: Feature<CourseClassesState, CourseClassesReso
         displayWidth: 189,
         displayHeight: 189,
         alt: '',
-      }),
-      [required, state.course]
+      },
+      imageHandler
     );
-    const courseCircle = useOsehImageState(courseCircleProps);
 
     const journeyLoadedFor = useRef<{ sub: string; courseUid: string } | null>(null);
     useSingletonEffect(
@@ -413,17 +412,17 @@ export const CourseClassesFeature: Feature<CourseClassesState, CourseClassesReso
         journey,
         journeyShared,
         startBackground,
-        courseCircle: courseCircleProps.uid === null ? null : courseCircle,
+        courseCircle: courseCircle,
         loading:
           !required ||
           journey === null ||
-          journeyShared.imageLoading ||
+          journeyShared.darkenedImage.loading ||
           journeyShared.audio === null ||
           !journeyShared.audio.loaded ||
           startBackground.loading ||
           courseCircle.loading,
       }),
-      [journey, journeyShared, startBackground, courseCircleProps.uid, courseCircle, required]
+      [journey, journeyShared, startBackground, courseCircle, required]
     );
   },
   isRequired(state) {

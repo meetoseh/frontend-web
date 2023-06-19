@@ -122,7 +122,7 @@ const JourneyPublicLinkInner = ({
     visitor.loading ||
     loginContext.state === 'loading' ||
     journey === null ||
-    shared.imageLoading ||
+    shared.darkenedImage.loading ||
     shared.audio === null ||
     !shared.audio.loaded ||
     (!startedAudio && shared.audio.play === null);

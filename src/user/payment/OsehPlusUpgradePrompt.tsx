@@ -1,40 +1,26 @@
 import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import '../../assets/fonts.css';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import styles from './OsehPlusUpgradePrompt.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { LoginContext } from '../../shared/LoginContext';
 import { SplashScreen } from '../splash/SplashScreen';
 import { apiFetch } from '../../shared/ApiConstants';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
-
-type OsehPlusUpgradePromptProps = {
-  /**
-   * Used to indicate when required assets are ready. Provided true
-   * when ready, false otherwise.
-   */
-  setLoaded: (loaded: boolean) => void;
-};
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 /**
  * Provides the user the ability to upgrade to oseh plus if they don't
  * already have it.
  */
-export const OsehPlusUpgradePrompt = ({ setLoaded }: OsehPlusUpgradePromptProps): ReactElement => {
+export const OsehPlusUpgradePrompt = (): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const [loaded, setMyLoaded] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
   const [havePro, setHavePro] = useState<boolean | null>(null);
   const [upgradeUrl, setUpgradeUrl] = useState<string | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
+  const imageHandler = useOsehImageStateRequestHandler({});
   const windowSize = useWindowSize();
-
-  useEffect(() => {
-    const loaded = !imageLoading && loginContext.state !== 'loading' && havePro !== null;
-    setMyLoaded(loaded);
-    setLoaded(loaded);
-  }, [imageLoading, setLoaded, loginContext.state, havePro]);
 
   useEffect(() => {
     if (loginContext.state === 'logged-out') {
@@ -177,8 +163,8 @@ export const OsehPlusUpgradePrompt = ({ setLoaded }: OsehPlusUpgradePromptProps)
 
   return (
     <>
-      {!loaded ? <SplashScreen /> : null}
-      <div className={styles.container} style={!loaded ? { display: 'none' } : {}}>
+      {havePro === null ? <SplashScreen /> : null}
+      <div className={styles.container} style={havePro === null ? { display: 'none' } : undefined}>
         <div className={styles.closeButtonContainer}>
           <div className={styles.closeButtonInnerContainer}>
             <a href="/" className={styles.close}>
@@ -196,7 +182,7 @@ export const OsehPlusUpgradePrompt = ({ setLoaded }: OsehPlusUpgradePromptProps)
             displayHeight={windowSize.height}
             alt=""
             isPublic={true}
-            setLoading={setImageLoading}
+            handler={imageHandler}
           />
         </div>
 

@@ -12,7 +12,7 @@ import { LoginContext } from '../../shared/LoginContext';
 import { ModalContext, addModalWithCallbackToRemove } from '../../shared/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import { OsehContent } from '../../shared/OsehContent';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import { CrudCreateBlock } from '../crud/CrudCreateBlock';
 import { CrudFormElement } from '../crud/CrudFormElement';
 import { JourneyAudioContent } from './audio_contents/JourneyAudioContent';
@@ -34,19 +34,25 @@ import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
 import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
 import { InstructorPicker } from '../instructors/InstructorPicker';
+import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type CreateJourneyProps = {
   /**
    * Called after we successfully create a journey
    */
   onCreated: (this: void, journey: Journey) => void;
+
+  /**
+   * The handler for loading images
+   */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
  * Component to create journeys. Journey creation is unusually complicated
  * as there are nested components (audio, image) which cannot be null.
  */
-export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement => {
+export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [audioContent, setAudioContent] = useState<JourneyAudioContent | null>(null);
@@ -125,10 +131,11 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
             setBackgroundImage(image);
             setShowChooseBackgroundImageModal(false);
           }}
+          imageHandler={imageHandler}
         />
       </ModalWrapper>
     );
-  }, [showChooseBackgroundImageModal, modalContext.setModals]);
+  }, [showChooseBackgroundImageModal, modalContext.setModals, imageHandler]);
 
   const create = useCallback(
     async (e: MouseEvent<HTMLButtonElement>) => {
@@ -336,6 +343,7 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
                     displayWidth={180}
                     displayHeight={368}
                     alt="Mobile Preview"
+                    handler={imageHandler}
                   />
                 </div>
                 <div>
@@ -345,6 +353,7 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
                     displayWidth={270}
                     displayHeight={480}
                     alt="Share to Instagram Preview"
+                    handler={imageHandler}
                   />
                 </div>
                 <div>
@@ -354,6 +363,7 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
                     displayWidth={480}
                     displayHeight={270}
                     alt="Desktop Preview"
+                    handler={imageHandler}
                   />
                 </div>
                 <div>
@@ -418,6 +428,7 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
                       displayWidth={60}
                       displayHeight={60}
                       alt="Profile"
+                      handler={imageHandler}
                     />
                   </div>
                 ) : null}
@@ -435,6 +446,7 @@ export const CreateJourney = ({ onCreated }: CreateJourneyProps): ReactElement =
                 query={instructorQuery}
                 setQuery={setInstructorQuery}
                 setSelected={onInstructorSelected}
+                imageHandler={imageHandler}
               />
             </div>
           )}

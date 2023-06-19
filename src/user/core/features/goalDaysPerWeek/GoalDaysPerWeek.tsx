@@ -4,13 +4,13 @@ import { GoalDaysPerWeekState } from './GoalDaysPerWeekState';
 import { GoalDaysPerWeekResources } from './GoalDaysPerWeekResources';
 import styles from './GoalDaysPerWeek.module.css';
 import { Button } from '../../../../shared/forms/Button';
-import { OsehImageFromState } from '../../../../shared/OsehImage';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { LoginContext } from '../../../../shared/LoginContext';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
 import { InterestsContext } from '../../../../shared/InterestsContext';
+import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 export const GoalDaysPerWeek = ({
   state,
@@ -64,10 +64,6 @@ export const GoalDaysPerWeek = ({
       })()
     );
   }, [doAnticipateState, state, resources.session, goal, loginContext]);
-
-  if (resources.background === null) {
-    return <></>;
-  }
 
   return (
     <div className={styles.container}>

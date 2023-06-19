@@ -6,7 +6,6 @@ import styles from './RequestPhone.module.css';
 import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 import { SplashScreen } from '../../../splash/SplashScreen';
-import { OsehImageFromState } from '../../../../shared/OsehImage';
 import { TextInput } from '../../../../shared/forms/TextInput';
 import { Button } from '../../../../shared/forms/Button';
 import { FeatureComponentProps } from '../../models/Feature';
@@ -14,6 +13,7 @@ import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhoneResources } from './RequestPhoneResources';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { InterestsContext } from '../../../../shared/InterestsContext';
+import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 /**
  * Prompts the user for their phone number, then verifies it.

@@ -1,9 +1,10 @@
 import { Journey } from './Journey';
 import styles from './CompactJourney.module.css';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import { ReactElement, useContext, useState, useEffect } from 'react';
 import { LoginContext } from '../../shared/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
+import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type CompactJourneyProps = {
   /**
@@ -16,13 +17,22 @@ type CompactJourneyProps = {
    * has
    */
   showViews?: boolean;
+
+  /**
+   * The handler for fetching images
+   */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
  * Shows a journey in a very compact, non-block format. This typically renders as a single
  * line if given at least 250px of width, and is 90px tall in that case.
  */
-export const CompactJourney = ({ journey, showViews }: CompactJourneyProps): ReactElement => {
+export const CompactJourney = ({
+  journey,
+  showViews,
+  imageHandler,
+}: CompactJourneyProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [views, setViews] = useState<{ journeyUid: string; count: number } | undefined>(undefined);
 
@@ -70,6 +80,7 @@ export const CompactJourney = ({ journey, showViews }: CompactJourneyProps): Rea
           displayWidth={45}
           displayHeight={90}
           alt=""
+          handler={imageHandler}
         />
       </div>
       <div className={styles.journeyTitleContainer}>{journey.title}</div>
@@ -83,6 +94,7 @@ export const CompactJourney = ({ journey, showViews }: CompactJourneyProps): Rea
               displayWidth={45}
               displayHeight={45}
               alt={journey.instructor.name}
+              handler={imageHandler}
             />
           </div>
         )}

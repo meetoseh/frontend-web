@@ -50,8 +50,11 @@ const features = [
  * Under normal circumstances a feature should always be found, however, if all of
  * them indicate they should not be shown then `loading` and `required` may both
  * be false.
+ *
+ * @param maxSimultaneousLoadedResources The maximum number of resources to load at once.
+ *   The target number is the smallest that ensures that there is no inter-screen loading time
  */
-export const useFeaturesState = (): FeaturesState => {
+export const useFeaturesState = (maxSimultaneousLoadedResources: number = 3): FeaturesState => {
   const states = features.map((s) => s.useWorldState());
   const allStates = useMemo(() => {
     const result = {} as any;
@@ -62,8 +65,21 @@ export const useFeaturesState = (): FeaturesState => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, states);
   const requiredArr = features.map((s, idx) => s.isRequired(states[idx] as any, allStates));
+  const loadingResources = (() => {
+    let numLoading = 0;
+    const result: boolean[] = [];
+    for (let i = 0; i < features.length; i++) {
+      if (requiredArr[i] && numLoading < maxSimultaneousLoadedResources) {
+        numLoading++;
+        result.push(true);
+      } else {
+        result.push(false);
+      }
+    }
+    return result;
+  })();
   const resources = features.map((s, idx) =>
-    s.useResources(states[idx] as any, requiredArr[idx] ?? false, allStates)
+    s.useResources(states[idx] as any, loadingResources[idx], allStates)
   );
 
   const firstRequiredIdx = requiredArr.findIndex((r) => r);

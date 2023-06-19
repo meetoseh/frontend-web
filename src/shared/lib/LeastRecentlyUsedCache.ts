@@ -147,6 +147,52 @@ export class LeastRecentlyUsedCache<K, V> {
 
     return node.value;
   }
+
+  /**
+   * Removes the given item from the cache, if it is in the cache.
+   *
+   * @param key the key of the item to remove
+   * @returns true if the item was removed, false if it was not in the cache
+   */
+  remove(key: K): boolean {
+    const node = this.lookup.get(key);
+    if (node === undefined) {
+      return false;
+    }
+
+    if (this.lookup.size === 1) {
+      this.head = null;
+      this.tail = null;
+      this.lookup.delete(key);
+      return true;
+    }
+
+    if (node === this.head) {
+      if (!node.next) {
+        throw new Error('Invariant violation: head.next is null');
+      }
+      this.head = node.next;
+      this.head.prev = null;
+      this.lookup.delete(key);
+      return true;
+    } else if (node === this.tail) {
+      if (!node.prev) {
+        throw new Error('Invariant violation: tail.prev is null');
+      }
+      this.tail = node.prev;
+      this.tail.next = null;
+      this.lookup.delete(key);
+      return true;
+    } else {
+      if (!node.prev || !node.next) {
+        throw new Error('Invariant violation: prev or next is null');
+      }
+      node.prev.next = node.next;
+      node.next.prev = node.prev;
+      this.lookup.delete(key);
+      return true;
+    }
+  }
 }
 
 type LRUNode<K, V> = {

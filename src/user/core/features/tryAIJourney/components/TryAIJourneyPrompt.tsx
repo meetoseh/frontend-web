@@ -1,5 +1,4 @@
-import { OsehImageFromState } from '../../../../../shared/OsehImage';
-import { SplashScreen } from '../../../../splash/SplashScreen';
+import { OsehImageFromState } from '../../../../../shared/images/OsehImageFromState';
 import { TryAIJourneyResources } from '../TryAIJourneyResources';
 import { TryAIJourneyState } from '../TryAIJourneyState';
 import styles from './TryAIJourneyPrompt.module.css';
@@ -31,16 +30,11 @@ type TryAIJourneyPromptProps = {
 };
 
 export const TryAIJourneyPrompt = ({
-  state,
   resources,
   onYes,
   onNo,
   onClose,
 }: TryAIJourneyPromptProps) => {
-  if (resources.loading || resources.promptBackground === null) {
-    return <SplashScreen />;
-  }
-
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>

@@ -5,9 +5,10 @@ import assistiveStyles from '../../shared/assistive.module.css';
 import { SplashScreen } from '../splash/SplashScreen';
 import { HTTP_API_URL } from '../../shared/ApiConstants';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
 import { InterestsContext } from '../../shared/InterestsContext';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -137,6 +138,7 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
   const windowSize = useWindowSize();
   const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
   const urls = useProviderUrls();
+  const imageHandler = useOsehImageStateRequestHandler({});
   useRedirectUrl(redirectUrl);
 
   if (urls === null) {
@@ -157,6 +159,7 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
           displayHeight={windowSize.height}
           alt=""
           isPublic={true}
+          handler={imageHandler}
         />
       </div>
       <div className={styles.innerContainer}>

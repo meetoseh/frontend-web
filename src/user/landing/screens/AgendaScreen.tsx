@@ -8,9 +8,11 @@ import {
   useState,
 } from 'react';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
-import { OsehImageFromState, OsehImageProps, useOsehImageState } from '../../../shared/OsehImage';
 import styles from './AgendaScreen.module.css';
 import { Button } from '../../../shared/forms/Button';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../shared/images/useOsehImageState';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 type AgendaScreenProps = {
   /**
@@ -62,8 +64,9 @@ export const AgendaScreen = ({
   );
 
   const windowSize = useWindowSize();
-  const backgroundProps = useMemo<OsehImageProps>(
-    () => ({
+  const imageHandler = useOsehImageStateRequestHandler({});
+  const background = useOsehImageState(
+    {
       uid: 'oseh_if_hH68hcmVBYHanoivLMgstg',
       jwt: null,
       displayWidth: windowSize.width,
@@ -71,10 +74,9 @@ export const AgendaScreen = ({
       alt: '',
       isPublic: true,
       placeholderColor: '#021a1e',
-    }),
-    [windowSize]
+    },
+    imageHandler
   );
-  const background = useOsehImageState(backgroundProps);
 
   const [agendaStyles, setAgendaStyles] = useState<CSSProperties[]>([]);
   const agendaFadeState = useRef<AgendaFadeState>() as MutableRefObject<AgendaFadeState>;

@@ -1,6 +1,6 @@
 import { CrudFetcherKeyMap } from '../../../admin/crud/CrudFetcher';
 import { OsehContentRef } from '../../../shared/OsehContent';
-import { OsehImageRef } from '../../../shared/OsehImage';
+import { OsehImageRef } from '../../../shared/images/OsehImageRef';
 
 export type JourneyRef = {
   /**

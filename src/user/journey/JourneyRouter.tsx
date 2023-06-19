@@ -74,7 +74,7 @@ export const JourneyRouter = ({
     return <ErrorBlock>{sharedState.audio.error}</ErrorBlock>;
   }
 
-  if (sharedState.imageLoading) {
+  if (sharedState.darkenedImage.loading) {
     return <SplashScreen />;
   }
 
@@ -94,7 +94,7 @@ export const JourneyRouter = ({
     return <Journey {...screenProps} />;
   }
 
-  if (sharedState.blurredImageLoading) {
+  if (sharedState.blurredImage.loading) {
     return <SplashScreen />;
   }
 

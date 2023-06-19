@@ -2,23 +2,30 @@ import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } f
 import { Button } from '../../shared/forms/Button';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/LoginContext';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import { CrudFetcher } from '../crud/CrudFetcher';
 import { JourneyBackgroundImage } from './background_images/JourneyBackgroundImage';
 import { keyMap as journeyBackgroundImageKeyMap } from './background_images/JourneyBackgroundImages';
 import styles from './CreateJourneyChooseBackgroundImage.module.css';
+import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type CreateJourneyChooseBackgroundImageProps = {
   /**
    * Called when the user selects which background image to use for the journey
    */
   onSelected: (this: void, image: JourneyBackgroundImage) => void;
+
+  /**
+   * The handler for fetching images
+   */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 const limit = 3;
 
 export const CreateJourneyChooseBackgroundImage = ({
   onSelected,
+  imageHandler,
 }: CreateJourneyChooseBackgroundImageProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [items, setItems] = useState<JourneyBackgroundImage[]>([]);
@@ -114,6 +121,7 @@ export const CreateJourneyChooseBackgroundImage = ({
                     alt={`by ${
                       item.uploadedByUserSub
                     } at ${item.imageFileCreatedAt.toLocaleString()}`}
+                    handler={imageHandler}
                   />
                 </button>
               </div>

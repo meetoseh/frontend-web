@@ -1,4 +1,4 @@
-import { OsehImageState } from '../../../../shared/OsehImage';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { InappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 
 export type FeedbackAnnouncementResources = {

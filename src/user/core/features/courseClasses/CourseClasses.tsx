@@ -3,12 +3,13 @@ import { CourseClassesState } from './CourseClassesState';
 import { CourseClassesResources } from './CourseClassesResources';
 import { FeatureComponentProps } from '../../models/Feature';
 import { Course } from '../../../courses/models/Course';
-import { OsehImageFromState, OsehImageState } from '../../../../shared/OsehImage';
 import { Journey } from '../../../journey/screens/Journey';
 import styles from './CourseClasses.module.css';
 import assistiveStyles from '../../../../shared/assistive.module.css';
 import { Button } from '../../../../shared/forms/Button';
 import { JourneyRef } from '../../../journey/models/JourneyRef';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
+import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 /**
  * The main component for rendering course classes. Course classes are
@@ -96,7 +97,7 @@ const CourseClassStartScreen = ({
 }: {
   course: Course;
   journey: JourneyRef;
-  circle: OsehImageState | null;
+  circle: OsehImageState;
   background: OsehImageState;
   onSkip: () => void;
   onContinue: () => void;

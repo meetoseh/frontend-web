@@ -1,11 +1,12 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
-import { useOsehImageState } from '../../../shared/OsehImage';
 import { JourneyRef } from '../models/JourneyRef';
 import { JourneyShared } from '../models/JourneyShared';
 import { useJourneyAudio } from './useJourneyAudio';
 import { LoginContext } from '../../../shared/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../shared/images/useOsehImageState';
 
 /**
  * Creates the initial journey & journey start shared state
@@ -13,50 +14,55 @@ import { apiFetch } from '../../../shared/ApiConstants';
 export const useJourneyShared = (journey: JourneyRef | null): JourneyShared => {
   const loginContext = useContext(LoginContext);
   const windowSize = useWindowSize();
-  const [shared, setShared] = useState<JourneyShared>({
-    image: null,
-    imageLoading: true,
-    windowSize,
-    blurredImage: null,
-    blurredImageLoading: true,
-    audio: null,
-    favorited: null,
-    setFavorited: () => {
-      throw new Error('setFavorited called before favorited set');
+  const imageHandler = useOsehImageStateRequestHandler({});
+  const previewSize: { width: number; height: number } = useMemo(() => {
+    if (windowSize.width >= 390 && windowSize.height >= 844) {
+      return { width: 270, height: 470 };
+    }
+
+    return { width: 208, height: 357 };
+  }, [windowSize]);
+  const originalImage = useOsehImageState(
+    {
+      uid: journey?.backgroundImage?.uid ?? null,
+      jwt: journey?.backgroundImage?.jwt ?? null,
+      displayWidth: previewSize.width,
+      displayHeight: previewSize.height,
+      alt: '',
     },
-  });
-  const imageProps = useMemo(
-    () => ({
+    imageHandler
+  );
+  const darkenedImage = useOsehImageState(
+    {
       uid: journey?.darkenedBackgroundImage?.uid ?? null,
       jwt: journey?.darkenedBackgroundImage?.jwt ?? null,
       displayWidth: windowSize.width,
       displayHeight: windowSize.height,
       alt: '',
-    }),
-    [
-      journey?.darkenedBackgroundImage?.uid,
-      journey?.darkenedBackgroundImage?.jwt,
-      windowSize.width,
-      windowSize.height,
-    ]
+    },
+    imageHandler
   );
-  const image = useOsehImageState(imageProps);
-  const blurredImageProps = useMemo(
-    () => ({
+  const blurredImage = useOsehImageState(
+    {
       uid: journey?.blurredBackgroundImage?.uid ?? null,
       jwt: journey?.blurredBackgroundImage?.jwt ?? null,
       displayWidth: windowSize.width,
       displayHeight: windowSize.height,
       alt: '',
-    }),
-    [
-      journey?.blurredBackgroundImage?.uid,
-      journey?.blurredBackgroundImage?.jwt,
-      windowSize.width,
-      windowSize.height,
-    ]
+    },
+    imageHandler
   );
-  const blurredImage = useOsehImageState(blurredImageProps);
+  const [shared, setShared] = useState<JourneyShared>(() => ({
+    originalImage,
+    darkenedImage,
+    windowSize,
+    blurredImage,
+    audio: null,
+    favorited: null,
+    setFavorited: () => {
+      throw new Error('setFavorited called before favorited set');
+    },
+  }));
   const audio = useJourneyAudio(journey?.audioContent ?? null);
   const [favorited, setFavorited] = useState<boolean | null>(null);
 
@@ -142,16 +148,23 @@ export const useJourneyShared = (journey: JourneyRef | null): JourneyShared => {
 
   useEffect(() => {
     setShared({
-      image,
-      imageLoading: image.loading,
+      originalImage,
+      darkenedImage,
       blurredImage,
-      blurredImageLoading: blurredImage.loading,
       windowSize,
       audio,
       favorited,
       setFavorited: setFavoritedWrapper,
     });
-  }, [image, blurredImage, windowSize, audio, favorited, setFavoritedWrapper]);
+  }, [
+    originalImage,
+    darkenedImage,
+    blurredImage,
+    windowSize,
+    audio,
+    favorited,
+    setFavoritedWrapper,
+  ]);
 
   return shared;
 };

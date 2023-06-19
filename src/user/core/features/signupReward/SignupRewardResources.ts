@@ -1,4 +1,4 @@
-import { OsehImageState } from '../../../../shared/OsehImage';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { InappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 
 /**
@@ -20,7 +20,7 @@ export type SignupRewardResources = {
   /**
    * The woman laughing image to show, or null if not loaded yet.
    */
-  image: OsehImageState | null;
+  image: OsehImageState;
 
   /**
    * True if we're still loading resources, false if we're ready to present.

@@ -1,4 +1,4 @@
-import { OsehImageRef } from '../../../shared/OsehImage';
+import { OsehImageRef } from '../../../shared/images/OsehImageRef';
 
 /**
  * Indicates a specific image file is suitable as a journey background image

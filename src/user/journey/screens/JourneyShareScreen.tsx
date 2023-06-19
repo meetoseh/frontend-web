@@ -1,11 +1,10 @@
-import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useState } from 'react';
 import styles from './JourneyShareScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
-import { OsehImage, OsehImageFromState } from '../../../shared/OsehImage';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { useOsehContent } from '../../../shared/OsehContent';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
-import { useWindowSize } from '../../../shared/hooks/useWindowSize';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 export const JourneyShareScreen = ({
   journey,
@@ -21,7 +20,6 @@ export const JourneyShareScreen = ({
   });
   const [error, setError] = useState<ReactElement | null>(null);
   const [nativeShare, setNativeShare] = useState<File | null>(null);
-  const windowSize = useWindowSize();
 
   const doNativeShare = useCallback(async () => {
     if (shareable.webExport === null || journey.sample === null) {
@@ -97,18 +95,10 @@ export const JourneyShareScreen = ({
     [onJourneyFinished]
   );
 
-  const previewSize: { width: number; height: number } = useMemo(() => {
-    if (windowSize.width >= 390 && windowSize.height >= 844) {
-      return { width: 270, height: 470 };
-    }
-
-    return { width: 208, height: 357 };
-  }, [windowSize]);
-
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...shared.blurredImage!} />
+        <OsehImageFromState {...shared.blurredImage} />
       </div>
       <div className={styles.innerContainer}>
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
@@ -124,13 +114,7 @@ export const JourneyShareScreen = ({
         <div className={styles.primaryContainer}>
           <div className={styles.previewContainer}>
             <div className={styles.previewImageContainer}>
-              <OsehImage
-                uid={journey.backgroundImage.uid}
-                jwt={journey.backgroundImage.jwt}
-                displayWidth={previewSize.width}
-                displayHeight={previewSize.height}
-                alt="preview"
-              />
+              <OsehImageFromState {...shared.originalImage} />
             </div>
             <div className={styles.previewHeader}>
               <div className={styles.previewTitle}>{journey.title}</div>

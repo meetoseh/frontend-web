@@ -2,14 +2,21 @@ import { ReactElement } from 'react';
 import { CrudItemBlock } from '../../crud/CrudItemBlock';
 import { User } from '../User';
 import styles from './BigUserBasicInfo.module.css';
-import { OsehImage } from '../../../shared/OsehImage';
+import { OsehImage } from '../../../shared/images/OsehImage';
 import { CrudFormElement } from '../../crud/CrudFormElement';
+import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 
 /**
  * A standard block that provides basic information on the user;
  * acts kind of like an extended version of the user block
  */
-export const BigUserBasicInfo = ({ user }: { user: User }): ReactElement => {
+export const BigUserBasicInfo = ({
+  user,
+  imageHandler,
+}: {
+  user: User;
+  imageHandler: OsehImageStateRequestHandler;
+}): ReactElement => {
   return (
     <CrudItemBlock title="Basic Info" controls={null}>
       <div className={styles.pictureAndName}>
@@ -21,6 +28,7 @@ export const BigUserBasicInfo = ({ user }: { user: User }): ReactElement => {
               displayWidth={60}
               displayHeight={60}
               alt=""
+              handler={imageHandler}
             />
           </div>
         )}

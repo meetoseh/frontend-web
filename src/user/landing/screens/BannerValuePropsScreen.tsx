@@ -1,8 +1,10 @@
 import { ReactElement, useMemo } from 'react';
-import { OsehImageFromState, useOsehImageState } from '../../../shared/OsehImage';
 import styles from './BannerValuePropsScreen.module.css';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { Button } from '../../../shared/forms/Button';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageState } from '../../../shared/images/useOsehImageState';
+import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 
 type BannerValuePropsScreenProps = {
   /**
@@ -53,9 +55,10 @@ export const BannerValuePropsScreen = ({
       ]
     );
   }, [valuePropsRaw]);
+  const imageHandler = useOsehImageStateRequestHandler({});
 
-  const bannerImageProps = useMemo(
-    () => ({
+  const bannerImage = useOsehImageState(
+    {
       uid: bannerImageUid ?? 'oseh_if_F7sVhs4BJ7nnhPjyhi09-g',
       jwt: null,
       displayWidth: 336,
@@ -63,10 +66,9 @@ export const BannerValuePropsScreen = ({
       alt: '',
       isPublic: true,
       placeholderColor: '#000000',
-    }),
-    [bannerImageUid]
+    },
+    imageHandler
   );
-  const bannerImage = useOsehImageState(bannerImageProps);
 
   const windowSize = useWindowSize();
 

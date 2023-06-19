@@ -1,4 +1,4 @@
-import { OsehImageFromState } from '../../../../shared/OsehImage';
+import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import { FeatureComponentProps } from '../../models/Feature';
 import { VipChatRequestResources } from './VipChatRequestResources';
 import { VipChatRequestState } from './VipChatRequestState';

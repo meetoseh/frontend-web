@@ -4,11 +4,12 @@ import { Feature } from '../../models/Feature';
 import { GoalDaysPerWeekResources } from './GoalDaysPerWeekResources';
 import { GoalDaysPerWeekState } from './GoalDaysPerWeekState';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
-import { OsehImageProps, OsehImageState } from '../../../../shared/OsehImage';
-import { useOsehImageStates } from '../../../../shared/OsehImage';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { GoalDaysPerWeek } from './GoalDaysPerWeek';
 import { InterestsContext } from '../../../../shared/InterestsContext';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { OsehImageState } from '../../../../shared/images/OsehImageState';
+import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -21,25 +22,18 @@ export const GoalDaysPerWeekFeature: Feature<GoalDaysPerWeekState, GoalDaysPerWe
   useResources: (state, required) => {
     const windowSize = useWindowSize();
     const interests = useContext(InterestsContext);
-    const imageProps = useMemo<OsehImageProps[]>(() => {
-      if (!required) {
-        return [];
-      }
-
-      return [
-        {
-          uid: backgroundUid,
-          jwt: null,
-          displayWidth: windowSize.width,
-          displayHeight: windowSize.height,
-          alt: '',
-          isPublic: true,
-        },
-      ];
-    }, [required, windowSize]);
-    const images = useOsehImageStates(imageProps);
-
-    const background: OsehImageState | null = required && images.length > 0 ? images[0] : null;
+    const imageHandler = useOsehImageStateRequestHandler({});
+    const background: OsehImageState = useOsehImageState(
+      {
+        uid: required ? backgroundUid : null,
+        jwt: null,
+        displayWidth: windowSize.width,
+        displayHeight: windowSize.height,
+        alt: '',
+        isPublic: true,
+      },
+      imageHandler
+    );
     const session = useInappNotificationSession(required ? state.ian?.uid ?? null : null);
 
     return useMemo<GoalDaysPerWeekResources>(

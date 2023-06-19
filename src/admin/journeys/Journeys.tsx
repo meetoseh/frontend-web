@@ -15,6 +15,7 @@ import { Crud } from '../crud/Crud';
 import { CrudListing } from '../crud/CrudListing';
 import { JourneyBlock } from './JourneyBlock';
 import { CreateJourney } from './CreateJourney';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 const limit = 3;
 const path = '/api/1/journeys/search';
@@ -46,6 +47,7 @@ export const Journeys = (): ReactElement => {
   const [sort, setSort] = useState<CrudFetcherSort>(defaultSort);
   const [loading, setLoading] = useState(true);
   const [haveMore, setHaveMore] = useState(false);
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   const fetcher = useMemo(
     () => new CrudFetcher(path, keyMap, setItems, setLoading, setHaveMore),
@@ -94,6 +96,7 @@ export const Journeys = (): ReactElement => {
                   return newItems;
                 });
               }}
+              imageHandler={imageHandler}
             />
           )}
           loading={loading}
@@ -101,7 +104,7 @@ export const Journeys = (): ReactElement => {
           onMore={onMore}
         />
       }
-      create={<CreateJourney onCreated={onItemCreated} />}
+      create={<CreateJourney onCreated={onItemCreated} imageHandler={imageHandler} />}
       filters={
         <JourneyFilterAndSortBlock
           sort={sort}

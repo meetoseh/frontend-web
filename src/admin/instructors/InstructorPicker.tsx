@@ -1,12 +1,13 @@
-import { Dispatch, ReactElement, SetStateAction } from 'react';
+import { Dispatch, ReactElement, SetStateAction, useMemo } from 'react';
 import { makeILikeFromInput } from '../../shared/forms/utils';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import { CrudFetcherFilter, CrudFetcherSort } from '../crud/CrudFetcher';
 import { CrudPickerItem } from '../crud/CrudPickerItem';
 import { Instructor } from './Instructor';
 import { keyMap as instructorKeyMap } from '../instructors/Instructors';
 import styles from './InstructorPicker.module.css';
 import { CrudPicker } from '../crud/CrudPicker';
+import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type InstructorPickerProps = {
   /**
@@ -26,6 +27,11 @@ type InstructorPickerProps = {
    * @param item The item selected
    */
   setSelected: (this: void, item: Instructor) => void;
+
+  /**
+   * The handler for fetching images
+   */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
@@ -53,11 +59,16 @@ const makeInstructorFilter = (query: string): CrudFetcherFilter => {
 
 /**
  * Makes the component to render in the instructor picker
+ * @param imageHandler The image handler to use
  * @param item The matching item
  * @param query The query used
  * @returns The component to allow the user to select the item
  */
-const makeInstructorPickerComponent = (item: Instructor, query: string): ReactElement => {
+const makeInstructorPickerComponent = (
+  imageHandler: OsehImageStateRequestHandler,
+  item: Instructor,
+  query: string
+): ReactElement => {
   return (
     <div className={styles.instructorContainer}>
       {item.picture !== null ? (
@@ -68,6 +79,7 @@ const makeInstructorPickerComponent = (item: Instructor, query: string): ReactEl
             displayWidth={60}
             displayHeight={60}
             alt="Profile"
+            handler={imageHandler}
           />
         </div>
       ) : null}
@@ -85,14 +97,19 @@ export const InstructorPicker = ({
   query,
   setQuery,
   setSelected,
+  imageHandler,
 }: InstructorPickerProps): ReactElement => {
+  const boundMakeComponent = useMemo(
+    () => makeInstructorPickerComponent.bind(undefined, imageHandler),
+    [imageHandler]
+  );
   return (
     <CrudPicker
       path="/api/1/instructors/search"
       keyMap={instructorKeyMap}
       sort={instructorSort}
       filterMaker={makeInstructorFilter}
-      component={makeInstructorPickerComponent}
+      component={boundMakeComponent}
       query={query}
       setQuery={setQuery}
       setSelected={setSelected}

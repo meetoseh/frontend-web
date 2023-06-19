@@ -9,7 +9,7 @@ import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorB
 import { LoginContext } from '../../shared/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { CrudFormElement } from '../crud/CrudFormElement';
-import { OsehImage } from '../../shared/OsehImage';
+import { OsehImage } from '../../shared/images/OsehImage';
 import {
   FileUploadHandler,
   parseUploadInfoFromResponse,
@@ -17,15 +17,18 @@ import {
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap } from './Instructors';
 import { Checkbox } from '../../shared/forms/Checkbox';
+import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type InstructorBlockProps = {
   instructor: Instructor;
   setInstructor: (this: void, instructor: Instructor) => void;
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 export const InstructorBlock = ({
   instructor,
   setInstructor,
+  imageHandler,
 }: InstructorBlockProps): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [editing, setEditing] = useState(false);
@@ -294,7 +297,8 @@ export const InstructorBlock = ({
                   jwt={instructor.picture!.jwt}
                   displayWidth={60}
                   displayHeight={60}
-                  alt={'Instructor'}
+                  alt="Instructor"
+                  handler={imageHandler}
                 />
               ) : (
                 <img src={URL.createObjectURL(newPicture)} width={60} height={60} alt="New" />
@@ -341,7 +345,8 @@ export const InstructorBlock = ({
                     jwt={instructor.picture.jwt}
                     displayWidth={60}
                     displayHeight={60}
-                    alt={'Square'}
+                    alt="Square"
+                    handler={imageHandler}
                   />
                 </div>
                 <div className={styles.circlePictureContainer}>
@@ -350,7 +355,8 @@ export const InstructorBlock = ({
                     jwt={instructor.picture.jwt}
                     displayWidth={60}
                     displayHeight={60}
-                    alt={'Circular'}
+                    alt="Circular"
+                    handler={imageHandler}
                   />
                 </div>
               </div>
