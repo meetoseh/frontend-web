@@ -80,7 +80,11 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
   const [tableProps, setTableProps] = useState<{ journey: Journey; table: DashboardTableProps }[]>(
     []
   );
-  const imageHandler = useOsehImageStateRequestHandler({});
+  const imageHandler = useOsehImageStateRequestHandler({
+    playlistCacheSize: 512,
+    imageCacheSize: 128,
+    cropCacheSize: 128,
+  });
 
   const onPlaceholderVisible = useCallback(() => {
     setShowingPlaceholder(false);
