@@ -2,7 +2,7 @@ import { Journey } from './Journey';
 import styles from './CompactJourney.module.css';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { ReactElement, useContext, useState, useEffect } from 'react';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 

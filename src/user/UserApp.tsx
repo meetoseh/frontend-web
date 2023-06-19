@@ -1,16 +1,16 @@
 import { ReactElement, useContext, useEffect, useState } from 'react';
-import { LoginContext, LoginProvider } from '../shared/LoginContext';
-import { ModalProvider } from '../shared/ModalContext';
+import { LoginContext, LoginProvider } from '../shared/contexts/LoginContext';
+import { ModalProvider } from '../shared/contexts/ModalContext';
 import { LoginApp } from './login/LoginApp';
 import { SplashScreen } from './splash/SplashScreen';
 import '../assets/fonts.css';
 import styles from './UserApp.module.css';
 import { apiFetch } from '../shared/ApiConstants';
 import { useFonts } from '../shared/lib/useFonts';
-import { FullscreenContext, FullscreenProvider } from '../shared/FullscreenContext';
+import { FullscreenContext, FullscreenProvider } from '../shared/contexts/FullscreenContext';
 import { useFeaturesState } from './core/hooks/useFeaturesState';
 import { FeaturesRouter } from './core/FeaturesRouter';
-import { InterestsAutoProvider } from '../shared/InterestsContext';
+import { InterestsAutoProvider } from '../shared/contexts/InterestsContext';
 import { useTimedValue } from '../shared/hooks/useTimedValue';
 
 export default function UserApp(): ReactElement {

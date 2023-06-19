@@ -2,7 +2,7 @@ import { ReactElement, useCallback, useContext, useEffect, useState } from 'reac
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import styles from './JourneyPostScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import { SplashScreen } from '../../splash/SplashScreen';

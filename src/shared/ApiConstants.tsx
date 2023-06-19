@@ -1,4 +1,4 @@
-import type { LoginContextValue } from './LoginContext';
+import type { LoginContextValue } from './contexts/LoginContext';
 
 /**
  * The base url for simple http requests to the backend

@@ -1,5 +1,5 @@
 import { PropsWithChildren, ReactElement, useContext, useEffect, useRef, useState } from 'react';
-import { LoginContext } from '../shared/LoginContext';
+import { LoginContext } from '../shared/contexts/LoginContext';
 import '../assets/fonts.css';
 import styles from './RequireLoggedIn.module.css';
 import { LoginButton } from '../shared/LoginButton';

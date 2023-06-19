@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 import { Feature } from '../../models/Feature';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { RequestNameState } from './RequestNameState';
 import { RequestNameResources } from './RequestNameResources';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';

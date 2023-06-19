@@ -6,7 +6,7 @@ import { GoalDaysPerWeekState } from './GoalDaysPerWeekState';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { GoalDaysPerWeek } from './GoalDaysPerWeek';
-import { InterestsContext } from '../../../../shared/InterestsContext';
+import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { useOsehImageState } from '../../../../shared/images/useOsehImageState';

@@ -3,7 +3,7 @@ import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState
 import styles from './RequestName.module.css';
 import { TextInput } from '../../../../shared/forms/TextInput';
 import { apiFetch } from '../../../../shared/ApiConstants';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
 import { RequestNameResources } from './RequestNameResources';
 import { RequestNameState } from './RequestNameState';

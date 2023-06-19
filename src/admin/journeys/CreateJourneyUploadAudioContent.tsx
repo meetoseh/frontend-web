@@ -12,7 +12,7 @@ import {
   ErrorBlock,
 } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
-import { LoginContext, LoginContextValue } from '../../shared/LoginContext';
+import { LoginContext, LoginContextValue } from '../../shared/contexts/LoginContext';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap as journeyAudioContentKeyMap } from './audio_contents/JourneyAudioContents';
 import { computeFileSha512 } from '../../shared/computeFileSha512';

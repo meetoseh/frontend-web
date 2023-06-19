@@ -6,7 +6,7 @@ import { Button } from '../../../../shared/forms/Button';
 import { SignupRewardState } from './SignupRewardState';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
-import { InterestsContext } from '../../../../shared/InterestsContext';
+import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 /**

@@ -11,7 +11,7 @@ import {
 import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { convertUsingKeymap, CrudFetcherKeyMap } from '../crud/CrudFetcher';
 import {
   AdminDashboardLargeChart,

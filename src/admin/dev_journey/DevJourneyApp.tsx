@@ -1,5 +1,5 @@
 import { ReactElement, useEffect, useState } from 'react';
-import { LoginProvider } from '../../shared/LoginContext';
+import { LoginProvider } from '../../shared/contexts/LoginContext';
 import '../../assets/fonts.css';
 import { DevJourney } from './DevJourney';
 import { HTTP_API_URL } from '../../shared/ApiConstants';

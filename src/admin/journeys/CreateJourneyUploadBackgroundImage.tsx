@@ -6,7 +6,7 @@ import {
   describeErrorFromResponse,
   ErrorBlock,
 } from '../../shared/forms/ErrorBlock';
-import { LoginContext, LoginContextValue } from '../../shared/LoginContext';
+import { LoginContext, LoginContextValue } from '../../shared/contexts/LoginContext';
 import {
   FileUploadHandler,
   parseUploadInfoFromResponse,

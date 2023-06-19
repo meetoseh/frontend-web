@@ -5,7 +5,7 @@ import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { Button } from '../../shared/forms/Button';
 import { SplashScreen } from '../splash/SplashScreen';
 import { useSingletonEffect } from '../../shared/lib/useSingletonEffect';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';

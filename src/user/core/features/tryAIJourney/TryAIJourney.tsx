@@ -10,7 +10,7 @@ import { JourneyStart } from '../../../journey/screens/JourneyStart';
 import { Journey } from '../../../journey/screens/Journey';
 import { TryAIJourneyPostScreen } from './components/TryAIJourneyPostScreen';
 import { apiFetch } from '../../../../shared/ApiConstants';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 
 /**
  * Asks the user if they want to try a completely ai-generated journey,

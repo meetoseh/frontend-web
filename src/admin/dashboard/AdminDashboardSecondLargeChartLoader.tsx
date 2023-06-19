@@ -1,5 +1,5 @@
 import { ReactElement, useContext, useEffect, useMemo, useState } from 'react';
-import { addModalWithCallbackToRemove, ModalContext } from '../../shared/ModalContext';
+import { addModalWithCallbackToRemove, ModalContext } from '../../shared/contexts/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import {
   AdminDashboardLargeChart,

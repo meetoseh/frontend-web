@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useContext, useState } from 'react';
 import { VipChatRequest, convertVipChatRequest } from './VipChatRequest';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { CrudCreateBlock } from '../crud/CrudCreateBlock';
 import styles from './CreateVipChatRequest.module.css';
 import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';

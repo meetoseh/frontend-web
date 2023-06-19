@@ -21,7 +21,7 @@ import {
 } from './AdminDashboardLargeChart';
 import { DashboardTable, DashboardTableProps } from './subComponents/DashboardTable';
 import { apiFetch } from '../../shared/ApiConstants';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { combineClasses } from '../../shared/lib/combineClasses';
 
 type Data = {

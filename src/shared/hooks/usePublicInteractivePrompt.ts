@@ -6,7 +6,7 @@ import {
 } from '../../user/interactive_prompt/models/InteractivePrompt';
 import { apiFetch } from '../ApiConstants';
 import { describeError } from '../forms/ErrorBlock';
-import { LoginContext } from '../LoginContext';
+import { LoginContext } from '../contexts/LoginContext';
 
 export type PublicInteractivePrompt =
   | {

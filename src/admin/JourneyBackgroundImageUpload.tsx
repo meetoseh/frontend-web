@@ -1,6 +1,6 @@
 import { ReactElement, useContext, useEffect, useState } from 'react';
 import { apiFetch } from '../shared/ApiConstants';
-import { LoginContext } from '../shared/LoginContext';
+import { LoginContext } from '../shared/contexts/LoginContext';
 import { FileUploadHandler, parseUploadInfoFromResponse } from '../shared/upload/FileUploadHandler';
 
 /**

@@ -2,7 +2,7 @@ import { useContext, useMemo, useState } from 'react';
 import { Feature } from '../../models/Feature';
 import { TryAIJourneyResources } from './TryAIJourneyResources';
 import { TryAIJourneyState } from './TryAIJourneyState';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { useSingletonEffect } from '../../../../shared/lib/useSingletonEffect';

@@ -1,5 +1,5 @@
 import { useContext, useRef } from 'react';
-import { LoginContext } from '../LoginContext';
+import { LoginContext } from '../contexts/LoginContext';
 
 /**
  * Calls the given function if the user logs out, based on the login state

@@ -2,7 +2,7 @@ import { MutableRefObject, useContext, useEffect, useMemo, useRef } from 'react'
 import { apiFetch } from '../../../shared/ApiConstants';
 import { Callbacks } from '../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import {
   PromptTime,

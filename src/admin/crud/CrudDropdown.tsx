@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import {
   CrudFetcherFilter,
   CrudFetcherKeyMap,

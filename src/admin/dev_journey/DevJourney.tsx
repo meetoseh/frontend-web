@@ -1,6 +1,6 @@
 import { CSSProperties, ReactElement, useContext, useEffect, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { ActionsBlock } from './blocks/ActionsBlock';
 import { HistoricalBlock } from './blocks/HistoricalBlock';
 import { LiveBlock } from './blocks/LiveBlock';

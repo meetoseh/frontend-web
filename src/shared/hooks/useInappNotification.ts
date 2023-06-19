@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { useSingletonEffect } from '../lib/useSingletonEffect';
-import { LoginContext } from '../LoginContext';
+import { LoginContext } from '../contexts/LoginContext';
 import { apiFetch } from '../ApiConstants';
 
 const MAX_EXPIRATION_TIME_SECONDS = 60 * 60 * 24 * 7;

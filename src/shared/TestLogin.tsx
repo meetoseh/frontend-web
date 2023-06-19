@@ -1,7 +1,7 @@
 import './TestLogin.css';
 import { ChangeEvent, FormEvent, ReactElement, useCallback, useContext, useState } from 'react';
 import { apiFetch } from './ApiConstants';
-import { InterestsContext } from './InterestsContext';
+import { InterestsContext } from './contexts/InterestsContext';
 
 /**
  * Shows a development page where you can login just be specifying your user

@@ -1,5 +1,5 @@
 import { ReactElement, useEffect, useState } from 'react';
-import { LoginProvider } from '../shared/LoginContext';
+import { LoginProvider } from '../shared/contexts/LoginContext';
 import '../assets/fonts.css';
 import { AdminNavDesktopTop } from './nav/desktop/top/AdminNavDesktopTop';
 import { AdminNavDesktopSideHeader } from './nav/desktop/side/AdminNavDesktopSideHeader';
@@ -14,7 +14,7 @@ import DevJourneyApp from './dev_journey/DevJourneyApp';
 import { Instructors } from './instructors/Instructors';
 import { Journeys } from './journeys/Journeys';
 import { JourneySubcategories } from './journeys/subcategories/JourneySubcategories';
-import { ModalProvider } from '../shared/ModalContext';
+import { ModalProvider } from '../shared/contexts/ModalContext';
 import { IntroductoryJourneys } from './journeys/intros/IntroductoryJourneys';
 import { VipChatRequests } from './vip_chat_requests/VipChatRequests';
 import { Users } from './users/Users';

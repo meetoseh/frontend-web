@@ -6,9 +6,9 @@ import { CrudFormElement } from '../../crud/CrudFormElement';
 import { DashboardTable, DashboardTableProps } from '../../dashboard/subComponents/DashboardTable';
 import { Button } from '../../../shared/forms/Button';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
-import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/ModalContext';
+import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
 import { ModalWrapper } from '../../../shared/ModalWrapper';
 
 type Instructor = {

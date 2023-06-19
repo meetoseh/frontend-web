@@ -6,7 +6,7 @@ import {
   writeVisitorToStore,
 } from '../../shared/hooks/useVisitor';
 import { apiFetch } from '../../shared/ApiConstants';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { useTimezone } from '../../shared/hooks/useTimezone';
 import { Course, courseKeyMap } from './models/Course';
 import { useSingletonEffect } from '../../shared/lib/useSingletonEffect';

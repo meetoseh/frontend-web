@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { Feature } from '../../models/Feature';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import {
   PublicInteractivePrompt,
@@ -12,7 +12,7 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { RequestNotificationTime } from './RequestNotificationTime';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
-import { InterestsContext } from '../../../../shared/InterestsContext';
+import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 

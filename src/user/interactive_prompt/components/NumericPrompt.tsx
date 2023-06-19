@@ -21,7 +21,7 @@ import { PromptStats, StatsChangedEvent, useStats } from '../hooks/useStats';
 import { Callbacks } from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { useProfilePictures } from '../hooks/useProfilePictures';
-import { LoginContext, LoginContextValue } from '../../../shared/LoginContext';
+import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { useJoinLeave } from '../hooks/useJoinLeave';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useOnFinished } from '../hooks/useOnFinished';

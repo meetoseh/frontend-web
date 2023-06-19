@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Visitor, useVisitor } from '../../shared/hooks/useVisitor';
-import { LoginContext, LoginContextValue } from '../../shared/LoginContext';
+import { LoginContext, LoginContextValue } from '../../shared/contexts/LoginContext';
 import { SplashScreen } from '../splash/SplashScreen';
 import { JourneyRef, journeyRefKeyMap } from './models/JourneyRef';
 import { useJourneyShared } from './hooks/useJourneyShared';
@@ -11,7 +11,7 @@ import { JourneyStart } from './screens/JourneyStart';
 import { JourneyLobbyScreen } from './screens/JourneyLobbyScreen';
 import { Journey } from './screens/Journey';
 import { JourneyRouterScreenId } from './JourneyRouter';
-import { InterestsProvider } from '../../shared/InterestsContext';
+import { InterestsProvider } from '../../shared/contexts/InterestsContext';
 
 /**
  * This is a top-level component intended to be used for the /jpl route.

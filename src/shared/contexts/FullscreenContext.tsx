@@ -9,9 +9,9 @@ import {
   useState,
 } from 'react';
 import { ModalContext, addModalWithCallbackToRemove } from './ModalContext';
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from '../ModalWrapper';
 import styles from './FullscreenContext.module.css';
-import { useWindowSize } from './hooks/useWindowSize';
+import { useWindowSize } from '../hooks/useWindowSize';
 
 export type FullscreenContextValue = {
   /**

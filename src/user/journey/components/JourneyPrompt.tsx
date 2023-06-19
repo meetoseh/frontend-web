@@ -2,7 +2,7 @@ import { MutableRefObject, ReactElement, useEffect, useState } from 'react';
 import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { describeError } from '../../../shared/forms/ErrorBlock';
-import { LoginContextValue } from '../../../shared/LoginContext';
+import { LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { CountdownTextConfig } from '../../interactive_prompt/components/CountdownText';
 import { InteractivePromptRouter } from '../../interactive_prompt/components/InteractivePromptRouter';
 import {

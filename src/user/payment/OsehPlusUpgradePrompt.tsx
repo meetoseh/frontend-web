@@ -4,7 +4,7 @@ import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/images/OsehImage';
 import styles from './OsehPlusUpgradePrompt.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { SplashScreen } from '../splash/SplashScreen';
 import { apiFetch } from '../../shared/ApiConstants';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';

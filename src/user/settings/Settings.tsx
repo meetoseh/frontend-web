@@ -5,8 +5,8 @@ import {
   ErrorBlock,
 } from '../../shared/forms/ErrorBlock';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { LoginContext } from '../../shared/LoginContext';
-import { addModalWithCallbackToRemove, ModalContext } from '../../shared/ModalContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
+import { addModalWithCallbackToRemove, ModalContext } from '../../shared/contexts/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import '../../assets/fonts.css';
 import styles from './Settings.module.css';

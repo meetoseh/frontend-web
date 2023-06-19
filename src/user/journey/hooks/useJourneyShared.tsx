@@ -3,7 +3,7 @@ import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { JourneyRef } from '../models/JourneyRef';
 import { JourneyShared } from '../models/JourneyShared';
 import { useJourneyAudio } from './useJourneyAudio';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { useOsehImageState } from '../../../shared/images/useOsehImageState';

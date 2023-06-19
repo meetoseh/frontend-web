@@ -1,6 +1,6 @@
 import { ReactElement, useContext, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from './ApiConstants';
-import { LoginContext, LoginContextValue } from './LoginContext';
+import { LoginContext, LoginContextValue } from './contexts/LoginContext';
 import {
   OsehImageStateRequestHandler,
   useOsehImageStateRequestHandler,

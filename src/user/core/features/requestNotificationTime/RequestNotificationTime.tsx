@@ -9,7 +9,7 @@ import { RequestNotificationTimeResources } from './RequestNotificationTimeResou
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { apiFetch } from '../../../../shared/ApiConstants';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 /**

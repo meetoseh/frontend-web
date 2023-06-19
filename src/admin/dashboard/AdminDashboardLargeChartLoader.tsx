@@ -7,8 +7,8 @@ import {
 import '../../assets/fonts.css';
 import detailStyles from './subComponents/ChartDetails.module.css';
 import { apiFetch } from '../../shared/ApiConstants';
-import { LoginContext } from '../../shared/LoginContext';
-import { addModalWithCallbackToRemove, ModalContext } from '../../shared/ModalContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
+import { addModalWithCallbackToRemove, ModalContext } from '../../shared/contexts/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import { AdminDashboardLargeChartPlaceholder } from './AdminDashboardLargeChartPlaceholder';
 import { ChartDetails } from './subComponents/ChartDetails';

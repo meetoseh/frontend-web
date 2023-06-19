@@ -10,19 +10,19 @@ import {
   storeAuthTokens,
   storeUserAttributes,
   TokenResponseConfig,
-} from './shared/LoginContext';
+} from './shared/contexts/LoginContext';
 import { TestLogin } from './shared/TestLogin';
 import { LoginApp } from './user/login/LoginApp';
 import { OsehPlusUpgradePrompt } from './user/payment/OsehPlusUpgradePrompt';
 import { Settings } from './user/settings/Settings';
-import { ModalProvider } from './shared/ModalContext';
+import { ModalProvider } from './shared/contexts/ModalContext';
 import { SplashScreen } from './user/splash/SplashScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 import { CourseActivateScreen } from './user/courses/CourseActivateScreen';
 import { CourseAttachScreen } from './user/courses/CourseAttachScreen';
 import { CourseDownloadScreen } from './user/courses/CourseDownloadScreen';
 import { JourneyPublicLink } from './user/journey/JourneyPublicLink';
-import { InterestsAutoProvider } from './shared/InterestsContext';
+import { InterestsAutoProvider } from './shared/contexts/InterestsContext';
 import { AnxietyLanding } from './user/landing/AnxietyLanding';
 import { FavoritesApp } from './user/favorites/FavoritesApp';
 

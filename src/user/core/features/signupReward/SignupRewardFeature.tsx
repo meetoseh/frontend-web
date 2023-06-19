@@ -2,11 +2,11 @@ import { useContext, useMemo } from 'react';
 import { Feature } from '../../models/Feature';
 import { SignupRewardResources } from './SignupRewardResources';
 import { SignupRewardState } from './SignupRewardState';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { SignupReward } from './SignupReward';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
-import { InterestsContext } from '../../../../shared/InterestsContext';
+import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 

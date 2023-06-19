@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect } from 'react';
-import { LoginContext } from './LoginContext';
+import { LoginContext } from './contexts/LoginContext';
 
 const LOGIN_URL = '/login';
 

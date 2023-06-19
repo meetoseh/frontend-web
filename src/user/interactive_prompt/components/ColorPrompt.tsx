@@ -15,7 +15,7 @@ import { PromptTime, PromptTimeEvent, usePromptTime } from '../hooks/usePromptTi
 import { PromptStats, StatsChangedEvent, useStats } from '../hooks/useStats';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { useProfilePictures } from '../hooks/useProfilePictures';
-import { LoginContext, LoginContextValue } from '../../../shared/LoginContext';
+import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { ProfilePictures } from './ProfilePictures';
 import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
 import { useOnFinished } from '../hooks/useOnFinished';

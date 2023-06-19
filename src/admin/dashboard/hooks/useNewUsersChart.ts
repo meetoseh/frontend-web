@@ -1,7 +1,7 @@
 import { ReactElement, useContext, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { describeError } from '../../../shared/forms/ErrorBlock';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 
 export type NewUsersChart =
   | {

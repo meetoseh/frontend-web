@@ -9,7 +9,7 @@ import { keyMap } from '../../journeys/Journeys';
 import { AdminDashboardLargeChartPlaceholder } from '../../dashboard/AdminDashboardLargeChartPlaceholder';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { useSingletonEffect } from '../../../shared/lib/useSingletonEffect';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { CrudFormElement } from '../../crud/CrudFormElement';
 import { CompactJourney } from '../../journeys/CompactJourney';

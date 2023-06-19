@@ -1,6 +1,6 @@
 import { ReactElement, useContext } from 'react';
 import { useFonts } from '../../shared/lib/useFonts';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { useTimedValue } from '../../shared/hooks/useTimedValue';
 import { LoginApp } from '../login/LoginApp';
 import { SplashScreen } from '../splash/SplashScreen';

@@ -6,10 +6,10 @@ import styles from './GoalDaysPerWeek.module.css';
 import { Button } from '../../../../shared/forms/Button';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
-import { InterestsContext } from '../../../../shared/InterestsContext';
+import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 export const GoalDaysPerWeek = ({

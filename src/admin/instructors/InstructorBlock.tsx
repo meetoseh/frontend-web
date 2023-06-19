@@ -6,7 +6,7 @@ import { IconButton } from '../../shared/forms/IconButton';
 import { TextInput } from '../../shared/forms/TextInput';
 import styles from './InstructorBlock.module.css';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { CrudFormElement } from '../crud/CrudFormElement';
 import { OsehImage } from '../../shared/images/OsehImage';

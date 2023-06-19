@@ -1,8 +1,8 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styles from './JourneyEmotionsBlock.module.css';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
-import { LoginContext } from '../../../shared/LoginContext';
-import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/ModalContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
+import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { ModalWrapper } from '../../../shared/ModalWrapper';
 import { JourneyEmotion, parseJourneyEmotion } from './JourneyEmotion';

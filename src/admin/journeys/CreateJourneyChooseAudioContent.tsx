@@ -2,7 +2,7 @@ import { ReactElement, useContext, useEffect, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { OsehContent } from '../../shared/OsehContent';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { JourneyAudioContent } from './audio_contents/JourneyAudioContent';

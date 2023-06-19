@@ -1,13 +1,13 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Feature } from '../../models/Feature';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { RequestPhoneResources } from './RequestPhoneResources';
 import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhone } from './RequestPhone';
 import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
-import { InterestsContext } from '../../../../shared/InterestsContext';
+import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 

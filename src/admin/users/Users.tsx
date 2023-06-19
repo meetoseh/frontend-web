@@ -1,5 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { User, userKeyMap } from './User';
 import { CrudFetcher, CrudFetcherFilter, CrudFetcherSort } from '../crud/CrudFetcher';
 import { UserFilterAndSortBlock, defaultFilter, defaultSort } from './UserFilterAndSortBlock';

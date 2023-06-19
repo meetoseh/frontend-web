@@ -1,5 +1,5 @@
 import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import styles from './RequestPhone.module.css';
@@ -12,7 +12,7 @@ import { FeatureComponentProps } from '../../models/Feature';
 import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhoneResources } from './RequestPhoneResources';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
-import { InterestsContext } from '../../../../shared/InterestsContext';
+import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 
 /**

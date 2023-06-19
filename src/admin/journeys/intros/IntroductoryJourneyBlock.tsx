@@ -5,7 +5,7 @@ import { IntroductoryJourney } from './IntroductoryJourney';
 import styles from './IntroductoryJourneyBlock.module.css';
 import iconStyles from '../../crud/icons.module.css';
 import { CompactJourney } from '../CompactJourney';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';

@@ -1,5 +1,5 @@
 import { ReactElement, useContext } from 'react';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { MyProfilePicture } from '../../../../shared/MyProfilePicture';
 import '../../../../assets/fonts.css';
 import styles from './AdminNavDesktopSideContent.module.css';

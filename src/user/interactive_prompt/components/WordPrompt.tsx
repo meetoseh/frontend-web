@@ -20,7 +20,7 @@ import { Callbacks } from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { PromptStats, StatsChangedEvent, useStats } from '../hooks/useStats';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext, LoginContextValue } from '../../../shared/LoginContext';
+import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
 import { useProfilePictures } from '../hooks/useProfilePictures';
 import { ProfilePictures } from './ProfilePictures';

@@ -12,7 +12,7 @@ import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import styles from './JourneyFeedbackScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { combineClasses } from '../../../shared/lib/combineClasses';
 import { Button } from '../../../shared/forms/Button';
 import { Callbacks } from '../../../shared/lib/Callbacks';

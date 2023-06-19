@@ -7,7 +7,7 @@ import { HTTP_API_URL } from '../../shared/ApiConstants';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
-import { InterestsContext } from '../../shared/InterestsContext';
+import { InterestsContext } from '../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 /**

@@ -6,7 +6,7 @@ import { JourneySubcategory } from './JourneySubcategory';
 import styles from './JourneySubcategoryBlock.module.css';
 import iconStyles from '../../crud/icons.module.css';
 import { TextInput } from '../../../shared/forms/TextInput';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { describeErrorFromResponse, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';

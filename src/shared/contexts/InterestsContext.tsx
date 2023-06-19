@@ -8,11 +8,11 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useSingletonEffect } from './lib/useSingletonEffect';
+import { useSingletonEffect } from '../lib/useSingletonEffect';
 import { LoginContext, LoginContextValue } from './LoginContext';
-import { Visitor, getUTMFromURL, UTM, useVisitor } from './hooks/useVisitor';
-import { apiFetch } from './ApiConstants';
-import { useLogoutHandler } from './hooks/useLogoutHandler';
+import { Visitor, getUTMFromURL, UTM, useVisitor } from '../hooks/useVisitor';
+import { apiFetch } from '../ApiConstants';
+import { useLogoutHandler } from '../hooks/useLogoutHandler';
 
 /**
  * A discriminatory union based on 'type': the reason the interests were set.

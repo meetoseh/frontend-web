@@ -6,7 +6,7 @@ import { TextInput } from '../../../shared/forms/TextInput';
 import { Button } from '../../../shared/forms/Button';
 import { describeErrorFromResponse, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { keyMap } from './JourneySubcategories';
 

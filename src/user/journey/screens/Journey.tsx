@@ -7,7 +7,7 @@ import { IconButton } from '../../../shared/forms/IconButton';
 import { useFavoritedModal } from '../../favorites/hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../../favorites/hooks/useUnfavoritedModal';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 

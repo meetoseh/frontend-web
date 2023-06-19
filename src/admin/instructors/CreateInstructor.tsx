@@ -4,7 +4,7 @@ import { Instructor } from './Instructor';
 import styles from './CreateInstructor.module.css';
 import { TextInput } from '../../shared/forms/TextInput';
 import { Button } from '../../shared/forms/Button';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 

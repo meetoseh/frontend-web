@@ -1,7 +1,7 @@
 import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { Button } from '../../../shared/forms/Button';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { CrudCreateBlock } from '../../crud/CrudCreateBlock';
 import { Journey } from '../Journey';
 import { JourneyPicker } from '../JourneyPicker';

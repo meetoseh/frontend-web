@@ -1,6 +1,6 @@
 import { ReactElement, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '../ApiConstants';
-import { LoginContext } from '../LoginContext';
+import { LoginContext } from '../contexts/LoginContext';
 
 /**
  * The user associated with a visitor

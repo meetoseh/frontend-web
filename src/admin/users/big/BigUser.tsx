@@ -2,7 +2,7 @@ import { ReactElement, useContext, useMemo, useState } from 'react';
 import styles from './BigUser.module.css';
 import { BigUserBasicInfo } from './BigUserBasicInfo';
 import { User, userKeyMap } from '../User';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { useSingletonEffect } from '../../../shared/lib/useSingletonEffect';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';

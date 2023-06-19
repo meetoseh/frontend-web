@@ -1,5 +1,5 @@
 import { ReactElement, useCallback, useContext, useRef } from 'react';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import '../../../assets/fonts.css';
 import assistiveStyles from '../../../shared/assistive.module.css';

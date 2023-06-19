@@ -2,7 +2,7 @@ import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { CrudFetcherKeyMap } from '../../admin/crud/CrudFetcher';
 import { CrudFetcherFilter, CrudFetcherSort } from '../../admin/crud/CrudFetcher';
 import { apiFetch } from '../ApiConstants';
-import { LoginContextValue } from '../LoginContext';
+import { LoginContextValue } from '../contexts/LoginContext';
 import { CancelablePromise } from './CancelablePromise';
 import { Callbacks } from './Callbacks';
 import { createCancelablePromiseFromCallbacks } from './createCancelablePromiseFromCallbacks';

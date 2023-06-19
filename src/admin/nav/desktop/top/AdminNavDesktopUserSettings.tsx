@@ -3,7 +3,7 @@ import { Popup } from 'reactjs-popup';
 import { MyProfilePicture } from '../../../../shared/MyProfilePicture';
 import '../../../../assets/fonts.css';
 import styles from './AdminNavDesktopUserSettings.module.css';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 
 export const AdminNavDesktopUserSettings = (): ReactElement => {
   const loginContext = useContext(LoginContext);

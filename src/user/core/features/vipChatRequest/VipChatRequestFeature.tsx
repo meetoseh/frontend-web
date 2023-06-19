@@ -3,7 +3,7 @@ import { Feature } from '../../models/Feature';
 import { VipChatRequestResources } from './VipChatRequestResources';
 import { VipChatRequestState, VipChatRequest, convertVipChatRequest } from './VipChatRequestState';
 import { apiFetch } from '../../../../shared/ApiConstants';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { VipChatRequestComponent } from './VipChatRequestComponent';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';

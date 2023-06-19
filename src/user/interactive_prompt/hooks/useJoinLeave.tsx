@@ -2,7 +2,7 @@ import { MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef }
 import { apiFetch } from '../../../shared/ApiConstants';
 import { Callbacks } from '../../../shared/lib/Callbacks';
 import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
-import { LoginContext, LoginContextValue } from '../../../shared/LoginContext';
+import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { PromptTime, waitUntilUsingPromptTimeCancelable } from './usePromptTime';
 

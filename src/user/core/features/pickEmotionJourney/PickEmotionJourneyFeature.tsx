@@ -2,7 +2,7 @@ import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } f
 import { Feature } from '../../models/Feature';
 import { PickEmotionJourneyResources } from './PickEmotionJourneyResources';
 import { PickEmotionJourneyState } from './PickEmotionJourneyState';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { JourneyRef, journeyRefKeyMap } from '../../../journey/models/JourneyRef';
 import { useJourneyShared } from '../../../journey/hooks/useJourneyShared';
 import { useSingletonEffect } from '../../../../shared/lib/useSingletonEffect';

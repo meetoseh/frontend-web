@@ -8,8 +8,8 @@ import {
   useState,
 } from 'react';
 import { Button } from '../../shared/forms/Button';
-import { LoginContext } from '../../shared/LoginContext';
-import { ModalContext, addModalWithCallbackToRemove } from '../../shared/ModalContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
+import { ModalContext, addModalWithCallbackToRemove } from '../../shared/contexts/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import { OsehContent } from '../../shared/OsehContent';
 import { OsehImage } from '../../shared/images/OsehImage';

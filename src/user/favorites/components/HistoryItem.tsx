@@ -4,7 +4,7 @@ import { MinimalJourney } from '../lib/MinimalJourney';
 import styles from './HistoryItem.module.css';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext } from '../../../shared/LoginContext';
+import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { useFavoritedModal } from '../hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../hooks/useUnfavoritedModal';
 import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';

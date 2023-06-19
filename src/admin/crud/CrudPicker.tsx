@@ -3,7 +3,7 @@ import { CrudFetcher, CrudFetcherFilter, CrudFetcherKeyMap, CrudFetcherSort } fr
 import styles from './CrudPicker.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 
 type CrudPickerProps<T> = {
   /**

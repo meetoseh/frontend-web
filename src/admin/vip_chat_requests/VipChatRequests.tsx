@@ -1,5 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { LoginContext } from '../../shared/LoginContext';
+import { LoginContext } from '../../shared/contexts/LoginContext';
 import { Crud } from '../crud/Crud';
 import { CrudFetcher, CrudFetcherFilter, CrudFetcherSort } from '../crud/CrudFetcher';
 import { CrudListing } from '../crud/CrudListing';

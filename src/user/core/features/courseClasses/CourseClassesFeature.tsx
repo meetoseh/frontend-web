@@ -3,7 +3,7 @@ import { CourseClassesState } from './CourseClassesState';
 import { CourseClassesResources } from './CourseClassesResources';
 import { useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { Course, courseKeyMap } from '../../../courses/models/Course';
-import { LoginContext } from '../../../../shared/LoginContext';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { JourneyRef, journeyRefKeyMap } from '../../../journey/models/JourneyRef';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { useSingletonEffect } from '../../../../shared/lib/useSingletonEffect';

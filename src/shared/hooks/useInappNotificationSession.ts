@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { LoginContext } from '../LoginContext';
+import { LoginContext } from '../contexts/LoginContext';
 import { apiFetch } from '../ApiConstants';
 
 /**

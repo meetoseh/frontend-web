@@ -12,7 +12,7 @@
 }
 
 .promptButton {
-  composes: unstyled from 'buttons.module.css';
+  composes: unstyled from '../buttons.module.css';
   text-decoration: none;
   color: #191c1d;
 
