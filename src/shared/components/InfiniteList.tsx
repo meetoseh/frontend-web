@@ -362,7 +362,7 @@ export function InfiniteList<T>({
         return;
       }
 
-      if (list.children.length < 4) {
+      if (list.children.length < 6) {
         return;
       }
 
