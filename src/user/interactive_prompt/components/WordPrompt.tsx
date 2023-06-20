@@ -10,10 +10,6 @@ import {
 import { PromptTime, PromptTimeEvent, usePromptTime } from '../hooks/usePromptTime';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownText, CountdownTextConfig } from './CountdownText';
-import {
-  FilledWidthChangedEvent,
-  HorizontalPartlyFilledRoundedRect,
-} from './HorizontalPartlyFilledRoundedRect';
 import { WordPrompt as WordPromptType } from '../models/Prompt';
 import styles from './WordPrompt.module.css';
 import { Callbacks } from '../../../shared/lib/Callbacks';
@@ -34,6 +30,7 @@ import {
 } from '../hooks/useSimpleSelection';
 import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
 import { Button } from '../../../shared/forms/Button';
+import { HorizontalPartlyFilledRoundedRect } from '../../../shared/anim/HorizontalPartlyFilledRoundedRect';
 
 type WordPromptProps = {
   /**
@@ -134,11 +131,11 @@ export const WordPrompt = ({
   const boundFilledWidthGetterSetters: {
     get: () => number;
     set: (v: number) => void;
-    callbacks: () => Callbacks<FilledWidthChangedEvent>;
+    callbacks: () => Callbacks<undefined>;
   }[] = useMemo(() => {
     return prompt.options.map(() => {
       let width = 0;
-      const callbacks = new Callbacks<FilledWidthChangedEvent>();
+      const callbacks = new Callbacks<undefined>();
       return {
         get: () => width,
         set: (v: number) => {
@@ -184,10 +181,7 @@ export const WordPrompt = ({
           return;
         }
         boundFilledWidthGetterSetters[idx].set(fractional);
-        boundFilledWidthGetterSetters[idx].callbacks().call({
-          old,
-          current: fractional,
-        });
+        boundFilledWidthGetterSetters[idx].callbacks().call(undefined);
       });
     }
   }, [stats, fakeMove, boundFilledWidthGetterSetters]);
@@ -208,13 +202,19 @@ export const WordPrompt = ({
               <div key={idx} className={styles.option} style={{ width: optionWidth, height: 54 }}>
                 <div className={styles.optionBackground}>
                   <HorizontalPartlyFilledRoundedRect
+                    props={{
+                      type: 'callbacks',
+                      props: () => ({
+                        filledWidth: boundFilledWidthGetterSetters[idx].get(),
+                        unfilledColor: unfilledColor,
+                        filledColor: filledColor,
+                        opacity: 1.0,
+                        borderRadius: 10,
+                      }),
+                      callbacks: boundFilledWidthGetterSetters[idx].callbacks(),
+                    }}
                     height={54}
                     width={optionWidth}
-                    unfilledColor={unfilledColor}
-                    borderRadius={10}
-                    filledColor={filledColor}
-                    filledWidth={boundFilledWidthGetterSetters[idx].get}
-                    onFilledWidthChanged={boundFilledWidthGetterSetters[idx].callbacks}
                   />
                 </div>
                 <button
@@ -440,6 +440,7 @@ const useFakeMove = (
     };
 
     function onSelectionEvent(event: SimpleSelectionChangedEvent<number>) {
+      const oldInfo = info;
       info = {
         loweringIndex: null,
         loweringIndexUpperTrigger: null,
@@ -448,14 +449,13 @@ const useFakeMove = (
         promptTimeToCancel: promptTime.time.current + 4500,
       };
 
-      if (event.old) {
+      if (event.old !== null && oldInfo === null) {
         const oldNum = stats.stats.current.wordActive?.[event.old] ?? 0;
         if (oldNum > 0) {
           info.loweringIndex = event.old;
           info.loweringIndexUpperTrigger = oldNum - 1;
         }
       }
-
       updateDeltas();
     }
 

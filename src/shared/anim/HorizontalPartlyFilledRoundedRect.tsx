@@ -1,10 +1,6 @@
-// VPFRR = Vertical Partly Filled Rounded Rect
+// HPFRR = Horizontal Partly Filled Rounded Rect
 
 import { ReactElement, useMemo } from 'react';
-import {
-  SinglePassWebGLComponent,
-  SinglePassWebGLComponentRenderer,
-} from './SinglePassWebGLComponent';
 import {
   Animator,
   BezierAnimator,
@@ -12,13 +8,17 @@ import {
   VariableStrategyProps,
   useAnimationLoop,
 } from './AnimationLoop';
+import {
+  SinglePassWebGLComponent,
+  SinglePassWebGLComponentRenderer,
+} from './SinglePassWebGLComponent';
 import { ease } from '../lib/Bezier';
 
 type Props = {
   /**
-   * The filled height as a fractional value 0-1
+   * The filled width as a fractional value 0-1
    */
-  filledHeight: number;
+  filledWidth: number;
 
   /**
    * The border radius in logical pixels.
@@ -54,14 +54,15 @@ type Props = {
     width: number;
   };
 };
-export type VPFRRProps = Props;
+
+export type HPFRRProps = Props;
 
 type Attributes = 'position';
-type Uniforms = 'resolution' | 'radius' | 'thickness' | 'fillHeight' | 'color' | 'backgroundColor';
+type Uniforms = 'resolution' | 'radius' | 'thickness' | 'fillWidth' | 'color' | 'backgroundColor';
 type Buffers = 'position';
 type Textures = never;
 
-const VPFRRRenderer: SinglePassWebGLComponentRenderer<
+const HPFRRRenderer: SinglePassWebGLComponentRenderer<
   Attributes,
   Uniforms,
   Buffers,
@@ -118,7 +119,7 @@ const VPFRRRenderer: SinglePassWebGLComponentRenderer<
       uniform vec2 u_resolution;
       uniform float u_radius;
       uniform float u_thickness;
-      uniform float u_fillHeight;
+      uniform float u_fillWidth;
       uniform vec4 u_color;
       uniform vec4 u_bkndColor;
 
@@ -135,7 +136,7 @@ const VPFRRRenderer: SinglePassWebGLComponentRenderer<
         bool isTopLeftOfCircle = vecCircleCenterToPosition.x < 0.0 && vecCircleCenterToPosition.y > 0.0;
         bool isBottomRightOfCircle = vecCircleCenterToPosition.x >= 0.0 && vecCircleCenterToPosition.y <= 0.0;
         float getsBackground = float(!isTopRightOfCircle) + float(isTopRightOfCircle) * (1.0 - step(u_radius, distanceFromCircleCenter));
-        bool isInFill = v_position.y < u_fillHeight;
+        bool isInFill = v_position.x < u_fillWidth;
         float opacity = (
           1.0 
           // outer edge of circle
@@ -213,9 +214,9 @@ const VPFRRRenderer: SinglePassWebGLComponentRenderer<
       throw new Error('Failed to get thickness location');
     }
 
-    const fillHeightLocation = gl.getUniformLocation(program, 'u_fillHeight');
-    if (fillHeightLocation === null) {
-      throw new Error('Failed to get fillHeight location');
+    const fillWidthLocation = gl.getUniformLocation(program, 'u_fillWidth');
+    if (fillWidthLocation === null) {
+      throw new Error('Failed to get fillWidth location');
     }
 
     const bkndColorLocation = gl.getUniformLocation(program, 'u_bkndColor');
@@ -234,7 +235,7 @@ const VPFRRRenderer: SinglePassWebGLComponentRenderer<
         radius: radiusLocation,
         color: colorLocation,
         thickness: thicknessLocation,
-        fillHeight: fillHeightLocation,
+        fillWidth: fillWidthLocation,
         backgroundColor: bkndColorLocation,
       },
       buffers: {
@@ -258,7 +259,7 @@ const VPFRRRenderer: SinglePassWebGLComponentRenderer<
     gl.uniform2f(state.uniforms.resolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.uniform1f(state.uniforms.radius, dpi * props.borderRadius);
     gl.uniform1f(state.uniforms.thickness, dpi * (props.border?.width ?? 0));
-    gl.uniform1f(state.uniforms.fillHeight, props.filledHeight * gl.drawingBufferHeight);
+    gl.uniform1f(state.uniforms.fillWidth, props.filledWidth * gl.drawingBufferWidth);
     gl.uniform4f(
       state.uniforms.color,
       props.filledColor[0],
@@ -281,14 +282,14 @@ const VPFRRRenderer: SinglePassWebGLComponentRenderer<
 };
 
 /**
- * Draws a rounded rectangle with a (partial) vertical fill. Changing any of the
+ * Draws a rounded rectangle with a (partial) horizontal fill. Changing any of the
  * props will animate the change.
  *
  * Unlike a typical DOM-implementation of this, with a foreground and background
  * element, there is no seam between the fill and the border in any supported
  * browser.
  */
-export const VerticalPartlyFilledRoundedRect = ({
+export const HorizontalPartlyFilledRoundedRect = ({
   props: targetProps,
   width,
   height,
@@ -302,9 +303,9 @@ export const VerticalPartlyFilledRoundedRect = ({
       new BezierAnimator(
         ease,
         350,
-        (p) => p.filledHeight,
-        (p, h) => {
-          p.filledHeight = h;
+        (p) => p.filledWidth,
+        (p, w) => {
+          p.filledWidth = w;
         }
       ),
       new BezierAnimator(
@@ -357,7 +358,7 @@ export const VerticalPartlyFilledRoundedRect = ({
   const [props, propsChanged] = useAnimationLoop(targetProps, animators);
   return (
     <SinglePassWebGLComponent
-      renderer={VPFRRRenderer}
+      renderer={HPFRRRenderer}
       props={props}
       propsChanged={propsChanged}
       width={width}

@@ -367,15 +367,17 @@ export const waitUntilNextStatsUpdateCancelable = (
 };
 
 const interpolate = (from: Stats | null, to: Stats | null, progress: number): Stats => {
-  const users = (from?.users ?? 0) + ((to?.users ?? 0) - (from?.users ?? 0)) * progress;
-  const likes = (from?.likes ?? 0) + ((to?.likes ?? 0) - (from?.likes ?? 0)) * progress;
+  const users = Math.round((from?.users ?? 0) + ((to?.users ?? 0) - (from?.users ?? 0)) * progress);
+  const likes = Math.round((from?.likes ?? 0) + ((to?.likes ?? 0) - (from?.likes ?? 0)) * progress);
   const press =
     from?.press || to?.press
-      ? (from?.press ?? 0) + ((to?.press ?? 0) - (from?.press ?? 0)) * progress
+      ? Math.round((from?.press ?? 0) + ((to?.press ?? 0) - (from?.press ?? 0)) * progress)
       : null;
   const pressActive =
     from?.pressActive || to?.pressActive
-      ? (from?.pressActive ?? 0) + ((to?.pressActive ?? 0) - (from?.pressActive ?? 0)) * progress
+      ? Math.round(
+          (from?.pressActive ?? 0) + ((to?.pressActive ?? 0) - (from?.pressActive ?? 0)) * progress
+        )
       : null;
 
   let numericActive: Map<number, number> | null = null;
@@ -398,7 +400,7 @@ const interpolate = (from: Stats | null, to: Stats | null, progress: number): St
       while (!next.done) {
         const [key, value] = next.value;
         const fromValue = numericActive.get(key) ?? 0;
-        numericActive.set(key, fromValue + (value - fromValue) * progress);
+        numericActive.set(key, Math.round(fromValue + (value - fromValue) * progress));
         next = iter.next();
       }
     }
@@ -414,7 +416,7 @@ const interpolate = (from: Stats | null, to: Stats | null, progress: number): St
     for (let i = 0; i < resLen; i++) {
       const fromVal = from?.colorActive?.[i] ?? 0;
       const toVal = to?.colorActive?.[i] ?? 0;
-      colorActive[i] = fromVal + (toVal - fromVal) * progress;
+      colorActive[i] = Math.round(fromVal + (toVal - fromVal) * progress);
     }
   }
 
@@ -428,7 +430,7 @@ const interpolate = (from: Stats | null, to: Stats | null, progress: number): St
     for (let i = 0; i < resLen; i++) {
       const fromVal = from?.wordActive?.[i] ?? 0;
       const toVal = to?.wordActive?.[i] ?? 0;
-      wordActive[i] = fromVal + (toVal - fromVal) * progress;
+      wordActive[i] = Math.round(fromVal + (toVal - fromVal) * progress);
     }
   }
 

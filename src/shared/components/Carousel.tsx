@@ -1,6 +1,9 @@
 import { PropsWithChildren, ReactElement, useEffect, useRef } from 'react';
 import TinyGesture from 'tinygesture';
-import { CarouselInfoChangedEvent, CarouselInfoRef } from '../hooks/useCarouselInfo';
+import {
+  CarouselInfoChangedEvent,
+  CarouselInfoRef,
+} from '../../user/interactive_prompt/hooks/useCarouselInfo';
 import styles from './Carousel.module.css';
 
 type CarouselProps = {

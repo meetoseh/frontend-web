@@ -31,7 +31,7 @@ import {
   CarouselInfoRef,
   useCarouselInfo,
 } from '../hooks/useCarouselInfo';
-import { Carousel } from './Carousel';
+import { Carousel } from '../../../shared/components/Carousel';
 import { ProfilePictures } from './ProfilePictures';
 import { useSimpleSelectionHasSelection } from '../hooks/useSimpleSelection';
 import { Button } from '../../../shared/forms/Button';
