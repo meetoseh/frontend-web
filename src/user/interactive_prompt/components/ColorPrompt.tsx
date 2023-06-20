@@ -1,25 +1,17 @@
-import {
-  MutableRefObject,
-  ReactElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import { MutableRefObject, ReactElement, useCallback, useContext, useEffect, useMemo } from 'react';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownText, CountdownTextConfig } from './CountdownText';
 import styles from './ColorPrompt.module.css';
 import { ColorPrompt as ColorPromptType } from '../models/Prompt';
-import { PromptTime, PromptTimeEvent, usePromptTime } from '../hooks/usePromptTime';
-import { PromptStats, StatsChangedEvent, useStats } from '../hooks/useStats';
+import { PromptTime, usePromptTime } from '../hooks/usePromptTime';
+import { Stats, useStats } from '../hooks/useStats';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { useProfilePictures } from '../hooks/useProfilePictures';
 import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { ProfilePictures } from './ProfilePictures';
 import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
 import { useOnFinished } from '../hooks/useOnFinished';
-import { Callbacks } from '../../../shared/lib/Callbacks';
+import { Callbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import {
   SimpleSelectionChangedEvent,
   SimpleSelectionRef,
@@ -35,6 +27,7 @@ import {
   VPFRRProps,
   VerticalPartlyFilledRoundedRect,
 } from '../../../shared/anim/VerticalPartlyFilledRoundedRect';
+import { useIndexableFakeMove } from '../hooks/useIndexableFakeMove';
 
 type ColorPromptProps = {
   /**
@@ -92,6 +85,8 @@ const colorActiveOpacity = 1.0;
 const colorForegroundOpacity = 1.0;
 const colorBackgroundOpacity = 0.4;
 
+const getResponses = (stats: Stats): number[] | undefined => stats.colorActive ?? undefined;
+
 /**
  * Displays an color interactive prompt, where users can select a color and
  * see what colors other users have selected.
@@ -115,10 +110,17 @@ export const ColorPrompt = ({
   const selection = useSimpleSelection<number>();
   const hasSelection = useSimpleSelectionHasSelection(selection);
   const screenSize = useWindowSize();
-  const fakeMove = useFakeMove(promptTime, stats, selection);
+  const clientPredictedStats = useWritableValueWithCallbacks<number[]>([]);
   const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
   const loginContext = useContext(LoginContext);
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
+  useIndexableFakeMove({
+    getResponses,
+    promptTime,
+    promptStats: stats,
+    selection,
+    clientPredictedStats,
+  });
   useStoreEvents(intPrompt, promptTime, selection, joinLeave, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
   const windowSize = useWindowSize();
@@ -190,7 +192,7 @@ export const ColorPrompt = ({
     const result: {
       get: () => VPFRRProps;
       set: (state: VPFRRProps) => void;
-      callbacks: () => Callbacks<undefined>;
+      callbacks: Callbacks<undefined>;
     }[] = [];
     for (let outerIndex = 0; outerIndex < prompt.colors.length; outerIndex++) {
       (() => {
@@ -211,7 +213,7 @@ export const ColorPrompt = ({
             state = newState;
             callbacks.call(undefined);
           },
-          callbacks: () => callbacks,
+          callbacks,
         });
       })();
     }
@@ -243,24 +245,14 @@ export const ColorPrompt = ({
 
   // manages the height on the options
   useEffect(() => {
-    stats.onStatsChanged.current.add(update);
-    fakeMove.onFakeMoveChanged.current.add(update);
+    clientPredictedStats.callbacks.add(update);
     update();
     return () => {
-      stats.onStatsChanged.current.remove(update);
-      fakeMove.onFakeMoveChanged.current.remove(update);
+      clientPredictedStats.callbacks.remove(update);
     };
 
     function update() {
-      if (stats.stats.current.colorActive === null) {
-        return;
-      }
-
-      const newCorrectedStats = correctWithFakeMove(
-        stats.stats.current.colorActive,
-        fakeMove.fakeMove.current
-      );
-
+      const newCorrectedStats = clientPredictedStats.get();
       const total = newCorrectedStats.reduce((a, b) => a + b, 0);
       const fractionals =
         total === 0
@@ -276,7 +268,7 @@ export const ColorPrompt = ({
         }
       });
     }
-  }, [stats, fakeMove, colorStates]);
+  }, [clientPredictedStats, colorStates]);
 
   return (
     <div className={styles.container}>
@@ -304,7 +296,7 @@ export const ColorPrompt = ({
                     props={{
                       type: 'callbacks',
                       props: () => colorStates[colorToIndex.get(color)!].get(),
-                      callbacks: colorStates[colorToIndex.get(color)!].callbacks(),
+                      callbacks: colorStates[colorToIndex.get(color)!].callbacks,
                     }}
                     height={rowHeight}
                     width={itemWidth}
@@ -340,243 +332,6 @@ export const ColorPrompt = ({
         </div>
       </div>
     </div>
-  );
-};
-
-type FakeMove = {
-  /**
-   * The amount that we should modify the stats by prior to presenting
-   * them in order to account for the fake move, in index-correspondance
-   * with prompt.colors.
-   */
-  deltas: number[];
-};
-
-/**
- * The event that is fired when the fake move changes
- */
-type FakeMoveChangedEvent = {
-  /**
-   * The previous fake move, or null if there was no previous fake move
-   */
-  old: FakeMove | null;
-
-  /**
-   * The current fake move, or null if there is no current fake move
-   */
-  current: FakeMove | null;
-};
-
-type FakeMoveRef = {
-  /**
-   * The current fake move, or null if there is no current fake move
-   */
-  fakeMove: MutableRefObject<FakeMove | null>;
-
-  /**
-   * The callbacks for when the fake move changes
-   */
-  onFakeMoveChanged: MutableRefObject<Callbacks<FakeMoveChangedEvent>>;
-};
-
-/**
- * Perfoms the fake move on the given stats, returning the new stats
- * @param stats The stats to perform the fake move on
- * @param fakeMove The fake move to perform, or null if there is no fake move
- * @returns The new stats
- */
-const correctWithFakeMove = (stats: number[], fakeMove: FakeMove | null): number[] => {
-  if (fakeMove === null) {
-    return stats;
-  }
-
-  return stats.map((stat, idx) => stat + fakeMove.deltas[idx]);
-};
-
-type _FakeMoveInfo = {
-  /**
-   * If we are lowering the value of one color by 1, the index of the color whose
-   * value we are lowering. Otherwise, null.
-   */
-  loweringIndex: number | null;
-  /**
-   * If loweringIndex's total falls to or below this value, we remove the lowering
-   * effect. Otherwise, null.
-   */
-  loweringIndexUpperTrigger: number | null;
-  /**
-   * If we are raising the value of one color by 1, the index of the color whose
-   * value we are raising. Otherwise, null.
-   */
-  raisingIndex: number | null;
-  /**
-   * If raisingIndex's total rises to or above this value, we remove the raising
-   * effect. Otherwise, null.
-   */
-  raisingIndexLowerTrigger: number | null;
-  /**
-   * The time at which we should remove the fake move regardless of the triggers
-   */
-  promptTimeToCancel: number;
-};
-
-/**
- * In order to improve ui responsiveness, it's necessary to predict how the stats will
- * change immediately after the user makes a selection, until it's reflected in the
- * server's stats. This hook returns the client-side changes that should be applied to
- * the stats prior to display.
- *
- * @param promptTime The prompt time, to remove fake moves that are no longer relevant
- * @param stats The stats, used to dissipate fake moves at an intelligent time
- * @param selection The selection, used to trigger fake moves
- */
-const useFakeMove = (
-  promptTime: PromptTime,
-  stats: PromptStats,
-  selection: SimpleSelectionRef<number>
-): FakeMoveRef => {
-  const fakeMove = useRef<FakeMove | null>(null);
-  const onFakeMoveChanged = useRef<Callbacks<FakeMoveChangedEvent>>() as MutableRefObject<
-    Callbacks<FakeMoveChangedEvent>
-  >;
-
-  if (onFakeMoveChanged.current === undefined) {
-    onFakeMoveChanged.current = new Callbacks<FakeMoveChangedEvent>();
-  }
-
-  useEffect(() => {
-    let info: _FakeMoveInfo | null = null;
-    if (fakeMove.current !== null) {
-      const old = fakeMove.current;
-      fakeMove.current = null;
-      onFakeMoveChanged.current.call({
-        old,
-        current: null,
-      });
-    }
-
-    selection.onSelectionChanged.current.add(onSelectionEvent);
-    promptTime.onTimeChanged.current.add(onTimeEvent);
-    stats.onStatsChanged.current.add(onStatsEvent);
-    return () => {
-      selection.onSelectionChanged.current.remove(onSelectionEvent);
-      promptTime.onTimeChanged.current.remove(onTimeEvent);
-      stats.onStatsChanged.current.remove(onStatsEvent);
-    };
-
-    function onSelectionEvent(event: SimpleSelectionChangedEvent<number>) {
-      info = {
-        loweringIndex: null,
-        loweringIndexUpperTrigger: null,
-        raisingIndex: event.current,
-        raisingIndexLowerTrigger: (stats.stats.current.colorActive?.[event.current] ?? 0) + 1,
-        promptTimeToCancel: promptTime.time.current + 4500,
-      };
-
-      if (event.old) {
-        const oldNum = stats.stats.current.colorActive?.[event.old] ?? 0;
-        if (oldNum > 0) {
-          info.loweringIndex = event.old;
-          info.loweringIndexUpperTrigger = oldNum - 1;
-        }
-      }
-
-      updateDeltas();
-    }
-
-    function onTimeEvent(event: PromptTimeEvent) {
-      if (!info) {
-        return;
-      }
-
-      if (event.current >= info.promptTimeToCancel) {
-        info = null;
-        updateDeltas();
-      }
-    }
-
-    function onStatsEvent(event: StatsChangedEvent) {
-      if (!info) {
-        return;
-      }
-
-      let changed = false;
-
-      if (
-        info.loweringIndex !== null &&
-        info.loweringIndexUpperTrigger !== null &&
-        (event.current.colorActive?.[info.loweringIndex] ?? 0) <= info.loweringIndexUpperTrigger
-      ) {
-        info.loweringIndex = null;
-        info.loweringIndexUpperTrigger = null;
-        changed = true;
-      }
-
-      if (
-        info.raisingIndex !== null &&
-        info.raisingIndexLowerTrigger !== null &&
-        (event.current.colorActive?.[info.raisingIndex] ?? 0) >= info.raisingIndexLowerTrigger
-      ) {
-        info.raisingIndex = null;
-        info.raisingIndexLowerTrigger = null;
-        changed = true;
-      }
-
-      if (info.loweringIndex === null && info.raisingIndex === null) {
-        info = null;
-        changed = true;
-      }
-
-      if (changed) {
-        updateDeltas();
-      }
-    }
-
-    function updateDeltas() {
-      if (info === null) {
-        if (fakeMove.current === null) {
-          return;
-        }
-        const old = fakeMove.current;
-        fakeMove.current = null;
-        onFakeMoveChanged.current.call({
-          old,
-          current: null,
-        });
-        return;
-      }
-
-      const deltas = [];
-      const colorActive = stats.stats.current.colorActive;
-      if (colorActive) {
-        for (let i = 0; i < colorActive.length; i++) {
-          if (info.loweringIndex === i) {
-            deltas.push(-1);
-          } else if (info.raisingIndex === i) {
-            deltas.push(1);
-          } else {
-            deltas.push(0);
-          }
-        }
-      }
-
-      const old = fakeMove.current;
-      fakeMove.current = {
-        deltas,
-      };
-      onFakeMoveChanged.current.call({
-        old,
-        current: fakeMove.current,
-      });
-    }
-  }, [promptTime, selection, stats]);
-
-  return useMemo(
-    () => ({
-      fakeMove,
-      onFakeMoveChanged,
-    }),
-    []
   );
 };
 

@@ -1,3 +1,5 @@
+import { MutableRefObject, useCallback, useMemo, useRef } from 'react';
+
 /**
  * An abstraction for a list of functions to call when an event occurs,
  * with add/remove methods to add and remove functions from the list.
@@ -277,4 +279,62 @@ type CallbackNode<T> = {
   callback: (event: T) => void;
   next: CallbackNode<T> | null;
   prev: CallbackNode<T> | null;
+};
+
+/**
+ * Describes an object which can be provided as a react prop to
+ * give a value which can be changed without the prop changing.
+ *
+ * This provides a particularly simple interface, which is preferable
+ * in almost all circumstances.
+ */
+export type ValueWithCallbacks<T> = {
+  /**
+   * A function which retrieves the current value
+   */
+  get: () => T;
+  /**
+   * The callbacks that must be invoked whenever the value changes.
+   */
+  callbacks: Callbacks<undefined>;
+};
+
+export type WritableValueWithCallbacks<T> = ValueWithCallbacks<T> & {
+  /**
+   * Sets the current value without invoking the callbacks. The
+   * callbacks should be invoked separately.
+   */
+  set: (t: T) => void;
+};
+
+/**
+ * A simple react hook for creating a new writable value with
+ * callbacks when it changes. The result is memoized and will
+ * not change unless an empty dependency array useEffect would
+ * be triggered (i.e., remounting or during development).
+ *
+ * @param initial the initial value, ignored except during the first render
+ * @returns a value with callbacks, initialized to initial
+ */
+export const useWritableValueWithCallbacks = <T>(initial: T): WritableValueWithCallbacks<T> => {
+  const value = useRef<T>() as MutableRefObject<T>;
+  const callbacks = useRef<Callbacks<undefined>>() as MutableRefObject<Callbacks<undefined>>;
+  if (callbacks.current === undefined) {
+    value.current = initial;
+    callbacks.current = new Callbacks<undefined>();
+  }
+
+  const get = useCallback(() => value.current, [value]);
+  const set = useCallback((t: T) => {
+    value.current = t;
+  }, []);
+
+  return useMemo(
+    () => ({
+      get,
+      set,
+      callbacks: callbacks.current,
+    }),
+    [get, set, callbacks]
+  );
 };

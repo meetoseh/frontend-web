@@ -7,14 +7,14 @@ import {
   useMemo,
   useRef,
 } from 'react';
-import { PromptTime, PromptTimeEvent, usePromptTime } from '../hooks/usePromptTime';
+import { PromptTime, usePromptTime } from '../hooks/usePromptTime';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownText, CountdownTextConfig } from './CountdownText';
 import { WordPrompt as WordPromptType } from '../models/Prompt';
 import styles from './WordPrompt.module.css';
-import { Callbacks } from '../../../shared/lib/Callbacks';
+import { Callbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
-import { PromptStats, StatsChangedEvent, useStats } from '../hooks/useStats';
+import { Stats, useStats } from '../hooks/useStats';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
@@ -31,6 +31,7 @@ import {
 import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
 import { Button } from '../../../shared/forms/Button';
 import { HorizontalPartlyFilledRoundedRect } from '../../../shared/anim/HorizontalPartlyFilledRoundedRect';
+import { useIndexableFakeMove } from '../hooks/useIndexableFakeMove';
 
 type WordPromptProps = {
   /**
@@ -90,6 +91,7 @@ type WordPromptProps = {
 
 const unfilledColor: [number, number, number, number] = [68 / 255, 98 / 255, 102 / 255, 0.4];
 const filledColor: [number, number, number, number] = [68 / 255, 98 / 255, 102 / 255, 0.9];
+const getResponses = (stats: Stats): number[] | undefined => stats.wordActive ?? undefined;
 
 export const WordPrompt = ({
   prompt: intPrompt,
@@ -111,11 +113,18 @@ export const WordPrompt = ({
   const selection = useSimpleSelection<number>();
   const hasSelection = useSimpleSelectionHasSelection(selection);
   const screenSize = useWindowSize();
-  const fakeMove = useFakeMove(promptTime, stats, selection);
+  const clientPredictedStats = useWritableValueWithCallbacks<number[]>([]);
   const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
   const loginContext = useContext(LoginContext);
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
   const windowSize = useWindowSize();
+  useIndexableFakeMove({
+    getResponses,
+    promptTime,
+    promptStats: stats,
+    selection,
+    clientPredictedStats,
+  });
   useStoreEvents(intPrompt, promptTime, selection, joinLeave, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
 
@@ -131,7 +140,7 @@ export const WordPrompt = ({
   const boundFilledWidthGetterSetters: {
     get: () => number;
     set: (v: number) => void;
-    callbacks: () => Callbacks<undefined>;
+    callbacks: Callbacks<undefined>;
   }[] = useMemo(() => {
     return prompt.options.map(() => {
       let width = 0;
@@ -141,18 +150,15 @@ export const WordPrompt = ({
         set: (v: number) => {
           width = v;
         },
-        callbacks: () => callbacks,
+        callbacks,
       };
     });
   }, [prompt]);
 
   useEffect(() => {
-    let lastCorrectedStats: number[] | null = null;
-    stats.onStatsChanged.current.add(updateWidths);
-    fakeMove.onFakeMoveChanged.current.add(updateWidths);
+    clientPredictedStats.callbacks.add(updateWidths);
     return () => {
-      stats.onStatsChanged.current.remove(updateWidths);
-      fakeMove.onFakeMoveChanged.current.remove(updateWidths);
+      clientPredictedStats.callbacks.add(updateWidths);
     };
 
     function updateWidths() {
@@ -161,15 +167,7 @@ export const WordPrompt = ({
         return;
       }
 
-      const correctedStats = correctWithFakeMove(wordActive, fakeMove.fakeMove.current);
-      if (
-        lastCorrectedStats !== null &&
-        lastCorrectedStats.length === correctedStats.length &&
-        lastCorrectedStats.every((v, idx) => v === correctedStats[idx])
-      ) {
-        return;
-      }
-      lastCorrectedStats = correctedStats;
+      const correctedStats = clientPredictedStats.get();
       const totalResponses = correctedStats.reduce((a, b) => a + b, 0);
       const fractionals =
         totalResponses === 0
@@ -181,10 +179,10 @@ export const WordPrompt = ({
           return;
         }
         boundFilledWidthGetterSetters[idx].set(fractional);
-        boundFilledWidthGetterSetters[idx].callbacks().call(undefined);
+        boundFilledWidthGetterSetters[idx].callbacks.call(undefined);
       });
     }
-  }, [stats, fakeMove, boundFilledWidthGetterSetters]);
+  }, [stats, clientPredictedStats, boundFilledWidthGetterSetters]);
 
   const optionWidth = Math.min(390, Math.min(screenSize.width, 440) - 48);
 
@@ -211,7 +209,7 @@ export const WordPrompt = ({
                         opacity: 1.0,
                         borderRadius: 10,
                       }),
-                      callbacks: boundFilledWidthGetterSetters[idx].callbacks(),
+                      callbacks: boundFilledWidthGetterSetters[idx].callbacks,
                     }}
                     height={54}
                     width={optionWidth}
@@ -315,243 +313,6 @@ const CheckmarkFromSelection = ({
       }`}>
       <div className={styles.checkmark} />
     </div>
-  );
-};
-
-type FakeMove = {
-  /**
-   * The amount that we should modify the stats by prior to presenting
-   * them in order to account for the fake move, in index-correspondance
-   * with prompt.options.
-   */
-  deltas: number[];
-};
-
-/**
- * The event that is fired when the fake move changes
- */
-type FakeMoveChangedEvent = {
-  /**
-   * The previous fake move, or null if there was no previous fake move
-   */
-  old: FakeMove | null;
-
-  /**
-   * The current fake move, or null if there is no current fake move
-   */
-  current: FakeMove | null;
-};
-
-type FakeMoveRef = {
-  /**
-   * The current fake move, or null if there is no current fake move
-   */
-  fakeMove: MutableRefObject<FakeMove | null>;
-
-  /**
-   * The callbacks for when the fake move changes
-   */
-  onFakeMoveChanged: MutableRefObject<Callbacks<FakeMoveChangedEvent>>;
-};
-
-/**
- * Perfoms the fake move on the given stats, returning the new stats
- * @param stats The stats to perform the fake move on
- * @param fakeMove The fake move to perform, or null if there is no fake move
- * @returns The new stats
- */
-const correctWithFakeMove = (stats: number[], fakeMove: FakeMove | null): number[] => {
-  if (fakeMove === null) {
-    return stats;
-  }
-
-  return stats.map((stat, idx) => stat + fakeMove.deltas[idx]);
-};
-
-type _FakeMoveInfo = {
-  /**
-   * If we are lowering the value of one option by 1, the index of the option whose
-   * value we are lowering. Otherwise, null.
-   */
-  loweringIndex: number | null;
-  /**
-   * If loweringIndex's total falls to or below this value, we remove the lowering
-   * effect. Otherwise, null.
-   */
-  loweringIndexUpperTrigger: number | null;
-  /**
-   * If we are raising the value of one option by 1, the index of the option whose
-   * value we are raising. Otherwise, null.
-   */
-  raisingIndex: number | null;
-  /**
-   * If raisingIndex's total rises to or above this value, we remove the raising
-   * effect. Otherwise, null.
-   */
-  raisingIndexLowerTrigger: number | null;
-  /**
-   * The time at which we should remove the fake move regardless of the triggers
-   */
-  promptTimeToCancel: number;
-};
-
-/**
- * In order to improve ui responsiveness, it's necessary to predict how the stats will
- * change immediately after the user makes a selection, until it's reflected in the
- * server's stats. This hook returns the client-side changes that should be applied to
- * the stats prior to display.
- *
- * @param promptTime The prompt time, to remove fake moves that are no longer relevant
- * @param stats The stats, used to dissipate fake moves at an intelligent time
- * @param selection The selection, used to trigger fake moves
- */
-const useFakeMove = (
-  promptTime: PromptTime,
-  stats: PromptStats,
-  selection: SimpleSelectionRef<number>
-): FakeMoveRef => {
-  const fakeMove = useRef<FakeMove | null>(null);
-  const onFakeMoveChanged = useRef<Callbacks<FakeMoveChangedEvent>>() as MutableRefObject<
-    Callbacks<FakeMoveChangedEvent>
-  >;
-
-  if (onFakeMoveChanged.current === undefined) {
-    onFakeMoveChanged.current = new Callbacks<FakeMoveChangedEvent>();
-  }
-
-  useEffect(() => {
-    let info: _FakeMoveInfo | null = null;
-    if (fakeMove.current !== null) {
-      const old = fakeMove.current;
-      fakeMove.current = null;
-      onFakeMoveChanged.current.call({
-        old,
-        current: null,
-      });
-    }
-
-    selection.onSelectionChanged.current.add(onSelectionEvent);
-    promptTime.onTimeChanged.current.add(onTimeEvent);
-    stats.onStatsChanged.current.add(onStatsEvent);
-    return () => {
-      selection.onSelectionChanged.current.remove(onSelectionEvent);
-      promptTime.onTimeChanged.current.remove(onTimeEvent);
-      stats.onStatsChanged.current.remove(onStatsEvent);
-    };
-
-    function onSelectionEvent(event: SimpleSelectionChangedEvent<number>) {
-      const oldInfo = info;
-      info = {
-        loweringIndex: null,
-        loweringIndexUpperTrigger: null,
-        raisingIndex: event.current,
-        raisingIndexLowerTrigger: (stats.stats.current.wordActive?.[event.current] ?? 0) + 1,
-        promptTimeToCancel: promptTime.time.current + 4500,
-      };
-
-      if (event.old !== null && oldInfo === null) {
-        const oldNum = stats.stats.current.wordActive?.[event.old] ?? 0;
-        if (oldNum > 0) {
-          info.loweringIndex = event.old;
-          info.loweringIndexUpperTrigger = oldNum - 1;
-        }
-      }
-      updateDeltas();
-    }
-
-    function onTimeEvent(event: PromptTimeEvent) {
-      if (!info) {
-        return;
-      }
-
-      if (event.current >= info.promptTimeToCancel) {
-        info = null;
-        updateDeltas();
-      }
-    }
-
-    function onStatsEvent(event: StatsChangedEvent) {
-      if (!info) {
-        return;
-      }
-
-      let changed = false;
-
-      if (
-        info.loweringIndex !== null &&
-        info.loweringIndexUpperTrigger !== null &&
-        (event.current.wordActive?.[info.loweringIndex] ?? 0) <= info.loweringIndexUpperTrigger
-      ) {
-        info.loweringIndex = null;
-        info.loweringIndexUpperTrigger = null;
-        changed = true;
-      }
-
-      if (
-        info.raisingIndex !== null &&
-        info.raisingIndexLowerTrigger !== null &&
-        (event.current.wordActive?.[info.raisingIndex] ?? 0) >= info.raisingIndexLowerTrigger
-      ) {
-        info.raisingIndex = null;
-        info.raisingIndexLowerTrigger = null;
-        changed = true;
-      }
-
-      if (info.loweringIndex === null && info.raisingIndex === null) {
-        info = null;
-        changed = true;
-      }
-
-      if (changed) {
-        updateDeltas();
-      }
-    }
-
-    function updateDeltas() {
-      if (info === null) {
-        if (fakeMove.current === null) {
-          return;
-        }
-        const old = fakeMove.current;
-        fakeMove.current = null;
-        onFakeMoveChanged.current.call({
-          old,
-          current: null,
-        });
-        return;
-      }
-
-      const deltas = [];
-      const wordActive = stats.stats.current.wordActive;
-      if (wordActive) {
-        for (let i = 0; i < wordActive.length; i++) {
-          if (info.loweringIndex === i) {
-            deltas.push(-1);
-          } else if (info.raisingIndex === i) {
-            deltas.push(1);
-          } else {
-            deltas.push(0);
-          }
-        }
-      }
-
-      const old = fakeMove.current;
-      fakeMove.current = {
-        deltas,
-      };
-      onFakeMoveChanged.current.call({
-        old,
-        current: fakeMove.current,
-      });
-    }
-  }, [promptTime, selection, stats]);
-
-  return useMemo(
-    () => ({
-      fakeMove,
-      onFakeMoveChanged,
-    }),
-    []
   );
 };
 

@@ -13,12 +13,11 @@ import styles from './NumericPrompt.module.css';
 import { NumericPrompt as NumericPromptType } from '../models/Prompt';
 import {
   PromptTime,
-  PromptTimeEvent,
   usePromptTime,
   waitUntilUsingPromptTimeCancelable,
 } from '../hooks/usePromptTime';
-import { PromptStats, StatsChangedEvent, useStats } from '../hooks/useStats';
-import { Callbacks } from '../../../shared/lib/Callbacks';
+import { Stats, useStats } from '../hooks/useStats';
+import { Callbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { useProfilePictures } from '../hooks/useProfilePictures';
 import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
@@ -33,12 +32,18 @@ import {
 } from '../../../shared/hooks/useCarouselInfo';
 import { Carousel } from '../../../shared/components/Carousel';
 import { ProfilePictures } from './ProfilePictures';
-import { useSimpleSelectionHasSelection } from '../hooks/useSimpleSelection';
+import {
+  SimpleSelectionChangedEvent,
+  SimpleSelectionRef,
+  useSimpleSelection,
+  useSimpleSelectionHasSelection,
+} from '../hooks/useSimpleSelection';
 import { Button } from '../../../shared/forms/Button';
 import {
   VPFRRProps,
   VerticalPartlyFilledRoundedRect,
 } from '../../../shared/anim/VerticalPartlyFilledRoundedRect';
+import { useIndexableFakeMove } from '../hooks/useIndexableFakeMove';
 
 type NumericPromptProps = {
   /**
@@ -115,25 +120,42 @@ export const NumericPrompt = ({
   const prompt = intPrompt.prompt as NumericPromptType;
   const promptTime = usePromptTime(-250, paused ?? false);
   const stats = useStats({ prompt: intPrompt, promptTime });
-  const selection = useSelection();
+  const selection = useSimpleSelection<number>();
   const hasSelection = useSimpleSelectionHasSelection(selection);
   const screenSize = useWindowSize();
-  const fakeMove = useFakeMove(promptTime, stats, selection);
+  const clientPredictedStats = useWritableValueWithCallbacks<number[]>([]);
   const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
   const loginContext = useContext(LoginContext);
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
   const windowSize = useWindowSize();
-  useStoreEvents(intPrompt, promptTime, selection, loginContext);
   useOnFinished(intPrompt, promptTime, onFinished);
 
   leavingCallback.current = () => {
     joinLeave.leaving.current = true;
   };
 
-  const handleSkip = useCallback(() => {
-    leavingCallback.current?.();
-    onFinished(true);
-  }, [onFinished, leavingCallback]);
+  const getResponses = useCallback(
+    (stats: Stats) => {
+      if (stats.numericActive === null) {
+        return undefined;
+      }
+      const numericActive = stats.numericActive;
+
+      const result: number[] = [];
+      for (let i = prompt.min; i <= prompt.max; i += prompt.step) {
+        result.push(numericActive.get(i) ?? 0);
+      }
+      return result;
+    },
+    [prompt]
+  );
+  useIndexableFakeMove({
+    getResponses,
+    promptTime,
+    promptStats: stats,
+    selection,
+    clientPredictedStats,
+  });
 
   const promptOptions = useMemo<number[]>(() => {
     const res: number[] = [];
@@ -142,6 +164,12 @@ export const NumericPrompt = ({
     }
     return res;
   }, [prompt]);
+  useStoreEvents(intPrompt, promptOptions, promptTime, selection, loginContext);
+
+  const handleSkip = useCallback(() => {
+    leavingCallback.current?.();
+    onFinished(true);
+  }, [onFinished, leavingCallback]);
 
   const carouselInfo = useCarouselInfo({
     visibleWidth: Math.min(screenSize.width, 440),
@@ -150,11 +178,11 @@ export const NumericPrompt = ({
     numItems: promptOptions.length,
     height: optionHeightPx,
   });
-  useCarouselSelectionForSelection(carouselInfo, selection, promptOptions);
+  useCarouselSelectionForSelection(carouselInfo, selection);
 
   const infos: {
     get: () => VPFRRProps;
-    callbacks: () => Callbacks<undefined>;
+    callbacks: Callbacks<undefined>;
     set: (state: VPFRRProps) => void;
   }[] = useMemo(() => {
     return promptOptions.map((_, index) => {
@@ -172,7 +200,7 @@ export const NumericPrompt = ({
 
       return {
         get: () => state,
-        callbacks: () => callbacks,
+        callbacks,
         set: (newState: VPFRRProps) => {
           state = newState;
           callbacks.call(undefined);
@@ -205,31 +233,18 @@ export const NumericPrompt = ({
   const statsAmountRef = useRef<HTMLDivElement>(null);
   // manages the height on the options and the value of statsAmountRef
   useEffect(() => {
-    stats.onStatsChanged.current.add(update);
-    fakeMove.onFakeMoveChanged.current.add(update);
+    clientPredictedStats.callbacks.add(update);
     update();
     return () => {
-      stats.onStatsChanged.current.remove(update);
-      fakeMove.onFakeMoveChanged.current.remove(update);
+      clientPredictedStats.callbacks.remove(update);
     };
 
     function update() {
-      if (stats.stats.current.numericActive === null) {
-        return;
-      }
+      const newCorrectedStats = clientPredictedStats.get();
 
-      const newCorrectedStats = correctWithFakeMove(
-        stats.stats.current.numericActive,
-        fakeMove.fakeMove.current
-      );
-
-      const total = Array.from(newCorrectedStats.values()).reduce((a, b) => a + b, 0);
+      const total = newCorrectedStats.reduce((a, b) => a + b, 0);
       const fractionals =
-        total === 0
-          ? promptOptions.map(() => 0)
-          : promptOptions.map((option) => {
-              return (newCorrectedStats.get(option) ?? 0) / total;
-            });
+        total === 0 ? newCorrectedStats.map(() => 0) : newCorrectedStats.map((n) => n / total);
       const average = promptOptions.reduce((a, b, i) => a + b * fractionals[i], 0);
       if (statsAmountRef.current !== null) {
         statsAmountRef.current.textContent = average.toFixed(2);
@@ -243,7 +258,7 @@ export const NumericPrompt = ({
         }
       });
     }
-  }, [stats, fakeMove, infos, promptOptions]);
+  }, [stats, clientPredictedStats, infos, promptOptions]);
 
   return (
     <div className={styles.container}>
@@ -282,7 +297,7 @@ export const NumericPrompt = ({
                     props={{
                       type: 'callbacks',
                       props: () => infos[optionIndex].get(),
-                      callbacks: infos[optionIndex].callbacks(),
+                      callbacks: infos[optionIndex].callbacks,
                     }}
                     width={optionWidthPx}
                     height={optionHeightPx}
@@ -323,70 +338,13 @@ export const NumericPrompt = ({
   );
 };
 
-type NumericPromptSelection = {
-  /**
-   * If the options were iterated over from min to max by step,
-   * this is the index of the selected option.
-   */
-  index: number;
-
-  /**
-   * The value of the selected option.
-   */
-  value: number;
-};
-
-type NumericPromptSelectionChangedEvent = {
-  /**
-   * The old selection, or null if there was no old selection.
-   */
-  old: NumericPromptSelection | null;
-
-  /**
-   * The new selection
-   */
-  current: NumericPromptSelection;
-};
-
-type NumericPromptSelectionRef = {
-  /**
-   * The current selection
-   */
-  selection: MutableRefObject<NumericPromptSelection | null>;
-
-  /**
-   * The callbacks to call when the selection changes
-   */
-  onSelectionChanged: MutableRefObject<Callbacks<NumericPromptSelectionChangedEvent>>;
-};
-
-const useSelection = (): NumericPromptSelectionRef => {
-  const selection = useRef<NumericPromptSelection | null>(null);
-  const onSelectionChanged = useRef<
-    Callbacks<NumericPromptSelectionChangedEvent>
-  >() as MutableRefObject<Callbacks<NumericPromptSelectionChangedEvent>>;
-
-  if (onSelectionChanged.current === undefined) {
-    onSelectionChanged.current = new Callbacks();
-  }
-
-  return useMemo(
-    () => ({
-      selection,
-      onSelectionChanged,
-    }),
-    []
-  );
-};
-
 /**
  * Uses the carousel info as the current selected value for the numeric prompt,
  * converting indices to values using promptOptions
  */
 const useCarouselSelectionForSelection = (
   carouselInfo: CarouselInfoRef,
-  selection: NumericPromptSelectionRef,
-  promptOptions: number[]
+  selection: SimpleSelectionRef<number>
 ) => {
   useEffect(() => {
     carouselInfo.onInfoChanged.current.add(handleCarouselEvent);
@@ -403,264 +361,20 @@ const useCarouselSelectionForSelection = (
 
     function recheckSelection() {
       const correctSelectionIndex = carouselInfo.info.current.selectedIndex;
-      const correctSelectionValue = promptOptions[correctSelectionIndex];
 
       if (
         selection.selection.current === null ||
-        selection.selection.current.value !== correctSelectionValue ||
-        selection.selection.current.index !== correctSelectionIndex
+        selection.selection.current !== correctSelectionIndex
       ) {
         const old = selection.selection.current;
-        selection.selection.current = {
-          index: correctSelectionIndex,
-          value: correctSelectionValue,
-        };
+        selection.selection.current = correctSelectionIndex;
         selection.onSelectionChanged.current.call({
           old,
           current: selection.selection.current,
         });
       }
     }
-  }, [carouselInfo, selection, promptOptions]);
-};
-
-type FakeMove = {
-  /**
-   * The keys are the values of the options, and the values are the deltas
-   * to apply to the stats. Options whose stats should not be modified may
-   * be omitted.
-   */
-  deltas: Map<number, number>;
-};
-
-/**
- * The event that is fired when the fake move changes
- */
-type FakeMoveChangedEvent = {
-  /**
-   * The previous fake move, or null if there was no previous fake move
-   */
-  old: FakeMove | null;
-
-  /**
-   * The current fake move, or null if there is no current fake move
-   */
-  current: FakeMove | null;
-};
-
-type FakeMoveRef = {
-  /**
-   * The current fake move, or null if there is no current fake move
-   */
-  fakeMove: MutableRefObject<FakeMove | null>;
-
-  /**
-   * The callbacks for when the fake move changes
-   */
-  onFakeMoveChanged: MutableRefObject<Callbacks<FakeMoveChangedEvent>>;
-};
-/**
- * Perfoms the fake move on the given stats, returning the new stats
- * @param stats The stats to perform the fake move on
- * @param fakeMove The fake move to perform, or null if there is no fake move
- * @returns The new stats
- */
-const correctWithFakeMove = (
-  stats: Map<number, number>,
-  fakeMove: FakeMove | null
-): Map<number, number> => {
-  if (fakeMove === null) {
-    return stats;
-  }
-
-  const newStats = new Map(stats);
-  fakeMove.deltas.forEach((delta, value) => {
-    const newValue = (newStats.get(value) ?? 0) + delta;
-    newStats.set(value, newValue);
-  });
-  return newStats;
-};
-
-type _FakeMoveInfo = {
-  /**
-   * If we are lowering the value of one option by 1, the option whose
-   * value we are lowering. Otherwise, null.
-   */
-  lowering: NumericPromptSelection | null;
-  /**
-   * If lowering's total falls to or below this value, we remove the lowering
-   * effect. Otherwise, null.
-   */
-  loweringUpperTrigger: number | null;
-  /**
-   * If we are raising the value of one option by 1, the option whose
-   * value we are raising. Otherwise, null.
-   */
-  raising: NumericPromptSelection | null;
-  /**
-   * If raising's total rises to or above this value, we remove the raising
-   * effect. Otherwise, null.
-   */
-  raisingLowerTrigger: number | null;
-  /**
-   * The time at which we should remove the fake move regardless of the triggers
-   */
-  promptTimeToCancel: number;
-};
-
-/**
- * In order to improve ui responsiveness, it's necessary to predict how the stats will
- * change immediately after the user makes a selection, until it's reflected in the
- * server's stats. This hook returns the client-side changes that should be applied to
- * the stats prior to display.
- *
- * @param promptTime The prompt time, to remove fake moves that are no longer relevant
- * @param stats The stats, used to dissipate fake moves at an intelligent time
- * @param selection The selection, used to trigger fake moves
- */
-const useFakeMove = (
-  promptTime: PromptTime,
-  stats: PromptStats,
-  selection: NumericPromptSelectionRef
-): FakeMoveRef => {
-  const fakeMove = useRef<FakeMove | null>(null);
-  const onFakeMoveChanged = useRef<Callbacks<FakeMoveChangedEvent>>() as MutableRefObject<
-    Callbacks<FakeMoveChangedEvent>
-  >;
-
-  if (onFakeMoveChanged.current === undefined) {
-    onFakeMoveChanged.current = new Callbacks<FakeMoveChangedEvent>();
-  }
-
-  useEffect(() => {
-    let info: _FakeMoveInfo | null = null;
-    if (fakeMove.current !== null) {
-      const old = fakeMove.current;
-      fakeMove.current = null;
-      onFakeMoveChanged.current.call({
-        old,
-        current: null,
-      });
-    }
-
-    selection.onSelectionChanged.current.add(onSelectionEvent);
-    promptTime.onTimeChanged.current.add(onTimeEvent);
-    stats.onStatsChanged.current.add(onStatsEvent);
-    return () => {
-      selection.onSelectionChanged.current.remove(onSelectionEvent);
-      promptTime.onTimeChanged.current.remove(onTimeEvent);
-      stats.onStatsChanged.current.remove(onStatsEvent);
-    };
-
-    function onSelectionEvent(event: NumericPromptSelectionChangedEvent) {
-      info = {
-        lowering: null,
-        loweringUpperTrigger: null,
-        raising: event.current,
-        raisingLowerTrigger: (stats.stats.current.numericActive?.get(event.current.value) ?? 0) + 1,
-        promptTimeToCancel: promptTime.time.current + 4500,
-      };
-
-      if (event.old) {
-        const oldNum = stats.stats.current.numericActive?.get(event.old.value) ?? 0;
-        if (oldNum > 0) {
-          info.lowering = event.old;
-          info.loweringUpperTrigger = oldNum - 1;
-        }
-      }
-
-      updateDeltas();
-    }
-
-    function onTimeEvent(event: PromptTimeEvent) {
-      if (!info) {
-        return;
-      }
-
-      if (event.current >= info.promptTimeToCancel) {
-        info = null;
-        updateDeltas();
-      }
-    }
-
-    function onStatsEvent(event: StatsChangedEvent) {
-      if (!info) {
-        return;
-      }
-
-      let changed = false;
-
-      if (
-        info.lowering !== null &&
-        info.loweringUpperTrigger !== null &&
-        (event.current.numericActive?.get(info.lowering.value) ?? 0) <= info.loweringUpperTrigger
-      ) {
-        info.lowering = null;
-        info.loweringUpperTrigger = null;
-        changed = true;
-      }
-
-      if (
-        info.raising !== null &&
-        info.raisingLowerTrigger !== null &&
-        (event.current.numericActive?.get(info.raising.value) ?? 0) >= info.raisingLowerTrigger
-      ) {
-        info.raising = null;
-        info.raisingLowerTrigger = null;
-        changed = true;
-      }
-
-      if (info.lowering === null && info.raising === null) {
-        info = null;
-        changed = true;
-      }
-
-      if (changed) {
-        updateDeltas();
-      }
-    }
-
-    function updateDeltas() {
-      if (info === null) {
-        if (fakeMove.current === null) {
-          return;
-        }
-
-        const old = fakeMove.current;
-        fakeMove.current = null;
-        onFakeMoveChanged.current.call({
-          old,
-          current: null,
-        });
-        return;
-      }
-
-      const deltas = new Map<number, number>();
-      if (info.lowering !== null) {
-        deltas.set(info.lowering.value, -1);
-      }
-      if (info.raising !== null) {
-        deltas.set(info.raising.value, 1);
-      }
-
-      const old = fakeMove.current;
-      fakeMove.current = {
-        deltas,
-      };
-      onFakeMoveChanged.current.call({
-        old,
-        current: fakeMove.current,
-      });
-    }
-  }, [promptTime, selection, stats]);
-
-  return useMemo(
-    () => ({
-      fakeMove,
-      onFakeMoveChanged,
-    }),
-    []
-  );
+  }, [carouselInfo, selection]);
 };
 
 /**
@@ -669,8 +383,9 @@ const useFakeMove = (
  */
 const useStoreEvents = (
   prompt: InteractivePrompt,
+  promptOptions: number[],
   promptTime: PromptTime,
-  selection: NumericPromptSelectionRef,
+  selection: SimpleSelectionRef<number>,
   loginContext: LoginContextValue
 ) => {
   useEffect(() => {
@@ -684,11 +399,8 @@ const useStoreEvents = (
       cancelers.call(undefined);
     };
 
-    async function onSelectionEvent(event: NumericPromptSelectionChangedEvent) {
-      if (
-        event.current === event.old ||
-        (event.current !== null && event.old !== null && event.current.value === event.old.value)
-      ) {
+    async function onSelectionEvent(event: SimpleSelectionChangedEvent<number>) {
+      if (event.current === event.old) {
         return;
       }
 
@@ -732,7 +444,7 @@ const useStoreEvents = (
             session_uid: prompt.sessionUid,
             prompt_time: now / 1000,
             data: {
-              rating: event.current.value,
+              rating: promptOptions[event.current],
             },
           }),
           keepalive: true,
@@ -740,5 +452,5 @@ const useStoreEvents = (
         loginContext
       );
     }
-  }, [promptTime, selection, prompt, loginContext]);
+  }, [promptTime, promptOptions, selection, prompt, loginContext]);
 };
