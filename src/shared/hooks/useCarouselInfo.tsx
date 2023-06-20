@@ -1,7 +1,7 @@
 import { MutableRefObject, useEffect, useMemo, useRef } from 'react';
-import { ease } from '../../../shared/lib/Bezier';
-import { BezierAnimation, calculateAnimValue } from '../../../shared/lib/BezierAnimation';
-import { Callbacks } from '../../../shared/lib/Callbacks';
+import { ease } from '../lib/Bezier';
+import { BezierAnimation, calculateAnimValue } from '../lib/BezierAnimation';
+import { Callbacks } from '../lib/Callbacks';
 
 /**
  * Describes the current state of the carousel. This is usually put inside

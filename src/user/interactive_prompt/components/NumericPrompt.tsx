@@ -30,7 +30,7 @@ import {
   CarouselInfoChangedEvent,
   CarouselInfoRef,
   useCarouselInfo,
-} from '../hooks/useCarouselInfo';
+} from '../../../shared/hooks/useCarouselInfo';
 import { Carousel } from '../../../shared/components/Carousel';
 import { ProfilePictures } from './ProfilePictures';
 import { useSimpleSelectionHasSelection } from '../hooks/useSimpleSelection';

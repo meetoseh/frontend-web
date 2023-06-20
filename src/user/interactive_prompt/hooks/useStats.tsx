@@ -4,10 +4,11 @@ import { Callbacks } from '../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { PromptTime, waitUntilUsingPromptTime } from './usePromptTime';
+import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
 
 /**
  * Describes a generally mutable object that provides a snapshot of the
- * currrent state of the prompt.
+ * current state of the prompt.
  */
 export type Stats = {
   /**
@@ -326,44 +327,7 @@ export const waitUntilNextStatsUpdate = (stats: PromptStats): Promise<StatsChang
 export const waitUntilNextStatsUpdateCancelable = (
   stats: PromptStats
 ): CancelablePromise<StatsChangedEvent> => {
-  let active = true;
-  let cancel: () => void = () => {
-    active = false;
-  };
-  const promise = new Promise<StatsChangedEvent>((resolve, reject) => {
-    if (!active) {
-      reject();
-      return;
-    }
-
-    const onChanged = (event: StatsChangedEvent) => {
-      if (!active) {
-        return;
-      }
-
-      stats.onStatsChanged.current.remove(onChanged);
-      active = false;
-      resolve(event);
-    };
-
-    cancel = () => {
-      if (!active) {
-        return;
-      }
-
-      stats.onStatsChanged.current.remove(onChanged);
-      active = false;
-      reject();
-    };
-
-    stats.onStatsChanged.current.add(onChanged);
-  });
-
-  return {
-    promise,
-    cancel: () => cancel(),
-    done: () => !active,
-  };
+  return createCancelablePromiseFromCallbacks(stats.onStatsChanged.current);
 };
 
 const interpolate = (from: Stats | null, to: Stats | null, progress: number): Stats => {
