@@ -32,14 +32,13 @@ import {
   useCarouselInfo,
 } from '../hooks/useCarouselInfo';
 import { Carousel } from './Carousel';
-import {
-  VerticalPartlyFilledRoundedRect,
-  VPFRRState,
-  VPFRRStateChangedEvent,
-} from './VerticalPartlyFilledRoundedRect';
 import { ProfilePictures } from './ProfilePictures';
 import { useSimpleSelectionHasSelection } from '../hooks/useSimpleSelection';
 import { Button } from '../../../shared/forms/Button';
+import {
+  VPFRRProps,
+  VerticalPartlyFilledRoundedRect,
+} from '../../../shared/anim/VerticalPartlyFilledRoundedRect';
 
 type NumericPromptProps = {
   /**
@@ -99,7 +98,6 @@ const activeOpacity = 1.0;
 
 const optionUnfilledColor: [number, number, number, number] = [1, 1, 1, 0.5];
 const optionFilledColor: [number, number, number, number] = [1, 1, 1, 1];
-const optionBorderColor = optionFilledColor;
 
 export const NumericPrompt = ({
   prompt: intPrompt,
@@ -155,29 +153,29 @@ export const NumericPrompt = ({
   useCarouselSelectionForSelection(carouselInfo, selection, promptOptions);
 
   const infos: {
-    get: () => VPFRRState;
-    callbacks: () => Callbacks<VPFRRStateChangedEvent>;
-    set: (state: VPFRRState) => void;
+    get: () => VPFRRProps;
+    callbacks: () => Callbacks<undefined>;
+    set: (state: VPFRRProps) => void;
   }[] = useMemo(() => {
     return promptOptions.map((_, index) => {
-      let state: VPFRRState = {
+      let state: VPFRRProps = {
+        filledHeight: 0,
+        borderRadius: Math.min(optionWidthPx / 2, optionHeightPx / 2),
+        unfilledColor: optionUnfilledColor,
+        filledColor: optionFilledColor,
         opacity:
           carouselInfo.info.current.selectedIndex === index ? activeOpacity : inactiveOpacity,
-        filledHeight: 0,
+        border: { width: 2 },
       };
 
-      const callbacks = new Callbacks<VPFRRStateChangedEvent>();
+      const callbacks = new Callbacks<undefined>();
 
       return {
         get: () => state,
         callbacks: () => callbacks,
-        set: (newState: VPFRRState) => {
-          const old = state;
+        set: (newState: VPFRRProps) => {
           state = newState;
-          callbacks.call({
-            old,
-            current: newState,
-          });
+          callbacks.call(undefined);
         },
       };
     });
@@ -281,14 +279,13 @@ export const NumericPrompt = ({
                 }}>
                 <div className={styles.itemBackground}>
                   <VerticalPartlyFilledRoundedRect
-                    height={optionHeightPx}
+                    props={{
+                      type: 'callbacks',
+                      props: () => infos[optionIndex].get(),
+                      callbacks: infos[optionIndex].callbacks(),
+                    }}
                     width={optionWidthPx}
-                    unfilledColor={optionUnfilledColor}
-                    filledColor={optionFilledColor}
-                    borderRadius={Math.max(optionWidthPx / 3, optionHeightPx / 3)}
-                    state={infos[optionIndex].get}
-                    onStateChanged={infos[optionIndex].callbacks}
-                    border={{ width: 2, color: optionBorderColor }}
+                    height={optionHeightPx}
                   />
                 </div>
                 <div className={styles.itemForeground}>{option}</div>

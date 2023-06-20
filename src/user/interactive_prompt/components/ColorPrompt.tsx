@@ -28,14 +28,13 @@ import {
 } from '../hooks/useSimpleSelection';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
-import {
-  VerticalPartlyFilledRoundedRect,
-  VPFRRState,
-  VPFRRStateChangedEvent,
-} from './VerticalPartlyFilledRoundedRect';
 import { getColor3fFromHex } from '../../../shared/lib/BezierAnimation';
 import { PromptTitle } from './PromptTitle';
 import { Button } from '../../../shared/forms/Button';
+import {
+  VPFRRProps,
+  VerticalPartlyFilledRoundedRect,
+} from '../../../shared/anim/VerticalPartlyFilledRoundedRect';
 
 type ColorPromptProps = {
   /**
@@ -189,31 +188,35 @@ export const ColorPrompt = ({
 
   const colorStates = useMemo(() => {
     const result: {
-      get: () => VPFRRState;
-      set: (state: VPFRRState) => void;
-      callbacks: () => Callbacks<VPFRRStateChangedEvent>;
+      get: () => VPFRRProps;
+      set: (state: VPFRRProps) => void;
+      callbacks: () => Callbacks<undefined>;
     }[] = [];
     for (let outerIndex = 0; outerIndex < prompt.colors.length; outerIndex++) {
       (() => {
-        let state: VPFRRState = {
-          opacity: colorInactiveOpacity,
+        const color = prompt.colors[outerIndex];
+        let state: VPFRRProps = {
           filledHeight: 0.5,
+          borderRadius: Math.ceil(Math.min(itemWidth, rowHeight) * 0.1),
+          unfilledColor: addOpacity(color, colorBackgroundOpacity),
+          filledColor: addOpacity(color, colorForegroundOpacity),
+          opacity: colorInactiveOpacity,
+          border: { width: 2 },
         };
-        const callbacks = new Callbacks<VPFRRStateChangedEvent>();
+        const callbacks = new Callbacks<undefined>();
 
         result.push({
           get: () => state,
           set: (newState) => {
-            const old = state;
             state = newState;
-            callbacks.call({ old, current: newState });
+            callbacks.call(undefined);
           },
           callbacks: () => callbacks,
         });
       })();
     }
     return result;
-  }, [prompt]);
+  }, [prompt, itemWidth, rowHeight]);
 
   // manages the opacity on the options
   useEffect(() => {
@@ -298,14 +301,13 @@ export const ColorPrompt = ({
                   }}
                   style={{ width: `${itemWidth}px` }}>
                   <VerticalPartlyFilledRoundedRect
+                    props={{
+                      type: 'callbacks',
+                      props: () => colorStates[colorToIndex.get(color)!].get(),
+                      callbacks: colorStates[colorToIndex.get(color)!].callbacks(),
+                    }}
                     height={rowHeight}
                     width={itemWidth}
-                    unfilledColor={addOpacity(color, colorBackgroundOpacity)}
-                    borderRadius={Math.ceil(Math.min(itemWidth, rowHeight) * 0.1)}
-                    filledColor={addOpacity(color, colorForegroundOpacity)}
-                    state={colorStates[colorToIndex.get(color)!].get}
-                    onStateChanged={colorStates[colorToIndex.get(color)!].callbacks}
-                    border={{ width: 2, color: addOpacity(color, 1.0) }}
                   />
                 </button>
               ))}
