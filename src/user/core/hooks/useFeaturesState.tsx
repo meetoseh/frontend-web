@@ -121,7 +121,7 @@ export const useFeaturesState = (maxSimultaneousLoadedResources: number = 3): Fe
           return result as FeatureAllStates;
         })();
 
-        const newRequiredArr = features.map((s, idx) =>
+        const newRequiredArr = features.map((s) =>
           s.isRequired(newAllStates[s.identifier] as any, newAllStates)
         );
 

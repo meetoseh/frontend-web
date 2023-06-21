@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import styles from './FavoritesTabbedPane.module.css';
-import { MyProfilePicture } from '../../../shared/MyProfilePicture';
+import { MyProfilePicture } from '../../../shared/components/MyProfilePicture';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { combineClasses } from '../../../shared/lib/combineClasses';
 import { InfiniteListing, NetworkedInfiniteListing } from '../../../shared/lib/InfiniteListing';

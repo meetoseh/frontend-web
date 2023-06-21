@@ -31,7 +31,7 @@ import { JourneyRouterScreenId } from '../../../journey/JourneyRouter';
 import { JourneyPostScreen } from '../../../journey/screens/JourneyPostScreen';
 import { JourneyShareScreen } from '../../../journey/screens/JourneyShareScreen';
 import { JourneyStart } from '../../../journey/screens/JourneyStart';
-import { MyProfilePicture } from '../../../../shared/MyProfilePicture';
+import { MyProfilePicture } from '../../../../shared/components/MyProfilePicture';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { JourneyFeedbackScreen } from '../../../journey/screens/JourneyFeedbackScreen';

@@ -30,7 +30,7 @@ export const RequestName = ({
         {
           givenName: firstName,
         },
-        new Promise(async (resolve, reject) => {
+        (async () => {
           setSaving(true);
           try {
             const response = await apiFetch(
@@ -53,22 +53,23 @@ export const RequestName = ({
             }
 
             const data: { given_name: string; family_name: string } = await response.json();
-            loginContext.setUserAttributes({
-              ...loginContext.userAttributes!,
-              name: data.given_name + ' ' + data.family_name,
-              givenName: data.given_name,
-              familyName: data.family_name,
-            });
-            resolve();
+            if (loginContext.userAttributes !== null) {
+              loginContext.setUserAttributes({
+                ...loginContext.userAttributes,
+                name: data.given_name + ' ' + data.family_name,
+                givenName: data.given_name,
+                familyName: data.family_name,
+              });
+            }
           } catch (e) {
             console.error(e);
             const err = await describeError(e);
             setError(err);
-            reject();
+            throw new Error('Network request failed');
           } finally {
             setSaving(false);
           }
-        })
+        })()
       );
     },
     [loginContext, firstName, lastName, doAnticipateState]
@@ -80,7 +81,7 @@ export const RequestName = ({
         <OsehImageFromState {...resources.background} />
       </div>
       <div className={styles.content}>
-        <div className={styles.title}>What's Your Name?</div>
+        <div className={styles.title}>What&rsquo;s Your Name?</div>
         <form className={styles.form} onSubmit={onSubmit}>
           <TextInput
             label="First Name"

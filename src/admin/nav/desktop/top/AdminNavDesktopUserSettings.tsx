@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useContext } from 'react';
 import { Popup } from 'reactjs-popup';
-import { MyProfilePicture } from '../../../../shared/MyProfilePicture';
+import { MyProfilePicture } from '../../../../shared/components/MyProfilePicture';
 import '../../../../assets/fonts.css';
 import styles from './AdminNavDesktopUserSettings.module.css';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';

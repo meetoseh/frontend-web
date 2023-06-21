@@ -2,7 +2,8 @@ import { USES_WEBP } from './usesWebp';
 
 const cropImageUnsafe = async (
   src: string,
-  cropTo: { width: number; height: number }
+  cropTo: { width: number; height: number },
+  cacheableIdentifier: string
 ): Promise<string> => {
   const usesWebp = await USES_WEBP;
   const format = usesWebp ? 'image/webp' : 'image/png';
@@ -57,13 +58,20 @@ const cropImageUnsafe = async (
  *
  * Unlike cropImageUnsafe, which shouldn't be used directly, if
  * something goes wrong this returns the original image url.
+ *
+ * @param src The url of the image to crop
+ * @param cropTo The size to crop the image to
+ * @param cacheableIdentifier A unique string which identifies the source
+ *   image and the crop settings. For the web this is unused, but for
+ *   the apps it's used as a filename.
  */
 export const cropImage = async (
   src: string,
-  cropTo: { width: number; height: number }
+  cropTo: { width: number; height: number },
+  cacheableIdentifier: string
 ): Promise<string> => {
   try {
-    return await cropImageUnsafe(src, cropTo);
+    return await cropImageUnsafe(src, cropTo, cacheableIdentifier);
   } catch (e) {
     console.error('Error cropping image', e);
     return src;

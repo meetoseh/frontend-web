@@ -74,9 +74,61 @@ export type OsehImageStateRequestHandler = {
   request: (props: OsehImagePropsLoadable) => OsehImageRequestedState;
 };
 
+/** A crop id is always a safe filename identifier */
 type CropID = string;
-const getCropID = (url: string, width: number, height: number): CropID =>
-  `${url}:${width}:${height}`;
+/** Provides a valid filename unique to the given crop */
+const getCropID = (url: string, width: number, height: number): CropID => {
+  // if it includes query parameters, use fallback flow
+  if (url.includes('?')) {
+    return getFallbackCropID(url, width, height);
+  }
+
+  const lastSlashIdx = url.lastIndexOf('/');
+  if (lastSlashIdx < 0) {
+    return getFallbackCropID(url, width, height);
+  }
+
+  const lastPart = url.substring(lastSlashIdx + 1);
+  if (!lastPart.startsWith('oseh_ife_')) {
+    return getFallbackCropID(url, width, height);
+  }
+
+  const extensionIdx = lastPart.indexOf('.');
+  const uid = extensionIdx < 0 ? lastPart : lastPart.substring(0, extensionIdx);
+
+  return `${uid}-${width}-${height}`;
+};
+
+const getFallbackCropID = (url: string, width: number, height: number): CropID => {
+  return `${encodeAsFilename(url)}-${width}-${height}`;
+};
+
+const encodeAsFilename = (s: string): string => {
+  const parts = [];
+  let includedUpToExcl = 0;
+
+  const alnumRegex = /^[a-zA-Z0-9]$/;
+
+  for (let i = 0; i < s.length; i++) {
+    if (alnumRegex.test(s.charAt(i))) {
+      continue;
+    }
+
+    if (i > includedUpToExcl) {
+      parts.push(s.substring(includedUpToExcl, i));
+      includedUpToExcl = i;
+    }
+
+    parts.push('x' + s.charCodeAt(i).toString(16));
+    includedUpToExcl = i + 1;
+  }
+
+  if (includedUpToExcl < s.length) {
+    parts.push(s.substring(includedUpToExcl));
+  }
+
+  return parts.join('');
+};
 
 /**
  * Provides a simple interface for fetching image states using a manual
@@ -356,7 +408,7 @@ export const useOsehImageStateRequestHandler = ({
         if (getJwtExpiration(cached.jwt) > Date.now() + 1000 * 30) {
           playlistsByImageFileUID.set(props.uid, {
             promise: Promise.resolve(cached),
-            cancel: () => {},
+            cancel: () => undefined,
             done: () => true,
           });
           return cached;
@@ -367,16 +419,16 @@ export const useOsehImageStateRequestHandler = ({
       let realCanceler = () => {
         done = true;
       };
-      let playlistPromise: Promise<PlaylistWithJWT> = new Promise(async (resolve, reject) => {
+      const playlistPromise: Promise<PlaylistWithJWT> = new Promise(async (resolve, reject) => {
         if (done) {
           reject('canceled');
           return;
         }
 
-        let abortController: AbortController | null = window.AbortController
+        const abortController: AbortController | null = window.AbortController
           ? new window.AbortController()
           : null;
-        let abortSignal: AbortSignal | null = abortController ? abortController.signal : null;
+        const abortSignal: AbortSignal | null = abortController ? abortController.signal : null;
 
         realCanceler = () => {
           if (done) {
@@ -438,7 +490,7 @@ export const useOsehImageStateRequestHandler = ({
         imagesByURLCache.remove(item.url);
         imagesByURL.set(item.url, {
           promise: Promise.resolve(cached),
-          cancel: () => {},
+          cancel: () => undefined,
           done: () => true,
         });
         return cached;
@@ -448,16 +500,16 @@ export const useOsehImageStateRequestHandler = ({
       let realCanceler = () => {
         done = true;
       };
-      let imagePromise: Promise<DownloadedItem> = new Promise(async (resolve, reject) => {
+      const imagePromise: Promise<DownloadedItem> = new Promise(async (resolve, reject) => {
         if (done) {
           reject('canceled');
           return;
         }
 
-        let abortController: AbortController | null = window.AbortController
+        const abortController: AbortController | null = window.AbortController
           ? new window.AbortController()
           : null;
-        let abortSignal: AbortSignal | null = abortController ? abortController.signal : null;
+        const abortSignal: AbortSignal | null = abortController ? abortController.signal : null;
 
         realCanceler = () => {
           if (done) {
@@ -515,23 +567,23 @@ export const useOsehImageStateRequestHandler = ({
         cropsByCropIDCache.remove(cropID);
         cropsByCropID.set(cropID, {
           promise: Promise.resolve(cached),
-          cancel: () => {},
+          cancel: () => undefined,
           done: () => true,
         });
         return cached;
       }
 
       let done = false;
-      let realCanceler = () => {
+      const realCanceler = () => {
         done = true;
       };
-      let cropPromise: Promise<DownloadedItem> = new Promise(async (resolve, reject) => {
+      const cropPromise: Promise<DownloadedItem> = new Promise(async (resolve, reject) => {
         if (done) {
           reject('canceled');
           return;
         }
 
-        const croppedUrl = await cropImage(downloaded.originalLocalUrl, cropTo);
+        const croppedUrl = await cropImage(downloaded.originalLocalUrl, cropTo, cropID);
         if (done) {
           reject('canceled');
           return;
