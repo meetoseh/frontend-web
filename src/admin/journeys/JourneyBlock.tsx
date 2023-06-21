@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { IconButton } from '../../shared/forms/IconButton';
-import { OsehContent } from '../../shared/OsehContent';
+import { OsehContent } from '../../shared/content/OsehContent';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { CrudFormElement } from '../crud/CrudFormElement';
 import { CrudItemBlock } from '../crud/CrudItemBlock';

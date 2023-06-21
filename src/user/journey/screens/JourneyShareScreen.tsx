@@ -2,9 +2,9 @@ import { ReactElement, useCallback, useEffect, useState } from 'react';
 import styles from './JourneyShareScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
-import { useOsehContent } from '../../../shared/OsehContent';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { useOsehContentTarget } from '../../../shared/content/useOsehContentTarget';
 
 export const JourneyShareScreen = ({
   journey,
@@ -12,7 +12,7 @@ export const JourneyShareScreen = ({
   onJourneyFinished,
   isOnboarding,
 }: JourneyScreenProps): ReactElement => {
-  const shareable = useOsehContent({
+  const shareable = useOsehContentTarget({
     uid: journey.sample?.uid ?? null,
     jwt: journey.sample?.jwt ?? null,
     showAs: 'video',

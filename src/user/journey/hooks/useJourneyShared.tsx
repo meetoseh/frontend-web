@@ -2,11 +2,12 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { JourneyRef } from '../models/JourneyRef';
 import { JourneyShared } from '../models/JourneyShared';
-import { useJourneyAudio } from './useJourneyAudio';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { useOsehImageState } from '../../../shared/images/useOsehImageState';
+import { useOsehContentTarget } from '../../../shared/content/useOsehContentTarget';
+import { useOsehAudioContentState } from '../../../shared/content/useOsehAudioContentState';
 
 /**
  * Creates the initial journey & journey start shared state
@@ -63,7 +64,13 @@ export const useJourneyShared = (journey: JourneyRef | null): JourneyShared => {
       throw new Error('setFavorited called before favorited set');
     },
   }));
-  const audio = useJourneyAudio(journey?.audioContent ?? null);
+  const audioTarget = useOsehContentTarget({
+    uid: journey?.audioContent?.uid ?? null,
+    jwt: journey?.audioContent?.jwt ?? null,
+    showAs: 'audio',
+    presign: false,
+  });
+  const audio = useOsehAudioContentState(audioTarget);
   const [favorited, setFavorited] = useState<boolean | null>(null);
 
   const setFavoritedWrapper = useCallback(

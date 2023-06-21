@@ -1,45 +1,13 @@
-import { ReactElement, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { OsehContentRef, useOsehContent } from '../../../shared/OsehContent';
-
-export type JourneyAudio = {
-  /**
-   * A function that can be used to play the audio, if the audio is ready to
-   * be played, otherwise null. Note that play() is privileged, meaning that
-   * it must be called _immediately_ after a user interaction, after the audio
-   * is loaded, or it will fail.
-   */
-  play: ((this: void) => Promise<void>) | null;
-
-  /**
-   * A function that can be used to stop the audio, if the audio is playing.
-   */
-  stop: ((this: void) => Promise<void>) | null;
-
-  /**
-   * A convenience boolean which is true if the audio is ready to be played.
-   * This is equivalent to (play !== null), but more semantically meaningful.
-   */
-  loaded: boolean;
-
-  /**
-   * If an error occurred and this will never finish loading, this will be
-   * an element describing the error. Otherwise, this will be null.
-   */
-  error: ReactElement | null;
-
-  /**
-   * A reference to the underlying audio element, if it has been created.
-   * This is useful for more advanced use cases.
-   */
-  audioRef: RefObject<HTMLAudioElement | null>;
-};
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { OsehAudioContentState } from './OsehAudioContentState';
+import { OsehContentTarget } from './OsehContentTarget';
 
 /**
- * Handles preparing the given audio content as indicated by the given
- * content ref to be played.
+ * Loads the specified audio target and returns a state object which can be used
+ * to play or stop the audio. A loading or failed target will result in a perpetual
+ * loading state.
  */
-export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAudio => {
-  const { webExport, error } = useOsehContent(audioContent ?? { uid: null, jwt: null });
+export const useOsehAudioContentState = (target: OsehContentTarget): OsehAudioContentState => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [play, setPlayRaw] = useState<((this: void) => Promise<void>) | null>(null);
   const [stop, setStopRaw] = useState<((this: void) => Promise<void>) | null>(null);
@@ -55,8 +23,9 @@ export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAud
     setStopRaw(() => stop);
   }, []);
 
+  const outerTarget = target;
   useEffect(() => {
-    if (webExport === null) {
+    if (outerTarget.state !== 'loaded') {
       if (audioRef.current !== null) {
         audioRef.current = null;
         setPlaySafe(null);
@@ -64,9 +33,13 @@ export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAud
       }
       return;
     }
+    const target = outerTarget;
+
+    const audioSrc =
+      target.webExport.url + (target.presigned ? '' : `?jwt=${encodeURIComponent(target.jwt)}`);
 
     let aud = audioRef.current;
-    if (aud !== null && aud.src !== webExport.url) {
+    if (aud !== null && aud.src !== audioSrc) {
       audioRef.current = null;
       aud = null;
     }
@@ -74,7 +47,7 @@ export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAud
     if (aud === null) {
       aud = new Audio();
       aud.preload = 'auto';
-      aud.src = webExport.url;
+      aud.src = audioSrc;
       audioRef.current = aud;
     }
 
@@ -173,7 +146,7 @@ export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAud
           didResetLoad = true;
 
           if (audio.networkState === 3) {
-            audio.src = webExport!.url;
+            audio.src = audioSrc;
           }
           let timeout: NodeJS.Timeout | null = null;
           cancelers.push(() => {
@@ -214,16 +187,16 @@ export const useJourneyAudio = (audioContent: OsehContentRef | null): JourneyAud
       setStopSafe(async () => audio.pause());
       unmount();
     }
-  }, [setPlaySafe, setStopSafe, webExport]);
+  }, [setPlaySafe, setStopSafe, outerTarget]);
 
-  return useMemo(
+  return useMemo<OsehAudioContentState>(
     () => ({
       play,
       stop,
       loaded: play !== null,
-      error,
+      error: null,
       audioRef,
     }),
-    [play, stop, error]
+    [play, stop]
   );
 };

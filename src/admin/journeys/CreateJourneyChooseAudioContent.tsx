@@ -3,7 +3,7 @@ import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/contexts/LoginContext';
-import { OsehContent } from '../../shared/OsehContent';
+import { OsehContent } from '../../shared/content/OsehContent';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { JourneyAudioContent } from './audio_contents/JourneyAudioContent';
 import { keyMap as journeyAudioContentKeyMap } from './audio_contents/JourneyAudioContents';

@@ -11,7 +11,7 @@ import { Button } from '../../shared/forms/Button';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { ModalContext, addModalWithCallbackToRemove } from '../../shared/contexts/ModalContext';
 import { ModalWrapper } from '../../shared/ModalWrapper';
-import { OsehContent } from '../../shared/OsehContent';
+import { OsehContent } from '../../shared/content/OsehContent';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { CrudCreateBlock } from '../crud/CrudCreateBlock';
 import { CrudFormElement } from '../crud/CrudFormElement';

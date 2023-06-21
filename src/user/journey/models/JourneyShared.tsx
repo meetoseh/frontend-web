@@ -1,5 +1,5 @@
+import { OsehAudioContentState } from '../../../shared/content/OsehAudioContentState';
 import { OsehImageState } from '../../../shared/images/OsehImageState';
-import { JourneyAudio } from '../hooks/useJourneyAudio';
 
 /**
  * Describes some state that is shared between journey and journey start,
@@ -23,7 +23,7 @@ export type JourneyShared = {
    * The audio for the journey; has loaded state inside
    * (audio.loaded)
    */
-  audio: JourneyAudio | null;
+  audio: OsehAudioContentState | null;
   /**
    * True if the user has favorited this journey, false if they have
    * not, null if we don't know yet.
