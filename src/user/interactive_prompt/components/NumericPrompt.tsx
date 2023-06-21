@@ -11,17 +11,13 @@ import { InteractivePrompt } from '../models/InteractivePrompt';
 import { CountdownText, CountdownTextConfig } from './CountdownText';
 import styles from './NumericPrompt.module.css';
 import { NumericPrompt as NumericPromptType } from '../models/Prompt';
-import {
-  PromptTime,
-  usePromptTime,
-  waitUntilUsingPromptTimeCancelable,
-} from '../hooks/usePromptTime';
+import { PromptTime, usePromptTime } from '../hooks/usePromptTime';
 import { Stats, useStats } from '../hooks/useStats';
 import { Callbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { useProfilePictures } from '../hooks/useProfilePictures';
 import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
-import { useJoinLeave } from '../hooks/useJoinLeave';
+import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useOnFinished } from '../hooks/useOnFinished';
 import { PromptTitle } from './PromptTitle';
@@ -33,7 +29,6 @@ import {
 import { Carousel } from '../../../shared/components/Carousel';
 import { ProfilePictures } from './ProfilePictures';
 import {
-  SimpleSelectionChangedEvent,
   SimpleSelectionRef,
   useSimpleSelection,
   useSimpleSelectionHasSelection,
@@ -44,6 +39,7 @@ import {
   VerticalPartlyFilledRoundedRect,
 } from '../../../shared/anim/VerticalPartlyFilledRoundedRect';
 import { useIndexableFakeMove } from '../hooks/useIndexableFakeMove';
+import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
 
 type NumericPromptProps = {
   /**
@@ -164,7 +160,7 @@ export const NumericPrompt = ({
     }
     return res;
   }, [prompt]);
-  useStoreEvents(intPrompt, promptOptions, promptTime, selection, loginContext);
+  useStoreEvents(intPrompt, promptOptions, promptTime, joinLeave, selection, loginContext);
 
   const handleSkip = useCallback(() => {
     leavingCallback.current?.();
@@ -385,72 +381,36 @@ const useStoreEvents = (
   prompt: InteractivePrompt,
   promptOptions: number[],
   promptTime: PromptTime,
+  joinLeave: JoinLeave,
   selection: SimpleSelectionRef<number>,
   loginContext: LoginContextValue
 ) => {
-  useEffect(() => {
-    const cancelers = new Callbacks<undefined>();
-    let lastEventAt = 0;
-    let eventCounter = 0;
+  const callback = async (index: number, time: number) => {
+    await apiFetch(
+      '/api/1/interactive_prompts/events/respond_numeric_prompt',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          interactive_prompt_uid: prompt.uid,
+          interactive_prompt_jwt: prompt.jwt,
+          session_uid: prompt.sessionUid,
+          prompt_time: time / 1000,
+          data: {
+            rating: promptOptions[index],
+          },
+        }),
+        keepalive: true,
+      },
+      loginContext
+    );
+  };
 
-    selection.onSelectionChanged.current.add(onSelectionEvent);
-    return () => {
-      selection.onSelectionChanged.current.remove(onSelectionEvent);
-      cancelers.call(undefined);
-    };
-
-    async function onSelectionEvent(event: SimpleSelectionChangedEvent<number>) {
-      if (event.current === event.old) {
-        return;
-      }
-
-      const id = ++eventCounter;
-
-      let now = promptTime.time.current;
-      if (now <= lastEventAt) {
-        const promise = waitUntilUsingPromptTimeCancelable(
-          promptTime,
-          (event) => event.current > lastEventAt || eventCounter !== id
-        );
-        const doCancel = () => promise.cancel();
-        cancelers.add(doCancel);
-        try {
-          await promise.promise;
-        } catch (e) {
-          return;
-        } finally {
-          cancelers.remove(doCancel);
-        }
-
-        if (eventCounter !== id) {
-          return;
-        }
-        now = promptTime.time.current;
-        lastEventAt = now;
-      }
-
-      if (now >= prompt.durationSeconds * 1000 - 250) {
-        return;
-      }
-
-      await apiFetch(
-        '/api/1/interactive_prompts/events/respond_numeric_prompt',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            interactive_prompt_uid: prompt.uid,
-            interactive_prompt_jwt: prompt.jwt,
-            session_uid: prompt.sessionUid,
-            prompt_time: now / 1000,
-            data: {
-              rating: promptOptions[event.current],
-            },
-          }),
-          keepalive: true,
-        },
-        loginContext
-      );
-    }
-  }, [promptTime, promptOptions, selection, prompt, loginContext]);
+  useSimpleSelectionHandler({
+    selection,
+    prompt,
+    joinLeave,
+    promptTime,
+    callback,
+  });
 };

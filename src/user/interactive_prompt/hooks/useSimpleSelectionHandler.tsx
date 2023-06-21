@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { MutableRefObject, useEffect, useRef } from 'react';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { JoinLeave } from './useJoinLeave';
 import { PromptTime, PromptTimeEvent } from './usePromptTime';
@@ -74,8 +74,13 @@ export function useSimpleSelectionHandler<T>({
   callback,
   tEquals,
 }: SimpleSelectionHandlerProps<T>) {
-  const callbackRef = useRef(callback);
-  const tEqualsRef = useRef(tEquals);
+  const callbackRef = useRef<
+    (selected: T, promptTime: number) => Promise<void> | void
+  >() as MutableRefObject<(selected: T, promptTime: number) => Promise<void> | void>;
+  const tEqualsRef = useRef<(a: T, b: T) => boolean>();
+
+  callbackRef.current = callback;
+  tEqualsRef.current = tEquals;
 
   useEffect(() => {
     const tOrNullEquals = (a: T | null, b: T | null): boolean => {
@@ -85,9 +90,6 @@ export function useSimpleSelectionHandler<T>({
       return tEqualsRef.current(a, b);
     };
     const callback = (selected: T, promptTime: number): Promise<void> | void => {
-      if (callbackRef.current === undefined) {
-        return;
-      }
       return callbackRef.current(selected, promptTime);
     };
 
