@@ -5,15 +5,18 @@ import '../../../../assets/fonts.css';
 import styles from './AdminNavDesktopSideContent.module.css';
 import { AdminNavDesktopSideLink } from './AdminNavDesktopSideLink';
 import { AdminNavDesktopSideSectionHeader } from './AdminNavDesktopSideSectionHeader';
+import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 
 type AdminNavDesktopSideContentProps = {
   expanded: boolean;
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 const currentPath = window.location.pathname;
 
 export const AdminNavDesktopSideContent = ({
   expanded,
+  imageHandler,
 }: AdminNavDesktopSideContentProps): ReactElement => {
   const loginContext = useContext(LoginContext);
 
@@ -67,7 +70,7 @@ export const AdminNavDesktopSideContent = ({
           />
         </div>
         <div className={styles.userCardContainer}>
-          <MyProfilePicture />
+          <MyProfilePicture imageHandler={imageHandler} />
           <div className={styles.userCardInfoContainer}>
             <div className={styles.userCardName}>{loginContext.userAttributes?.name}</div>
             <div className={styles.userCardRole}>Admin</div>

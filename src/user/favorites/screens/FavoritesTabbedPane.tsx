@@ -35,7 +35,7 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
   loginContextRef.current = loginContext;
   const windowSize = useWindowSize();
   const [journey, setJourney] = useState<JourneyRef | null>(null);
-  const instructorImagesHandler = useOsehImageStateRequestHandler({});
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   const infiniteListing = useMemo<InfiniteListing<MinimalJourney>>(() => {
     const numVisible = Math.ceil(windowSize.height / 80) + 15;
@@ -185,10 +185,10 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
         setItem={setItem}
         items={items}
         index={index}
-        instructorImages={instructorImagesHandler}
+        instructorImages={imageHandler}
       />
     );
-  }, [tab, gotoJourneyByUID, instructorImagesHandler]);
+  }, [tab, gotoJourneyByUID, imageHandler]);
 
   const listHeight = windowSize.height - 189;
 
@@ -209,7 +209,7 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
       <div className={styles.content}>
         <div className={styles.profile}>
           <div className={styles.profilePictureContainer}>
-            <MyProfilePicture />
+            <MyProfilePicture imageHandler={imageHandler} />
           </div>
           <div className={styles.profileName}>{loginContext.userAttributes?.name}</div>
         </div>

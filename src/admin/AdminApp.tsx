@@ -19,6 +19,7 @@ import { IntroductoryJourneys } from './journeys/intros/IntroductoryJourneys';
 import { VipChatRequests } from './vip_chat_requests/VipChatRequests';
 import { Users } from './users/Users';
 import { BigUser } from './users/big/BigUser';
+import { useOsehImageStateRequestHandler } from '../shared/images/useOsehImageStateRequestHandler';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -41,6 +42,7 @@ export const AdminRoutes = (): ReactElement => {
 export const AdminApp = (): ReactElement => {
   const [expanded, setExpanded] = useState(window.innerWidth >= 992);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   useEffect(() => {
     let active = true;
@@ -91,7 +93,7 @@ export const AdminApp = (): ReactElement => {
               <>
                 <div className={styles.desktopSideContainer}>
                   <div className={styles.desktopSideHeaderPadding}></div>
-                  <AdminNavDesktopSideContent expanded={expanded} />
+                  <AdminNavDesktopSideContent expanded={expanded} imageHandler={imageHandler} />
                 </div>
               </>
             )}
@@ -104,7 +106,7 @@ export const AdminApp = (): ReactElement => {
                   <AdminNavDesktopSideHeader expanded={expanded} setExpanded={setExpanded} />
                 </div>
                 <div className={styles.desktopTopContainer}>
-                  <AdminNavDesktopTop />
+                  <AdminNavDesktopTop imageHandler={imageHandler} />
                 </div>
               </>
             ) : (

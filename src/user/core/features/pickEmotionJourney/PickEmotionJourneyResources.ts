@@ -3,6 +3,7 @@ import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { JourneyRef } from '../../../journey/models/JourneyRef';
 import { JourneyShared } from '../../../journey/models/JourneyShared';
 import { Emotion } from './Emotion';
+import { MyProfilePictureState } from '../../../../shared/hooks/useMyProfilePicture';
 
 /**
  * The resources required to show the PickEmotionJourney step without
@@ -20,6 +21,11 @@ export type PickEmotionJourneyResources = {
    * this will be set to the error to show.
    */
   error: ReactElement | null;
+
+  /**
+   * The users profile picture, may be loading.
+   */
+  profilePicture: MyProfilePictureState;
 
   /**
    * The client-side uid assigned to the word set that the user is

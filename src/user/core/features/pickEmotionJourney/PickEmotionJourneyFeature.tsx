@@ -16,6 +16,7 @@ import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOs
 import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
 import { OsehImageRef } from '../../../../shared/images/OsehImageRef';
+import { useMyProfilePictureState } from '../../../../shared/hooks/useMyProfilePicture';
 
 export const PickEmotionJourneyFeature: Feature<
   PickEmotionJourneyState,
@@ -125,6 +126,13 @@ export const PickEmotionJourneyFeature: Feature<
       },
       images
     );
+    const profilePicture = useMyProfilePictureState({
+      loginContext,
+      displayWidth: 60,
+      displayHeight: 60,
+      handler: images,
+      load: required,
+    });
     const [forceSplash, setForceSplash] = useState<boolean>(false);
 
     useSingletonEffect(
@@ -329,6 +337,7 @@ export const PickEmotionJourneyFeature: Feature<
       return {
         loading: realError === null && (realOptions === null || background.loading),
         error: realError,
+        profilePicture,
         options:
           realError !== null || realOptions === null
             ? null
@@ -358,6 +367,7 @@ export const PickEmotionJourneyFeature: Feature<
     }, [
       optionsCounter,
       error,
+      profilePicture,
       options,
       selected,
       journeyShared,

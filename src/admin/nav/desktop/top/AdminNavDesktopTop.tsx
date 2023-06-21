@@ -2,8 +2,13 @@ import { ReactElement, useEffect, useState } from 'react';
 import styles from './AdminNavDesktopTop.module.css';
 import { AdminNavDesktopTopSearch } from './AdminNavDesktopTopSearch';
 import { AdminNavDesktopUserSettings } from './AdminNavDesktopUserSettings';
+import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 
-export const AdminNavDesktopTop = (): ReactElement => {
+export const AdminNavDesktopTop = ({
+  imageHandler,
+}: {
+  imageHandler: OsehImageStateRequestHandler;
+}): ReactElement => {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -27,7 +32,7 @@ export const AdminNavDesktopTop = (): ReactElement => {
   return (
     <div className={`${styles.container} ${scrolled ? styles.scrolled : ''}`}>
       <AdminNavDesktopTopSearch />
-      <AdminNavDesktopUserSettings />
+      <AdminNavDesktopUserSettings imageHandler={imageHandler} />
     </div>
   );
 };

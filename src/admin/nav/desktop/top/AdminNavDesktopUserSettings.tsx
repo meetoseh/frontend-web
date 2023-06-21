@@ -4,8 +4,13 @@ import { MyProfilePicture } from '../../../../shared/components/MyProfilePicture
 import '../../../../assets/fonts.css';
 import styles from './AdminNavDesktopUserSettings.module.css';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
+import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 
-export const AdminNavDesktopUserSettings = (): ReactElement => {
+export const AdminNavDesktopUserSettings = ({
+  imageHandler,
+}: {
+  imageHandler: OsehImageStateRequestHandler;
+}): ReactElement => {
   const loginContext = useContext(LoginContext);
   const logout = useCallback(
     async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -21,7 +26,7 @@ export const AdminNavDesktopUserSettings = (): ReactElement => {
       <Popup
         trigger={
           <div className={styles.imageContainer}>
-            <MyProfilePicture />
+            <MyProfilePicture imageHandler={imageHandler} />
           </div>
         }
         position="bottom left"
