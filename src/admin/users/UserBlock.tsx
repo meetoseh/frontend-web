@@ -31,8 +31,8 @@ export const UserBlock = ({ user, imageHandler }: UserBlockProps): ReactElement 
             <OsehImage
               uid={user.profilePicture.uid}
               jwt={user.profilePicture.jwt}
-              displayWidth={60}
-              displayHeight={60}
+              displayWidth={45}
+              displayHeight={45}
               alt=""
               handler={imageHandler}
             />
