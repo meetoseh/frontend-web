@@ -1,4 +1,5 @@
-import { ReactElement, RefObject } from 'react';
+import { ReactElement } from 'react';
+import { ValueWithCallbacks } from '../lib/Callbacks';
 
 /**
  * Describes a loading or loaded audio content file. This can be played or stopped.
@@ -34,5 +35,5 @@ export type OsehAudioContentState = {
    * A reference to the underlying audio element, if it has been created.
    * This is useful for more advanced use cases.
    */
-  audioRef: RefObject<HTMLAudioElement | null>;
+  audio: ValueWithCallbacks<HTMLAudioElement | null>;
 };

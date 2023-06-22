@@ -10,6 +10,7 @@ import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { Callbacks } from '../../../shared/lib/Callbacks';
 
 const HIDE_TIME = 10000;
 const HIDING_TIME = 365;
@@ -49,90 +50,103 @@ export const Journey = ({
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize: shared.windowSize });
 
   useEffect(() => {
-    const audio = shared.audio?.audioRef?.current;
-    if (!audio) {
+    if (shared.audio === null) {
       return;
     }
-
-    const handler = () => {
-      setScreen('feedback', false);
-    };
-
-    if (audio.ended) {
-      handler();
-      return;
-    }
-
-    audio.addEventListener('ended', handler);
+    const vwcAudio = shared.audio.audio;
+    const cleanup = new Callbacks<undefined>();
+    vwcAudio.callbacks.add(handleAudioChanged);
+    handleAudioChanged();
     return () => {
-      audio.removeEventListener('ended', handler);
+      vwcAudio.callbacks.remove(handleAudioChanged);
+      cleanup.call(undefined);
+      cleanup.clear();
     };
-  }, [shared.audio, setScreen]);
 
-  useEffect(() => {
-    const audio = shared.audio?.audioRef?.current;
-    if (!audio) {
-      return;
+    function handleAudioTime(audio: HTMLAudioElement): () => void {
+      const onTimeUpdate = () => {
+        setCurrentTime(audio.currentTime);
+      };
+
+      onTimeUpdate();
+      audio.addEventListener('timeupdate', onTimeUpdate);
+      return () => {
+        audio.removeEventListener('timeupdate', onTimeUpdate);
+      };
     }
 
-    const onTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
+    function handleAudioEnded(audio: HTMLAudioElement): () => void {
+      const handler = () => {
+        setScreen('feedback', false);
+      };
 
-    onTimeUpdate();
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    return () => {
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-    };
-  }, [shared.audio]);
-
-  useEffect(() => {
-    setControlsVisibility('visible');
-    const audio = shared.audio?.audioRef?.current;
-    if (!audio) {
-      return;
-    }
-    if (audio.paused) {
-      return;
-    }
-
-    const doHide = () => {
-      setControlsVisibility('hiding');
-      timeout = setTimeout(() => {
-        timeout = null;
-        setControlsVisibility('hidden');
-      }, HIDING_TIME);
-    };
-
-    let timeout: NodeJS.Timeout | null = setTimeout(doHide, HIDE_TIME);
-
-    const onUserInput = () => {
-      if (timeout !== null) {
-        clearTimeout(timeout);
+      if (audio.ended) {
+        handler();
+        return () => {};
       }
-      setControlsVisibility('visible');
+
+      audio.addEventListener('ended', handler);
+      return () => {
+        audio.removeEventListener('ended', handler);
+      };
+    }
+
+    function handleControls(audio: HTMLAudioElement): () => void {
+      if (audio.paused) {
+        setControlsVisibility('visible');
+        return () => {};
+      }
+
+      let timeout: NodeJS.Timeout | null = null;
+      const doHide = () => {
+        setControlsVisibility('hiding');
+        timeout = setTimeout(() => {
+          timeout = null;
+          setControlsVisibility('hidden');
+        }, HIDING_TIME);
+      };
       timeout = setTimeout(doHide, HIDE_TIME);
-    };
 
-    window.addEventListener('mousemove', onUserInput);
-    window.addEventListener('touchstart', onUserInput);
-    window.addEventListener('touchmove', onUserInput);
-    window.addEventListener('touchend', onUserInput);
-    window.addEventListener('touchcancel', onUserInput);
-    window.addEventListener('keydown', onUserInput);
+      const onUserInput = () => {
+        if (timeout !== null) {
+          clearTimeout(timeout);
+        }
+        setControlsVisibility('visible');
+        timeout = setTimeout(doHide, HIDE_TIME);
+      };
 
-    return () => {
-      if (timeout !== null) {
-        clearTimeout(timeout);
+      window.addEventListener('mousemove', onUserInput);
+      window.addEventListener('touchstart', onUserInput);
+      window.addEventListener('touchmove', onUserInput);
+      window.addEventListener('touchend', onUserInput);
+      window.addEventListener('touchcancel', onUserInput);
+      window.addEventListener('keydown', onUserInput);
+
+      return () => {
+        if (timeout !== null) {
+          clearTimeout(timeout);
+        }
+        window.removeEventListener('mousemove', onUserInput);
+        window.removeEventListener('touchstart', onUserInput);
+        window.removeEventListener('touchmove', onUserInput);
+        window.removeEventListener('touchend', onUserInput);
+        window.removeEventListener('touchcancel', onUserInput);
+        window.removeEventListener('keydown', onUserInput);
+      };
+    }
+
+    function handleAudioChanged() {
+      cleanup.call(undefined);
+      cleanup.clear();
+
+      const audio = vwcAudio.get();
+      if (audio !== null) {
+        cleanup.add(handleAudioTime(audio));
+        cleanup.add(handleAudioEnded(audio));
+        cleanup.add(handleControls(audio));
       }
-      window.removeEventListener('mousemove', onUserInput);
-      window.removeEventListener('touchstart', onUserInput);
-      window.removeEventListener('touchmove', onUserInput);
-      window.removeEventListener('touchend', onUserInput);
-      window.removeEventListener('touchcancel', onUserInput);
-      window.removeEventListener('keydown', onUserInput);
-    };
-  }, [shared.audio?.audioRef]);
+    }
+  }, [shared.audio, setScreen]);
 
   useFavoritedModal(showLikedUntil);
   useUnfavoritedModal(showUnlikedUntil);

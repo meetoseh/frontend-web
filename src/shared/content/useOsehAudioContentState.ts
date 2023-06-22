@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { OsehAudioContentState } from './OsehAudioContentState';
 import { OsehContentTarget } from './OsehContentTarget';
+import { Callbacks, ValueWithCallbacks } from '../lib/Callbacks';
 
 /**
  * Loads the specified audio target and returns a state object which can be used
@@ -9,8 +10,15 @@ import { OsehContentTarget } from './OsehContentTarget';
  */
 export const useOsehAudioContentState = (target: OsehContentTarget): OsehAudioContentState => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCallbacksRef = useRef<Callbacks<undefined>>() as MutableRefObject<
+    Callbacks<undefined>
+  >;
   const [play, setPlayRaw] = useState<((this: void) => Promise<void>) | null>(null);
   const [stop, setStopRaw] = useState<((this: void) => Promise<void>) | null>(null);
+
+  if (audioCallbacksRef.current === undefined) {
+    audioCallbacksRef.current = new Callbacks();
+  }
 
   // convenience function for using setPlay; setPlay(() => {}) doesn't work
   // as expected since it will actually be treated as the functional variant
@@ -28,6 +36,7 @@ export const useOsehAudioContentState = (target: OsehContentTarget): OsehAudioCo
     if (outerTarget.state !== 'loaded') {
       if (audioRef.current !== null) {
         audioRef.current = null;
+        audioCallbacksRef.current.call(undefined);
         setPlaySafe(null);
         setStopSafe(null);
       }
@@ -40,8 +49,9 @@ export const useOsehAudioContentState = (target: OsehContentTarget): OsehAudioCo
 
     let aud = audioRef.current;
     if (aud !== null && aud.src !== audioSrc) {
-      audioRef.current = null;
       aud = null;
+      audioRef.current = null;
+      audioCallbacksRef.current.call(undefined);
     }
 
     if (aud === null) {
@@ -49,6 +59,7 @@ export const useOsehAudioContentState = (target: OsehContentTarget): OsehAudioCo
       aud.preload = 'auto';
       aud.src = audioSrc;
       audioRef.current = aud;
+      audioCallbacksRef.current.call(undefined);
     }
 
     const audio = aud;
@@ -189,14 +200,22 @@ export const useOsehAudioContentState = (target: OsehContentTarget): OsehAudioCo
     }
   }, [setPlaySafe, setStopSafe, outerTarget]);
 
+  const audio = useMemo<ValueWithCallbacks<HTMLAudioElement | null>>(
+    () => ({
+      get: () => audioRef.current,
+      callbacks: audioCallbacksRef.current,
+    }),
+    []
+  );
+
   return useMemo<OsehAudioContentState>(
     () => ({
       play,
       stop,
       loaded: play !== null,
       error: null,
-      audioRef,
+      audio,
     }),
-    [play, stop]
+    [play, stop, audio]
   );
 };
