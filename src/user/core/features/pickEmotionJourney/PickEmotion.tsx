@@ -3,6 +3,7 @@ import {
   ReactElement,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -17,13 +18,26 @@ import {
   ProfilePicturesStateChangedEvent,
   ProfilePicturesStateRef,
 } from '../../../interactive_prompt/hooks/useProfilePictures';
-import { Callbacks } from '../../../../shared/lib/Callbacks';
+import {
+  Callbacks,
+  ValueWithCallbacks,
+  WritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../../shared/lib/Callbacks';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import styles from './PickEmotion.module.css';
 import { ErrorBlock } from '../../../../shared/forms/ErrorBlock';
 import { Button } from '../../../../shared/forms/Button';
 import { ProfilePictures } from '../../../interactive_prompt/components/ProfilePictures';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
+import {
+  Animator,
+  BezierAnimator,
+  TrivialAnimator,
+  VariableStrategyProps,
+  useAnimationLoop,
+} from '../../../../shared/anim/AnimationLoop';
+import { ease } from '../../../../shared/lib/Bezier';
 
 /**
  * Ensures we display at least 12 options, faking the rest if necessary.
@@ -364,22 +378,6 @@ const computeHorizontalPositions = (
   };
 };
 
-const computeHorizontalSizes = (words: string[]): Size[] => {
-  const div = document.createElement('div');
-  div.classList.add(styles.word);
-  div.classList.add(styles.horizontalWord);
-  div.style.zIndex = '-1000';
-  div.innerText = '';
-  document.body.appendChild(div);
-  const sizes: Size[] = [];
-  for (let i = 0; i < words.length; i++) {
-    div.innerText = words[i];
-    sizes.push({ width: div.offsetWidth, height: div.offsetHeight });
-  }
-  document.body.removeChild(div);
-  return sizes;
-};
-
 const computeVerticalPositions = (
   windowSize: Size,
   words: Size[]
@@ -455,21 +453,6 @@ const computeVerticalPositions = (
   };
 };
 
-const computeVerticalSizes = (words: string[]): Size[] => {
-  const div = document.createElement('div');
-  div.style.zIndex = '-1000';
-  div.classList.add(styles.word);
-  div.classList.add(styles.verticalWord);
-  document.body.appendChild(div);
-  const sizes: Size[] = [];
-  for (let i = 0; i < words.length; i++) {
-    div.innerText = words[i];
-    sizes.push({ width: div.offsetWidth, height: div.offsetHeight });
-  }
-  document.body.removeChild(div);
-  return sizes;
-};
-
 const Words = ({
   options,
   onWordClick,
@@ -495,72 +478,132 @@ const Words = ({
     }
     wordRefs.current = newRefs;
   }
-
-  const boundRefSetters = useMemo(() => {
-    return options.map((_, i) => {
-      return (ref: HTMLButtonElement | null) => {
-        if (wordRefs.current.length <= i) {
-          return;
-        }
-
-        wordRefs.current[i] = ref;
-      };
-    });
-  }, [options]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerSizeTarget = useWritableValueWithCallbacks<Size>({ width: 0, height: 0 });
 
   const windowSize = useWindowSize();
-  const horizontalSizes = useMemo(() => computeHorizontalSizes(options), [options]);
-  const verticalSizes = useMemo(() => computeVerticalSizes(options), [options]);
-  const wordLayout = useMemo(() => {
-    if (layout === 'horizontal') {
-      return computeHorizontalPositions(windowSize, horizontalSizes);
+  const numOptions = options.length;
+  const wordSizes: WritableValueWithCallbacks<Size>[] = useMemo(() => {
+    const result = [];
+    for (let i = 0; i < numOptions; i++) {
+      result.push(
+        (() => {
+          let size: Size = { width: 0, height: 0 };
+          const callbacks = new Callbacks<undefined>();
+          return {
+            get: () => size,
+            set: (s: Size) => {
+              size = s;
+            },
+            callbacks,
+          };
+        })()
+      );
     }
-    return computeVerticalPositions(windowSize, verticalSizes);
-  }, [windowSize, layout, horizontalSizes, verticalSizes]);
+    return result;
+  }, [numOptions]);
+  const wordPositions: WritableValueWithCallbacks<Pos>[] = useMemo(() => {
+    const result = [];
+    for (let i = 0; i < numOptions; i++) {
+      result.push(
+        (() => {
+          let pos: Pos = { x: windowSize.width / 2, y: 0 };
+          const callbacks = new Callbacks<undefined>();
+          return {
+            get: () => pos,
+            set: (p: Pos) => {
+              pos = p;
+            },
+            callbacks,
+          };
+        })()
+      );
+    }
+    return result;
+  }, [numOptions, windowSize]);
 
-  const wordsStyle = useMemo(() => {
-    return {
-      width: `${wordLayout.size.width}px`,
-      height: `${wordLayout.size.height}px`,
+  useEffect(() => {
+    for (let i = 0; i < wordSizes.length; i++) {
+      wordSizes[i].callbacks.add(handleSizesChanged);
+    }
+    handleSizesChanged();
+    return () => {
+      for (let i = 0; i < wordSizes.length; i++) {
+        wordSizes[i].callbacks.remove(handleSizesChanged);
+      }
     };
-  }, [wordLayout.size]);
 
-  const individualWordStyles = useMemo(() => {
-    const styles: { [key: string]: React.CSSProperties } = {};
-    for (let i = 0; i < wordLayout.positions.length; i++) {
-      styles[i.toString()] = {
-        left: `${wordLayout.positions[i].x}px`,
-        top: `${wordLayout.positions[i].y}px`,
-      };
+    function handleSizesChanged() {
+      const sizes = wordSizes.map((s) => s.get());
+      const target =
+        layout === 'horizontal'
+          ? computeHorizontalPositions(windowSize, sizes)
+          : computeVerticalPositions(windowSize, sizes);
+      for (let i = 0; i < wordPositions.length; i++) {
+        wordPositions[i].set(target.positions[i]);
+        wordPositions[i].callbacks.call(undefined);
+      }
+      const currentContainerSize = containerSizeTarget.get();
+      if (
+        currentContainerSize.width !== target.size.width ||
+        currentContainerSize.height !== target.size.height
+      ) {
+        currentContainerSize.width = target.size.width;
+        currentContainerSize.height = target.size.height;
+        containerSizeTarget.callbacks.call(undefined);
+      }
     }
-    return styles;
-  }, [wordLayout.positions]);
+  }, [windowSize, layout, wordSizes, wordPositions, containerSizeTarget, pressed]);
 
-  const votesStyle = useMemo<React.CSSProperties>(() => {
-    if (pressed === null || pressed.votes === null) {
-      return { opacity: '0%', left: 0, top: 0 };
+  const containerSizeTargetAsVariableStrategyProps = useMemo<VariableStrategyProps<Size>>(
+    () => ({
+      type: 'callbacks',
+      props: () => containerSizeTarget.get(),
+      callbacks: containerSizeTarget.callbacks,
+    }),
+    [containerSizeTarget]
+  );
+
+  const containerSizeTargetAnimators = useMemo<Animator<Size>[]>(
+    () => [
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.width,
+        (s, v) => (s.width = v)
+      ),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.height,
+        (s, v) => (s.height = v)
+      ),
+    ],
+    []
+  );
+
+  const [renderedContainerSize, renderedContainerSizeChanged] = useAnimationLoop(
+    containerSizeTargetAsVariableStrategyProps,
+    containerSizeTargetAnimators
+  );
+
+  useEffect(() => {
+    if (containerRef.current === null) {
+      return;
     }
-
-    const pos = wordLayout.positions[pressed.index];
-    const size =
-      layout === 'horizontal' ? horizontalSizes[pressed.index] : verticalSizes[pressed.index];
-    const votesHeight = 12;
-
-    return {
-      opacity: '100%',
-      left: pos.x + size.width + 6,
-      top: pos.y + size.height / 2 - votesHeight / 2,
+    const container = containerRef.current;
+    renderedContainerSizeChanged.add(render);
+    render();
+    return () => {
+      renderedContainerSizeChanged.remove(render);
     };
-  }, [pressed, horizontalSizes, verticalSizes, wordLayout, layout]);
 
-  const boundOnClicks = useMemo(() => {
-    return options.map((word, i) => {
-      return (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        onWordClick(word, i);
-      };
-    });
-  }, [options, onWordClick]);
+    function render() {
+      const size = renderedContainerSize();
+      container.style.width = `${size.width}px`;
+      container.style.height = `${size.height}px`;
+    }
+  }, [renderedContainerSize, renderedContainerSizeChanged]);
 
   return (
     <div
@@ -569,27 +612,321 @@ const Words = ({
         layout === 'horizontal' ? styles.horizontalWords : styles.verticalWords,
         pressed === null ? styles.wordsWithoutPressed : styles.wordsWithPressed
       )}
-      style={wordsStyle}>
+      ref={containerRef}>
       {options.map((word, i) => (
-        <button
-          type="button"
-          onClick={boundOnClicks[i]}
-          key={i}
-          ref={boundRefSetters[i]}
-          className={combineClasses(
-            styles.word,
-            layout === 'horizontal' ? styles.horizontalWord : styles.verticalWord,
-            pressed?.index === i ? styles.pressedWord : undefined
-          )}
-          style={individualWordStyles[i]}>
-          {word}
-        </button>
+        <Word
+          word={word}
+          idx={i}
+          key={word}
+          onWordClick={onWordClick}
+          pressed={pressed}
+          variant={layout}
+          size={wordSizes[i]}
+          pos={wordPositions[i]}
+        />
       ))}
-      <div className={styles.votes} style={votesStyle}>
-        {pressed !== null && pressed.votes !== null
-          ? `+${pressed.votes.toLocaleString()} votes`
-          : '+0 votes'}
-      </div>
+      <Votes pressed={pressed} wordPositions={wordPositions} wordSizes={wordSizes} />
+    </div>
+  );
+};
+
+type WordSetting = {
+  left: number;
+  top: number;
+  fontSize: number;
+  letterSpacing: number;
+  padding: [number, number, number, number];
+  borderRadius: number;
+  background: string;
+};
+
+const WORD_SETTINGS = {
+  horizontal: {
+    fontSize: 16,
+    letterSpacing: 0.25,
+    padding: [12, 14, 12, 14] as [number, number, number, number],
+    borderRadius: 24,
+  },
+  vertical: {
+    fontSize: 14,
+    letterSpacing: 0.25,
+    padding: [10, 12, 10, 12] as [number, number, number, number],
+    borderRadius: 24,
+  },
+};
+
+const Word = ({
+  word,
+  idx,
+  onWordClick,
+  pressed,
+  variant,
+  size,
+  pos,
+}: {
+  word: string;
+  idx: number;
+  onWordClick: (word: string, idx: number) => void;
+  pressed: { index: number; votes: number | null } | null;
+  variant: 'horizontal' | 'vertical';
+  size: WritableValueWithCallbacks<Size>;
+  pos: ValueWithCallbacks<Pos>;
+}) => {
+  const target = useWritableValueWithCallbacks<WordSetting>({
+    left: pos.get().x,
+    top: pos.get().y,
+    background: 'rgba(255, 255, 255, 0.2)',
+    ...WORD_SETTINGS[variant],
+  });
+
+  useEffect(() => {
+    pos.callbacks.add(handlePositionChanged);
+    handlePositionChanged();
+    return () => {
+      pos.callbacks.remove(handlePositionChanged);
+    };
+
+    function handlePositionChanged() {
+      target.set({
+        left: pos.get().x,
+        top: pos.get().y,
+        background:
+          pressed?.index === idx
+            ? 'linear-gradient(95.08deg, #57b8a2 2.49%, #009999 97.19%)'
+            : 'rgba(255, 255, 255, 0.2)',
+        ...WORD_SETTINGS[variant],
+      });
+      target.callbacks.call(undefined);
+    }
+  }, [pos, variant, target, pressed, idx]);
+
+  const targetAsVariableStrategyProps = useMemo<VariableStrategyProps<WordSetting>>(
+    () => ({
+      type: 'callbacks',
+      props: () => target.get(),
+      callbacks: target.callbacks,
+    }),
+    [target]
+  );
+
+  const animators = useMemo<Animator<WordSetting>[]>(
+    () => [
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.left,
+        (s, v) => (s.left = v),
+        { onTargetChange: 'replace' }
+      ),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.top,
+        (s, v) => (s.top = v),
+        { onTargetChange: 'replace' }
+      ),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.fontSize,
+        (s, v) => (s.fontSize = v)
+      ),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.letterSpacing,
+        (s, v) => (s.letterSpacing = v)
+      ),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.padding[0],
+        (s, v) => (s.padding[0] = v)
+      ),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.padding[1],
+        (s, v) => (s.padding[1] = v)
+      ),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.padding[2],
+        (s, v) => (s.padding[2] = v)
+      ),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.padding[3],
+        (s, v) => (s.padding[3] = v)
+      ),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.borderRadius,
+        (s, v) => (s.borderRadius = v)
+      ),
+      new TrivialAnimator('background'),
+    ],
+    []
+  );
+
+  const [rendered, renderedChanged] = useAnimationLoop(targetAsVariableStrategyProps, animators);
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      onWordClick(word, idx);
+    },
+    [word, idx, onWordClick]
+  );
+
+  const wordRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (wordRef.current === null) {
+      return;
+    }
+    const ele = wordRef.current;
+    ele.removeAttribute('style');
+    renderedChanged.add(render);
+    render();
+    return () => {
+      renderedChanged.remove(render);
+    };
+
+    function render() {
+      const val = rendered();
+      ele.style.left = `${val.left}px`;
+      ele.style.top = `${val.top}px`;
+      ele.style.fontSize = `${val.fontSize}px`;
+      ele.style.letterSpacing = `${val.letterSpacing.toFixed(3)}`;
+      ele.style.padding = `${val.padding[0]}px ${val.padding[1]}px ${val.padding[2]}px ${val.padding[3]}px`;
+      ele.style.borderRadius = `${val.borderRadius}px`;
+      ele.style.background = val.background;
+
+      const realSize = ele.getBoundingClientRect();
+      const realWidth = realSize.width;
+      const realHeight = realSize.height;
+
+      const reportedSize = size.get();
+      if (realWidth !== reportedSize.width || realHeight !== reportedSize.height) {
+        size.set({ width: realWidth, height: realHeight });
+        size.callbacks.call(undefined);
+      }
+    }
+  }, [rendered, renderedChanged, size]);
+
+  return (
+    <button
+      type="button"
+      className={combineClasses(styles.word, pressed?.index === idx ? styles.pressed : undefined)}
+      ref={wordRef}
+      onClick={handleClick}>
+      {word}
+    </button>
+  );
+};
+
+type VotesSetting = {
+  left: number;
+  top: number;
+  opacity: number;
+};
+
+const Votes = ({
+  pressed,
+  wordPositions,
+  wordSizes,
+}: {
+  pressed: { index: number; votes: number | null } | null;
+  wordPositions: ValueWithCallbacks<Pos>[];
+  wordSizes: ValueWithCallbacks<Size>[];
+}): ReactElement => {
+  const target = useWritableValueWithCallbacks<VotesSetting>({ left: 0, top: 0, opacity: 0 });
+
+  useEffect(() => {
+    if (pressed === null) {
+      target.set({ left: 0, top: 0, opacity: 0 });
+      target.callbacks.call(undefined);
+      return;
+    }
+
+    const availablePressed = pressed;
+
+    wordPositions[availablePressed.index].callbacks.add(handlePosOrSizeChanged);
+    wordSizes[availablePressed.index].callbacks.add(handlePosOrSizeChanged);
+    handlePosOrSizeChanged();
+    return () => {
+      wordPositions[availablePressed.index].callbacks.remove(handlePosOrSizeChanged);
+      wordSizes[availablePressed.index].callbacks.remove(handlePosOrSizeChanged);
+    };
+
+    function handlePosOrSizeChanged() {
+      const pos = wordPositions[availablePressed.index].get();
+      const size = wordSizes[availablePressed.index].get();
+      target.set({
+        left: pos.x + size.width + 6,
+        top: pos.y + 11,
+        opacity: 1,
+      });
+      target.callbacks.call(undefined);
+    }
+  }, [pressed, wordPositions, wordSizes, target]);
+
+  const targetAsVariableStrategyProps = useMemo<VariableStrategyProps<VotesSetting>>(
+    () => ({
+      type: 'callbacks',
+      props: () => target.get(),
+      callbacks: target.callbacks,
+    }),
+    [target]
+  );
+
+  const animators = useMemo<Animator<VotesSetting>[]>(
+    () => [
+      new TrivialAnimator('left'),
+      new TrivialAnimator('top'),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.opacity,
+        (s, v) => (s.opacity = v)
+      ),
+    ],
+    []
+  );
+
+  const [rendered, renderedChanged] = useAnimationLoop(targetAsVariableStrategyProps, animators);
+
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current === null) {
+      return;
+    }
+    const ele = ref.current;
+    ele.removeAttribute('style');
+    renderedChanged.add(render);
+    render();
+    return () => {
+      renderedChanged.remove(render);
+    };
+
+    function render() {
+      const val = rendered();
+      ele.style.left = `${val.left}px`;
+      ele.style.top = `${val.top}px`;
+      ele.style.opacity = `${val.opacity * 100}%`;
+    }
+  }, [rendered, renderedChanged]);
+
+  return (
+    <div className={styles.votes} ref={ref}>
+      {pressed !== null && pressed.votes !== null
+        ? `+${pressed.votes.toLocaleString()} votes`
+        : '+0 votes'}
     </div>
   );
 };

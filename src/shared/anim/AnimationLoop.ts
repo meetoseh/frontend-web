@@ -1,11 +1,6 @@
 import { MutableRefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Bezier } from '../lib/Bezier';
-import {
-  BezierAnimation,
-  animIsComplete,
-  calculateAnimValue,
-  updateAnim,
-} from '../lib/BezierAnimation';
+import { BezierAnimation, animIsComplete, calculateAnimValue } from '../lib/BezierAnimation';
 import { Callbacks } from '../lib/Callbacks';
 
 export interface Animator<P extends object> {
@@ -73,6 +68,26 @@ export class TrivialAnimator<K extends string, T, P extends { [key in K]: T }>
   reset(): void {}
 }
 
+type StdAnimatorOpts = {
+  /**
+   * What to do if the target changes while animating. We will need to
+   * recreate the animation easing, but the question comes with what to
+   * do with the duration: should we have the animation complete at the
+   * original time, or should it complete later?
+   *
+   * Generally this is not a subjective choice; if the target changes
+   * often and smoothly, replace is appropriate. Otherwise, extend is
+   * appropriate.
+   *
+   * @default true
+   */
+  onTargetChange?: 'extend' | 'replace';
+};
+
+const defaultAnimatorOpts: Required<StdAnimatorOpts> = {
+  onTargetChange: 'extend',
+};
+
 /**
  * Uses a Bezier animation curve for a single number field in the props.
  * This animator will animate the field from the rendered value to the
@@ -87,6 +102,7 @@ export class BezierAnimator<P extends object> implements Animator<P> {
   private readonly duration: number;
   private readonly getter: (p: P) => number;
   private readonly setter: (p: P, v: number) => void;
+  private readonly opts: Required<StdAnimatorOpts>;
 
   private animation: BezierAnimation | null;
 
@@ -94,12 +110,14 @@ export class BezierAnimator<P extends object> implements Animator<P> {
     ease: Bezier,
     duration: number,
     getter: (p: P) => number,
-    setter: (p: P, v: number) => void
+    setter: (p: P, v: number) => void,
+    opts?: StdAnimatorOpts
   ) {
     this.ease = ease;
     this.duration = duration;
     this.getter = getter;
     this.setter = setter;
+    this.opts = Object.assign({}, defaultAnimatorOpts, opts);
 
     this.animation = null;
   }
@@ -113,16 +131,31 @@ export class BezierAnimator<P extends object> implements Animator<P> {
       return 'done';
     }
 
-    this.animation = updateAnim({
-      now,
-      current: this.getter(toRender),
-      target: this.getter(target),
-      oldAnim: this.animation,
-      duration: this.duration,
-      ease: this.ease,
-    });
+    if (this.animation !== null && this.animation.to !== this.getter(target)) {
+      this.animation = {
+        startedAt: this.opts.onTargetChange === 'extend' ? now : this.animation.startedAt,
+        from: this.opts.onTargetChange === 'extend' ? this.getter(toRender) : this.animation.from,
+        to: this.getter(target),
+        ease: this.ease,
+        duration: this.duration,
+      };
+
+      if (animIsComplete(this.animation, now)) {
+        this.animation = null;
+      }
+    }
 
     if (this.animation === null) {
+      this.animation = {
+        startedAt: now,
+        from: this.getter(toRender),
+        to: this.getter(target),
+        ease: this.ease,
+        duration: this.duration,
+      };
+    }
+
+    if (animIsComplete(this.animation, now)) {
       this.setter(toRender, this.getter(target));
       this.animation = null;
       return 'done';
