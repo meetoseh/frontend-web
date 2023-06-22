@@ -23,12 +23,6 @@ export type PickEmotionJourneyState = {
   classesTakenThisSession: number;
 
   /**
-   * True if we should show the onboarding variants of the journey screens,
-   * false if we should show the regular variants.
-   */
-  isOnboarding: boolean;
-
-  /**
    * Should be called whenever the user views a set of words. This will
    * assign a uid and update recentlyViewed.
    *

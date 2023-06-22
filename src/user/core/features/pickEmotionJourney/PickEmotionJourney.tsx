@@ -169,7 +169,7 @@ export const PickEmotionJourney = ({
     shared: resources.selected.shared,
     setScreen,
     onJourneyFinished: onFinishJourney,
-    isOnboarding: state.isOnboarding,
+    isOnboarding: resources.isOnboarding,
   };
 
   if (step.step === 'lobby') {

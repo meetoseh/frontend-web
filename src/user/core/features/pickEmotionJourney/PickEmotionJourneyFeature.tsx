@@ -28,9 +28,6 @@ export const PickEmotionJourneyFeature: Feature<
     const [recentlyViewed, setRecentlyViewed] = useState<
       { clientUid: string; words: Emotion[]; at: Date; selected: Emotion | null }[]
     >([]);
-    const [isOnboarding, setIsOnboarding] = useState<boolean>(() => {
-      return localStorage.getItem('onboard') === '1';
-    });
 
     const onViewed = useCallback((words: Emotion[]) => {
       const now = new Date();
@@ -67,29 +64,17 @@ export const PickEmotionJourneyFeature: Feature<
 
     const onFinishedClass = useCallback(() => {
       setClassesTakenThisSession((prev) => prev + 1);
-      if (isOnboarding) {
-        setIsOnboarding(false);
-        localStorage.removeItem('onboard');
-      }
-    }, [isOnboarding]);
+    }, []);
 
     return useMemo<PickEmotionJourneyState>(
       () => ({
         classesTakenThisSession,
         recentlyViewed,
-        isOnboarding,
         onViewed,
         onSelection,
         onFinishedClass,
       }),
-      [
-        classesTakenThisSession,
-        recentlyViewed,
-        isOnboarding,
-        onViewed,
-        onSelection,
-        onFinishedClass,
-      ]
+      [classesTakenThisSession, recentlyViewed, onViewed, onSelection, onFinishedClass]
     );
   },
   useResources: (state, required, allStates) => {
@@ -134,6 +119,9 @@ export const PickEmotionJourneyFeature: Feature<
       load: required,
     });
     const [forceSplash, setForceSplash] = useState<boolean>(false);
+    const [isOnboarding, setIsOnboarding] = useState<boolean>(() => {
+      return localStorage.getItem('onboard') === '1';
+    });
 
     useSingletonEffect(
       (onDone) => {
@@ -313,8 +301,11 @@ export const PickEmotionJourneyFeature: Feature<
 
     const onFinishedJourney = useCallback(() => {
       setOptionsCounter((c) => c + 1);
-      allStates.tryAIJourney.setStreakDays.call(undefined, null);
-    }, [allStates.tryAIJourney.setStreakDays]);
+      if (isOnboarding) {
+        localStorage.removeItem('onboard');
+        setIsOnboarding(false);
+      }
+    }, [isOnboarding]);
 
     const takeAnotherClass = useCallback(async () => {
       if (selected === null) {
@@ -360,6 +351,7 @@ export const PickEmotionJourneyFeature: Feature<
               },
         background: background,
         forceSplash,
+        isOnboarding,
         onSelect,
         onFinishedJourney,
         takeAnotherClass,
@@ -374,6 +366,7 @@ export const PickEmotionJourneyFeature: Feature<
       profilePictures,
       background,
       forceSplash,
+      isOnboarding,
       onSelect,
       onFinishedJourney,
       takeAnotherClass,

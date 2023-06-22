@@ -91,6 +91,12 @@ export type PickEmotionJourneyResources = {
   forceSplash: boolean;
 
   /**
+   * True if we should show the onboarding variants of the journey screens,
+   * false if we should show the regular variants.
+   */
+  isOnboarding: boolean;
+
+  /**
    * Should be called when the user selects a word from a set of words.
    * This should be called instead of state.onSelection, as it will
    * call state.onSelection if it successfully loads the journey.

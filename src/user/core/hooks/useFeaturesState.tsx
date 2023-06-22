@@ -8,7 +8,6 @@ import { VipChatRequestFeature } from '../features/vipChatRequest/VipChatRequest
 import { CourseClassesFeature } from '../features/courseClasses/CourseClassesFeature';
 import { PickEmotionJourneyFeature } from '../features/pickEmotionJourney/PickEmotionJourneyFeature';
 import { GoalDaysPerWeekFeature } from '../features/goalDaysPerWeek/GoalDaysPerWeekFeature';
-import { TryAIJourneyFeature } from '../features/tryAIJourney/TryAIJourneyFeature';
 import { FeedbackAnnouncementFeature } from '../features/feedbackAnnouncement/FeedbackAnnouncementFeature';
 
 export type FeaturesState = {
@@ -38,7 +37,6 @@ const features = [
   RequestNotificationTimeFeature,
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
-  TryAIJourneyFeature,
   PickEmotionJourneyFeature,
 ];
 
