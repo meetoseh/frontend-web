@@ -113,8 +113,8 @@ export const PickEmotionJourneyFeature: Feature<
     );
     const profilePicture = useMyProfilePictureState({
       loginContext,
-      displayWidth: 60,
-      displayHeight: 60,
+      displayWidth: 45,
+      displayHeight: 45,
       handler: images,
       load: required,
     });

@@ -29,8 +29,8 @@ type MyProfilePictureProps = {
  * picture.
  */
 export const MyProfilePicture = ({
-  displayWidth = 60,
-  displayHeight = 60,
+  displayWidth = 45,
+  displayHeight = 45,
   imageHandler,
 }: MyProfilePictureProps): ReactElement => {
   const loginContext = useContext(LoginContext);
