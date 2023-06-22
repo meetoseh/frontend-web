@@ -81,9 +81,9 @@ export type PickEmotionJourneyResources = {
   } | null;
 
   /**
-   * The background image, if we've tried loading it, otherwise null
+   * The background image to use, may be loading
    */
-  background: OsehImageState | null;
+  background: OsehImageState;
 
   /**
    * True if a splash screen should be shown, false otherwise.
