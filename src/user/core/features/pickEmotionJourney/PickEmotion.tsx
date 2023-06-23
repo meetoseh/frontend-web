@@ -22,7 +22,6 @@ import {
   Callbacks,
   ValueWithCallbacks,
   WritableValueWithCallbacks,
-  useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import styles from './PickEmotion.module.css';
@@ -31,13 +30,12 @@ import { Button } from '../../../../shared/forms/Button';
 import { ProfilePictures } from '../../../interactive_prompt/components/ProfilePictures';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 import {
-  Animator,
   BezierAnimator,
   TrivialAnimator,
-  VariableStrategyProps,
-  useAnimationLoop,
+  inferAnimators,
 } from '../../../../shared/anim/AnimationLoop';
 import { ease } from '../../../../shared/lib/Bezier';
+import { useAnimatedValueWithCallbacks } from '../../../../shared/anim/useAnimatedValueWithCallbacks';
 
 /**
  * Ensures we display at least 12 options, faking the rest if necessary.
@@ -479,7 +477,18 @@ const Words = ({
     wordRefs.current = newRefs;
   }
   const containerRef = useRef<HTMLDivElement>(null);
-  const containerSizeTarget = useWritableValueWithCallbacks<Size>({ width: 0, height: 0 });
+  const containerSizeTarget = useAnimatedValueWithCallbacks<Size>(
+    { width: 0, height: 0 },
+    () => inferAnimators({ width: 0, height: 0 }, ease, 700),
+    (size) => {
+      if (containerRef.current === null) {
+        return;
+      }
+      const container = containerRef.current;
+      container.style.width = `${size.width}px`;
+      container.style.height = `${size.height}px`;
+    }
+  );
 
   const windowSize = useWindowSize();
   const numOptions = options.length;
@@ -555,56 +564,6 @@ const Words = ({
     }
   }, [windowSize, layout, wordSizes, wordPositions, containerSizeTarget, pressed]);
 
-  const containerSizeTargetAsVariableStrategyProps = useMemo<VariableStrategyProps<Size>>(
-    () => ({
-      type: 'callbacks',
-      props: () => containerSizeTarget.get(),
-      callbacks: containerSizeTarget.callbacks,
-    }),
-    [containerSizeTarget]
-  );
-
-  const containerSizeTargetAnimators = useMemo<Animator<Size>[]>(
-    () => [
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.width,
-        (s, v) => (s.width = v)
-      ),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.height,
-        (s, v) => (s.height = v)
-      ),
-    ],
-    []
-  );
-
-  const [renderedContainerSize, renderedContainerSizeChanged] = useAnimationLoop(
-    containerSizeTargetAsVariableStrategyProps,
-    containerSizeTargetAnimators
-  );
-
-  useEffect(() => {
-    if (containerRef.current === null) {
-      return;
-    }
-    const container = containerRef.current;
-    renderedContainerSizeChanged.add(render);
-    render();
-    return () => {
-      renderedContainerSizeChanged.remove(render);
-    };
-
-    function render() {
-      const size = renderedContainerSize();
-      container.style.width = `${size.width}px`;
-      container.style.height = `${size.height}px`;
-    }
-  }, [renderedContainerSize, renderedContainerSizeChanged]);
-
   return (
     <div
       className={combineClasses(
@@ -672,12 +631,51 @@ const Word = ({
   size: WritableValueWithCallbacks<Size>;
   pos: ValueWithCallbacks<Pos>;
 }) => {
-  const target = useWritableValueWithCallbacks<WordSetting>({
-    left: pos.get().x,
-    top: pos.get().y,
-    background: 'rgba(255, 255, 255, 0.2)',
-    ...WORD_SETTINGS[variant],
-  });
+  const wordRef = useRef<HTMLButtonElement>(null);
+  const target = useAnimatedValueWithCallbacks<WordSetting>(
+    {
+      left: pos.get().x,
+      top: pos.get().y,
+      background: 'rgba(255, 255, 255, 0.2)',
+      ...WORD_SETTINGS[variant],
+    },
+    () => [
+      ...inferAnimators<{ top: number; left: number }, WordSetting>(
+        { top: 0, left: 0 },
+        ease,
+        700,
+        { onTargetChange: 'replace' }
+      ),
+      ...inferAnimators<
+        { fontSize: number; letterSpacing: number; padding: number[]; borderRadius: number },
+        WordSetting
+      >({ fontSize: 0, letterSpacing: 0, padding: [0, 0, 0, 0], borderRadius: 0 }, ease, 700),
+      new TrivialAnimator('background'),
+    ],
+    (val) => {
+      if (wordRef.current === null) {
+        return;
+      }
+      const ele = wordRef.current;
+      ele.style.left = `${val.left}px`;
+      ele.style.top = `${val.top}px`;
+      ele.style.fontSize = `${val.fontSize}px`;
+      ele.style.letterSpacing = `${val.letterSpacing.toFixed(3)}`;
+      ele.style.padding = `${val.padding[0]}px ${val.padding[1]}px ${val.padding[2]}px ${val.padding[3]}px`;
+      ele.style.borderRadius = `${val.borderRadius}px`;
+      ele.style.background = val.background;
+
+      const realSize = ele.getBoundingClientRect();
+      const realWidth = realSize.width;
+      const realHeight = realSize.height;
+
+      const reportedSize = size.get();
+      if (realWidth !== reportedSize.width || realHeight !== reportedSize.height) {
+        size.set({ width: realWidth, height: realHeight });
+        size.callbacks.call(undefined);
+      }
+    }
+  );
 
   useEffect(() => {
     pos.callbacks.add(handlePositionChanged);
@@ -700,80 +698,6 @@ const Word = ({
     }
   }, [pos, variant, target, pressed, idx]);
 
-  const targetAsVariableStrategyProps = useMemo<VariableStrategyProps<WordSetting>>(
-    () => ({
-      type: 'callbacks',
-      props: () => target.get(),
-      callbacks: target.callbacks,
-    }),
-    [target]
-  );
-
-  const animators = useMemo<Animator<WordSetting>[]>(
-    () => [
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.left,
-        (s, v) => (s.left = v),
-        { onTargetChange: 'replace' }
-      ),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.top,
-        (s, v) => (s.top = v),
-        { onTargetChange: 'replace' }
-      ),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.fontSize,
-        (s, v) => (s.fontSize = v)
-      ),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.letterSpacing,
-        (s, v) => (s.letterSpacing = v)
-      ),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.padding[0],
-        (s, v) => (s.padding[0] = v)
-      ),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.padding[1],
-        (s, v) => (s.padding[1] = v)
-      ),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.padding[2],
-        (s, v) => (s.padding[2] = v)
-      ),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.padding[3],
-        (s, v) => (s.padding[3] = v)
-      ),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.borderRadius,
-        (s, v) => (s.borderRadius = v)
-      ),
-      new TrivialAnimator('background'),
-    ],
-    []
-  );
-
-  const [rendered, renderedChanged] = useAnimationLoop(targetAsVariableStrategyProps, animators);
-
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
@@ -781,42 +705,6 @@ const Word = ({
     },
     [word, idx, onWordClick]
   );
-
-  const wordRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (wordRef.current === null) {
-      return;
-    }
-    const ele = wordRef.current;
-    ele.removeAttribute('style');
-    renderedChanged.add(render);
-    render();
-    return () => {
-      renderedChanged.remove(render);
-    };
-
-    function render() {
-      const val = rendered();
-      ele.style.left = `${val.left}px`;
-      ele.style.top = `${val.top}px`;
-      ele.style.fontSize = `${val.fontSize}px`;
-      ele.style.letterSpacing = `${val.letterSpacing.toFixed(3)}`;
-      ele.style.padding = `${val.padding[0]}px ${val.padding[1]}px ${val.padding[2]}px ${val.padding[3]}px`;
-      ele.style.borderRadius = `${val.borderRadius}px`;
-      ele.style.background = val.background;
-
-      const realSize = ele.getBoundingClientRect();
-      const realWidth = realSize.width;
-      const realHeight = realSize.height;
-
-      const reportedSize = size.get();
-      if (realWidth !== reportedSize.width || realHeight !== reportedSize.height) {
-        size.set({ width: realWidth, height: realHeight });
-        size.callbacks.call(undefined);
-      }
-    }
-  }, [rendered, renderedChanged, size]);
 
   return (
     <button
@@ -844,7 +732,29 @@ const Votes = ({
   wordPositions: ValueWithCallbacks<Pos>[];
   wordSizes: ValueWithCallbacks<Size>[];
 }): ReactElement => {
-  const target = useWritableValueWithCallbacks<VotesSetting>({ left: 0, top: 0, opacity: 0 });
+  const ref = useRef<HTMLDivElement>(null);
+  const target = useAnimatedValueWithCallbacks<VotesSetting>(
+    { left: 0, top: 0, opacity: 0 },
+    () => [
+      new TrivialAnimator('left'),
+      new TrivialAnimator('top'),
+      new BezierAnimator(
+        ease,
+        700,
+        (s) => s.opacity,
+        (s, v) => (s.opacity = v)
+      ),
+    ],
+    (val) => {
+      if (ref.current === null) {
+        return;
+      }
+      const ele = ref.current;
+      ele.style.left = `${val.left}px`;
+      ele.style.top = `${val.top}px`;
+      ele.style.opacity = `${val.opacity * 100}%`;
+    }
+  );
 
   useEffect(() => {
     if (pressed === null) {
@@ -874,53 +784,6 @@ const Votes = ({
       target.callbacks.call(undefined);
     }
   }, [pressed, wordPositions, wordSizes, target]);
-
-  const targetAsVariableStrategyProps = useMemo<VariableStrategyProps<VotesSetting>>(
-    () => ({
-      type: 'callbacks',
-      props: () => target.get(),
-      callbacks: target.callbacks,
-    }),
-    [target]
-  );
-
-  const animators = useMemo<Animator<VotesSetting>[]>(
-    () => [
-      new TrivialAnimator('left'),
-      new TrivialAnimator('top'),
-      new BezierAnimator(
-        ease,
-        700,
-        (s) => s.opacity,
-        (s, v) => (s.opacity = v)
-      ),
-    ],
-    []
-  );
-
-  const [rendered, renderedChanged] = useAnimationLoop(targetAsVariableStrategyProps, animators);
-
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (ref.current === null) {
-      return;
-    }
-    const ele = ref.current;
-    ele.removeAttribute('style');
-    renderedChanged.add(render);
-    render();
-    return () => {
-      renderedChanged.remove(render);
-    };
-
-    function render() {
-      const val = rendered();
-      ele.style.left = `${val.left}px`;
-      ele.style.top = `${val.top}px`;
-      ele.style.opacity = `${val.opacity * 100}%`;
-    }
-  }, [rendered, renderedChanged]);
 
   return (
     <div className={styles.votes} ref={ref}>

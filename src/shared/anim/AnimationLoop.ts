@@ -89,55 +89,62 @@ const defaultAnimatorOpts: Required<StdAnimatorOpts> = {
 };
 
 /**
- * Uses a Bezier animation curve for a single number field in the props.
- * This animator will animate the field from the rendered value to the
- * target value over the specified duration, extending the duration
- * if the target changes while the animation is in progress.
- *
- * The setter constructor argument is only because I can't find a way
- * in typescript to say that P is an object that supports P[K] = number.
+ * The generic bezier animator implementation; capable of animating any
+ * field for which equality and a a linear ease function is available
+ * with a Bezier curve.
  */
-export class BezierAnimator<P extends object> implements Animator<P> {
+export class BezierGenericAnimator<P extends object, T> implements Animator<P> {
   private readonly ease: Bezier;
   private readonly duration: number;
-  private readonly getter: (p: P) => number;
-  private readonly setter: (p: P, v: number) => void;
+  private readonly getter: (p: P) => T;
+  private readonly setter: (p: P, v: T) => void;
+  private readonly equal: (a: T, b: T) => boolean;
+  private readonly easeValue: (a: T, b: T, t: number) => T;
   private readonly opts: Required<StdAnimatorOpts>;
 
-  private animation: BezierAnimation | null;
+  private animation: (BezierAnimation & { fromT: T; toT: T }) | null;
 
   constructor(
     ease: Bezier,
     duration: number,
-    getter: (p: P) => number,
-    setter: (p: P, v: number) => void,
+    getter: (p: P) => T,
+    setter: (p: P, v: T) => void,
+    equal: (a: T, b: T) => boolean,
+    easeValue: (a: T, b: T, t: number) => T,
     opts?: StdAnimatorOpts
   ) {
     this.ease = ease;
     this.duration = duration;
     this.getter = getter;
     this.setter = setter;
+    this.equal = equal;
+    this.easeValue = easeValue;
     this.opts = Object.assign({}, defaultAnimatorOpts, opts);
 
     this.animation = null;
   }
 
   maybeAwaken(rendered: P, target: P): boolean {
-    return this.getter(rendered) !== this.getter(target);
+    return !this.equal(this.getter(rendered), this.getter(target));
   }
 
   apply(toRender: P, target: P, now: DOMHighResTimeStamp): 'done' | 'continue' {
-    if (this.animation === null && this.getter(toRender) === this.getter(target)) {
+    if (this.animation === null && this.equal(this.getter(toRender), this.getter(target))) {
       return 'done';
     }
 
-    if (this.animation !== null && this.animation.to !== this.getter(target)) {
+    if (this.animation !== null && !this.equal(this.animation.toT, this.getter(target))) {
       this.animation = {
         startedAt: this.opts.onTargetChange === 'extend' ? now : this.animation.startedAt,
-        from: this.opts.onTargetChange === 'extend' ? this.getter(toRender) : this.animation.from,
-        to: this.getter(target),
+        from:
+          this.opts.onTargetChange === 'extend'
+            ? calculateAnimValue(this.animation, now)
+            : this.animation.from,
+        to: 1,
         ease: this.ease,
         duration: this.duration,
+        fromT: this.opts.onTargetChange === 'extend' ? this.getter(toRender) : this.animation.fromT,
+        toT: this.getter(target),
       };
 
       if (animIsComplete(this.animation, now)) {
@@ -148,8 +155,10 @@ export class BezierAnimator<P extends object> implements Animator<P> {
     if (this.animation === null) {
       this.animation = {
         startedAt: now,
-        from: this.getter(toRender),
-        to: this.getter(target),
+        from: 0,
+        to: 1,
+        fromT: this.getter(toRender),
+        toT: this.getter(target),
         ease: this.ease,
         duration: this.duration,
       };
@@ -161,12 +170,63 @@ export class BezierAnimator<P extends object> implements Animator<P> {
       return 'done';
     }
 
-    this.setter(toRender, calculateAnimValue(this.animation, now));
+    this.setter(
+      toRender,
+      this.easeValue(
+        this.animation.fromT,
+        this.animation.toT,
+        calculateAnimValue(this.animation, now)
+      )
+    );
     return 'continue';
   }
 
   reset(): void {
     this.animation = null;
+  }
+}
+
+/**
+ * Uses a Bezier animation curve for a single number field in the props.
+ * This animator will animate the field from the rendered value to the
+ * target value over the specified duration, extending the duration
+ * if the target changes while the animation is in progress (or replacing
+ * the animation depending on the options).
+ *
+ * The setter constructor argument is only because I can't find a way
+ * in typescript to say that P is an object that supports P[K] = number.
+ */
+export class BezierAnimator<P extends object> implements Animator<P> {
+  private readonly delegate: BezierGenericAnimator<P, number>;
+
+  constructor(
+    ease: Bezier,
+    duration: number,
+    getter: (p: P) => number,
+    setter: (p: P, v: number) => void,
+    opts?: StdAnimatorOpts
+  ) {
+    this.delegate = new BezierGenericAnimator(
+      ease,
+      duration,
+      getter,
+      setter,
+      (a, b) => a === b,
+      (a, b, t) => a + (b - a) * t,
+      opts
+    );
+  }
+
+  maybeAwaken(rendered: P, target: P): boolean {
+    return this.delegate.maybeAwaken(rendered, target);
+  }
+
+  apply(toRender: P, target: P, now: DOMHighResTimeStamp): 'done' | 'continue' {
+    return this.delegate.apply(toRender, target, now);
+  }
+
+  reset(): void {
+    this.delegate.reset();
   }
 }
 
@@ -188,75 +248,220 @@ const colorEase = (a: RGBAColor, b: RGBAColor, t: number): RGBAColor => {
 /**
  * Uses a Bezier animation curve for a color specified as [r,g,b,a] 0-1 scale
  * in the props.
+ *
+ * This is kept as separate from a bezier array animator for now as we might
+ * use a custom easing function for colors, since linear color easing can
+ * look a little strange.
  */
 export class BezierColorAnimator<P extends object> implements Animator<P> {
-  private readonly ease: Bezier;
-  private readonly duration: number;
-  private readonly getter: (p: P) => RGBAColor;
-  private readonly setter: (p: P, v: RGBAColor) => void;
-
-  private animation: (BezierAnimation & { startColor: RGBAColor; endColor: RGBAColor }) | null;
+  private readonly delegate: BezierGenericAnimator<P, RGBAColor>;
 
   constructor(
     ease: Bezier,
     duration: number,
     getter: (p: P) => RGBAColor,
-    setter: (p: P, v: RGBAColor) => void
+    setter: (p: P, v: RGBAColor) => void,
+    opts?: StdAnimatorOpts
   ) {
-    this.ease = ease;
-    this.duration = duration;
-    this.getter = getter;
-    this.setter = setter;
-
-    this.animation = null;
+    this.delegate = new BezierGenericAnimator(
+      ease,
+      duration,
+      getter,
+      setter,
+      colorEq,
+      colorEase,
+      opts
+    );
   }
 
   maybeAwaken(rendered: P, target: P): boolean {
-    return !colorEq(this.getter(rendered), this.getter(target));
+    return this.delegate.maybeAwaken(rendered, target);
   }
 
   apply(toRender: P, target: P, now: DOMHighResTimeStamp): 'done' | 'continue' {
-    if (this.animation === null && colorEq(this.getter(toRender), this.getter(target))) {
-      return 'done';
-    }
-
-    if (this.animation !== null && !colorEq(this.animation.endColor, this.getter(target))) {
-      this.animation = null;
-    }
-
-    if (this.animation === null) {
-      this.animation = {
-        startedAt: now,
-        startColor: [...this.getter(toRender)],
-        endColor: [...this.getter(target)],
-        from: 0,
-        to: 1,
-        ease: this.ease,
-        duration: this.duration,
-      };
-    }
-
-    if (animIsComplete(this.animation, now)) {
-      this.setter(toRender, [...this.animation.endColor]);
-      this.animation = null;
-      return 'done';
-    }
-
-    this.setter(
-      toRender,
-      colorEase(
-        this.animation.startColor,
-        this.animation.endColor,
-        calculateAnimValue(this.animation, now)
-      )
-    );
-    return 'continue';
+    return this.delegate.apply(toRender, target, now);
   }
 
   reset(): void {
-    this.animation = null;
+    this.delegate.reset();
   }
 }
+
+const arrayEq = (a: number[], b: number[]): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0, l = a.length; i < l; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const arrayEase = (a: number[], b: number[], t: number): number[] => {
+  if (a.length !== b.length) {
+    return b;
+  }
+
+  const result = [];
+  for (let i = 0, l = a.length; i < l; i++) {
+    result.push(a[i] + (b[i] - a[i]) * t);
+  }
+  return result;
+};
+
+/**
+ * Uses a Bezier animation curve for the given number array field in the props.
+ *
+ * Unlike the color animator, this is guarranteed to use the linear ease
+ * function for the array elements.
+ */
+export class BezierArrayAnimator<P extends object> implements Animator<P> {
+  private readonly delegate: BezierGenericAnimator<P, number[]>;
+
+  constructor(
+    ease: Bezier,
+    duration: number,
+    getter: (p: P) => number[],
+    setter: (p: P, v: number[]) => void,
+    opts?: StdAnimatorOpts
+  ) {
+    this.delegate = new BezierGenericAnimator(
+      ease,
+      duration,
+      getter,
+      setter,
+      arrayEq,
+      arrayEase,
+      opts
+    );
+  }
+
+  maybeAwaken(rendered: P, target: P): boolean {
+    return this.delegate.maybeAwaken(rendered, target);
+  }
+
+  apply(toRender: P, target: P, now: DOMHighResTimeStamp): 'done' | 'continue' {
+    return this.delegate.apply(toRender, target, now);
+  }
+
+  reset(): void {
+    this.delegate.reset();
+  }
+}
+
+type ConcreteBezierAnimatable = number | number[];
+type BezierAnimatable = ConcreteBezierAnimatable | Record<string, ConcreteBezierAnimatable>;
+
+/**
+ * Inspects the given object to produce animators for all the fields which are
+ * numbers, number arrays, or objects containing numbers or number arrays. Notably,
+ * no animator is produced for string fields.
+ *
+ * Example:
+ *
+ * ```ts
+ * // Inferred
+ * inferAnimators({ width: 0, height: 0 }, ease, 700);
+ *
+ * // Explicit equivalent
+ * [
+ *   new BezierAnimator(ease, 700, (p) => p.width, (p, v) => p.width = v),
+ *   new BezierAnimator(ease, 700, (p) => p.height, (p, v) => p.height = v),
+ * ]
+ * ```
+ *
+ * Until https://github.com/Microsoft/TypeScript/pull/26349 is implemented,
+ * this can be a bit verbose to use when the example type differs from the
+ * target type, usually because you want different settings for different
+ * fields. Here is how it would look right now:
+ *
+ * ```ts
+ * type MyState = { left: number, top: number, width: number, height: number };
+ *
+ * [
+ *   ...inferAnimators<{ left: number, top: number }, MyState>({ left: 0, top: 0}, ease, 700),
+ *   ...inferAnimators<{ width: number, height: number }, MyState>({ width: 0, height: 0}, ease, 350),
+ * ]
+ * ```
+ *
+ * Here's how it would look with inferred partial types (not currently supported):
+ *
+ * ```ts
+ * [
+ *   ...inferAnimators<_, MyState>({ left: 0, top: 0 }, ease, 700),
+ *   ...inferAnimators<_, MyState>({ width: 0, height: 0 }, ease, 350),
+ * ]
+ * ```
+ *
+ * @param example An example object to inspect for animatable fields.
+ * @param ease The bezier curve to use for the animators.
+ * @param duration The duration of the animation.
+ * @param opts Options for the animators.
+ * @param getter Used for recursion; how to go from the base object to the object
+ *   we're looking at currently. Should not be specified by the caller.
+ */
+export const inferAnimators = <
+  ExampleT extends Record<string, BezierAnimatable>,
+  P extends ExampleT
+>(
+  example: Required<ExampleT>,
+  ease: Bezier,
+  duration: number,
+  opts?: StdAnimatorOpts,
+  getter?: (raw: P) => ExampleT
+): Animator<P>[] => {
+  const result = [];
+
+  const keys = Object.keys(example) as (string & keyof ExampleT)[];
+  for (let i = 0; i < keys.length; i++) {
+    ((key: keyof ExampleT) => {
+      const value = example[key];
+      if (typeof value === 'number') {
+        result.push(
+          new BezierAnimator<P>(
+            ease,
+            duration,
+            (parent) => {
+              const t = getter ? getter(parent) : parent;
+              return t[key] as number;
+            },
+            (parent, value) => {
+              const t = getter ? getter(parent) : parent;
+              (t as any)[key] = value;
+            },
+            opts
+          )
+        );
+      } else if (Array.isArray(value)) {
+        result.push(
+          new BezierArrayAnimator<P>(
+            ease,
+            duration,
+            (parent) => {
+              const t = getter ? getter(parent) : parent;
+              return t[key] as number[];
+            },
+            (parent, value) => {
+              const t = getter ? getter(parent) : parent;
+              (t as any)[key] = value;
+            },
+            opts
+          )
+        );
+      } else if (typeof value === 'object') {
+        result.push(
+          ...inferAnimators(value, ease, duration, opts, (parent) => {
+            const t = getter ? getter(parent as any) : (parent as any as ExampleT);
+            return t[key] as any;
+          })
+        );
+      }
+    })(keys[i]);
+  }
+  return result;
+};
 
 export type VariableStrategyProps<P extends object> =
   | { type: 'react-rerender'; props: P }
