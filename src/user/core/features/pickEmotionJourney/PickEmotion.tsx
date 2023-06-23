@@ -462,20 +462,6 @@ const Words = ({
   pressed: { index: number; votes: number | null } | null;
   layout: 'horizontal' | 'vertical';
 }): ReactElement => {
-  const wordRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const wordsKey = useRef<number>(0);
-  if (wordRefs.current.length !== options.length) {
-    wordsKey.current++;
-
-    const newRefs = [];
-    for (let i = 0; i < wordRefs.current.length && i < options.length; i++) {
-      newRefs.push(wordRefs.current[i]);
-    }
-    for (let i = newRefs.length; i < options.length; i++) {
-      newRefs.push(null);
-    }
-    wordRefs.current = newRefs;
-  }
   const containerRef = useRef<HTMLDivElement>(null);
   const containerSizeTarget = useAnimatedValueWithCallbacks<Size>(
     { width: 0, height: 0 },
