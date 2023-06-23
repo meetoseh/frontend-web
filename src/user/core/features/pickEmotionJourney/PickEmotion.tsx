@@ -582,7 +582,14 @@ type WordSetting = {
   letterSpacing: number;
   padding: [number, number, number, number];
   borderRadius: number;
-  background: string;
+  /**
+   * We implement a solid color as a gradient to the same colors;
+   * this allows easing the gradient in relatively easily.
+   */
+  backgroundGradient: {
+    color1: [number, number, number, number];
+    color2: [number, number, number, number];
+  };
 };
 
 const WORD_SETTINGS = {
@@ -622,7 +629,10 @@ const Word = ({
     {
       left: pos.get().x,
       top: pos.get().y,
-      background: 'rgba(255, 255, 255, 0.2)',
+      backgroundGradient: {
+        color1: [255, 255, 255, 0.2],
+        color2: [255, 255, 255, 0.2],
+      },
       ...WORD_SETTINGS[variant],
     },
     () => [
@@ -636,7 +646,19 @@ const Word = ({
         { fontSize: number; letterSpacing: number; padding: number[]; borderRadius: number },
         WordSetting
       >({ fontSize: 0, letterSpacing: 0, padding: [0, 0, 0, 0], borderRadius: 0 }, ease, 700),
-      new TrivialAnimator('background'),
+      ...inferAnimators<
+        { backgroundGradient: { color1: number[]; color2: number[] } },
+        WordSetting
+      >(
+        {
+          backgroundGradient: {
+            color1: [0, 0, 0, 0],
+            color2: [0, 0, 0, 0],
+          },
+        },
+        ease,
+        350
+      ),
     ],
     (val) => {
       if (wordRef.current === null) {
@@ -649,7 +671,9 @@ const Word = ({
       ele.style.letterSpacing = `${val.letterSpacing.toFixed(3)}`;
       ele.style.padding = `${val.padding[0]}px ${val.padding[1]}px ${val.padding[2]}px ${val.padding[3]}px`;
       ele.style.borderRadius = `${val.borderRadius}px`;
-      ele.style.background = val.background;
+      ele.style.background = `linear-gradient(95.08deg, rgba(${val.backgroundGradient.color1.join(
+        ','
+      )}) 2.49%, rgba(${val.backgroundGradient.color2.join(',')}) 97.19%)`;
 
       const realSize = ele.getBoundingClientRect();
       const realWidth = realSize.width;
@@ -674,10 +698,18 @@ const Word = ({
       target.set({
         left: pos.get().x,
         top: pos.get().y,
-        background:
+        backgroundGradient:
           pressed?.index === idx
-            ? 'linear-gradient(95.08deg, #57b8a2 2.49%, #009999 97.19%)'
-            : 'rgba(255, 255, 255, 0.2)',
+            ? {
+                //'linear-gradient(95.08deg, #57b8a2 2.49%, #009999 97.19%)'
+                color1: [87, 184, 162, 1],
+                color2: [0, 153, 153, 1],
+              }
+            : {
+                //'rgba(255, 255, 255, 0.2)',
+                color1: [255, 255, 255, 0.2],
+                color2: [255, 255, 255, 0.2],
+              },
         ...WORD_SETTINGS[variant],
       });
       target.callbacks.call(undefined);
