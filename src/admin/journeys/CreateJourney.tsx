@@ -35,6 +35,8 @@ import { keyMap as journeyKeyMap } from './Journeys';
 import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
 import { InstructorPicker } from '../instructors/InstructorPicker';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { JourneyPicker } from './JourneyPicker';
+import { CompactJourney } from './CompactJourney';
 
 type CreateJourneyProps = {
   /**
@@ -72,6 +74,9 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
   const [description, setDescription] = useState('');
   const [prompt, setPrompt] = useState<AdminJourneyPrompt>(defaultPrompt);
   const [promptValid, setPromptValid] = useState(true);
+  const [isVariation, setIsVariation] = useState(false);
+  const [variationOfJourneyQuery, setVariationOfJourneyQuery] = useState('');
+  const [variationOfJourney, setVariationOfJourney] = useState<Journey | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
   const [saving, setSaving] = useState(false);
   const [createErrorCollapsed, setCreateErrorCollapsed] = useState(true);
@@ -158,6 +163,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
                 title,
                 description,
                 prompt,
+                variation_of_journey_uid: variationOfJourney?.uid ?? null,
               }),
             },
             loginContext
@@ -184,6 +190,9 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
         setTitle('');
         setDescription('');
         setPrompt(defaultPrompt);
+        setVariationOfJourney(null);
+        setVariationOfJourneyQuery('');
+        setIsVariation(false);
       } finally {
         setSaving(false);
       }
@@ -198,6 +207,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
       subcategory,
       title,
       onCreated,
+      variationOfJourney,
     ]
   );
 
@@ -276,11 +286,36 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
     if (!promptValid) {
       result.push('Prompt is invalid');
     }
+    if (isVariation && variationOfJourney === null) {
+      result.push('Marked as variation, but no variation of journey is selected');
+    }
     return result;
-  }, [audioContent, backgroundImage, subcategory, instructor, title, description, promptValid]);
+  }, [
+    audioContent,
+    backgroundImage,
+    subcategory,
+    instructor,
+    title,
+    description,
+    promptValid,
+    isVariation,
+    variationOfJourney,
+  ]);
 
   const onCreateErrorCollapsedClicked = useCallback(() => {
     setCreateErrorCollapsed((c) => !c);
+  }, []);
+
+  const markVariation = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setVariationOfJourney(null);
+    setVariationOfJourneyQuery('');
+    setIsVariation(true);
+  }, []);
+
+  const unsetIsVariation = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setIsVariation(false);
   }, []);
 
   return (
@@ -474,6 +509,33 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
           setPrompt={setPrompt}
           setPromptValid={setPromptValid}
         />
+        <CrudFormElement title="Variation Of">
+          {!isVariation ? (
+            <Button type="button" variant="link-small" onClick={markVariation}>
+              Add
+            </Button>
+          ) : (
+            <div className={styles.variationOfJourney}>
+              {variationOfJourney === null && (
+                <JourneyPicker
+                  query={variationOfJourneyQuery}
+                  setQuery={setVariationOfJourneyQuery}
+                  setSelected={setVariationOfJourney}
+                />
+              )}
+              {variationOfJourney !== null && (
+                <CompactJourney
+                  journey={variationOfJourney}
+                  showViews={false}
+                  imageHandler={imageHandler}
+                />
+              )}
+              <Button type="button" variant="link-small" onClick={unsetIsVariation}>
+                Remove
+              </Button>
+            </div>
+          )}
+        </CrudFormElement>
         {error && <ErrorBlock>{error}</ErrorBlock>}
         <div className={styles.submitButtonContainer}>
           <Button

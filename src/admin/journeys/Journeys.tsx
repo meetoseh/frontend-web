@@ -35,6 +35,7 @@ export const keyMap: CrudFetcherKeyMap<Journey> = {
   created_at: (_, val) => ({ key: 'createdAt', value: new Date(val * 1000) }),
   deleted_at: (_, val) => ({ key: 'deletedAt', value: val ? new Date(val * 1000) : null }),
   special_category: 'specialCategory',
+  variation_of_journey_uid: 'variationOfJourneyUID',
 };
 
 /**

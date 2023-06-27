@@ -99,4 +99,13 @@ export type Journey = {
    * otherwise null. Undefined if not returned from that particular route.
    */
   specialCategory: 'ai' | null | undefined;
+
+  /**
+   * If this journey is a variation on another journey, such as by updating the
+   * title and description to be more appropriate for a course but keeping the
+   * content the same, the uid of the original journey, otherwise null. A
+   * journey cannot be deleted if it has any undeleted variations, and a journey
+   * cannot be a variation of a journey which is itself a variation.
+   */
+  variationOfJourneyUID: string | null;
 };

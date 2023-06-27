@@ -78,3 +78,12 @@
 .editDeletedContainer {
   margin-top: 20px;
 }
+
+.variationsList {
+  margin-top: 4px;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: flex-start;
+}

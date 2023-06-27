@@ -51,6 +51,10 @@ export const defaultFilter: CrudFetcherFilter = {
     operator: 'eq',
     value: null,
   },
+  variation_of_journey_uid: {
+    operator: 'eq',
+    value: null,
+  },
 };
 
 const SORTS: { name: string; sort: CrudFetcherSort }[] = [
@@ -138,6 +142,26 @@ export const JourneyFilterAndSortBlock = ({
                 };
               } else {
                 delete newFilter.deleted_at;
+              }
+              setFilter(newFilter);
+            }}>
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+        </CrudFormElement>
+        <CrudFormElement title="Show Variations">
+          <select
+            className={styles.select}
+            value={filter.variation_of_journey_uid?.value === null ? 'false' : 'true'}
+            onChange={(e) => {
+              const newFilter = { ...filter };
+              if (e.target.value === 'false') {
+                newFilter.variation_of_journey_uid = {
+                  operator: 'eq',
+                  value: null,
+                };
+              } else {
+                delete newFilter.variation_of_journey_uid;
               }
               setFilter(newFilter);
             }}>

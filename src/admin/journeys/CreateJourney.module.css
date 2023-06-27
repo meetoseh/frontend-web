@@ -60,3 +60,11 @@
   composes: sortSelect from '../crud/standard.module.css';
   max-width: 200px;
 }
+
+.variationOfJourney {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 4px;
+}

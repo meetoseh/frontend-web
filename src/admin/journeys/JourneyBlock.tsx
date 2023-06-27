@@ -26,6 +26,7 @@ import { InstructorPicker } from '../instructors/InstructorPicker';
 import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
 import { JourneyEmotionsBlock } from './emotions/JourneyEmotionsBlock';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { CompactJourney } from './CompactJourney';
 
 type JourneyBlockProps = {
   /**
@@ -69,6 +70,8 @@ export const JourneyBlock = ({
   const [newDescription, setNewDescription] = useState('');
   const [newPromptText, setNewPromptText] = useState('');
   const [newDeleted, setNewDeleted] = useState(false);
+  const [currentVariationOfJourney, setCurrentVariationOfJourney] = useState<Journey | null>(null);
+  const [variations, setVariations] = useState<Journey[]>([]);
 
   useEffect(() => {
     setNewTitle(journey.title);
@@ -93,6 +96,90 @@ export const JourneyBlock = ({
   useEffect(() => {
     setNewDeleted(journey.deletedAt !== null);
   }, [journey.deletedAt]);
+
+  useEffect(() => {
+    let active = true;
+    fetchVariationOfJourney();
+    return () => {
+      active = false;
+    };
+
+    async function fetchVariationOfJourney() {
+      setCurrentVariationOfJourney(null);
+      if (journey.variationOfJourneyUID === null || loginContext.state !== 'logged-in') {
+        return;
+      }
+
+      const response = await apiFetch(
+        '/api/1/journeys/search',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            filters: { uid: { operator: 'eq', value: journey.variationOfJourneyUID } },
+          }),
+        },
+        loginContext
+      );
+      if (!response.ok) {
+        console.log('failed to fetch variation of journey', response.status, await response.text());
+        return;
+      }
+      const data: { items: any[] } = await response.json();
+      if (data.items.length < 1) {
+        console.log('failed to fetch variation of journey: no items');
+        return;
+      }
+
+      if (!active) {
+        return;
+      }
+
+      const variation = convertUsingKeymap(data.items[0], journeyKeyMap);
+      setCurrentVariationOfJourney(variation);
+    }
+  }, [journey.variationOfJourneyUID, loginContext]);
+
+  useEffect(() => {
+    let active = true;
+    fetchVariations();
+    return () => {
+      active = false;
+    };
+    async function fetchVariations() {
+      setVariations([]);
+      if (loginContext.state !== 'logged-in') {
+        return;
+      }
+
+      const response = await apiFetch(
+        '/api/1/journeys/search',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            filters: { variation_of_journey_uid: { operator: 'eq', value: journey.uid } },
+          }),
+        },
+        loginContext
+      );
+      if (!response.ok) {
+        console.log(
+          'failed to fetch variations of journey',
+          response.status,
+          await response.text()
+        );
+        return;
+      }
+      const data: { items: any[] } = await response.json();
+      if (!active) {
+        return;
+      }
+
+      const variations = data.items.map((item) => convertUsingKeymap(item, journeyKeyMap));
+      setVariations(variations);
+    }
+  }, [journey.uid, loginContext]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 992);
@@ -293,6 +380,38 @@ export const JourneyBlock = ({
         ) : null}
 
         <JourneyEmotionsBlock journeyUid={journey.uid} />
+
+        {journey.variationOfJourneyUID !== null ? (
+          <div className={styles.variationOfJourneyContainer}>
+            <CrudFormElement title="Variation Of">
+              {currentVariationOfJourney === null ? (
+                journey.variationOfJourneyUID
+              ) : (
+                <CompactJourney
+                  journey={currentVariationOfJourney}
+                  showViews={false}
+                  imageHandler={imageHandler}
+                />
+              )}
+            </CrudFormElement>
+          </div>
+        ) : null}
+
+        {variations.length > 0 && (
+          <div className={styles.variationsContainer}>
+            <CrudFormElement title="Variations">
+              <div className={styles.variationsList}>
+                {variations.map((variation) => (
+                  <CompactJourney
+                    key={variation.uid}
+                    journey={variation}
+                    imageHandler={imageHandler}
+                  />
+                ))}
+              </div>
+            </CrudFormElement>
+          </div>
+        )}
 
         {journey.specialCategory !== null && journey.specialCategory !== undefined ? (
           <div className={styles.specialCategoryContainer}>
