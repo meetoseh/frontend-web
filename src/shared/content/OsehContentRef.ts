@@ -10,4 +10,4 @@ export type OsehContentRef = {
   jwt: string | null;
 };
 
-export type OsehContentRefLoadable = OsehContentRef & { uid: string };
+export type OsehContentRefLoadable = OsehContentRef & { uid: string; jwt: string };

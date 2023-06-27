@@ -1,24 +1,18 @@
-import { ReactElement, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useRef, useState } from 'react';
 import styles from './FavoritesTabbedPane.module.css';
 import { MyProfilePicture } from '../../../shared/components/MyProfilePicture';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { combineClasses } from '../../../shared/lib/combineClasses';
-import { InfiniteListing, NetworkedInfiniteListing } from '../../../shared/lib/InfiniteListing';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
-import { MinimalJourney, minimalJourneyKeyMap } from '../lib/MinimalJourney';
-import { InfiniteList } from '../../../shared/components/InfiniteList';
-import { HistoryItem } from '../components/HistoryItem';
 import { IconButton } from '../../../shared/forms/IconButton';
-import { JourneyRef, journeyRefKeyMap } from '../../journey/models/JourneyRef';
+import { JourneyRef } from '../../journey/models/JourneyRef';
 import { JourneyRouter } from '../../journey/JourneyRouter';
-import { apiFetch } from '../../../shared/ApiConstants';
-import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
 import { OsehImageState } from '../../../shared/images/OsehImageState';
-import {
-  OsehImageStateRequestHandler,
-  useOsehImageStateRequestHandler,
-} from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { FavoritesList } from '../components/FavoritesList';
+import { HistoryList } from '../components/HistoryList';
+import { CourseJourneysList } from '../components/CourseJourneysList';
 
 export type FavoritesTabbedPaneProps = {
   /**
@@ -29,88 +23,13 @@ export type FavoritesTabbedPaneProps = {
 };
 
 export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): ReactElement => {
-  const [tab, setTab] = useState<'favorites' | 'history'>('favorites');
+  const [tab, setTab] = useState<'favorites' | 'history' | 'courses'>('favorites');
   const loginContext = useContext(LoginContext);
   const loginContextRef = useRef(loginContext);
   loginContextRef.current = loginContext;
   const windowSize = useWindowSize();
   const [journey, setJourney] = useState<JourneyRef | null>(null);
   const imageHandler = useOsehImageStateRequestHandler({});
-
-  const infiniteListing = useMemo<InfiniteListing<MinimalJourney>>(() => {
-    const numVisible = Math.ceil(windowSize.height / 80) + 15;
-    const result = new NetworkedInfiniteListing<MinimalJourney>(
-      '/api/1/users/me/search_history',
-      Math.min(numVisible * 2 + 10, 150),
-      numVisible,
-      10,
-      tab === 'favorites'
-        ? {
-            liked_at: {
-              operator: 'neq',
-              value: null,
-            },
-          }
-        : {},
-      [
-        {
-          key: tab === 'favorites' ? 'liked_at' : 'last_taken_at',
-          dir: 'desc',
-          before: null,
-          after: null,
-        },
-        {
-          key: 'uid',
-          dir: 'asc',
-          before: null,
-          after: null,
-        },
-      ],
-      (item, dir) => {
-        return [
-          {
-            key: 'last_taken_at',
-            dir: dir === 'before' ? 'asc' : 'desc',
-            before: null,
-            after: item.lastTakenAt === null ? null : item.lastTakenAt.getTime() / 1000,
-          },
-          {
-            key: 'uid',
-            dir: dir === 'before' ? 'desc' : 'asc',
-            before: null,
-            after: item.uid,
-          },
-        ];
-      },
-      minimalJourneyKeyMap,
-      () => loginContextRef.current
-    );
-    result.reset();
-    return result;
-  }, [tab, windowSize.height]);
-
-  // const infiniteListing = useMemo<InfiniteListing<MinimalJourney>>(() => {
-  //   const startAt = Date.now();
-  //   const result = new ProceduralInfiniteListing<MinimalJourney>(
-  //     (idx) => ({
-  //       uid: `uid-${idx}`,
-  //       title: `${tab} Title ${idx}`,
-  //       instructor: {
-  //         name: `Instructor ${idx}`,
-  //         image: {
-  //           uid: 'oseh_if_y2J1TPz5VhUUsk8I0ofPwg',
-  //           jwt: null,
-  //         },
-  //       },
-  //       lastTakenAt: new Date(startAt - idx * 1000 * 60 * 60 * 3),
-  //       likedAt: idx % 3 === 0 ? new Date(startAt - idx * 1000 * 60 * 60 * 7) : null,
-  //     }),
-  //     Math.ceil(windowSize.height / 80) + 15,
-  //     10
-  //   );
-  //   result.reset();
-  //   return result;
-  // }, [windowSize.height, tab]);
 
   const gotoFavorites = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -122,73 +41,14 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
     setTab('history');
   }, []);
 
-  const loading = useRef<boolean>(false);
-  const gotoJourneyByUID = useCallback(
-    async (uid: string) => {
-      if (loading.current) {
-        return;
-      }
-      if (loginContext.state !== 'logged-in') {
-        return;
-      }
-
-      loading.current = true;
-      try {
-        const response = await apiFetch(
-          '/api/1/users/me/start_journey_from_history',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-            },
-            body: JSON.stringify({
-              journey_uid: uid,
-            }),
-          },
-          loginContext
-        );
-        if (!response.ok) {
-          console.log(
-            'failed to start journey from history:',
-            response.status,
-            await response.text()
-          );
-          return;
-        }
-        const raw = await response.json();
-        const journey = convertUsingKeymap(raw, journeyRefKeyMap);
-        setJourney(journey);
-      } finally {
-        loading.current = false;
-      }
-    },
-    [loginContext]
-  );
+  const gotoCourses = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setTab('courses');
+  }, []);
 
   const onJourneyFinished = useCallback(() => {
     setJourney(null);
   }, []);
-
-  const boundComponent = useMemo<
-    (
-      item: MinimalJourney,
-      setItem: (newItem: MinimalJourney) => void,
-      items: MinimalJourney[],
-      index: number
-    ) => ReactElement
-  >(() => {
-    return (item, setItem, items, index) => (
-      <HistoryItemComponent
-        useSeparators={tab === 'history'}
-        gotoJourneyByUid={gotoJourneyByUID}
-        item={item}
-        setItem={setItem}
-        items={items}
-        index={index}
-        instructorImages={imageHandler}
-      />
-    );
-  }, [tab, gotoJourneyByUID, imageHandler]);
 
   const listHeight = windowSize.height - 189;
 
@@ -232,68 +92,40 @@ export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): R
             )}>
             History
           </button>
+          <button
+            type="button"
+            onClick={gotoCourses}
+            className={combineClasses(
+              styles.tab,
+              tab === 'courses' ? styles.activeTab : undefined
+            )}>
+            Owned
+          </button>
         </div>
-        <div className={styles.tabContent}>
-          <InfiniteList
-            listing={infiniteListing}
-            component={boundComponent}
-            itemComparer={compareHistoryItems}
-            height={listHeight}
-            gap={10}
-            initialComponentHeight={75}
-            emptyElement={
-              <div className={styles.empty}>
-                {tab === 'favorites' ? (
-                  <>You don&rsquo;t have any favorite classes yet</>
-                ) : (
-                  <>You haven&rsquo;t taken any classes yet</>
-                )}
-              </div>
-            }
-            keyFn={journeyKeyFn}
-          />
+        <div className={combineClasses(styles.tabContent, styles[`tabContent-${tab}`])}>
+          {tab === 'favorites' && (
+            <FavoritesList
+              showJourney={setJourney}
+              listHeight={listHeight}
+              imageHandler={imageHandler}
+            />
+          )}
+          {tab === 'history' && (
+            <HistoryList
+              showJourney={setJourney}
+              listHeight={listHeight}
+              imageHandler={imageHandler}
+            />
+          )}
+          {tab === 'courses' && (
+            <CourseJourneysList
+              showJourney={setJourney}
+              listHeight={listHeight}
+              imageHandler={imageHandler}
+            />
+          )}
         </div>
       </div>
     </div>
-  );
-};
-
-const compareHistoryItems = (a: MinimalJourney, b: MinimalJourney): boolean => a.uid === b.uid;
-const journeyKeyFn = (item: MinimalJourney): string => item.uid;
-
-const HistoryItemComponent = ({
-  useSeparators,
-  gotoJourneyByUid,
-  item,
-  setItem,
-  items,
-  index,
-  instructorImages,
-}: {
-  useSeparators: boolean;
-  gotoJourneyByUid: (uid: string) => void;
-  item: MinimalJourney;
-  setItem: (item: MinimalJourney) => void;
-  items: MinimalJourney[];
-  index: number;
-  instructorImages: OsehImageStateRequestHandler;
-}): ReactElement => {
-  const gotoJourney = useCallback(() => {
-    gotoJourneyByUid(item.uid);
-  }, [gotoJourneyByUid, item.uid]);
-
-  return (
-    <HistoryItem
-      item={item}
-      setItem={setItem}
-      separator={
-        useSeparators &&
-        (index === 0 ||
-          items[index - 1].lastTakenAt?.toLocaleDateString() !==
-            item.lastTakenAt?.toLocaleDateString())
-      }
-      onClick={gotoJourney}
-      instructorImages={instructorImages}
-    />
   );
 };

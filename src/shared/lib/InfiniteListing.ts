@@ -55,7 +55,7 @@ export type InfiniteListingSortMaker<T> = (item: T, dir: 'before' | 'after') => 
  * items quickly added/removed from it as the user scrolls. This is the only list
  * that's exposed by this class.
  */
-export class NetworkedInfiniteListing<T> {
+export class NetworkedInfiniteListing<T extends object> {
   private cachedList: CachedServerList<T>;
   /**
    * The maximum length of items. If items is less than this length it can be
@@ -208,8 +208,11 @@ export class NetworkedInfiniteListing<T> {
    * based on user action. Note this only updates our copies of the item,
    * and does not update the server.
    */
-  replaceItem(isItem: (item: T) => boolean, newItem: T): void {
-    this.items = this.items?.map((item) => (isItem(item) ? newItem : item)) ?? null;
+  replaceItem(isItem: (item: T) => boolean, newItem: T | ((oldItem: T) => T)): void {
+    this.items =
+      this.items?.map((item) =>
+        isItem(item) ? (typeof newItem === 'function' ? newItem(item) : newItem) : item
+      ) ?? null;
     this.cachedList.replaceItem(isItem, newItem);
     this.itemsChanged.call(this.items);
   }
@@ -221,7 +224,7 @@ export class NetworkedInfiniteListing<T> {
  * index. This is primarily used for testing rendering, but could also be used
  * for a list that is generated procedurally.
  */
-export class ProceduralInfiniteListing<T> {
+export class ProceduralInfiniteListing<T extends object> {
   /**
    * The generator used to create items from the index
    */
@@ -406,13 +409,18 @@ export class ProceduralInfiniteListing<T> {
    * based on user action. This will not persist if the item is unloaded
    * and reloaded.
    */
-  replaceItem(isItem: (item: T) => boolean, newItem: T): void {
-    this.items = this.items?.map((item) => (isItem(item) ? newItem : item)) ?? null;
+  replaceItem(isItem: (item: T) => boolean, newItem: T | ((oldItem: T) => T)): void {
+    this.items =
+      this.items?.map((item) =>
+        isItem(item) ? (typeof newItem === 'function' ? newItem(item) : newItem) : item
+      ) ?? null;
     this.itemsChanged.call(this.items);
   }
 }
 
-export type InfiniteListing<T> = NetworkedInfiniteListing<T> | ProceduralInfiniteListing<T>;
+export type InfiniteListing<T extends object> =
+  | NetworkedInfiniteListing<T>
+  | ProceduralInfiniteListing<T>;
 
 /**
  * A more limited interface into a ServerList. Like the ServerList, this only
@@ -425,7 +433,7 @@ export type InfiniteListing<T> = NetworkedInfiniteListing<T> | ProceduralInfinit
  * at a time for a given instance. Attempting to perform an operation while
  * the lock is held will immediately result in a rejected promise.
  */
-class CachedServerList<T> {
+class CachedServerList<T extends object> {
   private serverList: ServerList<T>;
 
   /**
@@ -883,11 +891,11 @@ class CachedServerList<T> {
    * @param isItem The predicate to find the old item
    * @param newItem The new item to replace the old item with
    */
-  replaceItem(isItem: (item: T) => boolean, newItem: T): void {
+  replaceItem(isItem: (item: T) => boolean, newItem: T | ((oldItem: T) => T)): void {
     for (let arr of [this.before, this.visible, this.after]) {
       for (let i = 0; i < arr.length; i++) {
         if (isItem(arr[i])) {
-          arr[i] = newItem;
+          arr[i] = typeof newItem === 'function' ? newItem(arr[i]) : newItem;
         }
       }
     }

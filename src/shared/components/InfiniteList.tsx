@@ -3,7 +3,7 @@ import { InfiniteListing } from '../lib/InfiniteListing';
 import styles from './InfiniteList.module.css';
 import { Callbacks } from '../lib/Callbacks';
 
-type InfiniteListProps<T> = {
+type InfiniteListProps<T extends object> = {
   /**
    * The listing to use for fetching items. This component will not
    * reset the list, so the reset call should be made before creating
@@ -105,7 +105,7 @@ type ScrollPadding = {
  * if the listing.items are rotated. This could be extended to whenever
  * listing.items changes at all if user interaction is changing heights.
  */
-export function InfiniteList<T>({
+export function InfiniteList<T extends object>({
   listing,
   itemComparer,
   component,

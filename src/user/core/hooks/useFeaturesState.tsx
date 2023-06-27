@@ -5,7 +5,6 @@ import { FeatureAllStates } from '../models/FeatureAllStates';
 import { SignupRewardFeature } from '../features/signupReward/SignupRewardFeature';
 import { RequestNotificationTimeFeature } from '../features/requestNotificationTime/RequestNotificationTimeFeature';
 import { VipChatRequestFeature } from '../features/vipChatRequest/VipChatRequestFeature';
-import { CourseClassesFeature } from '../features/courseClasses/CourseClassesFeature';
 import { PickEmotionJourneyFeature } from '../features/pickEmotionJourney/PickEmotionJourneyFeature';
 import { GoalDaysPerWeekFeature } from '../features/goalDaysPerWeek/GoalDaysPerWeekFeature';
 import { FeedbackAnnouncementFeature } from '../features/feedbackAnnouncement/FeedbackAnnouncementFeature';
@@ -31,7 +30,6 @@ export type FeaturesState = {
 const features = [
   RequestNameFeature,
   FeedbackAnnouncementFeature,
-  CourseClassesFeature,
   SignupRewardFeature,
   RequestPhoneFeature,
   RequestNotificationTimeFeature,
