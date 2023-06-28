@@ -33,19 +33,22 @@ export const ExtendedClassesPackAttachScreen = ({ session }: { session: string |
       </div>
       <div className={styles.innerContainer} style={fullHeightStyle}>
         <div className={styles.content}>
+          <div className={styles.brandmarkContainer}>
+            <div className={styles.brandmarkIcon} />
+          </div>
           <div className={styles.title}>Thank you</div>
           <div className={styles.subtitle}>
-            for purchasing the <em>Extended Classes Pack</em>.
+            For being an early supporter and purchasing the <em>Extended Classes Pack</em>.
           </div>
           <div className={styles.description}>
             <p>
-              View your classes within the &lsquo;Owned&rsquo; tab of the Favorites page, accessible
-              from the upper-right-hand corner of the <em>Daily Check-in</em> screen.
+              You can view your purchases from your &lsquo;favorites&rsquo;, accessible from the
+              Home Screen.
             </p>
           </div>
           <div className={styles.gotoFavoritesButton}>
-            <Button type="button" variant="filled" onClick="/favorites?tab=courses" fullWidth>
-              Go there now
+            <Button type="button" variant="filled-white" onClick="/favorites?tab=courses" fullWidth>
+              Go to my purchases
             </Button>
           </div>
           {session !== null && (

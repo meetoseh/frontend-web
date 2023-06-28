@@ -26,13 +26,28 @@
 }
 
 .innerContainer {
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   background: rgba(0, 0, 0, 0.3);
   width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+
+.brandmarkContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 36px;
+}
+
+.brandmarkIcon {
+  composes: icon from '../../../../../shared/icons.module.css';
+  background-image: url('../../../../../assets/Oseh_Brandmark_White.svg');
+  width: 48px;
+  height: 48px;
+  padding: 6px;
 }
 
 .content {
@@ -44,26 +59,28 @@
 
 .title {
   font-family: 'Open Sans', sans-serif;
-  font-size: 32px;
+  font-size: 24px;
   line-height: 32px;
   font-weight: 400;
   color: #f9f9f9;
-  margin-bottom: 12px;
+  margin-bottom: 24px;
 }
 
 .subtitle {
   font-family: 'Open Sans', sans-serif;
-  font-size: 14px;
-  line-height: 14px;
+  font-size: 16px;
+  line-height: 24px;
   font-weight: 400;
+  letter-spacing: 0.25;
   color: #f9f9f9;
-  margin-bottom: 60px;
+  margin-bottom: 24px;
 }
 
 .description {
   font-family: 'Open Sans', sans-serif;
-  font-size: 18px;
-  line-height: 27px;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25;
   font-weight: 400;
   color: #f9f9f9;
 }
@@ -73,13 +90,13 @@
 }
 
 .transactionNumber {
-  margin-top: 12px;
+  margin-top: 40px;
   opacity: 75%;
 }
 
 .transactionNumberLabel {
   font-family: 'Open Sans', sans-serif;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 24px;
   font-weight: 400;
   color: #f9f9f9;
@@ -87,13 +104,13 @@
 
 .transactionNumberValue {
   font-family: 'Roboto Mono', monospace;
-  font-size: 14px;
-  line-height: 14px;
+  font-size: 12px;
+  line-height: 12px;
   font-weight: 400;
   color: #f9f9f9;
   word-wrap: break-word;
 }
 
 .gotoFavoritesButton {
-  margin-top: 60px;
+  margin-top: 36px;
 }

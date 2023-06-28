@@ -100,9 +100,16 @@
 
 .downloadIcon {
   composes: icon from '../../../shared/icons.module.css';
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   background-image: url('../icons/download.svg');
+}
+
+.downloadIconWrapper {
+  padding: 2px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .waitingIcon {

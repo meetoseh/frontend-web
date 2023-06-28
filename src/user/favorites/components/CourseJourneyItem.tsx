@@ -373,12 +373,14 @@ export const CourseJourneyItem = ({
           </div>
         </div>
         <div className={styles.favoriteAndDownloadContainer}>
-          <IconButton
-            icon={working ? styles.waitingIcon : styles.downloadIcon}
-            srOnlyName={'Download'}
-            onClick={onDownload}
-            disabled={working}
-          />
+          <div className={styles.downloadIconWrapper}>
+            <IconButton
+              icon={working ? styles.waitingIcon : styles.downloadIcon}
+              srOnlyName={'Download'}
+              onClick={onDownload}
+              disabled={working}
+            />
+          </div>
           <IconButton
             icon={
               working
