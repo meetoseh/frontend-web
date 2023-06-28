@@ -13,6 +13,7 @@ import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { JourneyFeedbackScreen } from '../../../journey/screens/JourneyFeedbackScreen';
 import { PickEmotion } from './PickEmotion';
+import { ECPPartialFeature } from './extended_classes_pack/ECPPartialFeature';
 
 /**
  * The core screen where the user selects an emotion and the backend
@@ -30,6 +31,10 @@ export const PickEmotionJourney = ({
   }>({ journeyUid: null, step: 'pick' });
   const stepRef = useRef(step);
   stepRef.current = step;
+
+  const ecpState = ECPPartialFeature.useWorldState(resources.selected?.word ?? null);
+  const ecpIsRequired = ECPPartialFeature.isRequired(ecpState);
+  const ecpResources = ECPPartialFeature.useResources(ecpState, ecpIsRequired ?? false);
 
   useEffect(() => {
     if (resources.selected === null && step.step !== 'pick') {
@@ -57,19 +62,8 @@ export const PickEmotionJourney = ({
       console.warn('gotoJourney without a journey to goto');
       return;
     }
-    apiFetch(
-      '/api/1/emotions/started_related_journey',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          emotion_user_uid: resources.selected.emotionUserUid,
-        }),
-      },
-      loginContext
-    );
     setStep({ journeyUid: resources.selected.journey.uid, step: 'lobby' });
-  }, [resources.selected, loginContext]);
+  }, [resources.selected]);
 
   const onFinishJourney = useCallback(() => {
     resources.onFinishedJourney.call(undefined);
@@ -109,13 +103,25 @@ export const PickEmotionJourney = ({
           return;
         }
 
+        apiFetch(
+          '/api/1/emotions/started_related_journey',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({
+              emotion_user_uid: resources.selected.emotionUserUid,
+            }),
+          },
+          loginContext
+        );
+
         shared.audio.play();
       }
       const newStep = { journeyUid: resources.selected.journey.uid, step: screen };
       stepRef.current = newStep;
       setStep(newStep);
     },
-    [resources.selected]
+    [resources.selected, loginContext]
   );
 
   if (resources.forceSplash) {
@@ -131,6 +137,14 @@ export const PickEmotionJourney = ({
         gotoJourney={gotoJourney}
       />
     );
+  }
+
+  if (ecpIsRequired === undefined) {
+    return <SplashScreen />;
+  }
+
+  if (ecpIsRequired) {
+    return ECPPartialFeature.component(ecpState, ecpResources);
   }
 
   if (resources.selected === null) {

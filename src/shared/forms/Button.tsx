@@ -46,6 +46,12 @@ type ButtonProps = {
   onLinkClick?: ((this: HTMLAnchorElement, ev: MouseEvent) => void) | undefined;
 
   /**
+   * Called when the mouse enters the button. Only called on desktop, so
+   * should not be used for essential functionality
+   */
+  onMouseEnter?: (() => void) | undefined;
+
+  /**
    * If set, used to make the anchor tag download the file. Ignored if not
    * an anchor tag
    */
@@ -63,6 +69,7 @@ export const Button = ({
   disabled = false,
   onClick = undefined,
   onLinkClick = undefined,
+  onMouseEnter = undefined,
   download = undefined,
 }: PropsWithChildren<ButtonProps>): ReactElement => {
   const anchorRef = useRef<HTMLAnchorElement>(null);
@@ -88,6 +95,7 @@ export const Button = ({
         type={type}
         disabled={disabled}
         onClick={onClick}
+        onMouseEnter={onMouseEnter}
         className={combineClasses(
           styles.button,
           styles[variant],
@@ -103,6 +111,7 @@ export const Button = ({
       ref={anchorRef}
       type={type}
       href={onClick}
+      onMouseEnter={onMouseEnter}
       className={combineClasses(
         styles.button,
         styles[variant],

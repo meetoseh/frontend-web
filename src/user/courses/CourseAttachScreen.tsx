@@ -9,6 +9,7 @@ import { LoginContext } from '../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { ExtendedClassesPackAttachScreen } from '../core/features/pickEmotionJourney/extended_classes_pack/ExtendedClassesPackAttachScreen';
 
 /**
  * The screen for associating a checkout, previously made by a guest, to a user.
@@ -22,6 +23,8 @@ export const CourseAttachScreen = (): ReactElement => {
   const imageHandler = useOsehImageStateRequestHandler({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ReactElement | null>(null);
+  const [slug, setSlug] = useState<string | null>(null);
+  const [session, setSession] = useState<string | null>(null);
 
   const handled = useRef(false);
   useSingletonEffect(
@@ -49,6 +52,7 @@ export const CourseAttachScreen = (): ReactElement => {
       };
 
       async function attachCourseInner() {
+        handled.current = true;
         const activatedCourseRaw = localStorage.getItem('activated-course');
         const activatedCourse: { session: string; slug: string } | null =
           activatedCourseRaw === null ? null : JSON.parse(activatedCourseRaw);
@@ -79,6 +83,8 @@ export const CourseAttachScreen = (): ReactElement => {
           throw response;
         }
 
+        setSlug(activatedCourse.slug);
+        setSession(activatedCourse.session);
         localStorage.removeItem('activated-course');
       }
 
@@ -105,6 +111,10 @@ export const CourseAttachScreen = (): ReactElement => {
 
   if (loading) {
     return <SplashScreen />;
+  }
+
+  if (slug === 'extended-classes-pack-06272023') {
+    return <ExtendedClassesPackAttachScreen session={session} />;
   }
 
   return (

@@ -239,7 +239,11 @@ export function selectFormat<T extends Playlist>(
     return 'png';
   }
 
-  return 'jpeg';
+  if (playlist.items.jpeg) {
+    return 'jpeg';
+  }
+
+  return 'png';
 }
 
 /**

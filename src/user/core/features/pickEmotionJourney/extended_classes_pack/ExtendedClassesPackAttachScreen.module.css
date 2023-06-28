@@ -1,0 +1,99 @@
+.container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+}
+
+.imageContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.innerContainer {
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.3);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.content {
+  max-width: 390px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 24px;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 32px;
+  line-height: 32px;
+  font-weight: 400;
+  color: #f9f9f9;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 14px;
+  font-weight: 400;
+  color: #f9f9f9;
+  margin-bottom: 60px;
+}
+
+.description {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 18px;
+  line-height: 27px;
+  font-weight: 400;
+  color: #f9f9f9;
+}
+
+.description p:not(:last-child) {
+  margin-bottom: 28px;
+}
+
+.transactionNumber {
+  margin-top: 12px;
+  opacity: 75%;
+}
+
+.transactionNumberLabel {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 400;
+  color: #f9f9f9;
+}
+
+.transactionNumberValue {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 14px;
+  line-height: 14px;
+  font-weight: 400;
+  color: #f9f9f9;
+  word-wrap: break-word;
+}
+
+.gotoFavoritesButton {
+  margin-top: 60px;
+}

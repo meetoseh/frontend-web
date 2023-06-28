@@ -1,8 +1,9 @@
 const charToKerningLength: Record<string, number> = {
-  i: 0.5,
+  i: 0.25,
   r: 0.5,
   f: 0.5,
-  l: 0.5,
+  l: 0.33,
+  t: 0.33,
   ' ': 0.25,
   '.': 0.25,
 };

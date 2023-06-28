@@ -64,6 +64,30 @@
         [652, 514],
         [978, 771]
       ]
+    },
+    {
+      "uid": "oseh_if_HbGIEpi23eBR0L1U3a-7Cg",
+      "name": "extended classes pack (tall)",
+      "comment": "used for the extended classes pack first screen",
+      "source": "server_images/extended_classes_pack.png",
+      "resolutions": [
+        [305, 140],
+        [610, 280],
+        [915, 420]
+      ],
+      "transparency": true
+    },
+    {
+      "uid": "oseh_if_lsFgG35ppTGo-0KNm6lWlQ",
+      "name": "extended classes pack (square)",
+      "comment": "used for the extended classes pack last screen",
+      "source": "server_images/extended_classes_pack_square.png",
+      "resolutions": [
+        [291, 104],
+        [582, 208],
+        [873, 312]
+      ],
+      "transparency": true
     }
   ]
 }

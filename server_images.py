@@ -29,7 +29,8 @@ is in the following format:
       "name": "my-name",  /* arbitrary name for debugging purposes */
       "comment": "mention where you are using this image, so it can be deleted later",
       "source": "server_images/your-image.jpg",
-      "resolutions": "full-bleed"  /* or array of [width, height] */
+      "resolutions": "full-bleed",  /* or array of [width, height] */
+      "transparency": true /* optional, defaults to false, switches jpeg to png */
     }
   ]
 }
@@ -121,6 +122,7 @@ class ServerImageFile(BaseModel):
     ] = Field(
         description="list of resolutions to generate, or a preset, or a combination"
     )
+    transparency: bool = Field(False, description="whether to use a transparent format")
 
 
 class ServerImageConfig(BaseModel):
@@ -300,6 +302,7 @@ async def ensure_file_exists(itgs: Itgs, file: ServerImageFile, force: bool = Fa
         file_s3_key=s3_key,
         file_resolutions=file.resolutions,
         job_uid=job_uid,
+        transparency=file.transparency,
     )
 
     await job_done_task

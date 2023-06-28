@@ -21,8 +21,10 @@ export const JourneyStart = ({
   isOnboarding,
   onJourneyFinished,
   selectedEmotionAntonym,
+  duration = '1-minute',
 }: JourneyScreenProps & {
   selectedEmotionAntonym?: string;
+  duration?: string;
 }): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -77,7 +79,7 @@ export const JourneyStart = ({
       <div className={combineClasses(styles.innerContainer, styles.foreground)}>
         <div className={styles.content}>
           <div className={styles.title}>
-            Here&rsquo;s a 1-minute {journey.category.externalName.toLocaleLowerCase()} class to
+            Here&rsquo;s a {duration} {journey.category.externalName.toLocaleLowerCase()} class to
             help you {selectedEmotionAntonym.toLocaleLowerCase()} with {journey.instructor.name}.
           </div>
           <div className={styles.skipForNowContainer}>

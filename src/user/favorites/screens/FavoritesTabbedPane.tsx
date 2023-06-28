@@ -23,7 +23,14 @@ export type FavoritesTabbedPaneProps = {
 };
 
 export const FavoritesTabbedPane = ({ background }: FavoritesTabbedPaneProps): ReactElement => {
-  const [tab, setTab] = useState<'favorites' | 'history' | 'courses'>('favorites');
+  const [tab, setTab] = useState<'favorites' | 'history' | 'courses'>(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const queryTab = searchParams.get('tab');
+    if (queryTab === 'favorites' || queryTab === 'history' || queryTab === 'courses') {
+      return queryTab;
+    }
+    return 'favorites';
+  });
   const loginContext = useContext(LoginContext);
   const loginContextRef = useRef(loginContext);
   loginContextRef.current = loginContext;
