@@ -20,6 +20,14 @@ const createLoadingState = (props: OsehImageProps): OsehImageState => ({
  * to the desired size before returning a URL to the corresponding blob via
  * the states localUrl property.
  *
+ * If the props change in a way requiring a reload, e.g., the size changes,
+ * this will reuse the old image state until the new image is available. This
+ * avoids unnecessary splash screens, especially when resizing the window.
+ * Prior to this change, components using the useState/useResources model
+ * would typically unmount and remount when the window was resized as the
+ * background image was reloaded, which could often have a visual impact
+ * because of state within the component being reset.
+ *
  * @param props The props for the image to load; props do not need to be memoized.
  *   To disable loading, set the uid to null.
  * @param handler The handler to use for requests. This allows the resources
@@ -31,7 +39,10 @@ export const useOsehImageState = (
   props: OsehImageProps,
   handler: OsehImageStateRequestHandler
 ): OsehImageState => {
-  const [state, setState] = useState<OsehImageState>(() => createLoadingState(props));
+  const [state, setState] = useState<[OsehImageProps, OsehImageState]>(() => [
+    props,
+    createLoadingState(props),
+  ]);
 
   useEffect(() => {
     const cpProps: OsehImageProps = {
@@ -45,22 +56,33 @@ export const useOsehImageState = (
     };
 
     if (cpProps.uid === null) {
-      setState((s) => {
-        if (s.localUrl !== null) {
-          return createLoadingState(cpProps);
+      setState((orig) => {
+        const [p, s] = orig;
+        if (p.uid !== null || s.localUrl !== null) {
+          return [cpProps, createLoadingState(cpProps)];
         }
-        return s;
+        return orig;
       });
       return;
     }
     const stateRef = handler.request(cpProps as OsehImagePropsLoadable);
     stateRef.stateChanged.add((s) => {
-      setState(s);
+      updateState(s);
     });
-    setState(stateRef.state);
+    updateState(stateRef.state);
     return () => {
       stateRef.release();
     };
+
+    function updateState(newState: OsehImageState) {
+      setState((orig) => {
+        const [p, s] = orig;
+        if (newState.loading && !s.loading && p.uid === cpProps.uid) {
+          return orig;
+        }
+        return [cpProps, newState];
+      });
+    }
   }, [
     props.uid,
     props.jwt,
@@ -72,5 +94,5 @@ export const useOsehImageState = (
     handler,
   ]);
 
-  return state;
+  return state[1];
 };
