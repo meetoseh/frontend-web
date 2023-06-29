@@ -259,18 +259,30 @@ export const CourseJourneyItem = ({
           return;
         }
 
-        response = await fetch(bestExport.url, {
-          method: 'GET',
-          headers: { Authorization: `bearer ${contentFileRef.jwt}` },
-        });
+        // If the download hostname differs from the current hostname,
+        // we will download it completely and then click an anchor tag,
+        // otherwise we'll just click the anchor tag.
 
-        if (!response.ok) {
-          throw response;
+        let urlToClick: string;
+        const bestExportURL = new URL(bestExport.url);
+        if (
+          bestExportURL.hostname !== window.location.hostname ||
+          bestExportURL.port !== window.location.port ||
+          bestExportURL.protocol !== window.location.protocol
+        ) {
+          response = await fetch(bestExport.url, {
+            method: 'GET',
+            headers: { Authorization: `bearer ${contentFileRef.jwt}` },
+          });
+
+          const blob = await response.blob();
+          urlToClick = URL.createObjectURL(blob);
+        } else {
+          urlToClick = bestExport.url + '?jwt=' + encodeURIComponent(contentFileRef.jwt);
         }
 
-        const blob = await response.blob();
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        a.href = urlToClick;
         a.download = `Oseh_${item.journey.title}_${item.journey.instructor.name}.mp4`
           .replaceAll(' ', '-')
           .replaceAll(/[^a-zA-Z0-9-_]/g, '');
