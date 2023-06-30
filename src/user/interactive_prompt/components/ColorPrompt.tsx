@@ -110,7 +110,7 @@ export const ColorPrompt = ({
   const selection = useSimpleSelection<number>();
   const hasSelection = useSimpleSelectionHasSelection(selection);
   const screenSize = useWindowSize();
-  const clientPredictedStats = useWritableValueWithCallbacks<number[]>([]);
+  const clientPredictedStats = useWritableValueWithCallbacks<number[]>(() => []);
   const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
   const loginContext = useContext(LoginContext);
   const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });

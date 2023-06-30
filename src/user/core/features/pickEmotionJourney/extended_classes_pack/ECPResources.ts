@@ -1,5 +1,6 @@
 import { InappNotificationSession } from '../../../../../shared/hooks/useInappNotificationSession';
 import { OsehImageState } from '../../../../../shared/images/OsehImageState';
+import { ValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
 import { JourneyShared } from '../../../../journey/models/JourneyShared';
 
 export type ECPResources = {
@@ -12,13 +13,13 @@ export type ECPResources = {
    * The image showing the new backgrounds in the tall form; used in the
    * prompt part
    */
-  tallPreview: OsehImageState;
+  tallPreview: ValueWithCallbacks<OsehImageState>;
 
   /**
    * The image showing the new backgrounds in square form, used in the
    * purchase screen
    */
-  shortPreview: OsehImageState;
+  shortPreview: ValueWithCallbacks<OsehImageState>;
 
   /**
    * The shared resources for the journey; we wait for the darkened background
@@ -26,7 +27,7 @@ export type ECPResources = {
    * to get them to the first screen faster, at the potential cost of another
    * loading screen later)
    */
-  journeyShared: JourneyShared;
+  journeyShared: ValueWithCallbacks<JourneyShared>;
 
   /**
    * True if some resources are still loading, false otherwise

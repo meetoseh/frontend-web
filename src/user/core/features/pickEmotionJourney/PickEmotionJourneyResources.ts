@@ -4,6 +4,7 @@ import { JourneyRef } from '../../../journey/models/JourneyRef';
 import { JourneyShared } from '../../../journey/models/JourneyShared';
 import { Emotion } from './Emotion';
 import { MyProfilePictureState } from '../../../../shared/hooks/useMyProfilePicture';
+import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 
 /**
  * The resources required to show the PickEmotionJourney step without
@@ -58,7 +59,7 @@ export type PickEmotionJourneyResources = {
      * The shared state for the journey. This may be loading, which should
      * disable the Start Your Class button
      */
-    shared: JourneyShared;
+    shared: ValueWithCallbacks<JourneyShared>;
     /**
      * The number of selections of this emotion recently
      */

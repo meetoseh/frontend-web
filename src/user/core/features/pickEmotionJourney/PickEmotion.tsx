@@ -27,7 +27,10 @@ import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState
 import styles from './PickEmotion.module.css';
 import { ErrorBlock } from '../../../../shared/forms/ErrorBlock';
 import { Button } from '../../../../shared/forms/Button';
-import { ProfilePictures } from '../../../interactive_prompt/components/ProfilePictures';
+import {
+  HereSettings,
+  ProfilePictures,
+} from '../../../interactive_prompt/components/ProfilePictures';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 import {
   BezierAnimator,
@@ -41,6 +44,11 @@ import { useAnimatedValueWithCallbacks } from '../../../../shared/anim/useAnimat
  * Ensures we display at least 12 options, faking the rest if necessary.
  */
 const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'dev';
+
+/**
+ * The settings for the profile pictures
+ */
+const hereSettings: HereSettings = { type: 'floating', action: 'voted' };
 
 /**
  * Allows the user to pick an emotion and then go to that class
@@ -276,7 +284,7 @@ export const PickEmotion = ({
             <div className={styles.profilePicturesContainer}>
               <ProfilePictures
                 profilePictures={profilePicturesStateRef}
-                hereSettings={{ type: 'floating', action: 'voted' }}
+                hereSettings={hereSettings}
               />
             </div>
           )}

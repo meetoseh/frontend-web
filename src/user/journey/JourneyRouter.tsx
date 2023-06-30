@@ -1,7 +1,5 @@
 import { ReactElement, useEffect, useMemo, useState } from 'react';
-import { ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { getJwtExpiration } from '../../shared/lib/getJwtExpiration';
-import { SplashScreen } from '../splash/SplashScreen';
 import { useJourneyShared } from './hooks/useJourneyShared';
 import { JourneyRef } from './models/JourneyRef';
 import { JourneyScreenProps } from './models/JourneyScreenProps';
@@ -37,12 +35,33 @@ export const JourneyRouter = ({
   isOnboarding,
 }: JourneyRouterProps): ReactElement => {
   const [screen, setScreen] = useState<JourneyRouterScreenId>('lobby');
-  const sharedState = useJourneyShared(journey);
+  const sharedState = useJourneyShared({ type: 'react-rerender', props: journey });
   const screenProps: JourneyScreenProps = useMemo(() => {
     return {
       journey,
       shared: sharedState,
-      setScreen: (screen, privileged) => setScreen(screen),
+      setScreen: (screen, privileged) => {
+        if (screen === 'journey') {
+          if (!privileged) {
+            console.warn('setScreen unprivileged to journey, treating as start');
+            setScreen('start');
+            return;
+          }
+
+          const audio = sharedState.get().audio;
+          if (!audio.loaded || audio.play === null || audio.audio === null) {
+            console.warn('setScreen to journey, but audio not loaded. going to start');
+            setScreen('start');
+            return;
+          }
+
+          audio.play();
+          setScreen('journey');
+          return;
+        }
+
+        setScreen(screen);
+      },
       onJourneyFinished: onFinished,
       isOnboarding,
     };
@@ -70,20 +89,8 @@ export const JourneyRouter = ({
     }
   }, [journey.jwt, onFinished]);
 
-  if (sharedState?.audio?.error !== null && sharedState?.audio?.error !== undefined) {
-    return <ErrorBlock>{sharedState.audio.error}</ErrorBlock>;
-  }
-
-  if (sharedState.darkenedImage.loading) {
-    return <SplashScreen />;
-  }
-
   if (screen === 'lobby') {
     return <JourneyLobbyScreen {...screenProps} />;
-  }
-
-  if (!sharedState.audio?.loaded) {
-    return <SplashScreen />;
   }
 
   if (screen === 'start') {
@@ -92,10 +99,6 @@ export const JourneyRouter = ({
 
   if (screen === 'journey') {
     return <Journey {...screenProps} />;
-  }
-
-  if (sharedState.blurredImage.loading) {
-    return <SplashScreen />;
   }
 
   if (screen === 'feedback') {

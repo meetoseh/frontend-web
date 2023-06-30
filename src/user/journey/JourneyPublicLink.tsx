@@ -12,6 +12,9 @@ import { JourneyLobbyScreen } from './screens/JourneyLobbyScreen';
 import { Journey } from './screens/Journey';
 import { JourneyRouterScreenId } from './JourneyRouter';
 import { InterestsProvider } from '../../shared/contexts/InterestsContext';
+import { useAnyImageStateValueWithCallbacksLoading } from '../../shared/images/useAnyImageStateValueWithCallbacksLoading';
+import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * This is a top-level component intended to be used for the /jpl route.
@@ -48,7 +51,7 @@ const JourneyPublicLinkInner = ({
     return urlParams.get('code');
   }, []);
   const [journey, setJourney] = useState<JourneyRef | null>(null);
-  const shared = useJourneyShared(journey);
+  const shared = useJourneyShared({ type: 'react-rerender', props: journey });
   const [screen, setScreen] = useState<'loading' | 'lobby' | 'start' | 'journey'>('loading');
   const [startedAudio, setStartedAudio] = useState(false);
 
@@ -118,14 +121,22 @@ const JourneyPublicLinkInner = ({
     [loginContext, visitor, journey, code]
   );
 
+  const darkenedImageLoading = useAnyImageStateValueWithCallbacksLoading(
+    [useMappedValueWithCallbacks(shared, (s) => s.darkenedImage)],
+    true
+  );
+  const audioLoading = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(
+      shared,
+      (s) => !s.audio.loaded || (!startedAudio && s.audio.play === null)
+    )
+  );
   const settingUp =
     visitor.loading ||
     loginContext.state === 'loading' ||
     journey === null ||
-    shared.darkenedImage.loading ||
-    shared.audio === null ||
-    !shared.audio.loaded ||
-    (!startedAudio && shared.audio.play === null);
+    darkenedImageLoading ||
+    audioLoading;
 
   useEffect(() => {
     if (screen !== 'loading' || settingUp) {
@@ -161,7 +172,7 @@ const JourneyPublicLinkInner = ({
 
       if (newScreen === 'journey') {
         if (!startedAudio) {
-          shared.audio?.play?.call(undefined);
+          shared.get().audio.play?.call(undefined);
           setStartedAudio(true);
         }
         setScreen('journey');
@@ -170,7 +181,7 @@ const JourneyPublicLinkInner = ({
 
       onFinished();
     },
-    [loginContext, shared.audio?.play, startedAudio, onFinished, screen]
+    [loginContext, shared, startedAudio, onFinished, screen]
   );
 
   if (screen === 'loading' || settingUp) {

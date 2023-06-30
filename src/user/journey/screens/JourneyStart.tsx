@@ -5,7 +5,9 @@ import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import styles from './JourneyStart.module.css';
 import { Journey } from './Journey';
 import { combineClasses } from '../../../shared/lib/combineClasses';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { useUnwrappedValueWithCallbacks } from '../../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * Shows a screen allowing the user to perform an interaction to start the
@@ -27,23 +29,27 @@ export const JourneyStart = ({
   duration?: string;
 }): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const audioReady = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(shared, (s) => s.audio.play !== null)
+  );
 
-  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize: shared.windowSize });
+  useFullHeight({ element: containerRef, attribute: 'minHeight' });
 
   const onSkipClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      shared.audio!.play!();
       setScreen('journey', true);
     },
-    [setScreen, shared.audio]
+    [setScreen]
   );
+
+  const darkenedImage = useMappedValueWithCallbacks(shared, (s) => s.darkenedImage);
 
   if (selectedEmotionAntonym === undefined) {
     return (
       <div className={styles.container} ref={containerRef}>
         <div className={styles.backgroundImageContainer}>
-          <OsehImageFromState {...shared.darkenedImage} />
+          <OsehImageFromStateValueWithCallbacks state={darkenedImage} />
         </div>
 
         <div className={styles.innerContainer}>
@@ -55,8 +61,8 @@ export const JourneyStart = ({
             <div className={styles.journeyTitle}>{journey.title}</div>
             <div className={styles.journeyDescription}>{journey.description.text}</div>
             <div className={styles.skipForNowContainer}>
-              <Button type="button" fullWidth={true} onClick={onSkipClick}>
-                Let&rsquo;s Go
+              <Button type="button" fullWidth={true} onClick={onSkipClick} disabled={!audioReady}>
+                {audioReady ? <>Let&rsquo;s Go</> : <>Loading...</>}
               </Button>
             </div>
           </div>
@@ -83,8 +89,13 @@ export const JourneyStart = ({
             help you {selectedEmotionAntonym.toLocaleLowerCase()} with {journey.instructor.name}.
           </div>
           <div className={styles.skipForNowContainer}>
-            <Button type="button" variant="filled-white" fullWidth={true} onClick={onSkipClick}>
-              Let&rsquo;s Go
+            <Button
+              type="button"
+              variant="filled-white"
+              fullWidth={true}
+              onClick={onSkipClick}
+              disabled={!audioReady}>
+              {audioReady ? <>Let&rsquo;s Go</> : <>Loading...</>}
             </Button>
           </div>
         </div>

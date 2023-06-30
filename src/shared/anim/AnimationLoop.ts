@@ -2,6 +2,7 @@ import { MutableRefObject, useCallback, useEffect, useMemo, useRef } from 'react
 import { Bezier } from '../lib/Bezier';
 import { BezierAnimation, animIsComplete, calculateAnimValue } from '../lib/BezierAnimation';
 import { Callbacks } from '../lib/Callbacks';
+import { VariableStrategyProps } from './VariableStrategyProps';
 
 export interface Animator<P extends object> {
   /**
@@ -462,11 +463,6 @@ export const inferAnimators = <
   }
   return result;
 };
-
-export type VariableStrategyProps<P extends object> =
-  | { type: 'react-rerender'; props: P }
-  | { type: 'callbacks'; props: () => P; callbacks: Callbacks<undefined> };
-
 /**
  * Implements a basic animation loop separate from the actual rendering
  * logic, where "animating" in this context is progressively changing

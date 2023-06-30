@@ -87,18 +87,13 @@ export const PickEmotionJourney = ({
         return;
       }
       if (screen === 'journey') {
-        const shared = resources.selected.shared;
-        if (shared.audio === null) {
-          console.warn('Cannot go to journey screen without audio.');
-          return;
-        }
-
-        if (!shared.audio.loaded) {
+        const audio = resources.selected.shared.get().audio;
+        if (!audio.loaded) {
           console.warn('Cannot go to journey screen without loaded audio.');
           return;
         }
 
-        if (shared.audio.play === null) {
+        if (audio.play === null) {
           console.warn('Cannot go to journey screen without audio play.');
           return;
         }
@@ -115,7 +110,7 @@ export const PickEmotionJourney = ({
           loginContext
         );
 
-        shared.audio.play();
+        audio.play();
       }
       const newStep = { journeyUid: resources.selected.journey.uid, step: screen };
       stepRef.current = newStep;
@@ -161,29 +156,14 @@ export const PickEmotionJourney = ({
   };
 
   if (step.step === 'lobby') {
-    if (sel.shared.darkenedImage.loading) {
-      return <SplashScreen />;
-    }
-
     return <JourneyLobbyScreen {...props} />;
   }
 
   if (step.step === 'start') {
-    if (
-      sel.shared.blurredImage.loading ||
-      sel.shared.audio === null ||
-      !sel.shared.audio.loaded ||
-      sel.shared.audio.play === null
-    ) {
-      return <SplashScreen />;
-    }
     return <JourneyStart {...props} selectedEmotionAntonym={sel.word.antonym} />;
   }
 
   if (step.step === 'journey') {
-    if (sel.shared.audio === null || !sel.shared.audio.loaded) {
-      return <SplashScreen />;
-    }
     return <Journey {...props} />;
   }
 
@@ -196,10 +176,6 @@ export const PickEmotionJourney = ({
   }
 
   if (step.step === 'share') {
-    if (sel.shared.blurredImage.loading || sel.shared.originalImage.loading) {
-      return <SplashScreen />;
-    }
-
     return <JourneyShareScreen {...props} />;
   }
 

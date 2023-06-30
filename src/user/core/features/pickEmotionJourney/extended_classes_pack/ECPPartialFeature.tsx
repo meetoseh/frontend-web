@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useContext, useEffect, useMemo } from 'react';
 import { ECPResources } from './ECPResources';
 import { ECPState } from './ECPState';
 import { ExtendedClassesPack } from './ExtendedClassesPack';
@@ -9,9 +9,12 @@ import { apiFetch } from '../../../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../../../../admin/crud/CrudFetcher';
 import { useOsehImageStateRequestHandler } from '../../../../../shared/images/useOsehImageStateRequestHandler';
 import { useInappNotificationSession } from '../../../../../shared/hooks/useInappNotificationSession';
-import { useOsehImageState } from '../../../../../shared/images/useOsehImageState';
 import { useJourneyShared } from '../../../../journey/hooks/useJourneyShared';
 import { Emotion } from '../Emotion';
+import { useOsehImageStateValueWithCallbacks } from '../../../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { useAnyImageStateValueWithCallbacksLoading } from '../../../../../shared/images/useAnyImageStateValueWithCallbacksLoading';
+import { useWritableValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * A feature-like object for the extended classes pack; this isn't a full
@@ -22,11 +25,14 @@ export const ECPPartialFeature = {
   useWorldState: (emotion: Emotion | null): ECPState => {
     const loginContext = useContext(LoginContext);
     const ian = useInappNotification('oseh_ian_GqGxDHGQeZT9OsSEGEU90g', false);
-    const [journey, setJourney] = useState<JourneyRef | null | undefined>(undefined);
+    const journey = useWritableValueWithCallbacks<JourneyRef | null | undefined>(() => undefined);
 
     useEffect(() => {
       if (loginContext.state !== 'logged-in' || ian === null || !ian.showNow || emotion === null) {
-        setJourney(undefined);
+        if (journey.get() !== undefined) {
+          journey.set(undefined);
+          journey.callbacks.call(undefined);
+        }
         return;
       }
 
@@ -37,8 +43,6 @@ export const ECPPartialFeature = {
       };
 
       async function fetchJourney() {
-        setJourney(undefined);
-
         try {
           const response = await apiFetch(
             '/api/1/campaigns/extended_classes_pack/consider',
@@ -54,12 +58,18 @@ export const ECPPartialFeature = {
           }
 
           if (!response.ok) {
-            setJourney(null);
+            if (journey.get() !== null) {
+              journey.set(null);
+              journey.callbacks.call(undefined);
+            }
             return;
           }
 
           if (response.status === 204) {
-            setJourney(null);
+            if (journey.get() !== null) {
+              journey.set(null);
+              journey.callbacks.call(undefined);
+            }
             return;
           }
 
@@ -67,16 +77,20 @@ export const ECPPartialFeature = {
           if (!active) {
             return;
           }
-          const journey = convertUsingKeymap(data, journeyRefKeyMap);
-          setJourney(journey);
+          const newJourney = convertUsingKeymap(data, journeyRefKeyMap);
+          journey.set(newJourney);
+          journey.callbacks.call(undefined);
         } catch (e) {
           console.error('error fetching extended classes pack journey:', e);
           if (active) {
-            setJourney(null);
+            if (journey.get() !== null) {
+              journey.set(null);
+              journey.callbacks.call(undefined);
+            }
           }
         }
       }
-    }, [ian, loginContext, emotion]);
+    }, [ian, loginContext, emotion, journey]);
 
     return useMemo(
       () => ({
@@ -92,29 +106,47 @@ export const ECPPartialFeature = {
     const images = useOsehImageStateRequestHandler({});
     const session = useInappNotificationSession(state.ian?.showNow ? state.ian.uid : null);
 
-    const tallPreview = useOsehImageState(
+    const tallPreview = useOsehImageStateValueWithCallbacks(
       {
-        uid: 'oseh_if_HbGIEpi23eBR0L1U3a-7Cg',
-        jwt: null,
-        displayWidth: 305,
-        displayHeight: 140,
-        isPublic: true,
-        alt: '5 new background images',
+        type: 'react-rerender',
+        props: {
+          uid: 'oseh_if_HbGIEpi23eBR0L1U3a-7Cg',
+          jwt: null,
+          displayWidth: 305,
+          displayHeight: 140,
+          isPublic: true,
+          alt: '5 new background images',
+        },
       },
       images
     );
-    const shortPreview = useOsehImageState(
+    const shortPreview = useOsehImageStateValueWithCallbacks(
       {
-        uid: 'oseh_if_lsFgG35ppTGo-0KNm6lWlQ',
-        jwt: null,
-        displayWidth: 291,
-        displayHeight: 104,
-        isPublic: true,
-        alt: '5 new background images',
+        type: 'react-rerender',
+        props: {
+          uid: 'oseh_if_lsFgG35ppTGo-0KNm6lWlQ',
+          jwt: null,
+          displayWidth: 291,
+          displayHeight: 104,
+          isPublic: true,
+          alt: '5 new background images',
+        },
       },
       images
     );
-    const journeyShared = useJourneyShared(state.journey ?? null);
+    const journeyShared = useJourneyShared({
+      type: 'callbacks',
+      props: () => state.journey.get() ?? null,
+      callbacks: state.journey.callbacks,
+    });
+    const imagesLoading = useAnyImageStateValueWithCallbacksLoading(
+      [
+        tallPreview,
+        shortPreview,
+        useMappedValueWithCallbacks(journeyShared, (s) => s.darkenedImage),
+      ],
+      true
+    );
 
     return useMemo(
       () => ({
@@ -122,13 +154,9 @@ export const ECPPartialFeature = {
         tallPreview,
         shortPreview,
         journeyShared,
-        loading:
-          session === null ||
-          tallPreview.loading ||
-          shortPreview.loading ||
-          journeyShared.darkenedImage.loading,
+        loading: session === null || imagesLoading,
       }),
-      [session, tallPreview, shortPreview, journeyShared]
+      [session, tallPreview, shortPreview, journeyShared, imagesLoading]
     );
   },
 

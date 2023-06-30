@@ -3,8 +3,9 @@ import styles from './JourneyShareScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 import { useOsehContentTarget } from '../../../shared/content/useOsehContentTarget';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 export const JourneyShareScreen = ({
   journey,
@@ -98,7 +99,9 @@ export const JourneyShareScreen = ({
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...shared.blurredImage} />
+        <OsehImageFromStateValueWithCallbacks
+          state={useMappedValueWithCallbacks(shared, (s) => s.blurredImage)}
+        />
       </div>
       <div className={styles.innerContainer}>
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
@@ -114,7 +117,9 @@ export const JourneyShareScreen = ({
         <div className={styles.primaryContainer}>
           <div className={styles.previewContainer}>
             <div className={styles.previewImageContainer}>
-              <OsehImageFromState {...shared.originalImage} />
+              <OsehImageFromStateValueWithCallbacks
+                state={useMappedValueWithCallbacks(shared, (s) => s.originalImage)}
+              />
             </div>
             <div className={styles.previewHeader}>
               <div className={styles.previewTitle}>{journey.title}</div>

@@ -22,7 +22,8 @@ import {
   animIsComplete,
   calculateAnimValue,
 } from '../../../shared/lib/BezierAnimation';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * Asks the user for feedback about the journey so that we can curate the
@@ -250,7 +251,9 @@ export const JourneyFeedbackScreen = ({
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...shared.blurredImage} />
+        <OsehImageFromStateValueWithCallbacks
+          state={useMappedValueWithCallbacks(shared, (s) => s.blurredImage)}
+        />
       </div>
       <div className={styles.innerContainer}>
         <div className={styles.closeButtonContainer}>

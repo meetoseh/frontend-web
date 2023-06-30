@@ -10,6 +10,7 @@ import { ExtendedClassesPackPurchaseOffer } from './ExtendedClassesPackPurchaseO
 import { useStartSession } from '../../../../../shared/hooks/useInappNotificationSession';
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
+import { useUnwrappedValueWithCallbacks } from '../../../../../shared/hooks/useUnwrappedValueWithCallbacks';
 
 export const ExtendedClassesPack = ({
   state,
@@ -28,33 +29,35 @@ export const ExtendedClassesPack = ({
   const onNext = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
+      const journey = state.journey.get();
       resources.session?.storeAction('try_class', {
         emotion: state.emotion?.word ?? null,
-        journey_uid: state.journey?.uid ?? null,
+        journey_uid: journey?.uid ?? null,
       });
-      if (state.journey !== null && state.journey !== undefined) {
+      if (journey !== null && journey !== undefined) {
         apiFetch(
           '/api/1/campaigns/extended_classes_pack/started',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify({
-              journey_uid: state.journey.uid,
-              journey_jwt: state.journey.jwt,
+              journey_uid: journey.uid,
+              journey_jwt: journey.jwt,
             }),
           },
           loginContext
         );
       }
-      if (resources.journeyShared.audio?.play) {
+      const play = resources.journeyShared.get().audio.play;
+      if (play !== null) {
         resources.session?.storeAction('start_audio', null);
-        resources.journeyShared.audio.play();
+        play();
         setStep('journey');
       } else {
         setStep('start');
       }
     },
-    [resources.journeyShared.audio, resources.session, state.emotion, state.journey, loginContext]
+    [resources.journeyShared, resources.session, state.emotion, state.journey, loginContext]
   );
 
   const onNoThanks = useCallback(
@@ -68,12 +71,14 @@ export const ExtendedClassesPack = ({
   );
 
   const handleStartSetScreen = useCallback(() => {
-    if (resources.journeyShared.audio?.play) {
-      resources.session?.storeAction('start_audio', null);
-      resources.journeyShared.audio.play();
-      setStep('journey');
+    const audio = resources.journeyShared.get().audio;
+    if (!audio.loaded || audio.play === null) {
+      return;
     }
-  }, [resources.journeyShared.audio, resources.session]);
+    audio.play();
+    resources.session?.storeAction('start_audio', null);
+    setStep('journey');
+  }, [resources.session, resources.journeyShared]);
 
   const handleStartJourneyFinished = handleStartSetScreen;
 
@@ -106,7 +111,9 @@ export const ExtendedClassesPack = ({
     state.ian?.onShown();
   }, [resources.session, state.ian]);
 
-  if (state.journey === null || state.journey === undefined || state.emotion === null) {
+  const stdJourney = useUnwrappedValueWithCallbacks(state.journey);
+
+  if (stdJourney === null || stdJourney === undefined || state.emotion === null) {
     return <SplashScreen />;
   }
 
@@ -122,13 +129,9 @@ export const ExtendedClassesPack = ({
   }
 
   if (step === 'start') {
-    if (resources.journeyShared.audio === null || resources.journeyShared.audio.play === null) {
-      return <SplashScreen />;
-    }
-
     return (
       <JourneyStart
-        journey={state.journey}
+        journey={stdJourney}
         shared={resources.journeyShared}
         setScreen={handleStartSetScreen}
         isOnboarding={false}
@@ -142,7 +145,7 @@ export const ExtendedClassesPack = ({
   if (step === 'journey') {
     return (
       <Journey
-        journey={state.journey}
+        journey={stdJourney}
         shared={resources.journeyShared}
         setScreen={handleJourneySetScreen}
         onCloseEarly={handleJourneyCloseEarly}

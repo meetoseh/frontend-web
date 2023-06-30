@@ -5,7 +5,8 @@ import '../../../assets/fonts.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import styles from './JourneyLobbyScreen.module.css';
 import { JourneyPrompt } from '../components/JourneyPrompt';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * Shows the screen for the lobby prior to the actual class, where the user
@@ -41,7 +42,9 @@ export const JourneyLobbyScreen = ({
   return (
     <div className={styles.container}>
       <div className={styles.backgroundImageContainer}>
-        <OsehImageFromState {...shared.darkenedImage} />
+        <OsehImageFromStateValueWithCallbacks
+          state={useMappedValueWithCallbacks(shared, (s) => s.darkenedImage)}
+        />
       </div>
       <div className={styles.closeButtonContainer}>
         <div className={styles.closeButtonInnerContainer}>

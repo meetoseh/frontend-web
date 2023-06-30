@@ -3,10 +3,12 @@ import { ECPResources } from './ECPResources';
 import styles from './ExtendedClassesPackPurchaseOffer.module.css';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
 import assistiveStyles from '../../../../../shared/assistive.module.css';
-import { OsehImageFromState } from '../../../../../shared/images/OsehImageFromState';
 import { useFullHeight } from '../../../../../shared/hooks/useFullHeight';
 import { Button } from '../../../../../shared/forms/Button';
 import { apiFetch } from '../../../../../shared/ApiConstants';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { useWindowSize } from '../../../../../shared/hooks/useWindowSize';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 
 export const ExtendedClassesPackPurchaseOffer = ({
   resources,
@@ -25,17 +27,18 @@ export const ExtendedClassesPackPurchaseOffer = ({
   }
   const containerRef = useRef<HTMLDivElement>(null);
   const backgroundOverlay = useRef<HTMLDivElement>(null);
+  const windowSize = useWindowSize();
 
   useFullHeight({
     element: containerRef,
     attribute: 'minHeight',
-    windowSize: resources.journeyShared.windowSize,
+    windowSize,
   });
 
   useFullHeight({
     element: backgroundOverlay,
     attribute: 'minHeight',
-    windowSize: resources.journeyShared.windowSize,
+    windowSize,
   });
 
   const handleXClick = useCallback(
@@ -101,7 +104,9 @@ export const ExtendedClassesPackPurchaseOffer = ({
   return (
     <div className={styles.container} ref={containerRef}>
       <div className={styles.backgroundImageContainer}>
-        <OsehImageFromState {...resources.journeyShared.blurredImage} />
+        <OsehImageFromStateValueWithCallbacks
+          state={useMappedValueWithCallbacks(resources.journeyShared, (s) => s.blurredImage)}
+        />
       </div>
       <div className={styles.backgroundOverlay} ref={backgroundOverlay} />
       <div className={styles.closeButtonContainer}>
@@ -115,7 +120,7 @@ export const ExtendedClassesPackPurchaseOffer = ({
       <div className={styles.innerContainer}>
         <div className={styles.content}>
           <div className={styles.banner}>
-            <OsehImageFromState {...resources.shortPreview} />
+            <OsehImageFromStateValueWithCallbacks state={resources.shortPreview} />
           </div>
           <div className={styles.title}>Extended Classes Pack</div>
           <div className={styles.description}>

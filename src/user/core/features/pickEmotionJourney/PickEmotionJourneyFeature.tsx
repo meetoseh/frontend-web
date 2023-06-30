@@ -95,7 +95,10 @@ export const PickEmotionJourneyFeature: Feature<
       profilePictures: OsehImageRef[];
       skipsStats: boolean;
     } | null>(null);
-    const journeyShared = useJourneyShared(selected === null ? null : selected.journey);
+    const journeyShared = useJourneyShared({
+      type: 'react-rerender',
+      props: selected === null ? null : selected.journey,
+    });
     const images = useOsehImageStateRequestHandler({});
     const [profilePictures, setProfilePictures] = useState<OsehImageState[]>([]);
     const [error, setError] = useState<{ ctr: number; value: ReactElement } | null>(null);
@@ -295,6 +298,14 @@ export const PickEmotionJourneyFeature: Feature<
       };
 
       function handleStateChanged() {
+        // It can be extremely laggy to trigger react rerenders as each profile
+        // picture loads; so for now we only set them if they are all available.
+        for (let r of requests) {
+          if (r.state.loading) {
+            return;
+          }
+        }
+
         setProfilePictures(requests.map((r) => r.state));
       }
     }, [selected?.profilePictures, images]);

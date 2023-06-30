@@ -1,5 +1,5 @@
 import { Button } from '../../../../../shared/forms/Button';
-import { OsehImageFromState } from '../../../../../shared/images/OsehImageFromState';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { ECPResources } from './ECPResources';
 import styles from './ExtendedClassesPackOfferSample.module.css';
 
@@ -34,7 +34,7 @@ export const ExtendedClassesPackOfferSample = ({
           Explore this new format and feel the impact of longer classes
         </div>
         <div className={styles.contentImageContainer}>
-          <OsehImageFromState {...resources.tallPreview} />
+          <OsehImageFromStateValueWithCallbacks state={resources.tallPreview} />
         </div>
         <div className={styles.submitOuterContainer}>
           <div className={styles.submitContainer}>

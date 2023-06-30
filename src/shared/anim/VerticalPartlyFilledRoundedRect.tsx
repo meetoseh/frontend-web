@@ -5,14 +5,9 @@ import {
   SinglePassWebGLComponent,
   SinglePassWebGLComponentRenderer,
 } from './SinglePassWebGLComponent';
-import {
-  Animator,
-  BezierAnimator,
-  BezierColorAnimator,
-  VariableStrategyProps,
-  useAnimationLoop,
-} from './AnimationLoop';
+import { Animator, BezierAnimator, BezierColorAnimator, useAnimationLoop } from './AnimationLoop';
 import { ease } from '../lib/Bezier';
+import { VariableStrategyProps } from './VariableStrategyProps';
 
 type Props = {
   /**

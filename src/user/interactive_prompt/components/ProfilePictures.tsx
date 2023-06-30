@@ -11,7 +11,7 @@ import { OsehImageState } from '../../../shared/images/OsehImageState';
 
 const FADE_TIME = 350;
 
-type HereSettings =
+export type HereSettings =
   | {
       type: 'filled';
       action: string;

@@ -28,6 +28,10 @@ const createLoadingState = (props: OsehImageProps): OsehImageState => ({
  * background image was reloaded, which could often have a visual impact
  * because of state within the component being reset.
  *
+ * This hook will cause react rerenders as the state loads; to avoid this
+ * in animation heavy components, prefer useOsehImageStateValueWithCallbacks
+ * and OsehImageFromStateValueWithCallbacks, which never trigger rerenders
+ *
  * @param props The props for the image to load; props do not need to be memoized.
  *   To disable loading, set the uid to null.
  * @param handler The handler to use for requests. This allows the resources
