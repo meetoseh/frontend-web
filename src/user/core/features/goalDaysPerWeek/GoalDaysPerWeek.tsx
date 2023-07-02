@@ -11,13 +11,16 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
+import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
 
 export const GoalDaysPerWeek = ({
-  state,
-  resources,
-  doAnticipateState,
+  state: stateVWC,
+  resources: resourcesVWC,
 }: FeatureComponentProps<GoalDaysPerWeekState, GoalDaysPerWeekResources>): ReactElement => {
-  useStartSession(resources.session);
+  const resources = useUnwrappedValueWithCallbacks(resourcesVWC);
+  const state = useUnwrappedValueWithCallbacks(stateVWC);
+
+  useStartSession({ type: 'react-rerender', props: resources.session });
   const loginContext = useContext(LoginContext);
   const interests = useContext(InterestsContext);
   const [goal, setGoal] = useState<number>(3);
@@ -27,43 +30,34 @@ export const GoalDaysPerWeek = ({
     return [1, 2, 3, 4, 5, 6, 7].map((i) => () => setGoal(i));
   }, []);
 
-  const onFinish = useCallback(() => {
+  const onFinish = useCallback(async () => {
     resources.session?.storeAction?.call(undefined, 'set_goal', { days_per_week: goal });
-    const newState = {
-      ...state,
-      signupIAP: state.ian?.onShown?.call(undefined, true) ?? null,
-    };
+    state.ian?.onShown?.call(undefined, true);
+    try {
+      const response = await apiFetch(
+        '/api/1/users/me/goal',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            days_per_week: goal,
+          }),
+        },
+        loginContext
+      );
 
-    doAnticipateState(
-      newState,
-      (async () => {
-        try {
-          const response = await apiFetch(
-            '/api/1/users/me/goal',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json; charset=utf-8' },
-              body: JSON.stringify({
-                days_per_week: goal,
-              }),
-            },
-            loginContext
-          );
+      if (!response.ok) {
+        throw response;
+      }
 
-          if (!response.ok) {
-            throw response;
-          }
-
-          resources.session?.reset?.call(undefined);
-          state.ian?.onShown?.call(undefined);
-        } catch (e) {
-          const err = await describeError(e);
-          setError(err);
-          throw new Error('Failed to store goal');
-        }
-      })()
-    );
-  }, [doAnticipateState, state, resources.session, goal, loginContext]);
+      resources.session?.reset?.call(undefined);
+      state.ian?.onShown?.call(undefined);
+    } catch (e) {
+      const err = await describeError(e);
+      setError(err);
+      throw new Error('Failed to store goal');
+    }
+  }, [state, resources.session, goal, loginContext]);
 
   return (
     <div className={styles.container}>

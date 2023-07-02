@@ -1,52 +1,73 @@
-import { useContext, useMemo } from 'react';
-import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
+import { useContext } from 'react';
+import { useInappNotificationValueWithCallbacks } from '../../../../shared/hooks/useInappNotification';
 import { Feature } from '../../models/Feature';
 import { GoalDaysPerWeekResources } from './GoalDaysPerWeekResources';
 import { GoalDaysPerWeekState } from './GoalDaysPerWeekState';
-import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
-import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
+import { useInappNotificationSessionValueWithCallbacks } from '../../../../shared/hooks/useInappNotificationSession';
 import { GoalDaysPerWeek } from './GoalDaysPerWeek';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
-import { OsehImageState } from '../../../../shared/images/OsehImageState';
-import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
+import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
 export const GoalDaysPerWeekFeature: Feature<GoalDaysPerWeekState, GoalDaysPerWeekResources> = {
   identifier: 'goalDaysPerWeek',
   useWorldState: () => {
-    const ian = useInappNotification('oseh_ian_onUsRRweMgFGAg_ZHorM2A', false);
-    return useMemo(() => ({ ian }), [ian]);
+    const ian = useInappNotificationValueWithCallbacks({
+      type: 'react-rerender',
+      props: { uid: 'oseh_ian_onUsRRweMgFGAg_ZHorM2A', suppress: false },
+    });
+    return useMappedValueWithCallbacks(ian, (ian) => ({ ian }));
   },
-  useResources: (state, required) => {
-    const windowSize = useWindowSize();
-    const interests = useContext(InterestsContext);
+  useResources: (stateVWC, requiredVWC) => {
+    const windowSizeVWC = useWindowSizeValueWithCallbacks();
+    const interestsRaw = useContext(InterestsContext);
+    const interestsVWC = useReactManagedValueAsValueWithCallbacks(interestsRaw);
     const imageHandler = useOsehImageStateRequestHandler({});
-    const background: OsehImageState = useOsehImageState(
-      {
-        uid: required ? backgroundUid : null,
+    const backgroundProps = useMappedValuesWithCallbacks(
+      [requiredVWC, windowSizeVWC],
+      (): OsehImageProps => ({
+        uid: requiredVWC.get() ? backgroundUid : null,
         jwt: null,
-        displayWidth: windowSize.width,
-        displayHeight: windowSize.height,
+        displayWidth: windowSizeVWC.get().width,
+        displayHeight: windowSizeVWC.get().height,
         alt: '',
         isPublic: true,
+      })
+    );
+    const background = useOsehImageStateValueWithCallbacks(
+      {
+        type: 'callbacks',
+        props: () => backgroundProps.get(),
+        callbacks: backgroundProps.callbacks,
       },
       imageHandler
     );
-    const session = useInappNotificationSession(required ? state.ian?.uid ?? null : null);
+    const ianUID = useMappedValuesWithCallbacks([requiredVWC, stateVWC], () =>
+      requiredVWC.get() ? stateVWC.get().ian?.uid ?? null : null
+    );
+    const session = useInappNotificationSessionValueWithCallbacks({
+      type: 'callbacks',
+      props: () => ({ uid: ianUID.get() }),
+      callbacks: ianUID.callbacks,
+    });
 
-    return useMemo<GoalDaysPerWeekResources>(
-      () => ({
-        background,
-        session,
+    return useMappedValuesWithCallbacks(
+      [background, session, interestsVWC],
+      (): GoalDaysPerWeekResources => ({
+        background: background.get(),
+        session: session.get(),
         loading:
-          background === null ||
-          background.loading ||
-          session === null ||
-          interests.state === 'loading',
-      }),
-      [background, session, interests.state]
+          background.get().loading ||
+          session.get() === null ||
+          interestsVWC.get().state === 'loading',
+      })
     );
   },
   isRequired: (state, allStates) => {
@@ -56,7 +77,5 @@ export const GoalDaysPerWeekFeature: Feature<GoalDaysPerWeekState, GoalDaysPerWe
 
     return state.ian.showNow && allStates.pickEmotionJourney.classesTakenThisSession > 0;
   },
-  component: (state, resources, doAnticipateState) => (
-    <GoalDaysPerWeek state={state} resources={resources} doAnticipateState={doAnticipateState} />
-  ),
+  component: (state, resources) => <GoalDaysPerWeek state={state} resources={resources} />,
 };

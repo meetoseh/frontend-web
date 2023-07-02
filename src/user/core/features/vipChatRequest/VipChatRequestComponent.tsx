@@ -4,18 +4,14 @@ import { VipChatRequestResources } from './VipChatRequestResources';
 import { VipChatRequestState } from './VipChatRequestState';
 import styles from './VipChatRequestComponent.module.css';
 import assistiveStyles from '../../../../shared/assistive.module.css';
-import {
-  CSSProperties,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { CSSProperties, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Button } from '../../../../shared/forms/Button';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../../shared/ApiConstants';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 
 type FnOrString = ((e: React.MouseEvent<HTMLButtonElement>) => void) | string;
 
@@ -26,38 +22,33 @@ function prettyPhoneNumber(pn: string) {
 export const VipChatRequestComponent = ({
   state,
   resources,
-  doAnticipateState,
 }: FeatureComponentProps<VipChatRequestState, VipChatRequestResources>) => {
   const loginContext = useContext(LoginContext);
-  const contentStyle = useMemo<CSSProperties | undefined>(() => {
-    if (resources.windowSize.width <= 439) {
+  const contentStyle = useMappedValueWithCallbacks(resources, (r) => {
+    if (r.windowSize.width <= 439) {
       return { padding: '0 24px' };
     }
     return undefined;
-  }, [resources.windowSize]);
+  });
 
   const doneRef = useRef<boolean>(false);
   const onDone = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       doneRef.current = true;
       e.preventDefault();
-      const newState = state.onDone.call(undefined);
-      doAnticipateState(newState, Promise.resolve());
+      state.get().onDone.call(undefined);
     },
-    [doAnticipateState, state.onDone]
+    [state]
   );
 
   const trackEvent = useCallback(
     (event: 'open' | 'click_cta' | 'click_x' | 'click_done' | 'close_window') => {
-      if (
-        loginContext.state !== 'logged-in' ||
-        state.chatRequest === null ||
-        state.chatRequest === undefined
-      ) {
+      const chatRequest = state.get().chatRequest;
+      if (loginContext.state !== 'logged-in' || chatRequest === null || chatRequest === undefined) {
         return;
       }
 
-      if (state.suppressEvents) {
+      if (state.get().suppressEvents) {
         console.log('suppressed tracking event: ' + event);
         return;
       }
@@ -68,7 +59,7 @@ export const VipChatRequestComponent = ({
           method: 'POST',
           headers: { 'Content-Type': 'application/json; charset=utf-8' },
           body: JSON.stringify({
-            uid: state.chatRequest.uid,
+            uid: chatRequest.uid,
             action: event,
           }),
           keepalive: true,
@@ -76,7 +67,7 @@ export const VipChatRequestComponent = ({
         loginContext
       );
     },
-    [state.suppressEvents, loginContext, state.chatRequest]
+    [loginContext, state]
   );
 
   const sentDone = useRef(false);
@@ -112,22 +103,23 @@ export const VipChatRequestComponent = ({
   const doSwap = useCallback(() => {
     setSwappedToPhone(true);
   }, []);
-  const url = useMemo<FnOrString>(() => {
-    if (state.chatRequest === null || state.chatRequest === undefined) {
+  const url = useMappedValuesWithCallbacks([state, resources], (): FnOrString => {
+    const chatRequest = state.get().chatRequest;
+    if (chatRequest === null || chatRequest === undefined) {
       return '';
     }
 
-    if (resources.windowSize.width > 600) {
+    if (resources.get().windowSize.width > 600) {
       return (e) => {
         e.preventDefault();
         setSwappedToPhone(true);
       };
     }
 
-    return `sms://${state.chatRequest.variant.phoneNumber};?&body=${encodeURI(
-      state.chatRequest.variant.textPrefill
+    return `sms://${chatRequest.variant.phoneNumber};?&body=${encodeURI(
+      chatRequest.variant.textPrefill
     )}`;
-  }, [state, resources.windowSize]);
+  });
 
   const onClickX = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -140,8 +132,9 @@ export const VipChatRequestComponent = ({
   const onClickCta = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       trackEvent('click_cta');
-      if (typeof url === 'function') {
-        url(e);
+      const handler = url.get();
+      if (typeof handler === 'function') {
+        handler(e);
       }
     },
     [trackEvent, url]
@@ -163,14 +156,33 @@ export const VipChatRequestComponent = ({
     [onDone, trackEvent]
   );
 
-  if (resources.variant === null || state.chatRequest === null || state.chatRequest === undefined) {
-    return <></>;
-  }
+  const background = useMappedValueWithCallbacks(
+    resources,
+    (r) =>
+      r.variant?.background ?? {
+        localUrl: null,
+        displayWidth: r.windowSize.width,
+        displayHeight: r.windowSize.height,
+        alt: '',
+        loading: true,
+        placeholderColor: '#000000',
+      }
+  );
+
+  const innerProps = useMappedValuesWithCallbacks(
+    [state, resources, contentStyle, url],
+    (): [VipChatRequestState, VipChatRequestResources, CSSProperties | undefined, FnOrString] => [
+      state.get(),
+      resources.get(),
+      contentStyle.get(),
+      url.get(),
+    ]
+  );
 
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...resources.variant.background} />
+        <OsehImageFromStateValueWithCallbacks state={background} />
       </div>
       <div className={styles.contentOuter}>
         <div className={styles.closeButtonContainer}>
@@ -181,40 +193,45 @@ export const VipChatRequestComponent = ({
             </button>
           </div>
         </div>
-        <div className={styles.content} style={contentStyle}>
-          <div className={styles.foregroundImageContainer}>
-            <OsehImageFromState {...resources.variant.image} />
-          </div>
-          <div className={styles.imageCaption}>{state.chatRequest.variant.imageCaption}</div>
-          <div className={styles.title}>{state.chatRequest.variant.title}</div>
-          <div className={styles.message}>{state.chatRequest.variant.message}</div>
-          <div className={styles.ctaContainer}>
-            {!swappedToPhone ? (
-              <Button
-                type="button"
-                variant="filled"
-                onClick={typeof url === 'function' ? onClickCta : url}
-                onLinkClick={onLinkClickCta}
-                fullWidth>
-                {state.chatRequest.variant.cta}
-              </Button>
-            ) : (
-              <>
-                <div className={styles.swappedPhoneContainer}>
-                  <div className={styles.swappedPhone}>
-                    {prettyPhoneNumber(state.chatRequest.variant.phoneNumber)}
-                  </div>
-                  <div className={styles.swappedSubtext}>Text me!</div>
-                </div>
-                <div className={styles.doneContainer}>
-                  <Button type="button" variant="filled" onClick={onClickDone} fullWidth>
-                    Done
+        <RenderGuardedComponent
+          props={innerProps}
+          component={([state, resources, contentStyle, url]) => (
+            <div className={styles.content} style={contentStyle}>
+              <div className={styles.foregroundImageContainer}>
+                {resources.variant && <OsehImageFromState {...resources.variant.image} />}
+              </div>
+              <div className={styles.imageCaption}>{state.chatRequest?.variant?.imageCaption}</div>
+              <div className={styles.title}>{state.chatRequest?.variant?.title}</div>
+              <div className={styles.message}>{state.chatRequest?.variant?.message}</div>
+              <div className={styles.ctaContainer}>
+                {!swappedToPhone ? (
+                  <Button
+                    type="button"
+                    variant="filled"
+                    onClick={typeof url === 'function' ? onClickCta : url}
+                    onLinkClick={onLinkClickCta}
+                    fullWidth>
+                    {state.chatRequest?.variant?.cta}
                   </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+                ) : (
+                  <>
+                    <div className={styles.swappedPhoneContainer}>
+                      <div className={styles.swappedPhone}>
+                        {prettyPhoneNumber(state.chatRequest?.variant?.phoneNumber || '')}
+                      </div>
+                      <div className={styles.swappedSubtext}>Text me!</div>
+                    </div>
+                    <div className={styles.doneContainer}>
+                      <Button type="button" variant="filled" onClick={onClickDone} fullWidth>
+                        Done
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        />
       </div>
     </div>
   );

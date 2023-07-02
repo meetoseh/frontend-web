@@ -1,13 +1,16 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect } from 'react';
 import { Feature } from '../../models/Feature';
 import { VipChatRequestResources } from './VipChatRequestResources';
 import { VipChatRequestState, VipChatRequest, convertVipChatRequest } from './VipChatRequestState';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
+import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
 import { VipChatRequestComponent } from './VipChatRequestComponent';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
-import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
+import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
 
 /**
  * Determines when we last showed the vip chat request for the user with the
@@ -61,8 +64,11 @@ export const VipChatRequestFeature: Feature<VipChatRequestState, VipChatRequestR
 
   useWorldState() {
     const loginContext = useContext(LoginContext);
-    const [chatRequest, setChatRequest] = useState<VipChatRequest | null | undefined>(undefined);
-    const [lastSeenAt, setLastSeenAt] = useState<Date | null>(null);
+    const chatRequest = useWritableValueWithCallbacks<{
+      sub: string;
+      request: VipChatRequest | null;
+    } | null>(() => null);
+    const lastSeenAt = useWritableValueWithCallbacks<Date | null>(() => null);
 
     useEffect(() => {
       if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
@@ -71,123 +77,198 @@ export const VipChatRequestFeature: Feature<VipChatRequestState, VipChatRequestR
       }
 
       setLastSeenAt(getLastShownAt(loginContext.userAttributes.sub));
-    }, [loginContext]);
 
-    useEffect(() => {
-      if (loginContext.state !== 'logged-in') {
-        setChatRequest(undefined);
-        return;
-      }
-
-      if (
-        lastSeenAt !== null &&
-        lastSeenAt.getTime() + 1000 * 60 * 60 * 24 * 3 > new Date().getTime()
-      ) {
-        setChatRequest(null);
-        return;
-      }
-
-      let active = true;
-      fetchChatRequest();
-      return () => {
-        active = false;
-      };
-
-      async function fetchChatRequestInner(): Promise<VipChatRequest | null> {
-        const response = await apiFetch(
-          '/api/1/vip_chat_requests/mine',
-          {
-            method: 'GET',
-          },
-          loginContext
-        );
-
-        if (response.status === 204) {
-          return null;
+      function setLastSeenAt(v: Date | null) {
+        if (v === lastSeenAt.get()) {
+          return;
         }
 
-        if (!response.ok) {
-          throw response;
-        }
-
-        const data = await response.json();
-        return convertVipChatRequest(data);
-      }
-
-      async function fetchChatRequest() {
-        try {
-          const req = await fetchChatRequestInner();
-          if (active) {
-            setChatRequest(req);
-          }
-        } catch (e) {
-          if (active) {
-            console.error('error fetching vip chat request', e);
-            setChatRequest(null);
-          }
-        }
+        lastSeenAt.set(v);
+        lastSeenAt.callbacks.call(undefined);
       }
     }, [loginContext, lastSeenAt]);
 
-    const onDone = useCallback(() => {
+    useEffect(() => {
+      let removeHandler: (() => void) | null = null;
+      lastSeenAt.callbacks.add(handleLastSeenAtChanged);
+      handleLastSeenAtChanged();
+      return () => {
+        if (removeHandler !== null) {
+          removeHandler();
+          removeHandler = null;
+        }
+        lastSeenAt.callbacks.remove(handleLastSeenAtChanged);
+      };
+
+      function handleLastSeenAtChanged() {
+        if (removeHandler !== null) {
+          removeHandler();
+          removeHandler = null;
+        }
+
+        if (loginContext.state !== 'logged-in') {
+          setChatRequest(null);
+          return;
+        }
+
+        const sub = loginContext.userAttributes?.sub ?? null;
+        if (sub === null) {
+          setChatRequest(null);
+          return;
+        }
+
+        const old = chatRequest.get();
+        if (old !== null && old.sub === sub) {
+          return;
+        }
+
+        removeHandler = handleLastSeenAt(lastSeenAt.get()) ?? null;
+      }
+
+      function handleLastSeenAt(lastSeenAt: Date | null): (() => void) | undefined {
+        if (loginContext.state !== 'logged-in') {
+          setChatRequest(null);
+          return;
+        }
+
+        if (
+          lastSeenAt !== null &&
+          lastSeenAt.getTime() + 1000 * 60 * 60 * 24 * 3 > new Date().getTime()
+        ) {
+          setChatRequest(null);
+          return;
+        }
+
+        let active = true;
+        fetchChatRequest();
+        return () => {
+          active = false;
+        };
+
+        async function fetchChatRequestInner(): Promise<VipChatRequest | null> {
+          const response = await apiFetch(
+            '/api/1/vip_chat_requests/mine',
+            {
+              method: 'GET',
+            },
+            loginContext
+          );
+
+          if (response.status === 204) {
+            return null;
+          }
+
+          if (!response.ok) {
+            throw response;
+          }
+
+          const data = await response.json();
+          return convertVipChatRequest(data);
+        }
+
+        async function fetchChatRequest() {
+          try {
+            const req = await fetchChatRequestInner();
+            if (active) {
+              setChatRequest(req);
+            }
+          } catch (e) {
+            if (active) {
+              console.error('error fetching vip chat request', e);
+              setChatRequest(null);
+            }
+          }
+        }
+      }
+
+      function setChatRequest(req: VipChatRequest | null) {
+        const sub = loginContext.userAttributes?.sub ?? null;
+        if (sub === null) {
+          if (chatRequest.get() !== null) {
+            chatRequest.set(null);
+            chatRequest.callbacks.call(undefined);
+          }
+          return;
+        }
+
+        const old = chatRequest.get();
+        if (old === null || old.sub !== sub || old.request !== req) {
+          chatRequest.set({ sub, request: req });
+          chatRequest.callbacks.call(undefined);
+        }
+      }
+    }, [loginContext, lastSeenAt, chatRequest]);
+
+    const onDoneRaw = useCallback(() => {
       if (loginContext.userAttributes?.sub) {
         const now = new Date();
         storeLastShownAt(loginContext.userAttributes.sub, now);
-        setLastSeenAt(now);
+        lastSeenAt.set(now);
+        lastSeenAt.callbacks.call(undefined);
+        chatRequest.set({ sub: loginContext.userAttributes.sub, request: null });
+        chatRequest.callbacks.call(undefined);
       }
-      setChatRequest(null);
-      return {
-        chatRequest: null,
-        onDone: () => {
-          throw new Error('onDone called twice');
-        },
-      };
-    }, [loginContext.userAttributes?.sub]);
+    }, [loginContext.userAttributes?.sub, lastSeenAt, chatRequest]);
+    const onDoneVWC = useReactManagedValueAsValueWithCallbacks(onDoneRaw);
 
-    return useMemo(
-      () => ({
-        chatRequest,
-        onDone,
-      }),
-      [chatRequest, onDone]
+    return useMappedValuesWithCallbacks(
+      [chatRequest, onDoneVWC],
+      (): VipChatRequestState => ({
+        chatRequest: chatRequest.get()?.request ?? null,
+        onDone: onDoneVWC.get(),
+      })
     );
   },
 
   useResources(state, required) {
-    const windowSize = useWindowSize(state.forcedWindowSize);
+    const windowSize = useWindowSizeValueWithCallbacks({
+      type: 'callbacks',
+      props: () => state.get().forcedWindowSize,
+      callbacks: state.callbacks,
+    });
     const images = useOsehImageStateRequestHandler({});
-    const image = useOsehImageState(
+    const image = useOsehImageStateValueWithCallbacks(
       {
-        uid: state.chatRequest?.variant?.image?.uid ?? null,
-        jwt: state.chatRequest?.variant?.image?.jwt ?? null,
-        displayWidth: 189,
-        displayHeight: 189,
-        alt: '',
+        type: 'callbacks',
+        props: () => ({
+          uid: state.get().chatRequest?.variant?.image?.uid ?? null,
+          jwt: state.get().chatRequest?.variant?.image?.jwt ?? null,
+          displayWidth: 189,
+          displayHeight: 189,
+          alt: '',
+        }),
+        callbacks: state.callbacks,
       },
       images
     );
-    const background = useOsehImageState(
+    const backgroundProps = useMappedValuesWithCallbacks([state, windowSize], () => ({
+      uid: state.get().chatRequest?.variant?.backgroundImage?.uid ?? null,
+      jwt: state.get().chatRequest?.variant?.backgroundImage?.jwt ?? null,
+      displayWidth: windowSize.get().width,
+      displayHeight: windowSize.get().height,
+      alt: '',
+    }));
+    const background = useOsehImageStateValueWithCallbacks(
       {
-        uid: state.chatRequest?.variant?.backgroundImage?.uid ?? null,
-        jwt: state.chatRequest?.variant?.backgroundImage?.jwt ?? null,
-        displayWidth: windowSize.width,
-        displayHeight: windowSize.height,
-        alt: '',
+        type: 'callbacks',
+        props: () => backgroundProps.get(),
+        callbacks: backgroundProps.callbacks,
       },
       images
     );
-    return useMemo(
-      () => ({
-        loading: !required || image.loading || background.loading,
-        windowSize,
-        variant: !required
+
+    return useMappedValuesWithCallbacks(
+      [required, image, background, windowSize],
+      (): VipChatRequestResources => ({
+        loading: !required.get() || image.get().loading || background.get().loading,
+        windowSize: windowSize.get(),
+        variant: !required.get()
           ? null
           : {
-              image,
-              background,
+              image: image.get(),
+              background: background.get(),
             },
-      }),
-      [required, image, background, windowSize]
+      })
     );
   },
 
@@ -195,13 +276,7 @@ export const VipChatRequestFeature: Feature<VipChatRequestState, VipChatRequestR
     return state.chatRequest === undefined ? undefined : state.chatRequest !== null;
   },
 
-  component(worldState, resources, doAnticipateState) {
-    return (
-      <VipChatRequestComponent
-        state={worldState}
-        resources={resources}
-        doAnticipateState={doAnticipateState}
-      />
-    );
+  component(worldState, resources) {
+    return <VipChatRequestComponent state={worldState} resources={resources} />;
   },
 };

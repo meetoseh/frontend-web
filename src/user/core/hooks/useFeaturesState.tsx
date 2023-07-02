@@ -1,4 +1,4 @@
-import { ReactElement, useMemo, useRef } from 'react';
+import { ReactElement } from 'react';
 import { RequestPhoneFeature } from '../features/requestPhone/RequestPhoneFeature';
 import { RequestNameFeature } from '../features/requestName/RequestNameFeature';
 import { FeatureAllStates } from '../models/FeatureAllStates';
@@ -7,6 +7,9 @@ import { RequestNotificationTimeFeature } from '../features/requestNotificationT
 import { VipChatRequestFeature } from '../features/vipChatRequest/VipChatRequestFeature';
 import { PickEmotionJourneyFeature } from '../features/pickEmotionJourney/PickEmotionJourneyFeature';
 import { GoalDaysPerWeekFeature } from '../features/goalDaysPerWeek/GoalDaysPerWeekFeature';
+import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
+import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 export type FeaturesState = {
   /**
@@ -45,114 +48,74 @@ const features = [
  * them indicate they should not be shown then `loading` and `required` may both
  * be false.
  *
+ * This never triggers react rerenders, though in practice the the returned component
+ * needs to be rendered, which requires a rerender.
+ *
  * @param maxSimultaneousLoadedResources The maximum number of resources to load at once.
  *   The target number is the smallest that ensures that there is no inter-screen loading time
+ * @returns The component to mount, undefined if we need more time to determine what to show,
+ *   null if no feature wants to be shown.
  */
-export const useFeaturesState = (maxSimultaneousLoadedResources: number = 3): FeaturesState => {
+export const useFeaturesState = (
+  maxSimultaneousLoadedResources: number = 3
+): ValueWithCallbacks<ReactElement | null | undefined> => {
   const states = features.map((s) => s.useWorldState());
-  const allStates = useMemo(() => {
-    const result = {} as any;
-    for (let i = 0; i < features.length; i++) {
-      result[features[i].identifier] = states[i];
-    }
-    return result as FeatureAllStates;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, states);
-  const requiredArr = features.map((s, idx) => s.isRequired(states[idx] as any, allStates));
-  const loadingResources = (() => {
-    let numLoading = 0;
-    const result: boolean[] = [];
-    for (let i = 0; i < features.length; i++) {
-      if (requiredArr[i] && numLoading < maxSimultaneousLoadedResources) {
-        numLoading++;
-        result.push(true);
-      } else {
-        result.push(false);
-      }
-    }
-    return result;
-  })();
-  const resources = features.map((s, idx) =>
-    s.useResources(states[idx] as any, loadingResources[idx], allStates)
+
+  const allStates = useMappedValuesWithCallbacks(states, () => {
+    const res: any = {};
+    states.forEach((s, idx) => {
+      const state = s.get();
+      res[features[idx].identifier] = state;
+    });
+    return res as FeatureAllStates;
+  });
+
+  const required = features.map((f, i) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useMappedValueWithCallbacks(allStates, (unw) => f.isRequired(states[i].get() as any, unw))
   );
 
-  const firstRequiredIdx = requiredArr.findIndex((r) => r);
-  const loading =
-    (firstRequiredIdx === -1 && requiredArr.some((r) => r === undefined)) ||
-    requiredArr.slice(0, firstRequiredIdx).some((r) => r === undefined) ||
-    (firstRequiredIdx >= 0 && resources[firstRequiredIdx]?.loading !== false);
-  const firstRequired =
-    firstRequiredIdx < 0
-      ? undefined
-      : {
-          feature: features[firstRequiredIdx],
-          state: states[firstRequiredIdx],
-          resources: resources[firstRequiredIdx],
-        };
+  const requiredRollingSum = useMappedValuesWithCallbacks(
+    required,
+    () => {
+      const res: number[] = [];
+      let sum = 0;
+      for (let i = 0; i < required.length; i++) {
+        sum += required[i].get() ? 1 : 0;
+        res.push(sum);
+      }
+      return res;
+    },
+    {
+      outputEqualityFn: (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
+    }
+  );
 
-  const resourcesRef = useRef(resources);
-  resourcesRef.current = resources;
+  const loadingFeatures = features.map((f, featureIdx) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useMappedValueWithCallbacks(requiredRollingSum, () => {
+      return (
+        !!required[featureIdx].get() &&
+        requiredRollingSum.get()[featureIdx] <= maxSimultaneousLoadedResources
+      );
+    })
+  );
 
-  const feature = useMemo<ReactElement | null>(() => {
-    if (firstRequired?.feature === undefined || loading) {
-      return null;
+  const resources = features.map((f, i) =>
+    f.useResources(states[i] as any, loadingFeatures[i], allStates)
+  );
+
+  return useMappedValuesWithCallbacks(required, (req) => {
+    for (let i = 0; i < req.length; i++) {
+      if (req[i] === undefined) {
+        return undefined;
+      }
+
+      if (req[i]) {
+        return features[i].component(states[i] as any, resources[i] as any);
+      }
     }
 
-    return (firstRequired.feature.component as any).call(
-      undefined,
-      firstRequired.state,
-      firstRequired.resources,
-      (worldState: any, pending: Promise<void>) => {
-        const newAllStates = (() => {
-          const result = {} as any;
-          for (const [key, value] of Object.entries(allStates)) {
-            if (key === firstRequired?.feature.identifier) {
-              result[key] = worldState;
-            } else {
-              result[key] = value;
-            }
-          }
-          return result as FeatureAllStates;
-        })();
-
-        const newRequiredArr = features.map((s) =>
-          s.isRequired(newAllStates[s.identifier] as any, newAllStates)
-        );
-
-        const newFirstRequiredIdx = newRequiredArr.findIndex((r) => r);
-        if (newFirstRequiredIdx < 0) {
-          return;
-        }
-
-        if (newRequiredArr.slice(0, newFirstRequiredIdx).some((r) => r === undefined)) {
-          return;
-        }
-
-        if (features[newFirstRequiredIdx].identifier === firstRequired?.feature.identifier) {
-          return;
-        }
-
-        (features[newFirstRequiredIdx].onMountingSoon as any)?.call(
-          undefined,
-          newAllStates[features[newFirstRequiredIdx].identifier],
-          resourcesRef.current[newFirstRequiredIdx],
-          pending,
-          newAllStates
-        );
-      }
-    );
-  }, [loading, firstRequired?.feature, firstRequired?.state, firstRequired?.resources, allStates]);
-
-  for (let i = 0; i < features.length; i++) {
-    console.log(features[i].identifier, ': ', requiredArr[i], resources[i]?.loading);
-  }
-
-  return useMemo<FeaturesState>(
-    () => ({
-      loading,
-      required: firstRequiredIdx >= 0,
-      feature,
-    }),
-    [loading, firstRequiredIdx, feature]
-  );
+    return null;
+  });
 };

@@ -1,5 +1,4 @@
 import { InappNotification } from '../../../../../shared/hooks/useInappNotification';
-import { ValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
 import { JourneyRef } from '../../../../journey/models/JourneyRef';
 import { Emotion } from '../Emotion';
 
@@ -24,11 +23,6 @@ export type ECPState = {
    * sample the extended classes pack, or null if we asked the server for
    * this journey and the server indicated we shouldn't offer it, or undefined
    * if we haven't asked the server (possibly because it's unnecessary).
-   *
-   * We wrap this in a ValueWithCallbacks to avoid triggering rerenders when
-   * it's loaded, since it's likely to load in the middle of the emotion
-   * selection animation, and we really want to delay rerenders during that
-   * time.
    */
-  journey: ValueWithCallbacks<JourneyRef | null | undefined>;
+  journey: JourneyRef | null | undefined;
 };

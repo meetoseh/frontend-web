@@ -9,13 +9,14 @@ import { apiFetch } from '../../../../../shared/ApiConstants';
 import { OsehImageFromStateValueWithCallbacks } from '../../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { useWindowSize } from '../../../../../shared/hooks/useWindowSize';
 import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
+import { ValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
 
 export const ExtendedClassesPackPurchaseOffer = ({
   resources,
   onRedirecting,
   onSkip,
 }: {
-  resources: ECPResources;
+  resources: ValueWithCallbacks<ECPResources>;
   onRedirecting: () => Promise<void>;
   onSkip: () => void;
 }): ReactElement => {
@@ -105,7 +106,7 @@ export const ExtendedClassesPackPurchaseOffer = ({
     <div className={styles.container} ref={containerRef}>
       <div className={styles.backgroundImageContainer}>
         <OsehImageFromStateValueWithCallbacks
-          state={useMappedValueWithCallbacks(resources.journeyShared, (s) => s.blurredImage)}
+          state={useMappedValueWithCallbacks(resources, (r) => r.journeyShared.blurredImage)}
         />
       </div>
       <div className={styles.backgroundOverlay} ref={backgroundOverlay} />
@@ -120,7 +121,9 @@ export const ExtendedClassesPackPurchaseOffer = ({
       <div className={styles.innerContainer}>
         <div className={styles.content}>
           <div className={styles.banner}>
-            <OsehImageFromStateValueWithCallbacks state={resources.shortPreview} />
+            <OsehImageFromStateValueWithCallbacks
+              state={useMappedValueWithCallbacks(resources, (r) => r.shortPreview)}
+            />
           </div>
           <div className={styles.title}>Extended Classes Pack</div>
           <div className={styles.description}>

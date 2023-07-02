@@ -13,7 +13,8 @@ import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhoneResources } from './RequestPhoneResources';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
-import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * Prompts the user for their phone number, then verifies it.
@@ -21,7 +22,6 @@ import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState
 export const RequestPhone = ({
   state,
   resources,
-  doAnticipateState,
 }: FeatureComponentProps<RequestPhoneState, RequestPhoneResources>): ReactElement => {
   const loginContext = useContext(LoginContext);
   const interests = useContext(InterestsContext);
@@ -35,7 +35,11 @@ export const RequestPhone = ({
   const [errorPhone, setErrorPhone] = useState(false);
   const [verificationUid, setVerificationUid] = useState<string | null>(null);
   const timezone = useTimezone();
-  useStartSession(resources.session);
+  useStartSession({
+    type: 'callbacks',
+    props: () => resources.get().session,
+    callbacks: resources.callbacks,
+  });
 
   const safeSetFocusPhone = useCallback((focuser: () => void) => {
     setFocusPhone(() => focuser);
@@ -117,7 +121,9 @@ export const RequestPhone = ({
         return;
       }
 
-      resources.session?.storeAction?.call(undefined, 'continue', { pn: phone, tz: timezone });
+      resources
+        .get()
+        .session?.storeAction?.call(undefined, 'continue', { pn: phone, tz: timezone });
       setSaving(true);
       setError(null);
       try {
@@ -151,15 +157,7 @@ export const RequestPhone = ({
         setSaving(false);
       }
     },
-    [
-      loginContext,
-      phoneFormatCorrect,
-      focusPhone,
-      phone,
-      receiveNotifs,
-      timezone,
-      resources.session?.storeAction,
-    ]
+    [loginContext, phoneFormatCorrect, focusPhone, phone, receiveNotifs, timezone, resources]
   );
 
   const onVerifyPhone = useCallback(
@@ -170,7 +168,7 @@ export const RequestPhone = ({
         return;
       }
 
-      resources.session?.storeAction?.call(undefined, 'verify_start', null);
+      resources.get().session?.storeAction?.call(undefined, 'verify_start', null);
       setSaving(true);
       setError(null);
       try {
@@ -195,10 +193,10 @@ export const RequestPhone = ({
           ...loginContext.userAttributes!,
           phoneNumber: phone.replaceAll(/ - /g, ''),
         });
-        resources.session?.storeAction?.call(undefined, 'verify_success', null);
+        resources.get().session?.storeAction?.call(undefined, 'verify_success', null);
         setStep('done');
       } catch (e) {
-        resources.session?.storeAction?.call(undefined, 'verify_fail', null);
+        resources.get().session?.storeAction?.call(undefined, 'verify_fail', null);
         console.error(e);
         const err = await describeError(e);
         setError(err);
@@ -206,49 +204,40 @@ export const RequestPhone = ({
         setSaving(false);
       }
     },
-    [loginContext, code, phone, verificationUid, resources.session?.storeAction]
+    [loginContext, code, phone, verificationUid, resources]
   );
 
   const onSkipPhone = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      let newState: RequestPhoneState = state;
-      if (resources.session !== null) {
-        if (resources.session.inappNotificationUid === state.phoneNumberIAN?.uid) {
-          newState = {
-            ...state,
-            phoneNumberIAN: state.phoneNumberIAN.onShown(),
-          };
-        } else if (resources.session.inappNotificationUid === state.onboardingPhoneNumberIAN?.uid) {
-          newState = {
-            ...state,
-            onboardingPhoneNumberIAN: state.onboardingPhoneNumberIAN.onShown(),
-          };
+      const res = resources.get();
+      const st = state.get();
+
+      if (res.session !== null) {
+        res.session.storeAction('skip', null);
+        res.session.reset();
+        if (res.session.inappNotificationUid === st.phoneNumberIAN?.uid) {
+          st.phoneNumberIAN.onShown();
+        } else if (res.session.inappNotificationUid === st.onboardingPhoneNumberIAN?.uid) {
+          st.onboardingPhoneNumberIAN.onShown();
         }
-
-        resources.session.storeAction('skip', null);
-        resources.session.reset();
       }
-
-      doAnticipateState(newState, Promise.resolve());
     },
-    [state, resources.session, doAnticipateState]
+    [state, resources]
   );
 
   const onBackVerify = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      resources.session?.storeAction?.call(undefined, 'verify_back', null);
+      resources.get().session?.storeAction?.call(undefined, 'verify_back', null);
       setError(null);
       setVerificationUid(null);
       setStep('number');
     },
-    [resources.session?.storeAction]
+    [resources]
   );
 
-  if (resources.background === null) {
-    return <></>;
-  }
+  const background = useMappedValueWithCallbacks(resources, (r) => r.background);
 
   if (step === 'done') {
     return <SplashScreen />;
@@ -257,7 +246,7 @@ export const RequestPhone = ({
   return (
     <div className={combineClasses(styles.container, styles[`container-${step}`])}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...resources.background} />
+        <OsehImageFromStateValueWithCallbacks state={background} />
       </div>
       <div className={styles.content}>
         {step === 'number' && (

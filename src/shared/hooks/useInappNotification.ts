@@ -1,7 +1,12 @@
-import { useContext, useEffect, useRef, useState } from 'react';
-import { useSingletonEffect } from '../lib/useSingletonEffect';
+import { useContext, useEffect, useRef } from 'react';
 import { LoginContext } from '../contexts/LoginContext';
 import { apiFetch } from '../ApiConstants';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../anim/VariableStrategyProps';
+import { useUnwrappedValueWithCallbacks } from './useUnwrappedValueWithCallbacks';
 
 const MAX_EXPIRATION_TIME_SECONDS = 60 * 60 * 24 * 7;
 
@@ -54,6 +59,9 @@ export type InappNotification = {
  * context surrounding the notification--for example, we shouldn't prompt a user
  * for a phone number if we already have their phone number.
  *
+ * This requires react rerenders; when this is not desirable (most of the time),
+ * prefer useInappNotificationValueWithCallbacks.
+ *
  * @param uid The uid of the in-app notification to fetch
  * @param suppress If true, this will always return null, and won't query the
  *   backend. This always following the rules of hooks when an in-app notification
@@ -64,8 +72,44 @@ export type InappNotification = {
  *   are still loading data
  */
 export const useInappNotification = (uid: string, suppress: boolean): InappNotification | null => {
+  const vwc = useInappNotificationValueWithCallbacks({
+    type: 'react-rerender',
+    props: {
+      uid,
+      suppress,
+    },
+  });
+
+  return useUnwrappedValueWithCallbacks(vwc);
+};
+
+/**
+ * Fetches the in-app notification with the given uid. Returns null while
+ * loading the notification, and will hallucinate a showNow value of false if an
+ * error occurs or we know the backend would return false if we query it.
+ * Otherwise, this will ask the if the given notification should be presented
+ * to the user or not.
+ *
+ * Note that this exclusively uses the idea that users should not be constantly
+ * shown the same notification after dismissing it. It doesn't consider any
+ * context surrounding the notification--for example, we shouldn't prompt a user
+ * for a phone number if we already have their phone number.
+ *
+ * This never triggers react rerenders.
+ *
+ * @param propsVariableStrategy.uid The uid of the in-app notification to fetch
+ * @param propsVariableStrategy.suppress If true, this will always return null, and won't query the
+ *   backend.
+ * @returns The in-app notification if we've either retrieved it from the backend
+ *   or hallucinated that it should not be shown, null if either suppressed or we
+ *   are still loading data
+ */
+export const useInappNotificationValueWithCallbacks = (
+  propsVariableStrategy: VariableStrategyProps<{ uid: string; suppress: boolean }>
+): ValueWithCallbacks<InappNotification | null> => {
   const loginContext = useContext(LoginContext);
-  const [notification, setNotification] = useState<InappNotification | null>(null);
+  const notificationVWC = useWritableValueWithCallbacks<InappNotification | null>(() => null);
+  const propsVWC = useVariableStrategyPropsAsValueWithCallbacks(propsVariableStrategy);
 
   let cleanedUp = useRef<boolean>(false);
   useEffect(() => {
@@ -73,21 +117,38 @@ export const useInappNotification = (uid: string, suppress: boolean): InappNotif
       return;
     }
     cleanedUp.current = true;
-    removeOldKeys();
     pruneExpiredState(loginContext?.userAttributes?.sub ?? null);
   }, [loginContext]);
 
-  useSingletonEffect(
-    (onDone) => {
+  useEffect(() => {
+    let unmountCurrent: (() => void) | null = null;
+    propsVWC.callbacks.add(handlePropsChanged);
+    handlePropsChanged();
+    return () => {
+      if (unmountCurrent !== null) {
+        unmountCurrent();
+        unmountCurrent = null;
+      }
+      propsVWC.callbacks.remove(handlePropsChanged);
+    };
+
+    function handlePropsChanged() {
+      if (unmountCurrent !== null) {
+        unmountCurrent();
+        unmountCurrent = null;
+      }
+
+      unmountCurrent = handleProps(propsVWC.get().uid, propsVWC.get().suppress) ?? null;
+    }
+
+    function handleProps(uid: string, suppress: boolean): (() => void) | undefined {
       if (suppress) {
         setNotification(null);
-        onDone();
         return;
       }
 
       if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
         setNotification(null);
-        onDone();
         return;
       }
       const userSub = loginContext.userAttributes.sub;
@@ -103,7 +164,6 @@ export const useInappNotification = (uid: string, suppress: boolean): InappNotif
             onShown: () => newNotif,
           };
           setNotification(newNotif);
-          onDone();
           return;
         }
       }
@@ -205,15 +265,30 @@ export const useInappNotification = (uid: string, suppress: boolean): InappNotif
             };
             setNotification(res);
           }
-        } finally {
-          onDone();
         }
       }
-    },
-    [uid, suppress, loginContext]
-  );
+    }
 
-  return notification;
+    function setNotification(
+      notification:
+        | InappNotification
+        | null
+        | ((oldNotif: InappNotification | null) => InappNotification | null)
+    ) {
+      if (typeof notification === 'function') {
+        notification = notification(notificationVWC.get());
+      }
+
+      if (notificationVWC.get() === notification) {
+        return;
+      }
+
+      notificationVWC.set(notification);
+      notificationVWC.callbacks.call(undefined);
+    }
+  }, [propsVWC, notificationVWC, loginContext]);
+
+  return notificationVWC;
 };
 
 type StoredInappNotification = {
@@ -315,23 +390,4 @@ const pruneExpiredState = (userSub: string | null) => {
     localStorage.removeItem(`inapp-notification-${uid}`);
   }
   storeUids(newUids);
-};
-
-/** Keys in local storage that were replaced with this hook */
-const oldKeys = [
-  'your-journey',
-  'daily-goal-prompt',
-  'introspection-prompt',
-  'notification-time-prompt',
-  'handled-request-notification-time',
-  'skip-request-phone-first',
-  'skip-request-phone-second',
-  'signup-reward',
-  'onboarding-class',
-];
-
-const removeOldKeys = () => {
-  for (const k of oldKeys) {
-    localStorage.removeItem(k);
-  }
 };

@@ -1,5 +1,7 @@
 import { Button } from '../../../../../shared/forms/Button';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { ValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
 import { ECPResources } from './ECPResources';
 import styles from './ExtendedClassesPackOfferSample.module.css';
 
@@ -14,7 +16,7 @@ export const ExtendedClassesPackOfferSample = ({
   onNoThanks,
 }: {
   windowSize: { width: number; height: number };
-  resources: ECPResources;
+  resources: ValueWithCallbacks<ECPResources>;
   onNext: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onNoThanks: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) => {
@@ -34,7 +36,9 @@ export const ExtendedClassesPackOfferSample = ({
           Explore this new format and feel the impact of longer classes
         </div>
         <div className={styles.contentImageContainer}>
-          <OsehImageFromStateValueWithCallbacks state={resources.tallPreview} />
+          <OsehImageFromStateValueWithCallbacks
+            state={useMappedValueWithCallbacks(resources, (r) => r.tallPreview)}
+          />
         </div>
         <div className={styles.submitOuterContainer}>
           <div className={styles.submitContainer}>

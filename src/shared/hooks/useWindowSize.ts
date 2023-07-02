@@ -7,7 +7,9 @@ import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callba
 import { useUnwrappedValueWithCallbacks } from './useUnwrappedValueWithCallbacks';
 
 /**
- * A basic hook to get the window size with a debounced resize listener
+ * A basic hook to get the window size with a debounced resize listener. This
+ * triggers rerenders as it's a standard hook; avoid that using the VWC
+ * variant.
  *
  * @param forcedSize if specified, returned instead of the real window size.
  *   Convenient when you want to render a component that uses this hook at

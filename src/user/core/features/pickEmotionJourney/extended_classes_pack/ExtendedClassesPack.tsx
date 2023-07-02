@@ -10,28 +10,34 @@ import { ExtendedClassesPackPurchaseOffer } from './ExtendedClassesPackPurchaseO
 import { useStartSession } from '../../../../../shared/hooks/useInappNotificationSession';
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
+import { ValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
 import { useUnwrappedValueWithCallbacks } from '../../../../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 
 export const ExtendedClassesPack = ({
   state,
   resources,
 }: {
-  state: ECPState;
-  resources: ECPResources;
+  state: ValueWithCallbacks<ECPState>;
+  resources: ValueWithCallbacks<ECPResources>;
 }): ReactElement => {
   const loginContext = useContext(LoginContext);
   const windowSize = useWindowSize();
   const [step, setStep] = useState<
     'offerSample' | 'start' | 'journey' | 'offerPack' | 'redirecting'
   >('offerSample');
-  useStartSession(resources.session);
+  useStartSession({
+    type: 'callbacks',
+    props: () => resources.get().session,
+    callbacks: resources.callbacks,
+  });
 
   const onNext = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      const journey = state.journey.get();
-      resources.session?.storeAction('try_class', {
-        emotion: state.emotion?.word ?? null,
+      const journey = state.get().journey;
+      resources.get().session?.storeAction('try_class', {
+        emotion: state.get().emotion?.word ?? null,
         journey_uid: journey?.uid ?? null,
       });
       if (journey !== null && journey !== undefined) {
@@ -48,72 +54,80 @@ export const ExtendedClassesPack = ({
           loginContext
         );
       }
-      const play = resources.journeyShared.get().audio.play;
+      const play = resources.get().journeyShared.audio.play;
       if (play !== null) {
-        resources.session?.storeAction('start_audio', null);
+        resources.get().session?.storeAction('start_audio', null);
         play();
         setStep('journey');
       } else {
         setStep('start');
       }
     },
-    [resources.journeyShared, resources.session, state.emotion, state.journey, loginContext]
+    [resources, state, loginContext]
   );
 
   const onNoThanks = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      resources.session?.storeAction('no_thanks', { emotion: state.emotion?.word ?? null });
-      resources.session?.reset();
-      state.ian?.onShown();
+      resources
+        .get()
+        .session?.storeAction('no_thanks', { emotion: state.get().emotion?.word ?? null });
+      resources.get().session?.reset();
+      state.get().ian?.onShown();
     },
-    [resources.session, state.ian, state.emotion?.word]
+    [resources, state]
   );
 
   const handleStartSetScreen = useCallback(() => {
-    const audio = resources.journeyShared.get().audio;
+    const audio = resources.get().journeyShared.audio;
     if (!audio.loaded || audio.play === null) {
       return;
     }
     audio.play();
-    resources.session?.storeAction('start_audio', null);
+    resources.get().session?.storeAction('start_audio', null);
     setStep('journey');
-  }, [resources.session, resources.journeyShared]);
+  }, [resources]);
 
   const handleStartJourneyFinished = handleStartSetScreen;
 
   const handleJourneySetScreen = useCallback(() => {
-    resources.session?.storeAction('stop_audio_normally', null);
+    resources.get().session?.storeAction('stop_audio_normally', null);
     setStep('offerPack');
-  }, [resources.session]);
+  }, [resources]);
 
   const handleJourneyJourneyFinished = handleJourneySetScreen;
 
   const handleJourneyCloseEarly = useCallback(
     (currentTime: number, totalTime: number) => {
-      resources.session?.storeAction('stop_audio_early', { current_time: currentTime });
+      resources.get().session?.storeAction('stop_audio_early', { current_time: currentTime });
       setStep('offerPack');
     },
-    [resources.session]
+    [resources]
   );
 
   const handleRedirectingToPaymentProvider = useCallback(async () => {
     setStep('redirecting');
-    await resources.session?.storeAction('buy_now', null);
-    resources.session?.reset();
+    await resources.get().session?.storeAction('buy_now', null);
+    resources.get().session?.reset();
     // we don't want to dismiss the ian as we want to go to the splash
     // screen until the redirect goes through
-  }, [resources.session]);
+  }, [resources]);
 
   const handleRejectPaymentOffer = useCallback(() => {
     setStep('redirecting');
-    resources.session?.reset();
-    state.ian?.onShown();
-  }, [resources.session, state.ian]);
+    resources.get().session?.reset();
+    state.get().ian?.onShown();
+  }, [resources, state]);
 
-  const stdJourney = useUnwrappedValueWithCallbacks(state.journey);
+  const stdJourney = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(state, (s) => s.journey)
+  );
+  const emotion = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(state, (s) => s.emotion)
+  );
+  const journeySharedVWC = useMappedValueWithCallbacks(resources, (r) => r.journeyShared);
 
-  if (stdJourney === null || stdJourney === undefined || state.emotion === null) {
+  if (stdJourney === null || stdJourney === undefined || emotion === null) {
     return <SplashScreen />;
   }
 
@@ -132,11 +146,11 @@ export const ExtendedClassesPack = ({
     return (
       <JourneyStart
         journey={stdJourney}
-        shared={resources.journeyShared}
+        shared={journeySharedVWC}
         setScreen={handleStartSetScreen}
         isOnboarding={false}
         onJourneyFinished={handleStartJourneyFinished}
-        selectedEmotionAntonym={state.emotion.antonym}
+        selectedEmotionAntonym={emotion.antonym}
         duration="3-minute"
       />
     );
@@ -146,7 +160,7 @@ export const ExtendedClassesPack = ({
     return (
       <Journey
         journey={stdJourney}
-        shared={resources.journeyShared}
+        shared={journeySharedVWC}
         setScreen={handleJourneySetScreen}
         onCloseEarly={handleJourneyCloseEarly}
         onJourneyFinished={handleJourneyJourneyFinished}

@@ -1,23 +1,10 @@
-import {
-  MutableRefObject,
-  ReactElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
 import { PickEmotionJourneyResources } from './PickEmotionJourneyResources';
 import { PickEmotionJourneyState } from './PickEmotionJourneyState';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
-import {
-  ProfilePicturesState,
-  ProfilePicturesStateChangedEvent,
-  ProfilePicturesStateRef,
-} from '../../../interactive_prompt/hooks/useProfilePictures';
+import { ProfilePicturesState } from '../../../interactive_prompt/hooks/useProfilePictures';
 import {
   Callbacks,
   ValueWithCallbacks,
@@ -39,6 +26,9 @@ import {
 } from '../../../../shared/anim/AnimationLoop';
 import { ease } from '../../../../shared/lib/Bezier';
 import { useAnimatedValueWithCallbacks } from '../../../../shared/anim/useAnimatedValueWithCallbacks';
+import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 
 /**
  * Ensures we display at least 12 options, faking the rest if necessary.
@@ -61,32 +51,57 @@ export const PickEmotion = ({
   gotoJourney: () => void;
 }): ReactElement => {
   const loginContext = useContext(LoginContext);
+  const options = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(resources, (r) => r.options)
+  );
+  const selectedInfo = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(
+      resources,
+      (r) => {
+        if (r.selected === null) {
+          return null;
+        }
+
+        return {
+          word: r.selected.word.word,
+          numVotes: r.selected.numVotes,
+        };
+      },
+      {
+        outputEqualityFn: (a, b) => {
+          if (a === null || b === null) {
+            return a === b;
+          }
+
+          return a.word === b.word && a.numVotes === b.numVotes;
+        },
+      }
+    )
+  );
   const words = useMemo(() => {
-    const res = resources.options?.words?.map((opt) => opt.word) ?? [];
+    const res = options?.words?.map((opt) => opt.word) ?? [];
     if (isDevelopment) {
       while (res.length < 12) {
         res.push('faked');
       }
     }
     return res;
-  }, [resources.options]);
+  }, [options]);
   const [tentativelyPressedIndex, setTentativelyPressedIndex] = useState<number | null>(null);
   const pressed = useMemo<{ index: number; votes: number | null } | null>(() => {
-    if (resources.options === null) {
+    if (options === null) {
       return null;
     }
 
-    if (resources.selected !== null) {
-      const sel = resources.selected;
-
-      const idx = resources.options.words.findIndex((opt) => opt.word === sel.word.word);
+    if (selectedInfo !== null) {
+      const idx = options.words.findIndex((opt) => opt.word === selectedInfo.word);
       if (idx < 0) {
         return null;
       }
 
       return {
         index: idx,
-        votes: resources.selected.numVotes,
+        votes: selectedInfo.numVotes,
       };
     }
 
@@ -98,16 +113,16 @@ export const PickEmotion = ({
     }
 
     return null;
-  }, [resources.selected, resources.options, tentativelyPressedIndex]);
+  }, [selectedInfo, options, tentativelyPressedIndex]);
 
   const windowSize = useWindowSize();
 
   const onWordClick = useCallback(
     (word: string, index: number) => {
       setTentativelyPressedIndex(index);
-      resources.onSelect.call(undefined, resources.options!.words[index]);
+      resources.get().onSelect.call(undefined, options!.words[index]);
     },
-    [resources.onSelect, resources.options]
+    [resources, options]
   );
 
   const onGotoFavoritesClick = '/favorites';
@@ -125,28 +140,6 @@ export const PickEmotion = ({
     window.location.reload();
   }, []);
 
-  const profilePicturesState =
-    useRef<ProfilePicturesState>() as MutableRefObject<ProfilePicturesState>;
-  const profilePicturesStateChanged = useRef<
-    Callbacks<ProfilePicturesStateChangedEvent>
-  >() as MutableRefObject<Callbacks<ProfilePicturesStateChangedEvent>>;
-
-  const profilePicturesStateRef = useMemo<ProfilePicturesStateRef | null>(() => {
-    if (resources.selected === null) {
-      return null;
-    }
-
-    profilePicturesState.current = {
-      pictures: resources.selected.profilePictures,
-      additionalUsers: resources.selected.numTotalVotes - resources.selected.profilePictures.length,
-    };
-    profilePicturesStateChanged.current = new Callbacks();
-    return {
-      state: profilePicturesState,
-      onStateChanged: profilePicturesStateChanged,
-    };
-  }, [resources.selected]);
-
   const primaryContainerStyle = useMemo<React.CSSProperties>(() => {
     if (windowSize.height <= 570) {
       return {};
@@ -154,10 +147,10 @@ export const PickEmotion = ({
 
     return {
       paddingTop: '20px',
-      paddingBottom: resources.selected === null ? '20px' : '80px',
+      paddingBottom: selectedInfo === null ? '20px' : '80px',
       transition: 'padding-bottom 0.7s ease',
     };
-  }, [resources.selected, windowSize]);
+  }, [selectedInfo, windowSize]);
 
   const settingsStyle = useMemo<React.CSSProperties>(() => {
     const usableHeight = Math.min(844, windowSize.height);
@@ -199,31 +192,33 @@ export const PickEmotion = ({
     };
   }, [windowSize]);
 
-  if (resources.error !== null) {
-    if (resources.background !== null) {
-      return (
-        <div className={styles.container}>
-          <div className={styles.imageContainer}>
-            <OsehImageFromState {...resources.background} />
-          </div>
-          <div className={styles.innerContainer}>
-            <div className={styles.primaryContainer}>
-              <ErrorBlock>{resources.error}</ErrorBlock>
-              <div className={styles.ctaContainer} style={{ marginTop: '80px' }}>
-                <Button type="button" variant="outlined-white" onClick={onReloadClick} fullWidth>
-                  Reload
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
+  const error = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(resources, (r) => r.error)
+  );
+  const background = useMappedValueWithCallbacks(resources, (r) => r.background);
+  const profilePicture = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(resources, (r) => r.profilePicture)
+  );
+  const profilePicturesState = useMappedValueWithCallbacks(resources, (r): ProfilePicturesState => {
+    if (r.selected === null) {
+      return {
+        pictures: [],
+        additionalUsers: 0,
+      };
     }
+
+    return {
+      pictures: r.selected.profilePictures,
+      additionalUsers: r.selected.numTotalVotes - r.selected.numVotes,
+    };
+  });
+
+  if (error !== null) {
     return (
       <div className={styles.container}>
         <div className={styles.innerContainer}>
           <div className={styles.primaryContainer}>
-            <ErrorBlock>{resources.error}</ErrorBlock>
+            <ErrorBlock>{error}</ErrorBlock>
             <div className={styles.ctaContainer} style={{ marginTop: '80px' }}>
               <Button type="button" variant="outlined-white" onClick={onReloadClick} fullWidth>
                 Reload
@@ -235,26 +230,21 @@ export const PickEmotion = ({
     );
   }
 
-  if (
-    resources.background === null ||
-    resources.loading ||
-    resources.options === null ||
-    words === null
-  ) {
+  if (options === null || words === null) {
     return <></>;
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...resources.background} />
+        <OsehImageFromStateValueWithCallbacks state={background} />
       </div>
       <div className={styles.innerContainer}>
         <div className={styles.settingsLinkContainer} style={settingsStyle}>
           <a href="/settings" className={styles.settingsLink}>
             <div className={styles.profilePictureContainer}>
-              {resources.profilePicture.state === 'available' && (
-                <OsehImageFromState {...resources.profilePicture.image} />
+              {profilePicture.state === 'available' && (
+                <OsehImageFromState {...profilePicture.image} />
               )}
             </div>
             <div className={styles.settingsText}>
@@ -278,18 +268,13 @@ export const PickEmotion = ({
             options={words}
             onWordClick={onWordClick}
             pressed={pressed}
-            layout={resources.selected === null ? 'horizontal' : 'vertical'}
+            layout={selectedInfo === null ? 'horizontal' : 'vertical'}
           />
-          {profilePicturesStateRef !== null && (
-            <div className={styles.profilePicturesContainer}>
-              <ProfilePictures
-                profilePictures={profilePicturesStateRef}
-                hereSettings={hereSettings}
-              />
-            </div>
-          )}
+          <div className={styles.profilePicturesContainer}>
+            <ProfilePictures profilePictures={profilePicturesState} hereSettings={hereSettings} />
+          </div>
         </div>
-        {resources.selected !== null && (
+        {selectedInfo !== null && (
           <div className={styles.ctaContainer} style={ctaStyle}>
             <Button type="button" variant="filled-white" onClick={onGotoClassClick} fullWidth>
               Take Me To Class

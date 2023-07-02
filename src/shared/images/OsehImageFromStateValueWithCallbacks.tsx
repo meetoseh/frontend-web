@@ -41,7 +41,6 @@ export const OsehImageFromStateValueWithCallbacks = ({
 
     function rerender() {
       const val = Object.assign({}, state.get());
-      console.log('rendering image:', val);
 
       if (rendering !== null && rendering.loading && val.loading) {
         updatePlaceholder(rendering, val);

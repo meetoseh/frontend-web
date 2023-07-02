@@ -9,9 +9,9 @@ import { apiFetch } from '../shared/ApiConstants';
 import { useFonts } from '../shared/lib/useFonts';
 import { FullscreenContext, FullscreenProvider } from '../shared/contexts/FullscreenContext';
 import { useFeaturesState } from './core/hooks/useFeaturesState';
-import { FeaturesRouter } from './core/FeaturesRouter';
 import { InterestsAutoProvider } from '../shared/contexts/InterestsContext';
 import { useTimedValue } from '../shared/hooks/useTimedValue';
+import { RenderGuardedComponent } from '../shared/components/RenderGuardedComponent';
 
 export default function UserApp(): ReactElement {
   return (
@@ -126,19 +126,8 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
-    if (features.loading) {
-      setState('loading');
-      return;
-    }
-
-    if (features.required) {
-      setState('features');
-      return;
-    }
-
-    console.warn("No state matched, defaulting to 'loading' (this should never happen)");
-    setState('loading');
-  }, [loginContext.state, fontsLoaded, handlingCheckout, features.required, features.loading]);
+    setState('features');
+  }, [loginContext.state, fontsLoaded, handlingCheckout]);
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in') {
@@ -168,11 +157,9 @@ const UserAppInner = (): ReactElement => {
         <SplashScreen type={beenLoaded ? 'brandmark' : 'wordmark'} />
       ) : null}
       {state === 'login' ? <LoginApp /> : null}
-      {features.required ? (
-        <div className={state !== 'features' ? styles.displayNone : ''}>
-          <FeaturesRouter state={features} />
-        </div>
-      ) : null}
+      <div className={state !== 'features' ? styles.displayNone : ''}>
+        <RenderGuardedComponent props={features} component={(f) => f ?? <></>} />
+      </div>
     </div>
   );
 };
