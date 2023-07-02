@@ -1,4 +1,3 @@
-import { FeedbackAnnouncementState } from '../features/feedbackAnnouncement/FeedbackAnnouncementState';
 import { GoalDaysPerWeekState } from '../features/goalDaysPerWeek/GoalDaysPerWeekState';
 import { PickEmotionJourneyState } from '../features/pickEmotionJourney/PickEmotionJourneyState';
 import { RequestNameState } from '../features/requestName/RequestNameState';
@@ -8,7 +7,6 @@ import { SignupRewardState } from '../features/signupReward/SignupRewardState';
 import { VipChatRequestState } from '../features/vipChatRequest/VipChatRequestState';
 
 export type FeatureAllStates = {
-  feedbackAnnouncement: FeedbackAnnouncementState;
   requestName: RequestNameState;
   requestPhone: RequestPhoneState;
   signupReward: SignupRewardState;

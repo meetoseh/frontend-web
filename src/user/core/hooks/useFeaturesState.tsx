@@ -7,7 +7,6 @@ import { RequestNotificationTimeFeature } from '../features/requestNotificationT
 import { VipChatRequestFeature } from '../features/vipChatRequest/VipChatRequestFeature';
 import { PickEmotionJourneyFeature } from '../features/pickEmotionJourney/PickEmotionJourneyFeature';
 import { GoalDaysPerWeekFeature } from '../features/goalDaysPerWeek/GoalDaysPerWeekFeature';
-import { FeedbackAnnouncementFeature } from '../features/feedbackAnnouncement/FeedbackAnnouncementFeature';
 
 export type FeaturesState = {
   /**
@@ -29,7 +28,6 @@ export type FeaturesState = {
 
 const features = [
   RequestNameFeature,
-  FeedbackAnnouncementFeature,
   SignupRewardFeature,
   RequestPhoneFeature,
   RequestNotificationTimeFeature,
@@ -144,6 +142,10 @@ export const useFeaturesState = (maxSimultaneousLoadedResources: number = 3): Fe
       }
     );
   }, [loading, firstRequired?.feature, firstRequired?.state, firstRequired?.resources, allStates]);
+
+  for (let i = 0; i < features.length; i++) {
+    console.log(features[i].identifier, ': ', requiredArr[i], resources[i]?.loading);
+  }
 
   return useMemo<FeaturesState>(
     () => ({
