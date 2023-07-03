@@ -11,24 +11,6 @@ import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedVal
 import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
-export type FeaturesState = {
-  /**
-   * True if we're waiting for more information to determine the
-   * feature states, false otherwise.
-   */
-  loading: boolean;
-
-  /**
-   * True if a feature is ready to be shown, false otherwise.
-   */
-  required: boolean;
-
-  /**
-   * The step to render, or null if no step should be rendered.
-   */
-  feature: ReactElement | null;
-};
-
 const features = [
   RequestNameFeature,
   SignupRewardFeature,
