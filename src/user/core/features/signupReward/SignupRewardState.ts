@@ -7,7 +7,7 @@ export type SignupRewardState = {
   /**
    * The in-app notification for this screen, or null if it hasn't been loaded yet
    */
-  signupIAP: InappNotification | null;
+  ian: InappNotification | null;
 
   /**
    * If interests are still loading, undefined. Otherwise, true if the user

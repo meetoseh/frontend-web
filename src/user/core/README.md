@@ -10,6 +10,14 @@ specific feature is required, then features are required and the required step
 with the lowest index is shown. If more time is required to determine which feature
 to show, then features are loading.
 
+Note that this naturally lifts the state of each feature all the way to the UserApp
+router, such that if they used any react state change, it would trigger a rerender
+of UserApp, which is a potentially large performance hit. To avoid this, features
+are not allowed to trigger react rerenders in either of their hooks, and instead
+pass state via ValueWithCallbacks. These are easily unwrapped where needed using
+e.g., RenderGuardedComponent, which moves the react rerender down to where it's
+actually needed.
+
 ## Privileged Contexts
 
 How browsers provide privileged contexts greatly complicates transitioning between
@@ -30,10 +38,11 @@ Most of the time we want to use privileged contexts when mounting a new componen
 e.g., an audio screen wants to be mounted in a privileged context so the user
 doesn't have to tap the play button.
 
-To accomplish this, we want to determine what component we _will_ go to if the
-form submission goes through successfully, and begin to mount that component while
-we're still in a privileged context, and then revert everything and go back if the
-submission unexpectedly fails.
+Currently, this is accomplished by not having the priviliged screen be the first
+screen of a feature; then handling it is a relatively straight forward process
+within the feature. Historically, we had a way to inform a feature it was about
+to be mounting soon pending a promise, but it added so much complexity that it
+wasn't worth maintaining.
 
 ## Folder Structure
 

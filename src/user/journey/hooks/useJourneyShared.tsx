@@ -1,177 +1,412 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useWindowSize } from '../../../shared/hooks/useWindowSize';
+import { useContext, useEffect } from 'react';
+import { useWindowSizeValueWithCallbacks } from '../../../shared/hooks/useWindowSize';
 import { JourneyRef } from '../models/JourneyRef';
 import { JourneyShared } from '../models/JourneyShared';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { useOsehImageState } from '../../../shared/images/useOsehImageState';
-import { useOsehContentTarget } from '../../../shared/content/useOsehContentTarget';
+import { fetchWebExport } from '../../../shared/content/useOsehContentTarget';
 import { useOsehAudioContentState } from '../../../shared/content/useOsehAudioContentState';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../../../shared/anim/VariableStrategyProps';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { OsehContentTarget } from '../../../shared/content/OsehContentTarget';
 
 /**
- * Creates the initial journey & journey start shared state
+ * Creates the initial journey & journey start shared state. Since this is often
+ * used right as an animation is starting, we try very hard to reduce the number
+ * of react rerenders this triggers. This wasn't done until it became clear that
+ * every react rerender was very obvious to the user.
+ *
+ * @param journey The journey to create the shared state for
  */
-export const useJourneyShared = (journey: JourneyRef | null): JourneyShared => {
+export const useJourneyShared = (
+  journeyVariableStrategy: VariableStrategyProps<JourneyRef | null>
+): ValueWithCallbacks<JourneyShared> => {
   const loginContext = useContext(LoginContext);
-  const windowSize = useWindowSize();
-  const imageHandler = useOsehImageStateRequestHandler({});
-  const previewSize: { width: number; height: number } = useMemo(() => {
+  const journeyVWC = useVariableStrategyPropsAsValueWithCallbacks(journeyVariableStrategy);
+  const windowSizeVWC = useWindowSizeValueWithCallbacks({
+    type: 'react-rerender',
+    props: undefined,
+  });
+  const previewSizeVWC = useMappedValueWithCallbacks(windowSizeVWC, (windowSize) => {
     if (windowSize.width >= 390 && windowSize.height >= 844) {
       return { width: 270, height: 470 };
     }
 
     return { width: 208, height: 357 };
-  }, [windowSize]);
-  const originalImage = useOsehImageState(
-    {
-      uid: journey?.backgroundImage?.uid ?? null,
-      jwt: journey?.backgroundImage?.jwt ?? null,
-      displayWidth: previewSize.width,
-      displayHeight: previewSize.height,
-      alt: '',
-    },
-    imageHandler
-  );
-  const darkenedImage = useOsehImageState(
-    {
-      uid: journey?.darkenedBackgroundImage?.uid ?? null,
-      jwt: journey?.darkenedBackgroundImage?.jwt ?? null,
-      displayWidth: windowSize.width,
-      displayHeight: windowSize.height,
-      alt: '',
-    },
-    imageHandler
-  );
-  const blurredImage = useOsehImageState(
-    {
-      uid: journey?.blurredBackgroundImage?.uid ?? null,
-      jwt: journey?.blurredBackgroundImage?.jwt ?? null,
-      displayWidth: windowSize.width,
-      displayHeight: windowSize.height,
-      alt: '',
-    },
-    imageHandler
-  );
-  const [shared, setShared] = useState<JourneyShared>(() => ({
-    originalImage,
-    darkenedImage,
-    windowSize,
-    blurredImage,
-    audio: null,
-    favorited: null,
-    setFavorited: () => {
-      throw new Error('setFavorited called before favorited set');
-    },
-  }));
-  const audioTarget = useOsehContentTarget({
-    uid: journey?.audioContent?.uid ?? null,
-    jwt: journey?.audioContent?.jwt ?? null,
-    showAs: 'audio',
-    presign: false,
   });
-  const audio = useOsehAudioContentState(audioTarget);
-  const [favorited, setFavorited] = useState<boolean | null>(null);
-
-  const setFavoritedWrapper = useCallback(
-    (val: boolean) => {
-      if (favorited === null) {
-        throw new Error('setFavorited called before favorited set');
-      }
-
-      setFavorited(val);
-    },
-    [favorited]
+  const imageHandler = useOsehImageStateRequestHandler({});
+  const result = useWritableValueWithCallbacks<JourneyShared>(() =>
+    createLoadingJourneyShared(windowSizeVWC.get(), previewSizeVWC.get())
   );
 
+  const targetVWC = useWritableValueWithCallbacks<OsehContentTarget>(() => ({
+    state: 'loading',
+    jwt: null,
+    error: null,
+    webExport: null,
+    presigned: null,
+  }));
+  const audioVWC = useOsehAudioContentState({
+    type: 'callbacks',
+    props: targetVWC.get,
+    callbacks: targetVWC.callbacks,
+  });
+
+  // holy callback hell
+  // this is surprisingly efficient despite looking like a mess
   useEffect(() => {
-    let active = true;
-    loadFavorited();
+    let unmountJourneyHandler: (() => void) | null = null;
+    journeyVWC.callbacks.add(handleJourneyChanged);
+    handleJourneyChanged();
     return () => {
-      active = false;
+      journeyVWC.callbacks.remove(handleJourneyChanged);
+      if (unmountJourneyHandler !== null) {
+        unmountJourneyHandler();
+        unmountJourneyHandler = null;
+      }
     };
 
-    async function loadFavoritedInner() {
-      if (!active) {
-        return;
+    function handleJourneyChanged(): void {
+      if (unmountJourneyHandler !== null) {
+        unmountJourneyHandler();
+        unmountJourneyHandler = null;
       }
-      if (loginContext.state === 'loading') {
-        setFavorited(null);
+
+      const journeyOuter = journeyVWC.get();
+      if (journeyOuter === null) {
+        unmountJourneyHandler = handlePerpetualLoading();
         return;
       }
 
-      if (loginContext.state === 'logged-out') {
-        setFavorited(false);
-        return;
+      unmountJourneyHandler = handleJourney(journeyOuter);
+    }
+
+    function handleJourney(journey: JourneyRef): () => void {
+      const cleanup = [
+        handleOriginalImage(),
+        handleDarkenedAndBlurredImages(),
+        handleContentTarget(),
+        handleAudio(),
+        handleFavorited(),
+      ];
+      return () => {
+        cleanup.forEach((fn) => fn());
+      };
+
+      function handleOriginalImage(): () => void {
+        let removeRequest: (() => void) | null = null;
+        previewSizeVWC.callbacks.add(update);
+        update();
+
+        return () => {
+          previewSizeVWC.callbacks.remove(update);
+          if (removeRequest !== null) {
+            removeRequest();
+            removeRequest = null;
+          }
+        };
+
+        function update() {
+          if (removeRequest !== null) {
+            removeRequest();
+            removeRequest = null;
+          }
+
+          const request = imageHandler.request({
+            uid: journey.backgroundImage.uid,
+            jwt: journey.backgroundImage.jwt,
+            displayWidth: previewSizeVWC.get().width,
+            displayHeight: previewSizeVWC.get().height,
+            alt: '',
+          });
+          request.stateChanged.add(handleImageStateChanged);
+          removeRequest = () => {
+            request.stateChanged.remove(handleImageStateChanged);
+            request.release();
+          };
+          handleImageStateChanged();
+
+          function handleImageStateChanged() {
+            result.set({
+              ...result.get(),
+              originalImage: request.state,
+            });
+            result.callbacks.call(undefined);
+          }
+        }
       }
 
-      if (journey === null) {
-        setFavorited(null);
-        return;
+      function handleDarkenedAndBlurredImages(): () => void {
+        let removeRequest: (() => void) | null = null;
+        windowSizeVWC.callbacks.add(update);
+        update();
+
+        return () => {
+          windowSizeVWC.callbacks.remove(update);
+          if (removeRequest !== null) {
+            removeRequest();
+            removeRequest = null;
+          }
+        };
+
+        function update() {
+          if (removeRequest !== null) {
+            removeRequest();
+            removeRequest = null;
+          }
+
+          const darkenedRequest = imageHandler.request({
+            uid: journey.darkenedBackgroundImage.uid,
+            jwt: journey.darkenedBackgroundImage.jwt,
+            displayWidth: windowSizeVWC.get().width,
+            displayHeight: windowSizeVWC.get().height,
+            alt: '',
+          });
+          const blurredRequest = imageHandler.request({
+            uid: journey.blurredBackgroundImage.uid,
+            jwt: journey.blurredBackgroundImage.jwt,
+            displayWidth: windowSizeVWC.get().width,
+            displayHeight: windowSizeVWC.get().height,
+            alt: '',
+          });
+
+          darkenedRequest.stateChanged.add(handleImageStateChanged);
+          blurredRequest.stateChanged.add(handleImageStateChanged);
+          removeRequest = () => {
+            darkenedRequest.stateChanged.remove(handleImageStateChanged);
+            blurredRequest.stateChanged.remove(handleImageStateChanged);
+            darkenedRequest.release();
+            blurredRequest.release();
+          };
+          handleImageStateChanged();
+
+          function handleImageStateChanged() {
+            result.set({
+              ...result.get(),
+              darkenedImage: darkenedRequest.state,
+              blurredImage: blurredRequest.state,
+            });
+            result.callbacks.call(undefined);
+          }
+        }
       }
 
-      const response = await apiFetch(
-        '/api/1/users/me/search_history',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-          },
-          body: JSON.stringify({
-            filters: {
-              uid: {
-                operator: 'eq',
-                value: journey.uid,
+      function handleContentTarget(): () => void {
+        let active = true;
+        fetchContentTarget();
+        return () => {
+          active = false;
+        };
+
+        async function fetchContentTarget() {
+          if (targetVWC.get().state !== 'loading') {
+            targetVWC.set({
+              state: 'loading',
+              jwt: null,
+              error: null,
+              webExport: null,
+              presigned: null,
+            });
+            targetVWC.callbacks.call(undefined);
+          }
+
+          if (journey.audioContent.uid === null || journey.audioContent.jwt === null) {
+            return;
+          }
+
+          try {
+            const webExport = await fetchWebExport(
+              journey.audioContent.uid,
+              journey.audioContent.jwt,
+              false
+            );
+            if (!active) {
+              return;
+            }
+            targetVWC.set({
+              state: 'loaded',
+              jwt: journey.audioContent.jwt,
+              error: null,
+              webExport,
+              presigned: false,
+            });
+            targetVWC.callbacks.call(undefined);
+          } catch (e) {
+            console.error('error fetching content target', e);
+          }
+        }
+      }
+
+      function handleAudio(): () => void {
+        audioVWC.callbacks.add(update);
+        update();
+        return () => {
+          audioVWC.callbacks.remove(update);
+        };
+
+        function update() {
+          result.set({
+            ...result.get(),
+            audio: audioVWC.get(),
+          });
+          result.callbacks.call(undefined);
+        }
+      }
+
+      function handleFavorited(): () => void {
+        let active = true;
+        loadFavorited();
+        return () => {
+          active = false;
+        };
+
+        async function loadFavoritedInner() {
+          if (!active) {
+            return;
+          }
+          if (loginContext.state === 'loading') {
+            setFavorited(null);
+            return;
+          }
+
+          if (loginContext.state === 'logged-out') {
+            setFavorited(false);
+            return;
+          }
+
+          const response = await apiFetch(
+            '/api/1/users/me/search_history',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
               },
-              liked_at: {
-                operator: 'neq',
-                value: null,
-              },
+              body: JSON.stringify({
+                filters: {
+                  uid: {
+                    operator: 'eq',
+                    value: journey.uid,
+                  },
+                  liked_at: {
+                    operator: 'neq',
+                    value: null,
+                  },
+                },
+                limit: 1,
+              }),
             },
-            limit: 1,
-          }),
-        },
-        loginContext
-      );
-      if (!response.ok) {
-        throw response;
-      }
+            loginContext
+          );
+          if (!response.ok) {
+            throw response;
+          }
 
-      const data = await response.json();
-      if (active) {
-        setFavorited(data.items.length >= 1);
+          const data = await response.json();
+          const isFavorited = data.items.length >= 1;
+          setFavorited(isFavorited);
+        }
+
+        async function loadFavorited() {
+          try {
+            await loadFavoritedInner();
+          } catch (e) {
+            console.error('error loading favorited, assuming not favorited', e);
+            setFavorited(false);
+          }
+        }
+
+        function setFavorited(v: boolean | null) {
+          if (result.get().favorited !== v) {
+            result.set({
+              ...result.get(),
+              favorited: v,
+              setFavorited:
+                v === null
+                  ? () => {
+                      throw new Error('cannot set favorited while loading');
+                    }
+                  : setFavorited,
+            });
+            result.callbacks.call(undefined);
+          }
+        }
       }
     }
 
-    async function loadFavorited() {
-      try {
-        await loadFavoritedInner();
-      } catch (e) {
-        console.error('error loading favorited, assuming not favorited', e);
-        setFavorited(false);
+    function handlePerpetualLoading(): () => void {
+      windowSizeVWC.callbacks.add(update);
+      previewSizeVWC.callbacks.add(update);
+
+      return () => {
+        windowSizeVWC.callbacks.remove(update);
+        previewSizeVWC.callbacks.remove(update);
+      };
+
+      function update() {
+        result.set(createLoadingJourneyShared(windowSizeVWC.get(), previewSizeVWC.get()));
       }
     }
-  }, [loginContext, journey]);
-
-  useEffect(() => {
-    setShared({
-      originalImage,
-      darkenedImage,
-      blurredImage,
-      windowSize,
-      audio,
-      favorited,
-      setFavorited: setFavoritedWrapper,
-    });
   }, [
-    originalImage,
-    darkenedImage,
-    blurredImage,
-    windowSize,
-    audio,
-    favorited,
-    setFavoritedWrapper,
+    journeyVWC,
+    windowSizeVWC,
+    previewSizeVWC,
+    loginContext,
+    audioVWC,
+    imageHandler,
+    result,
+    targetVWC,
   ]);
 
-  return shared;
+  return result;
 };
+
+/**
+ * Creates a loading-state of journey shared, appropriate when you don't have a
+ * real journey shared available.
+ *
+ * @param windowSize The size of the window
+ * @param previewSize The size of the preview
+ * @returns A loading-state of journey shared
+ */
+export const createLoadingJourneyShared = (
+  windowSize: { width: number; height: number },
+  previewSize: { width: number; height: number }
+): JourneyShared => ({
+  originalImage: {
+    localUrl: null,
+    displayWidth: previewSize.width,
+    displayHeight: previewSize.height,
+    alt: '',
+    loading: true,
+  },
+  darkenedImage: {
+    localUrl: null,
+    displayWidth: windowSize.width,
+    displayHeight: windowSize.height,
+    alt: '',
+    loading: true,
+  },
+  blurredImage: {
+    localUrl: null,
+    displayWidth: windowSize.width,
+    displayHeight: windowSize.height,
+    alt: '',
+    loading: true,
+  },
+  audio: {
+    play: null,
+    stop: null,
+    loaded: false,
+    audio: null,
+    error: null,
+  },
+  favorited: null,
+  setFavorited: () => {
+    throw new Error('cannot setFavorited while favorited is null');
+  },
+});

@@ -7,7 +7,8 @@ import { SignupRewardState } from './SignupRewardState';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
-import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 
 /**
  * Rewards the user for completing signup.
@@ -15,22 +16,20 @@ import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState
 export const SignupReward = ({
   state,
   resources,
-  doAnticipateState,
 }: FeatureComponentProps<SignupRewardState, SignupRewardResources>) => {
   const interests = useContext(InterestsContext);
-  useStartSession(resources.session);
+  useStartSession({
+    type: 'callbacks',
+    props: () => resources.get().session,
+    callbacks: resources.callbacks,
+  });
   const windowSize = useWindowSize();
 
   const onFinish = useCallback(() => {
-    resources.session?.storeAction?.call(undefined, 'next', null);
-    resources.session?.reset?.call(undefined);
-    const newState = {
-      ...state,
-      signupIAP: state.signupIAP?.onShown?.call(undefined) ?? null,
-    };
-
-    doAnticipateState(newState, Promise.resolve());
-  }, [doAnticipateState, state, resources.session]);
+    resources.get().session?.storeAction?.call(undefined, 'next', null);
+    resources.get().session?.reset?.call(undefined);
+    state.get().ian?.onShown?.call(undefined);
+  }, [state, resources]);
 
   return (
     <div className={styles.container}>
@@ -83,7 +82,9 @@ export const SignupReward = ({
           <div className={styles.checkListItem}>Bite-sized to fit your schedule</div>
         </div>
         <div className={styles.bannerContainer}>
-          <OsehImageFromState {...resources.image} />
+          <OsehImageFromStateValueWithCallbacks
+            state={useMappedValueWithCallbacks(resources, (r) => r.image)}
+          />
         </div>
         <div className={styles.submitOuterContainer}>
           <div className={styles.submitContainer}>

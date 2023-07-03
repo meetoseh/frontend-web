@@ -1,6 +1,13 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import { LoginContext } from '../contexts/LoginContext';
 import { apiFetch } from '../ApiConstants';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../anim/VariableStrategyProps';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import { useMappedValuesWithCallbacks } from './useMappedValuesWithCallbacks';
+import { useUnwrappedValueWithCallbacks } from './useUnwrappedValueWithCallbacks';
 
 /**
  * Describes a session for an in-app notification. A session is a reusable
@@ -56,138 +63,133 @@ type Session = { inappNotificationUid: string; userSub: string; sessionUid: stri
  * notification session at a time. Note that the returned objects functions
  * may return rejected promises, which can usually be discarded with
  * `.catch(e => {})` if no special handling is desired.
+ *
+ * This requires react rerenders, which is usually undesirable. Instead, prefer
+ * the value with callbacks variant which does not require react rerenders.
  */
 export const useInappNotificationSession = (
   uid: string | null
 ): InappNotificationSession | null => {
-  const loginContext = useContext(LoginContext);
-  const [session, setSession] = useState<Session | null>(null);
-  const sessionPromise = useRef<Promise<Session> | null>(null);
+  return useUnwrappedValueWithCallbacks(
+    useInappNotificationSessionValueWithCallbacks({ type: 'react-rerender', props: { uid } })
+  );
+};
 
-  useEffect(() => {
-    if (uid === null) {
-      sessionPromise.current = null;
-      if (session !== null) {
-        setSession(null);
+export const useInappNotificationSessionValueWithCallbacks = (
+  propsVariableStrategy: VariableStrategyProps<{ uid: string | null }>
+): ValueWithCallbacks<InappNotificationSession | null> => {
+  const loginContextRaw = useContext(LoginContext);
+  const propsVWC = useVariableStrategyPropsAsValueWithCallbacks(propsVariableStrategy);
+  const sessionVWC = useWritableValueWithCallbacks<Session | null>(() => null);
+  const sessionPromiseRef = useRef<Promise<Session> | null>(null);
+  const loginContextVWC = useVariableStrategyPropsAsValueWithCallbacks({
+    type: 'react-rerender',
+    props: loginContextRaw,
+  });
+
+  return useMappedValuesWithCallbacks(
+    [propsVWC, sessionVWC, loginContextVWC],
+    (): InappNotificationSession | null => {
+      const props = propsVWC.get();
+      if (props.uid === null) {
+        return null;
       }
-      return;
-    }
 
-    if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
-      sessionPromise.current = null;
-      if (session !== null) {
-        setSession(null);
-      }
-      return;
-    }
+      const session = sessionVWC.get();
+      const loginContext = loginContextVWC.get();
 
-    if (
-      session !== null &&
-      (loginContext.userAttributes.sub !== session.userSub || uid !== session.inappNotificationUid)
-    ) {
-      setSession(null);
-      return;
-    }
+      return {
+        inappNotificationUid: props.uid,
+        inappNotificationUserUid: session?.inappNotificationUid ?? null,
+        start: async () => {
+          if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
+            throw new Error('Not logged in');
+          }
+          const userSub = loginContext.userAttributes.sub;
 
-    if (session !== null && sessionPromise.current !== null) {
-      sessionPromise.current = null;
-      return;
-    }
-  }, [loginContext, session, uid]);
+          if (session !== null) {
+            throw new Error('Session already started');
+          }
 
-  return useMemo(
-    () =>
-      uid === null
-        ? null
-        : {
-            inappNotificationUid: uid,
-            inappNotificationUserUid: session?.sessionUid ?? null,
-            start: async () => {
-              if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
-                throw new Error('Not logged in');
-              }
-              const userSub = loginContext.userAttributes.sub;
-
-              if (session !== null) {
-                throw new Error('Session already started');
-              }
-
-              if (sessionPromise.current === null) {
-                sessionPromise.current = (async () => {
-                  const response = await apiFetch(
-                    '/api/1/notifications/inapp/start',
-                    {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                      body: JSON.stringify({
-                        inapp_notification_uid: uid,
-                        platform: 'web',
-                      }),
-                    },
-                    loginContext
-                  );
-                  if (!response.ok) {
-                    throw response;
-                  }
-                  const data: { inapp_notification_user_uid: string } = await response.json();
-                  const sessionUid = data.inapp_notification_user_uid;
-                  const session = { inappNotificationUid: uid, userSub, sessionUid };
-                  setSession(session);
-                  return session;
-                })();
-              }
-
-              return sessionPromise.current.then((s) => {
-                if (s.userSub !== userSub) {
-                  throw new Error('Session started for different user');
-                }
-                if (s.inappNotificationUid !== uid) {
-                  throw new Error('Session started for different notification');
-                }
-                return s.sessionUid;
-              });
-            },
-            storeAction: async (slug, extra) => {
-              const mySession = await (sessionPromise.current ?? session);
-              if (mySession === null) {
-                throw new Error('Session not started');
-              }
-
-              if (uid !== mySession.inappNotificationUid) {
-                throw new Error('Session started for different notification');
-              }
-
-              if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
-                throw new Error('Not logged in');
-              }
-
-              if (loginContext.userAttributes.sub !== mySession.userSub) {
-                throw new Error('Session started for different user');
-              }
-
+          if (sessionPromiseRef.current === null) {
+            sessionPromiseRef.current = (async () => {
               const response = await apiFetch(
-                '/api/1/notifications/inapp/store_action',
+                '/api/1/notifications/inapp/start',
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json; charset=utf-8' },
                   body: JSON.stringify({
-                    inapp_notification_user_uid: mySession.sessionUid,
-                    action_slug: slug,
-                    extra,
+                    inapp_notification_uid: props.uid,
+                    platform: 'web',
                   }),
                 },
                 loginContext
               );
-
               if (!response.ok) {
                 throw response;
               }
+              const data: { inapp_notification_user_uid: string } = await response.json();
+              const sessionUid = data.inapp_notification_user_uid;
+              const session: Session = { inappNotificationUid: props.uid!, userSub, sessionUid };
+              sessionVWC.set(session);
+              sessionVWC.callbacks.call(undefined);
+              return session;
+            })();
+          }
+
+          return sessionPromiseRef.current.then((s) => {
+            if (s.userSub !== userSub) {
+              throw new Error('Session started for different user');
+            }
+            if (s.inappNotificationUid !== props.uid) {
+              throw new Error('Session started for different notification');
+            }
+            return s.sessionUid;
+          });
+        },
+        storeAction: async (slug, extra) => {
+          const mySession = await (sessionPromiseRef.current ?? session);
+          if (mySession === null) {
+            throw new Error('Session not started');
+          }
+
+          if (props.uid !== mySession.inappNotificationUid) {
+            throw new Error('Session started for different notification');
+          }
+
+          if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
+            throw new Error('Not logged in');
+          }
+
+          if (loginContext.userAttributes.sub !== mySession.userSub) {
+            throw new Error('Session started for different user');
+          }
+
+          const response = await apiFetch(
+            '/api/1/notifications/inapp/store_action',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                inapp_notification_user_uid: mySession.sessionUid,
+                action_slug: slug,
+                extra,
+              }),
             },
-            reset: () => {
-              setSession(null);
-            },
-          },
-    [uid, session, loginContext]
+            loginContext
+          );
+
+          if (!response.ok) {
+            throw response;
+          }
+        },
+        reset: () => {
+          sessionPromiseRef.current = null;
+          sessionVWC.set(null);
+          sessionVWC.callbacks.call(undefined);
+        },
+      };
+    }
   );
 };
 
@@ -195,16 +197,33 @@ export const useInappNotificationSession = (
  * Ensures the given session is started, if it's not already started. This
  * is a convenience hook-like function.
  */
-export const useStartSession = (session: InappNotificationSession | null): void => {
+export const useStartSession = (
+  sessionVariableStrategy: VariableStrategyProps<InappNotificationSession | null>
+): void => {
   const loginContext = useContext(LoginContext);
   const started = useRef(false);
+  const sessionVWC = useVariableStrategyPropsAsValueWithCallbacks(sessionVariableStrategy);
 
   useEffect(() => {
-    if (loginContext.state !== 'logged-in' || session === null || started.current) {
+    if (loginContext.state !== 'logged-in' || started.current) {
       return;
     }
 
-    started.current = true;
-    session.start();
-  }, [loginContext, session]);
+    sessionVWC.callbacks.add(handleSessionChanged);
+    handleSessionChanged();
+    return () => {
+      sessionVWC.callbacks.remove(handleSessionChanged);
+    };
+
+    function handleSessionChanged() {
+      const session = sessionVWC.get();
+      if (started.current || session === null) {
+        return;
+      }
+
+      started.current = true;
+      session.start();
+      sessionVWC.callbacks.remove(handleSessionChanged);
+    }
+  }, [loginContext, sessionVWC]);
 };

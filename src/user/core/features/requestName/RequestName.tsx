@@ -1,5 +1,4 @@
 import { ReactElement, useCallback, useContext, useState } from 'react';
-import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import styles from './RequestName.module.css';
 import { TextInput } from '../../../../shared/forms/TextInput';
 import { apiFetch } from '../../../../shared/ApiConstants';
@@ -8,13 +7,14 @@ import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
 import { RequestNameResources } from './RequestNameResources';
 import { RequestNameState } from './RequestNameState';
 import { FeatureComponentProps } from '../../models/Feature';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * Prompts the user their name.
  */
 export const RequestName = ({
   resources,
-  doAnticipateState,
 }: FeatureComponentProps<RequestNameState, RequestNameResources>): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [firstName, setFirstName] = useState('');
@@ -26,59 +26,54 @@ export const RequestName = ({
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      doAnticipateState(
-        {
-          givenName: firstName,
-        },
-        (async () => {
-          setSaving(true);
-          try {
-            const response = await apiFetch(
-              '/api/1/users/me/attributes/name',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json; charset=utf-8',
-                },
-                body: JSON.stringify({
-                  given_name: firstName,
-                  family_name: lastName,
-                }),
-              },
-              loginContext
-            );
+      setSaving(true);
+      try {
+        const response = await apiFetch(
+          '/api/1/users/me/attributes/name',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              given_name: firstName,
+              family_name: lastName,
+            }),
+          },
+          loginContext
+        );
 
-            if (!response.ok) {
-              throw response;
-            }
+        if (!response.ok) {
+          throw response;
+        }
 
-            const data: { given_name: string; family_name: string } = await response.json();
-            if (loginContext.userAttributes !== null) {
-              loginContext.setUserAttributes({
-                ...loginContext.userAttributes,
-                name: data.given_name + ' ' + data.family_name,
-                givenName: data.given_name,
-                familyName: data.family_name,
-              });
-            }
-          } catch (e) {
-            console.error(e);
-            const err = await describeError(e);
-            setError(err);
-            throw new Error('Network request failed');
-          } finally {
-            setSaving(false);
-          }
-        })()
-      );
+        const data: { given_name: string; family_name: string } = await response.json();
+        if (loginContext.userAttributes !== null) {
+          loginContext.setUserAttributes({
+            ...loginContext.userAttributes,
+            name: data.given_name + ' ' + data.family_name,
+            givenName: data.given_name,
+            familyName: data.family_name,
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        const err = await describeError(e);
+        setError(err);
+        throw new Error('Network request failed');
+      } finally {
+        setSaving(false);
+      }
     },
-    [loginContext, firstName, lastName, doAnticipateState]
+    [loginContext, firstName, lastName]
   );
 
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...resources.background} />
+        <OsehImageFromStateValueWithCallbacks
+          state={useMappedValueWithCallbacks(resources, (r) => r.background)}
+        />
       </div>
       <div className={styles.content}>
         <div className={styles.title}>What&rsquo;s Your Name?</div>

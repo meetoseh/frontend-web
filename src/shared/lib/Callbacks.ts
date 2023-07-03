@@ -316,15 +316,17 @@ export type WritableValueWithCallbacks<T> = ValueWithCallbacks<T> & {
  * @param initial the initial value, ignored except during the first render
  * @returns a value with callbacks, initialized to initial
  */
-export const useWritableValueWithCallbacks = <T>(initial: T): WritableValueWithCallbacks<T> => {
+export const useWritableValueWithCallbacks = <T>(
+  initial: () => T
+): WritableValueWithCallbacks<T> => {
   const value = useRef<T>() as MutableRefObject<T>;
   const callbacks = useRef<Callbacks<undefined>>() as MutableRefObject<Callbacks<undefined>>;
   if (callbacks.current === undefined) {
-    value.current = initial;
+    value.current = initial();
     callbacks.current = new Callbacks<undefined>();
   }
 
-  const get = useCallback(() => value.current, [value]);
+  const get = useCallback(() => value.current, []);
   const set = useCallback((t: T) => {
     value.current = t;
   }, []);

@@ -11,6 +11,7 @@ import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
+import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 
 /**
  * Asks the user to consider how they are feeling
@@ -18,13 +19,16 @@ import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState
 export const RequestNotificationTime = ({
   state,
   resources,
-  doAnticipateState,
 }: FeatureComponentProps<RequestNotificationTimeState, RequestNotificationTimeResources>) => {
   const loginContext = useContext(LoginContext);
   const timezone = useTimezone();
   const leavingCallback = useRef<(() => void) | null>(null);
   const responseRef = useRef<string | null>(null);
-  useStartSession(resources.session);
+  useStartSession({
+    type: 'callbacks',
+    props: () => resources.get().session,
+    callbacks: resources.callbacks,
+  });
 
   const onWordPromptResponse = useCallback((response: string) => {
     responseRef.current = response;
@@ -48,18 +52,12 @@ export const RequestNotificationTime = ({
         },
         loginContext
       );
-      resources.session?.reset?.call(undefined);
+      resources.get().session?.reset?.call(undefined);
 
       leavingCallback?.current?.();
-      const newState = {
-        ...state,
-        ian: state.ian?.onShown?.call(undefined) ?? null,
-      };
-      if (privileged) {
-        doAnticipateState(newState, Promise.resolve());
-      }
+      state.get().ian?.onShown?.call(undefined);
     },
-    [doAnticipateState, state, resources.session, timezone, loginContext]
+    [state, resources, timezone, loginContext]
   );
 
   const onErrorButtonPress = useCallback(
@@ -70,37 +68,44 @@ export const RequestNotificationTime = ({
     [onFinish]
   );
 
-  if (resources.prompt === null || resources.prompt.loading) {
-    return <></>;
-  }
-
   return (
-    <div className={styles.container}>
-      <div className={styles.imageContainer}>
-        <OsehImageFromState {...resources.background} />
-      </div>
-      <div className={styles.content}>
-        {resources.prompt.error !== null && <ErrorBlock>{resources.prompt.error}</ErrorBlock>}
-        {resources.prompt.prompt !== null ? (
-          <InteractivePromptRouter
-            prompt={resources.prompt.prompt}
-            onWordPromptResponse={onWordPromptResponse}
-            onFinished={onFinish}
-            finishEarly
-            leavingCallback={leavingCallback}
-            titleMaxWidth={350}
-          />
-        ) : (
-          <>
-            <ErrorBlock>There was an error loading this prompt.</ErrorBlock>
-            <div>
-              <Button type="button" onClick={onErrorButtonPress} variant="filled" fullWidth>
-                Continue
-              </Button>
+    <RenderGuardedComponent
+      props={resources}
+      component={(resources) => {
+        if (resources.prompt === null || resources.prompt.loading) {
+          return <></>;
+        }
+
+        return (
+          <div className={styles.container}>
+            <div className={styles.imageContainer}>
+              <OsehImageFromState {...resources.background} />
             </div>
-          </>
-        )}
-      </div>
-    </div>
+            <div className={styles.content}>
+              {resources.prompt.error !== null && <ErrorBlock>{resources.prompt.error}</ErrorBlock>}
+              {resources.prompt.prompt !== null ? (
+                <InteractivePromptRouter
+                  prompt={resources.prompt.prompt}
+                  onWordPromptResponse={onWordPromptResponse}
+                  onFinished={onFinish}
+                  finishEarly
+                  leavingCallback={leavingCallback}
+                  titleMaxWidth={350}
+                />
+              ) : (
+                <>
+                  <ErrorBlock>There was an error loading this prompt.</ErrorBlock>
+                  <div>
+                    <Button type="button" onClick={onErrorButtonPress} variant="filled" fullWidth>
+                      Continue
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      }}
+    />
   );
 };

@@ -1,17 +1,14 @@
 import { useEffect, useRef } from 'react';
-import { Callbacks } from '../../../shared/lib/Callbacks';
+import { Callbacks, ValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { kFormatter } from '../../../shared/lib/kFormatter';
-import {
-  ProfilePicturesStateChangedEvent,
-  ProfilePicturesStateRef,
-} from '../hooks/useProfilePictures';
 import styles from './ProfilePictures.module.css';
 import { combineClasses } from '../../../shared/lib/combineClasses';
 import { OsehImageState } from '../../../shared/images/OsehImageState';
+import { ProfilePicturesState } from '../hooks/useProfilePictures';
 
 const FADE_TIME = 350;
 
-type HereSettings =
+export type HereSettings =
   | {
       type: 'filled';
       action: string;
@@ -28,7 +25,7 @@ export const ProfilePictures = ({
   profilePictures,
   hereSettings,
 }: {
-  profilePictures: ProfilePicturesStateRef;
+  profilePictures: ValueWithCallbacks<ProfilePicturesState>;
   hereSettings?: HereSettings;
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,20 +43,20 @@ export const ProfilePictures = ({
     let active = true;
     const spots: Spot[] = [];
 
-    profilePictures.onStateChanged.current.add(handleEvent);
+    profilePictures.callbacks.add(handleEvent);
     updatePictures();
     return () => {
       active = false;
-      profilePictures.onStateChanged.current.remove(handleEvent);
+      profilePictures.callbacks.remove(handleEvent);
       container.textContent = '';
     };
 
-    function handleEvent(event: ProfilePicturesStateChangedEvent) {
+    function handleEvent() {
       updatePictures();
     }
 
     function updatePictures() {
-      const state = profilePictures.state.current;
+      const state = profilePictures.get();
       for (let i = 0; i < spots.length && i < state.pictures.length; i++) {
         const pic = state.pictures[i];
         if (spots[i].img?.localUrl === pic.localUrl || pic.localUrl === null) {
@@ -198,18 +195,19 @@ export const ProfilePictures = ({
     }
 
     let lastAmount: number | null = null;
-    profilePictures.onStateChanged.current.add(handleEvent);
+    profilePictures.callbacks.add(handleEvent);
     updateBonus();
     return () => {
+      profilePictures.callbacks.remove(handleEvent);
       bonusAmount.textContent = '';
     };
 
-    function handleEvent(event: ProfilePicturesStateChangedEvent) {
+    function handleEvent() {
       updateBonus();
     }
 
     function updateBonus() {
-      const state = profilePictures.state.current;
+      const state = profilePictures.get();
       const approxAmount = Math.ceil(state.additionalUsers);
       if (approxAmount === lastAmount) {
         return;

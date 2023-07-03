@@ -1,34 +1,23 @@
-import {
-  MutableRefObject,
-  ReactElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useRef } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
 import { PickEmotionJourneyResources } from './PickEmotionJourneyResources';
 import { PickEmotionJourneyState } from './PickEmotionJourneyState';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
+import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
+import { ProfilePicturesState } from '../../../interactive_prompt/hooks/useProfilePictures';
 import {
-  ProfilePicturesState,
-  ProfilePicturesStateChangedEvent,
-  ProfilePicturesStateRef,
-} from '../../../interactive_prompt/hooks/useProfilePictures';
-import {
-  Callbacks,
   ValueWithCallbacks,
   WritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import styles from './PickEmotion.module.css';
 import { ErrorBlock } from '../../../../shared/forms/ErrorBlock';
 import { Button } from '../../../../shared/forms/Button';
-import { ProfilePictures } from '../../../interactive_prompt/components/ProfilePictures';
-import { combineClasses } from '../../../../shared/lib/combineClasses';
+import {
+  HereSettings,
+  ProfilePictures,
+} from '../../../interactive_prompt/components/ProfilePictures';
 import {
   BezierAnimator,
   TrivialAnimator,
@@ -36,11 +25,21 @@ import {
 } from '../../../../shared/anim/AnimationLoop';
 import { ease } from '../../../../shared/lib/Bezier';
 import { useAnimatedValueWithCallbacks } from '../../../../shared/anim/useAnimatedValueWithCallbacks';
+import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 
 /**
  * Ensures we display at least 12 options, faking the rest if necessary.
  */
 const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'dev';
+
+/**
+ * The settings for the profile pictures
+ */
+const hereSettings: HereSettings = { type: 'floating', action: 'voted' };
 
 /**
  * Allows the user to pick an emotion and then go to that class
@@ -53,53 +52,95 @@ export const PickEmotion = ({
   gotoJourney: () => void;
 }): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const words = useMemo(() => {
-    const res = resources.options?.words?.map((opt) => opt.word) ?? [];
-    if (isDevelopment) {
-      while (res.length < 12) {
-        res.push('faked');
-      }
-    }
-    return res;
-  }, [resources.options]);
-  const [tentativelyPressedIndex, setTentativelyPressedIndex] = useState<number | null>(null);
-  const pressed = useMemo<{ index: number; votes: number | null } | null>(() => {
-    if (resources.options === null) {
-      return null;
-    }
-
-    if (resources.selected !== null) {
-      const sel = resources.selected;
-
-      const idx = resources.options.words.findIndex((opt) => opt.word === sel.word.word);
-      if (idx < 0) {
+  const selectedInfoVWC = useMappedValueWithCallbacks(
+    resources,
+    (r) => {
+      if (r.selected === null || r.options === null) {
         return null;
       }
 
+      const sel = r.selected;
+
       return {
-        index: idx,
-        votes: resources.selected.numVotes,
+        word: sel.word.word,
+        index: r.options.words.findIndex((opt) => opt.word === sel.word.word),
+        numVotes: sel.numVotes,
       };
+    },
+    {
+      outputEqualityFn: (a, b) => {
+        if (a === null || b === null) {
+          return a === b;
+        }
+
+        return a.word === b.word && a.numVotes === b.numVotes && a.index === b.index;
+      },
     }
-
-    if (tentativelyPressedIndex !== null) {
-      return {
-        index: tentativelyPressedIndex,
-        votes: null,
-      };
+  );
+  const wordsVWC = useMappedValueWithCallbacks(
+    resources,
+    (r) => {
+      const res = r.options?.words?.map((opt) => opt.word) ?? [];
+      if (isDevelopment) {
+        while (res.length < 12) {
+          res.push('faked');
+        }
+      }
+      return res;
+    },
+    {
+      outputEqualityFn: (a, b) => {
+        return a.length === b.length && a.every((v, i) => v === b[i]);
+      },
     }
+  );
+  const tentativelyPressedVWC = useWritableValueWithCallbacks<number | null>(() => null);
+  const visuallyPressedVWC = useMappedValuesWithCallbacks(
+    [selectedInfoVWC, tentativelyPressedVWC, wordsVWC],
+    () => {
+      const selected = selectedInfoVWC.get();
+      const tentativelyPressed = tentativelyPressedVWC.get();
+      const words = wordsVWC.get();
 
-    return null;
-  }, [resources.selected, resources.options, tentativelyPressedIndex]);
+      if (selected !== null) {
+        return {
+          index: selected.index,
+          votes: selected.numVotes,
+        };
+      }
 
-  const windowSize = useWindowSize();
+      if (tentativelyPressed !== null && tentativelyPressed < words.length) {
+        return {
+          index: tentativelyPressed,
+          votes: 0,
+        };
+      }
+
+      return null;
+    },
+    {
+      outputEqualityFn: (a, b) => {
+        if (a === null || b === null) {
+          return a === b;
+        }
+
+        return a.votes === b.votes && a.index === b.index;
+      },
+    }
+  );
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
   const onWordClick = useCallback(
     (word: string, index: number) => {
-      setTentativelyPressedIndex(index);
-      resources.onSelect.call(undefined, resources.options!.words[index]);
+      const res = resources.get();
+      if (res.options !== null && index < res.options.words.length) {
+        const emotion = res.options.words[index];
+        tentativelyPressedVWC.set(index);
+        tentativelyPressedVWC.callbacks.call(undefined);
+        res.onSelect.call(undefined, emotion);
+      }
     },
-    [resources.onSelect, resources.options]
+    [tentativelyPressedVWC, resources]
   );
 
   const onGotoFavoritesClick = '/favorites';
@@ -117,105 +158,178 @@ export const PickEmotion = ({
     window.location.reload();
   }, []);
 
-  const profilePicturesState =
-    useRef<ProfilePicturesState>() as MutableRefObject<ProfilePicturesState>;
-  const profilePicturesStateChanged = useRef<
-    Callbacks<ProfilePicturesStateChangedEvent>
-  >() as MutableRefObject<Callbacks<ProfilePicturesStateChangedEvent>>;
+  const primaryContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    selectedInfoVWC.callbacks.add(updatePrimaryContainerStyle);
+    windowSizeVWC.callbacks.add(updatePrimaryContainerStyle);
+    updatePrimaryContainerStyle();
+    return () => {
+      selectedInfoVWC.callbacks.remove(updatePrimaryContainerStyle);
+      windowSizeVWC.callbacks.remove(updatePrimaryContainerStyle);
+    };
 
-  const profilePicturesStateRef = useMemo<ProfilePicturesStateRef | null>(() => {
-    if (resources.selected === null) {
-      return null;
+    function updatePrimaryContainerStyle() {
+      if (primaryContainerRef.current === null) {
+        return;
+      }
+      const ele = primaryContainerRef.current;
+
+      const selectedInfo = selectedInfoVWC.get();
+      const windowSize = windowSizeVWC.get();
+
+      if (windowSize.height <= 570) {
+        ele.removeAttribute('style');
+        return;
+      }
+
+      ele.style.paddingTop = '20px';
+      ele.style.paddingBottom = selectedInfo === null ? '20px' : '80px';
+      ele.style.transition = 'padding-bottom 0.7s ease';
+      // TODO: AnimationLoop for the paddingBottom for native compat
     }
+  }, [selectedInfoVWC, windowSizeVWC]);
 
-    profilePicturesState.current = {
-      pictures: resources.selected.profilePictures,
-      additionalUsers: resources.selected.numTotalVotes - resources.selected.profilePictures.length,
+  const settingsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let oldTechnique: 'short' | 'normal' | null = null;
+    windowSizeVWC.callbacks.add(updateSettingsStyle);
+    updateSettingsStyle();
+    return () => {
+      windowSizeVWC.callbacks.remove(updateSettingsStyle);
     };
-    profilePicturesStateChanged.current = new Callbacks();
-    return {
-      state: profilePicturesState,
-      onStateChanged: profilePicturesStateChanged,
-    };
-  }, [resources.selected]);
 
-  const primaryContainerStyle = useMemo<React.CSSProperties>(() => {
-    if (windowSize.height <= 570) {
-      return {};
+    function updateSettingsStyle() {
+      if (settingsRef.current === null) {
+        return;
+      }
+      const ele = settingsRef.current;
+
+      const windowSize = windowSizeVWC.get();
+
+      const usableHeight = Math.min(844, windowSize.height);
+      if (usableHeight <= 570) {
+        if (oldTechnique !== 'short') {
+          ele.removeAttribute('style');
+          ele.style.marginBottom = '40px';
+          ele.style.width = '100%';
+          oldTechnique = 'short';
+        }
+        return;
+      }
+
+      if (oldTechnique !== 'normal') {
+        ele.removeAttribute('style');
+        ele.style.position = 'absolute';
+        oldTechnique = 'normal';
+      }
+
+      const desiredWidth = Math.min(390, windowSize.width);
+      const distanceFromTopOfUsable = 32;
+
+      ele.style.left = `${windowSize.width / 2 - desiredWidth / 2}px`;
+      ele.style.top = `${windowSize.height / 2 - usableHeight / 2 + distanceFromTopOfUsable}px`;
+      ele.style.width = `${desiredWidth}px`;
     }
+  }, [windowSizeVWC]);
 
-    return {
-      paddingTop: '20px',
-      paddingBottom: resources.selected === null ? '20px' : '80px',
-      transition: 'padding-bottom 0.7s ease',
+  const ctaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let oldTechnique: 'short' | 'normal' | null = null;
+    let oldHidden: boolean | null = null;
+    windowSizeVWC.callbacks.add(updateCTAStyle);
+    selectedInfoVWC.callbacks.add(updateCTAStyle);
+    updateCTAStyle();
+    return () => {
+      windowSizeVWC.callbacks.remove(updateCTAStyle);
+      selectedInfoVWC.callbacks.remove(updateCTAStyle);
     };
-  }, [resources.selected, windowSize]);
 
-  const settingsStyle = useMemo<React.CSSProperties>(() => {
-    const usableHeight = Math.min(844, windowSize.height);
-    if (usableHeight <= 570) {
+    function updateCTAStyle() {
+      if (ctaRef.current === null) {
+        return;
+      }
+      const ele = ctaRef.current;
+
+      const windowSize = windowSizeVWC.get();
+      const selectedInfo = selectedInfoVWC.get();
+
+      if (selectedInfo === null) {
+        if (oldHidden !== true) {
+          ele.removeAttribute('style');
+          ele.style.display = 'none';
+          oldHidden = true;
+        }
+        oldTechnique = null;
+        return;
+      }
+
+      if (oldHidden !== false) {
+        ele.removeAttribute('style');
+        oldHidden = false;
+        oldTechnique = null;
+      }
+
+      const usableHeight = Math.min(844, windowSize.height);
+      if (usableHeight <= 570) {
+        if (oldTechnique !== 'short') {
+          ele.removeAttribute('style');
+          ele.style.marginTop = '40px';
+          ele.style.width = '100%';
+          oldTechnique = 'short';
+        }
+        return;
+      }
+
+      if (oldTechnique !== 'normal') {
+        ele.removeAttribute('style');
+        ele.style.position = 'absolute';
+        oldTechnique = 'normal';
+      }
+
+      const buttonHeight = 56;
+      const distanceFromBottomOfUsable = 60;
+
+      ele.style.top = `${
+        windowSize.height / 2 + usableHeight / 2 - distanceFromBottomOfUsable - buttonHeight
+      }px`;
+      ele.style.width = `${windowSize.width}px`;
+    }
+  }, [windowSizeVWC, selectedInfoVWC]);
+
+  const error = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(resources, (r) => r.error)
+  );
+  const background = useMappedValueWithCallbacks(resources, (r) => r.background);
+  const profilePicture = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(resources, (r) => r.profilePicture)
+  );
+  const profilePicturesState = useMappedValueWithCallbacks(resources, (r): ProfilePicturesState => {
+    if (r.selected === null) {
       return {
-        marginBottom: '40px',
-        width: '100%',
+        pictures: [],
+        additionalUsers: 0,
       };
     }
 
-    const desiredWidth = Math.min(390, windowSize.width);
-
-    const distanceFromTopOfUsable = 32;
-
     return {
-      position: 'absolute',
-      left: windowSize.width / 2 - desiredWidth / 2,
-      top: windowSize.height / 2 - usableHeight / 2 + distanceFromTopOfUsable,
-      width: `${desiredWidth}px`,
+      pictures: r.selected.profilePictures,
+      additionalUsers: r.selected.numTotalVotes - r.selected.numVotes,
     };
-  }, [windowSize]);
+  });
 
-  const ctaStyle = useMemo<React.CSSProperties>(() => {
-    const usableHeight = Math.min(844, windowSize.height);
-    if (usableHeight <= 570) {
-      return {
-        marginTop: '40px',
-        width: '100%',
-      };
+  const layoutVWC = useMappedValueWithCallbacks(
+    selectedInfoVWC,
+    (si): 'horizontal' | 'vertical' => {
+      return si === null ? 'horizontal' : 'vertical';
     }
+  );
 
-    const buttonHeight = 56;
-    const distanceFromBottomOfUsable = 60;
-
-    return {
-      position: 'absolute',
-      top: windowSize.height / 2 + usableHeight / 2 - distanceFromBottomOfUsable - buttonHeight,
-      width: `${windowSize.width}px`,
-    };
-  }, [windowSize]);
-
-  if (resources.error !== null) {
-    if (resources.background !== null) {
-      return (
-        <div className={styles.container}>
-          <div className={styles.imageContainer}>
-            <OsehImageFromState {...resources.background} />
-          </div>
-          <div className={styles.innerContainer}>
-            <div className={styles.primaryContainer}>
-              <ErrorBlock>{resources.error}</ErrorBlock>
-              <div className={styles.ctaContainer} style={{ marginTop: '80px' }}>
-                <Button type="button" variant="outlined-white" onClick={onReloadClick} fullWidth>
-                  Reload
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
+  if (error !== null) {
     return (
       <div className={styles.container}>
         <div className={styles.innerContainer}>
           <div className={styles.primaryContainer}>
-            <ErrorBlock>{resources.error}</ErrorBlock>
+            <ErrorBlock>{error}</ErrorBlock>
             <div className={styles.ctaContainer} style={{ marginTop: '80px' }}>
               <Button type="button" variant="outlined-white" onClick={onReloadClick} fullWidth>
                 Reload
@@ -227,26 +341,17 @@ export const PickEmotion = ({
     );
   }
 
-  if (
-    resources.background === null ||
-    resources.loading ||
-    resources.options === null ||
-    words === null
-  ) {
-    return <></>;
-  }
-
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...resources.background} />
+        <OsehImageFromStateValueWithCallbacks state={background} />
       </div>
       <div className={styles.innerContainer}>
-        <div className={styles.settingsLinkContainer} style={settingsStyle}>
+        <div className={styles.settingsLinkContainer} ref={settingsRef}>
           <a href="/settings" className={styles.settingsLink}>
             <div className={styles.profilePictureContainer}>
-              {resources.profilePicture.state === 'available' && (
-                <OsehImageFromState {...resources.profilePicture.image} />
+              {profilePicture.state === 'available' && (
+                <OsehImageFromState {...profilePicture.image} />
               )}
             </div>
             <div className={styles.settingsText}>
@@ -264,30 +369,23 @@ export const PickEmotion = ({
             </Button>
           </div>
         </div>
-        <div className={styles.primaryContainer} style={primaryContainerStyle}>
+        <div className={styles.primaryContainer} ref={primaryContainerRef}>
           <div className={styles.title}>How do you want to feel?</div>
           <Words
-            options={words}
+            optionsVWC={wordsVWC}
             onWordClick={onWordClick}
-            pressed={pressed}
-            layout={resources.selected === null ? 'horizontal' : 'vertical'}
+            pressedVWC={visuallyPressedVWC}
+            layoutVWC={layoutVWC}
           />
-          {profilePicturesStateRef !== null && (
-            <div className={styles.profilePicturesContainer}>
-              <ProfilePictures
-                profilePictures={profilePicturesStateRef}
-                hereSettings={{ type: 'floating', action: 'voted' }}
-              />
-            </div>
-          )}
-        </div>
-        {resources.selected !== null && (
-          <div className={styles.ctaContainer} style={ctaStyle}>
-            <Button type="button" variant="filled-white" onClick={onGotoClassClick} fullWidth>
-              Take Me To Class
-            </Button>
+          <div className={styles.profilePicturesContainer}>
+            <ProfilePictures profilePictures={profilePicturesState} hereSettings={hereSettings} />
           </div>
-        )}
+        </div>
+        <div className={styles.ctaContainer} ref={ctaRef}>
+          <Button type="button" variant="filled-white" onClick={onGotoClassClick} fullWidth>
+            Take Me To Class
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -452,15 +550,15 @@ const computeVerticalPositions = (
 };
 
 const Words = ({
-  options,
+  optionsVWC,
   onWordClick,
-  pressed,
-  layout,
+  pressedVWC,
+  layoutVWC,
 }: {
-  options: string[];
+  optionsVWC: ValueWithCallbacks<string[]>;
   onWordClick: (word: string, idx: number) => void;
-  pressed: { index: number; votes: number | null } | null;
-  layout: 'horizontal' | 'vertical';
+  pressedVWC: ValueWithCallbacks<{ index: number; votes: number | null } | null>;
+  layoutVWC: ValueWithCallbacks<'horizontal' | 'vertical'>;
 }): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
   const containerSizeTarget = useAnimatedValueWithCallbacks<Size>(
@@ -476,68 +574,91 @@ const Words = ({
     }
   );
 
-  const windowSize = useWindowSize();
-  const numOptions = options.length;
-  const wordSizes: WritableValueWithCallbacks<Size>[] = useMemo(() => {
-    const result = [];
-    for (let i = 0; i < numOptions; i++) {
-      result.push(
-        (() => {
-          let size: Size = { width: 0, height: 0 };
-          const callbacks = new Callbacks<undefined>();
-          return {
-            get: () => size,
-            set: (s: Size) => {
-              size = s;
-            },
-            callbacks,
-          };
-        })()
-      );
-    }
-    return result;
-  }, [numOptions]);
-  const wordPositions: WritableValueWithCallbacks<Pos>[] = useMemo(() => {
-    const result = [];
-    for (let i = 0; i < numOptions; i++) {
-      result.push(
-        (() => {
-          let pos: Pos = { x: windowSize.width / 2, y: 0 };
-          const callbacks = new Callbacks<undefined>();
-          return {
-            get: () => pos,
-            set: (p: Pos) => {
-              pos = p;
-            },
-            callbacks,
-          };
-        })()
-      );
-    }
-    return result;
-  }, [numOptions, windowSize]);
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
+  const wordSizesVWC = useWritableValueWithCallbacks<Size[]>(() =>
+    optionsVWC.get().map(() => ({
+      width: 0,
+      height: 0,
+    }))
+  );
 
   useEffect(() => {
-    for (let i = 0; i < wordSizes.length; i++) {
-      wordSizes[i].callbacks.add(handleSizesChanged);
-    }
-    handleSizesChanged();
+    optionsVWC.callbacks.add(updateWordSizes);
+    updateWordSizes();
     return () => {
-      for (let i = 0; i < wordSizes.length; i++) {
-        wordSizes[i].callbacks.remove(handleSizesChanged);
-      }
+      optionsVWC.callbacks.remove(updateWordSizes);
     };
 
-    function handleSizesChanged() {
-      const sizes = wordSizes.map((s) => s.get());
+    function updateWordSizes() {
+      if (wordSizesVWC.get().length === optionsVWC.get().length) {
+        return;
+      }
+
+      const oldWordSizes = wordSizesVWC.get();
+
+      const wordSizes = optionsVWC.get().map((_, idx) => ({
+        width: oldWordSizes.length > idx ? oldWordSizes[idx].width : 0,
+        height: oldWordSizes.length > idx ? oldWordSizes[idx].height : 0,
+      }));
+      wordSizesVWC.set(wordSizes);
+      wordSizesVWC.callbacks.call(undefined);
+    }
+  }, [optionsVWC, wordSizesVWC]);
+
+  const wordPositionsVWC = useWritableValueWithCallbacks<Pos[]>(() =>
+    optionsVWC.get().map(() => ({
+      x: windowSizeVWC.get().width / 2,
+      y: 0,
+    }))
+  );
+
+  useEffect(() => {
+    optionsVWC.callbacks.add(updateWordPositions);
+    updateWordPositions();
+    return () => {
+      optionsVWC.callbacks.remove(updateWordPositions);
+    };
+
+    function updateWordPositions() {
+      const oldWordPositions = wordPositionsVWC.get();
+      const options = optionsVWC.get();
+
+      if (oldWordPositions.length === options.length) {
+        return;
+      }
+
+      const wordPositions = options.map((_, idx) => ({
+        x: oldWordPositions.length > idx ? oldWordPositions[idx].x : windowSizeVWC.get().width / 2,
+        y: oldWordPositions.length > idx ? oldWordPositions[idx].y : 0,
+      }));
+      wordPositionsVWC.set(wordPositions);
+      wordPositionsVWC.callbacks.call(undefined);
+    }
+  }, [optionsVWC, wordPositionsVWC, windowSizeVWC]);
+
+  useEffect(() => {
+    wordSizesVWC.callbacks.add(reposition);
+    layoutVWC.callbacks.add(reposition);
+    windowSizeVWC.callbacks.add(reposition);
+    reposition();
+    return () => {
+      wordSizesVWC.callbacks.remove(reposition);
+      layoutVWC.callbacks.remove(reposition);
+      windowSizeVWC.callbacks.remove(reposition);
+    };
+
+    function reposition() {
+      const sizes = wordSizesVWC.get();
+      const layout = layoutVWC.get();
+      const windowSize = windowSizeVWC.get();
       const target =
         layout === 'horizontal'
           ? computeHorizontalPositions(windowSize, sizes)
           : computeVerticalPositions(windowSize, sizes);
-      for (let i = 0; i < wordPositions.length; i++) {
-        wordPositions[i].set(target.positions[i]);
-        wordPositions[i].callbacks.call(undefined);
-      }
+
+      wordPositionsVWC.set(target.positions);
+      wordPositionsVWC.callbacks.call(undefined);
+
       const currentContainerSize = containerSizeTarget.get();
       if (
         currentContainerSize.width !== target.size.width ||
@@ -548,29 +669,36 @@ const Words = ({
         containerSizeTarget.callbacks.call(undefined);
       }
     }
-  }, [windowSize, layout, wordSizes, wordPositions, containerSizeTarget, pressed]);
+  }, [layoutVWC, windowSizeVWC, wordSizesVWC, wordPositionsVWC, containerSizeTarget]);
 
   return (
-    <div
-      className={combineClasses(
-        styles.words,
-        layout === 'horizontal' ? styles.horizontalWords : styles.verticalWords,
-        pressed === null ? styles.wordsWithoutPressed : styles.wordsWithPressed
-      )}
-      ref={containerRef}>
-      {options.map((word, i) => (
-        <Word
-          word={word}
-          idx={i}
-          key={word}
-          onWordClick={onWordClick}
-          pressed={pressed}
-          variant={layout}
-          size={wordSizes[i]}
-          pos={wordPositions[i]}
-        />
-      ))}
-      <Votes pressed={pressed} wordPositions={wordPositions} wordSizes={wordSizes} />
+    <div className={styles.words} ref={containerRef}>
+      <RenderGuardedComponent
+        props={optionsVWC}
+        component={(options) => {
+          return (
+            <>
+              {options.map((word, i) => (
+                <WordAdapter
+                  word={word}
+                  idx={i}
+                  key={`${word}-${i}`}
+                  onWordClick={onWordClick}
+                  pressedVWC={pressedVWC}
+                  variantVWC={layoutVWC}
+                  wordSizesVWC={wordSizesVWC}
+                  wordPositionsVWC={wordPositionsVWC}
+                />
+              ))}
+            </>
+          );
+        }}
+      />
+      <Votes
+        pressedVWC={pressedVWC}
+        wordPositionsVWC={wordPositionsVWC}
+        wordSizesVWC={wordSizesVWC}
+      />
     </div>
   );
 };
@@ -607,33 +735,120 @@ const WORD_SETTINGS = {
   },
 };
 
-const Word = ({
+const WordAdapter = ({
   word,
   idx,
   onWordClick,
-  pressed,
-  variant,
-  size,
-  pos,
+  pressedVWC,
+  variantVWC,
+  wordSizesVWC,
+  wordPositionsVWC,
 }: {
   word: string;
   idx: number;
   onWordClick: (word: string, idx: number) => void;
-  pressed: { index: number; votes: number | null } | null;
-  variant: 'horizontal' | 'vertical';
-  size: WritableValueWithCallbacks<Size>;
-  pos: ValueWithCallbacks<Pos>;
+  pressedVWC: ValueWithCallbacks<{ index: number; votes: number | null } | null>;
+  variantVWC: ValueWithCallbacks<'horizontal' | 'vertical'>;
+  wordSizesVWC: WritableValueWithCallbacks<Size[]>;
+  wordPositionsVWC: ValueWithCallbacks<Pos[]>;
+}): ReactElement => {
+  const size = useWritableValueWithCallbacks<Size>(
+    () => wordSizesVWC.get()[idx] ?? { width: 0, height: 0 }
+  );
+  const position = useWritableValueWithCallbacks<Pos>(
+    () => wordPositionsVWC.get()[idx] ?? { x: 0, y: 0 }
+  );
+
+  useEffect(() => {
+    size.callbacks.add(updateParentSize);
+    updateParentSize();
+    return () => {
+      size.callbacks.remove(updateParentSize);
+    };
+
+    function updateParentSize() {
+      const currentParent = wordSizesVWC.get();
+      if (idx >= currentParent.length) {
+        return;
+      }
+
+      const correctSize = size.get();
+
+      const currentSize = currentParent[idx];
+      if (currentSize.width === correctSize.width && currentSize.height === correctSize.height) {
+        return;
+      }
+
+      currentParent[idx] = { width: correctSize.width, height: correctSize.height };
+      wordSizesVWC.callbacks.call(undefined);
+    }
+  }, [idx, size, wordSizesVWC]);
+
+  useEffect(() => {
+    wordPositionsVWC.callbacks.add(updateChildPosition);
+    updateChildPosition();
+    return () => {
+      wordPositionsVWC.callbacks.remove(updateChildPosition);
+    };
+
+    function updateChildPosition() {
+      const currentParent = wordPositionsVWC.get();
+      if (idx >= currentParent.length) {
+        return;
+      }
+
+      const correctPosition = currentParent[idx];
+      const currentPosition = position.get();
+
+      if (correctPosition.x === currentPosition.x && correctPosition.y === currentPosition.y) {
+        return;
+      }
+
+      position.set({ x: correctPosition.x, y: correctPosition.y });
+      position.callbacks.call(undefined);
+    }
+  });
+
+  return (
+    <Word
+      word={word}
+      idx={idx}
+      onWordClick={onWordClick}
+      pressedVWC={pressedVWC}
+      variantVWC={variantVWC}
+      sizeVWC={size}
+      posVWC={position}
+    />
+  );
+};
+
+const Word = ({
+  word,
+  idx,
+  onWordClick,
+  pressedVWC,
+  variantVWC,
+  sizeVWC,
+  posVWC,
+}: {
+  word: string;
+  idx: number;
+  onWordClick: (word: string, idx: number) => void;
+  pressedVWC: ValueWithCallbacks<{ index: number; votes: number | null } | null>;
+  variantVWC: ValueWithCallbacks<'horizontal' | 'vertical'>;
+  sizeVWC: WritableValueWithCallbacks<Size>;
+  posVWC: ValueWithCallbacks<Pos>;
 }) => {
   const wordRef = useRef<HTMLButtonElement>(null);
   const target = useAnimatedValueWithCallbacks<WordSetting>(
     {
-      left: pos.get().x,
-      top: pos.get().y,
+      left: posVWC.get().x,
+      top: posVWC.get().y,
       backgroundGradient: {
         color1: [255, 255, 255, 0.2],
         color2: [255, 255, 255, 0.2],
       },
-      ...WORD_SETTINGS[variant],
+      ...WORD_SETTINGS[variantVWC.get()],
     },
     () => [
       ...inferAnimators<{ top: number; left: number }, WordSetting>(
@@ -679,27 +894,31 @@ const Word = ({
       const realWidth = realSize.width;
       const realHeight = realSize.height;
 
-      const reportedSize = size.get();
+      const reportedSize = sizeVWC.get();
       if (realWidth !== reportedSize.width || realHeight !== reportedSize.height) {
-        size.set({ width: realWidth, height: realHeight });
-        size.callbacks.call(undefined);
+        sizeVWC.set({ width: realWidth, height: realHeight });
+        sizeVWC.callbacks.call(undefined);
       }
     }
   );
 
   useEffect(() => {
-    pos.callbacks.add(handlePositionChanged);
-    handlePositionChanged();
+    posVWC.callbacks.add(render);
+    variantVWC.callbacks.add(render);
+    pressedVWC.callbacks.add(render);
+    render();
     return () => {
-      pos.callbacks.remove(handlePositionChanged);
+      posVWC.callbacks.remove(render);
+      variantVWC.callbacks.remove(render);
+      pressedVWC.callbacks.remove(render);
     };
 
-    function handlePositionChanged() {
+    function render() {
       target.set({
-        left: pos.get().x,
-        top: pos.get().y,
+        left: posVWC.get().x,
+        top: posVWC.get().y,
         backgroundGradient:
-          pressed?.index === idx
+          pressedVWC.get()?.index === idx
             ? {
                 //'linear-gradient(95.08deg, #57b8a2 2.49%, #009999 97.19%)'
                 color1: [87, 184, 162, 1],
@@ -710,11 +929,11 @@ const Word = ({
                 color1: [255, 255, 255, 0.2],
                 color2: [255, 255, 255, 0.2],
               },
-        ...WORD_SETTINGS[variant],
+        ...WORD_SETTINGS[variantVWC.get()],
       });
       target.callbacks.call(undefined);
     }
-  }, [pos, variant, target, pressed, idx]);
+  }, [posVWC, variantVWC, target, pressedVWC, idx]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -725,11 +944,7 @@ const Word = ({
   );
 
   return (
-    <button
-      type="button"
-      className={combineClasses(styles.word, pressed?.index === idx ? styles.pressed : undefined)}
-      ref={wordRef}
-      onClick={handleClick}>
+    <button type="button" className={styles.word} ref={wordRef} onClick={handleClick}>
       {word}
     </button>
   );
@@ -739,20 +954,21 @@ type VotesSetting = {
   left: number;
   top: number;
   opacity: number;
+  textContent: string;
 };
 
 const Votes = ({
-  pressed,
-  wordPositions,
-  wordSizes,
+  pressedVWC,
+  wordPositionsVWC,
+  wordSizesVWC,
 }: {
-  pressed: { index: number; votes: number | null } | null;
-  wordPositions: ValueWithCallbacks<Pos>[];
-  wordSizes: ValueWithCallbacks<Size>[];
+  pressedVWC: ValueWithCallbacks<{ index: number; votes: number | null } | null>;
+  wordPositionsVWC: ValueWithCallbacks<Pos[]>;
+  wordSizesVWC: ValueWithCallbacks<Size[]>;
 }): ReactElement => {
   const ref = useRef<HTMLDivElement>(null);
   const target = useAnimatedValueWithCallbacks<VotesSetting>(
-    { left: 0, top: 0, opacity: 0 },
+    { left: 0, top: 0, opacity: 0, textContent: '+0 votes' },
     () => [
       new TrivialAnimator('left'),
       new TrivialAnimator('top'),
@@ -762,6 +978,7 @@ const Votes = ({
         (s) => s.opacity,
         (s, v) => (s.opacity = v)
       ),
+      new TrivialAnimator('textContent'),
     ],
     (val) => {
       if (ref.current === null) {
@@ -771,43 +988,54 @@ const Votes = ({
       ele.style.left = `${val.left}px`;
       ele.style.top = `${val.top}px`;
       ele.style.opacity = `${val.opacity * 100}%`;
+      ele.textContent = val.textContent;
     }
   );
 
   useEffect(() => {
-    if (pressed === null) {
-      target.set({ left: 0, top: 0, opacity: 0 });
-      target.callbacks.call(undefined);
-      return;
-    }
-
-    const availablePressed = pressed;
-
-    wordPositions[availablePressed.index].callbacks.add(handlePosOrSizeChanged);
-    wordSizes[availablePressed.index].callbacks.add(handlePosOrSizeChanged);
-    handlePosOrSizeChanged();
+    wordPositionsVWC.callbacks.add(render);
+    wordSizesVWC.callbacks.add(render);
+    pressedVWC.callbacks.add(render);
+    render();
     return () => {
-      wordPositions[availablePressed.index].callbacks.remove(handlePosOrSizeChanged);
-      wordSizes[availablePressed.index].callbacks.remove(handlePosOrSizeChanged);
+      wordPositionsVWC.callbacks.remove(render);
+      wordSizesVWC.callbacks.remove(render);
+      pressedVWC.callbacks.remove(render);
     };
 
-    function handlePosOrSizeChanged() {
-      const pos = wordPositions[availablePressed.index].get();
-      const size = wordSizes[availablePressed.index].get();
+    function render() {
+      const wordPositions = wordPositionsVWC.get();
+      const wordSizes = wordSizesVWC.get();
+      const pressed = pressedVWC.get();
+
+      if (
+        pressed === null ||
+        pressed.index >= wordPositions.length ||
+        pressed.index >= wordSizes.length
+      ) {
+        target.set({
+          left: 0,
+          top: 0,
+          opacity: 0,
+          textContent: '+0 votes',
+        });
+        target.callbacks.call(undefined);
+        return;
+      }
+
+      const pos = wordPositions[pressed.index];
+      const size = wordSizes[pressed.index];
+
       target.set({
         left: pos.x + size.width + 6,
         top: pos.y + 11,
         opacity: 1,
+        textContent:
+          pressed.votes !== null ? `+${pressed.votes.toLocaleString()} votes` : '+0 votes',
       });
       target.callbacks.call(undefined);
     }
-  }, [pressed, wordPositions, wordSizes, target]);
+  }, [wordPositionsVWC, wordSizesVWC, pressedVWC, target]);
 
-  return (
-    <div className={styles.votes} ref={ref}>
-      {pressed !== null && pressed.votes !== null
-        ? `+${pressed.votes.toLocaleString()} votes`
-        : '+0 votes'}
-    </div>
-  );
+  return <div className={styles.votes} ref={ref} />;
 };

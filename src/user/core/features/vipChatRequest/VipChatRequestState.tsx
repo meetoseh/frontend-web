@@ -110,7 +110,7 @@ export type VipChatRequestState = {
    * networking, it merely updates the state to remove the pending
    * chat request.
    */
-  onDone: () => VipChatRequestState;
+  onDone: () => void;
 
   /**
    * The window size to use, or undefined if the real window size should be used.

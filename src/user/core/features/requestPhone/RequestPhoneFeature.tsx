@@ -1,15 +1,19 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useRef } from 'react';
 import { Feature } from '../../models/Feature';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
+import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
 import { RequestPhoneResources } from './RequestPhoneResources';
 import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhone } from './RequestPhone';
-import { useInappNotification } from '../../../../shared/hooks/useInappNotification';
-import { useInappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { useInappNotificationValueWithCallbacks } from '../../../../shared/hooks/useInappNotification';
+import { useInappNotificationSessionValueWithCallbacks } from '../../../../shared/hooks/useInappNotificationSession';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
-import { useOsehImageState } from '../../../../shared/images/useOsehImageState';
+import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 
 const backgroundImageUid = 'oseh_if_hH68hcmVBYHanoivLMgstg';
 
@@ -18,88 +22,112 @@ export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResourc
 
   useWorldState: () => {
     const loginContext = useContext(LoginContext);
-    const phoneNumberIAN = useInappNotification(
-      'oseh_ian_ENUob52K4t7HTs7idvR7Ig',
-      loginContext.userAttributes?.phoneNumber !== null
-    );
-    const onboardingPhoneNumberIAN = useInappNotification(
-      'oseh_ian_bljOnb8Xkxt-aU9Fm7Qq9w',
-      loginContext.userAttributes?.phoneNumber !== null
-    );
-    const [justAddedPhoneNumber, setJustAddedPhoneNumber] = useState<string | null>(null);
-    const hasPhoneNumber = loginContext.userAttributes?.phoneNumber !== null;
+    const phoneNumberIAN = useInappNotificationValueWithCallbacks({
+      type: 'react-rerender',
+      props: {
+        uid: 'oseh_ian_ENUob52K4t7HTs7idvR7Ig',
+        suppress: loginContext.userAttributes?.phoneNumber !== null,
+      },
+    });
+    const onboardingPhoneNumberIAN = useInappNotificationValueWithCallbacks({
+      type: 'react-rerender',
+      props: {
+        uid: 'oseh_ian_bljOnb8Xkxt-aU9Fm7Qq9w',
+        suppress: loginContext.userAttributes?.phoneNumber !== null,
+      },
+    });
+    const hasPhoneNumber = useWritableValueWithCallbacks<boolean>(() => false);
+
+    const realHasPhoneNumber = loginContext.userAttributes?.phoneNumber !== null;
+    if (realHasPhoneNumber !== hasPhoneNumber.get()) {
+      hasPhoneNumber.set(realHasPhoneNumber);
+      hasPhoneNumber.callbacks.call(undefined);
+    }
+
+    const realUserSub = loginContext.userAttributes?.sub;
+    const userSub = useWritableValueWithCallbacks<string | undefined>(() => realUserSub);
+    if (realUserSub !== userSub.get()) {
+      userSub.set(realUserSub);
+      userSub.callbacks.call(undefined);
+    }
 
     const hadPhoneNumber = useRef({
-      sub: loginContext.userAttributes?.sub,
-      hadPn: hasPhoneNumber,
+      sub: realUserSub,
+      hadPn: realHasPhoneNumber,
     });
-    if (hadPhoneNumber.current.sub !== loginContext.userAttributes?.sub) {
+    if (hadPhoneNumber.current.sub !== realUserSub) {
       hadPhoneNumber.current = {
-        sub: loginContext.userAttributes?.sub,
-        hadPn: hasPhoneNumber,
+        sub: realUserSub,
+        hadPn: realHasPhoneNumber,
       };
     }
 
-    useEffect(() => {
-      if (hadPhoneNumber.current.hadPn) {
-        setJustAddedPhoneNumber(null);
-      } else {
-        if (hasPhoneNumber && loginContext.userAttributes?.sub !== undefined) {
-          setJustAddedPhoneNumber(loginContext.userAttributes.sub);
-        } else {
-          setJustAddedPhoneNumber(null);
+    const justAddedPhoneNumber = useMappedValuesWithCallbacks(
+      [hasPhoneNumber, userSub],
+      (): string | null => {
+        if (hadPhoneNumber.current.hadPn) {
+          return null;
         }
-      }
-    }, [hasPhoneNumber, loginContext.userAttributes?.sub]);
 
-    return useMemo<RequestPhoneState>(
-      () => ({
-        phoneNumberIAN,
-        onboardingPhoneNumberIAN,
-        hasPhoneNumber,
-        justAddedPhoneNumber: justAddedPhoneNumber === loginContext.userAttributes?.sub,
-      }),
-      [
-        phoneNumberIAN,
-        onboardingPhoneNumberIAN,
-        hasPhoneNumber,
-        justAddedPhoneNumber,
-        loginContext.userAttributes?.sub,
-      ]
+        if (hasPhoneNumber.get() && realUserSub !== undefined) {
+          return realUserSub;
+        }
+
+        return null;
+      }
+    );
+
+    return useMappedValuesWithCallbacks(
+      [phoneNumberIAN, onboardingPhoneNumberIAN, justAddedPhoneNumber, hasPhoneNumber, userSub],
+      (): RequestPhoneState => ({
+        phoneNumberIAN: phoneNumberIAN.get(),
+        onboardingPhoneNumberIAN: onboardingPhoneNumberIAN.get(),
+        hasPhoneNumber: hasPhoneNumber.get(),
+        justAddedPhoneNumber: justAddedPhoneNumber.get() === userSub.get(),
+      })
     );
   },
 
   useResources: (state, required) => {
     const images = useOsehImageStateRequestHandler({});
-    const windowSize = useWindowSize();
-    const session = useInappNotificationSession(
-      state.phoneNumberIAN?.showNow
-        ? state.phoneNumberIAN.uid
-        : state.onboardingPhoneNumberIAN?.showNow
-        ? state.onboardingPhoneNumberIAN.uid
+    const windowSize = useWindowSizeValueWithCallbacks();
+    const ianUID = useMappedValueWithCallbacks(state, (s) =>
+      s.phoneNumberIAN?.showNow
+        ? s.phoneNumberIAN.uid
+        : s.onboardingPhoneNumberIAN?.showNow
+        ? s.onboardingPhoneNumberIAN.uid
         : null
     );
-    const interests = useContext(InterestsContext);
-    const background = useOsehImageState(
+    const session = useInappNotificationSessionValueWithCallbacks({
+      type: 'callbacks',
+      props: () => ({ uid: ianUID.get() }),
+      callbacks: ianUID.callbacks,
+    });
+    const interestsRaw = useContext(InterestsContext);
+    const interestsVWC = useReactManagedValueAsValueWithCallbacks(interestsRaw);
+
+    const backgroundProps = useMappedValueWithCallbacks(windowSize, (windowSize) => ({
+      uid: required ? backgroundImageUid : null,
+      jwt: null,
+      displayWidth: windowSize.width,
+      displayHeight: windowSize.height,
+      alt: '',
+      isPublic: true,
+    }));
+    const background = useOsehImageStateValueWithCallbacks(
       {
-        uid: required ? backgroundImageUid : null,
-        jwt: null,
-        displayWidth: windowSize.width,
-        displayHeight: windowSize.height,
-        alt: '',
-        isPublic: true,
+        type: 'callbacks',
+        props: () => backgroundProps.get(),
+        callbacks: backgroundProps.callbacks,
       },
       images
     );
 
-    return useMemo<RequestPhoneResources>(
-      () => ({
-        session,
-        background,
-        loading: background.loading || interests.state === 'loading',
-      }),
-      [session, background, interests.state]
-    );
+    return useMappedValuesWithCallbacks([session, background, interestsVWC], () => ({
+      session: session.get(),
+      background: background.get(),
+      loading: background.get().loading || interestsVWC.get().state === 'loading',
+    }));
   },
 
   isRequired: (worldState, allStates) => {
@@ -129,7 +157,5 @@ export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResourc
     );
   },
 
-  component: (worldState, resources, doAnticipateState) => (
-    <RequestPhone state={worldState} resources={resources} doAnticipateState={doAnticipateState} />
-  ),
+  component: (worldState, resources) => <RequestPhone state={worldState} resources={resources} />,
 };

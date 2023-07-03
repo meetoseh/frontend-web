@@ -14,6 +14,10 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { JourneyFeedbackScreen } from '../../../journey/screens/JourneyFeedbackScreen';
 import { PickEmotion } from './PickEmotion';
 import { ECPPartialFeature } from './extended_classes_pack/ECPPartialFeature';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
+import { createLoadingJourneyShared } from '../../../journey/hooks/useJourneyShared';
 
 /**
  * The core screen where the user selects an emotion and the backend
@@ -22,7 +26,6 @@ import { ECPPartialFeature } from './extended_classes_pack/ECPPartialFeature';
 export const PickEmotionJourney = ({
   state,
   resources,
-  doAnticipateState,
 }: FeatureComponentProps<PickEmotionJourneyState, PickEmotionJourneyResources>): ReactElement => {
   const loginContext = useContext(LoginContext);
   const [step, setStep] = useState<{
@@ -32,44 +35,57 @@ export const PickEmotionJourney = ({
   const stepRef = useRef(step);
   stepRef.current = step;
 
-  const ecpState = ECPPartialFeature.useWorldState(resources.selected?.word ?? null);
-  const ecpIsRequired = ECPPartialFeature.isRequired(ecpState);
-  const ecpResources = ECPPartialFeature.useResources(ecpState, ecpIsRequired ?? false);
+  const ecpState = ECPPartialFeature.useWorldState(
+    useMappedValueWithCallbacks(resources, (r) => r.selected?.word ?? null)
+  );
+  const ecpIsRequiredVWC = useMappedValueWithCallbacks(
+    ecpState,
+    (s) => ECPPartialFeature.isRequired(s) ?? false
+  );
+  const ecpResources = ECPPartialFeature.useResources(ecpState, ecpIsRequiredVWC);
 
   useEffect(() => {
-    if (resources.selected === null && step.step !== 'pick') {
-      setStep({ journeyUid: null, step: 'pick' });
-      return;
+    resources.callbacks.add(handleSelectedChanged);
+    handleSelectedChanged();
+    return () => {
+      resources.callbacks.remove(handleSelectedChanged);
+    };
+
+    function handleSelected(selected: PickEmotionJourneyResources['selected']) {
+      if (selected === null && step.step !== 'pick') {
+        setStep({ journeyUid: null, step: 'pick' });
+        return;
+      }
+
+      if (selected !== null && step.step === 'pick' && selected.skipsStats) {
+        setStep({ journeyUid: selected.journey.uid, step: 'lobby' });
+        return;
+      }
+
+      if (selected !== null && step.step !== 'pick' && step.journeyUid !== selected.journey.uid) {
+        setStep({ journeyUid: null, step: 'pick' });
+      }
     }
 
-    if (resources.selected !== null && step.step === 'pick' && resources.selected.skipsStats) {
-      setStep({ journeyUid: resources.selected.journey.uid, step: 'lobby' });
-      return;
+    function handleSelectedChanged() {
+      handleSelected(resources.get().selected);
     }
-
-    if (
-      resources.selected !== null &&
-      step.step !== 'pick' &&
-      step.journeyUid !== resources.selected.journey.uid
-    ) {
-      console.log('returning to pick screen because its a new journey');
-      setStep({ journeyUid: null, step: 'pick' });
-    }
-  }, [step, resources.selected]);
+  }, [step, resources]);
 
   const gotoJourney = useCallback(() => {
-    if (resources.selected === null) {
+    const selected = resources.get().selected;
+    if (selected === null) {
       console.warn('gotoJourney without a journey to goto');
       return;
     }
-    setStep({ journeyUid: resources.selected.journey.uid, step: 'lobby' });
-  }, [resources.selected]);
+    setStep({ journeyUid: selected.journey.uid, step: 'lobby' });
+  }, [resources]);
 
   const onFinishJourney = useCallback(() => {
-    resources.onFinishedJourney.call(undefined);
-    state.onFinishedClass.call(undefined);
+    resources.get().onFinishedJourney.call(undefined);
+    state.get().onFinishedClass.call(undefined);
     setStep({ journeyUid: null, step: 'pick' });
-  }, [resources.onFinishedJourney, state.onFinishedClass]);
+  }, [resources, state]);
 
   const setScreen = useCallback(
     (
@@ -82,23 +98,20 @@ export const PickEmotionJourney = ({
       if (typeof screen === 'function') {
         screen = screen(stepRef.current.step);
       }
-      if (resources.selected === null) {
+
+      const selected = resources.get().selected;
+      if (selected === null) {
         console.warn('Cannot go to journey screen without a selected emotion.');
         return;
       }
       if (screen === 'journey') {
-        const shared = resources.selected.shared;
-        if (shared.audio === null) {
-          console.warn('Cannot go to journey screen without audio.');
-          return;
-        }
-
-        if (!shared.audio.loaded) {
+        const audio = selected.shared.audio;
+        if (!audio.loaded) {
           console.warn('Cannot go to journey screen without loaded audio.');
           return;
         }
 
-        if (shared.audio.play === null) {
+        if (audio.play === null) {
           console.warn('Cannot go to journey screen without audio play.');
           return;
         }
@@ -109,34 +122,39 @@ export const PickEmotionJourney = ({
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify({
-              emotion_user_uid: resources.selected.emotionUserUid,
+              emotion_user_uid: selected.emotionUserUid,
             }),
           },
           loginContext
         );
 
-        shared.audio.play();
+        audio.play();
       }
-      const newStep = { journeyUid: resources.selected.journey.uid, step: screen };
+      const newStep = { journeyUid: selected.journey.uid, step: screen };
       stepRef.current = newStep;
       setStep(newStep);
     },
-    [resources.selected, loginContext]
+    [resources, loginContext]
   );
 
-  if (resources.forceSplash) {
+  const forceSplash = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(resources, (r) => r.forceSplash)
+  );
+  const selectedVWC = useMappedValueWithCallbacks(resources, (r) => r.selected);
+  const sharedVWC = useMappedValueWithCallbacks(
+    resources,
+    (r) =>
+      r.selected?.shared ??
+      createLoadingJourneyShared({ width: 0, height: 0 }, { width: 0, height: 0 })
+  );
+  const ecpIsRequired = useUnwrappedValueWithCallbacks(ecpIsRequiredVWC);
+
+  if (forceSplash) {
     return <SplashScreen type="wordmark" />;
   }
 
   if (step.step === 'pick') {
-    return (
-      <PickEmotion
-        state={state}
-        resources={resources}
-        doAnticipateState={doAnticipateState}
-        gotoJourney={gotoJourney}
-      />
-    );
+    return <PickEmotion state={state} resources={resources} gotoJourney={gotoJourney} />;
   }
 
   if (ecpIsRequired === undefined) {
@@ -147,67 +165,57 @@ export const PickEmotionJourney = ({
     return ECPPartialFeature.component(ecpState, ecpResources);
   }
 
-  if (resources.selected === null) {
-    console.warn("Not at the pick step, but there's no selected emotion.");
-    return <></>;
-  }
-  const sel = resources.selected;
-  const props = {
-    journey: resources.selected.journey,
-    shared: resources.selected.shared,
-    setScreen,
-    onJourneyFinished: onFinishJourney,
-    isOnboarding: resources.isOnboarding,
-  };
+  return (
+    <RenderGuardedComponent
+      props={selectedVWC}
+      component={(selected) => {
+        if (selected === null) {
+          console.warn("Not at the pick step, but there's no selected emotion.");
+          return <></>;
+        }
+        const sel = selected;
+        const props = {
+          journey: selected.journey,
+          shared: sharedVWC,
+          setScreen,
+          onJourneyFinished: onFinishJourney,
+          isOnboarding: resources.get().isOnboarding,
+        };
 
-  if (step.step === 'lobby') {
-    if (sel.shared.darkenedImage.loading) {
-      return <SplashScreen />;
-    }
+        if (step.step === 'lobby') {
+          return <JourneyLobbyScreen {...props} />;
+        }
 
-    return <JourneyLobbyScreen {...props} />;
-  }
+        if (step.step === 'start') {
+          return <JourneyStart {...props} selectedEmotionAntonym={sel.word.antonym} />;
+        }
 
-  if (step.step === 'start') {
-    if (
-      sel.shared.blurredImage.loading ||
-      sel.shared.audio === null ||
-      !sel.shared.audio.loaded ||
-      sel.shared.audio.play === null
-    ) {
-      return <SplashScreen />;
-    }
-    return <JourneyStart {...props} selectedEmotionAntonym={sel.word.antonym} />;
-  }
+        if (step.step === 'journey') {
+          return <Journey {...props} />;
+        }
 
-  if (step.step === 'journey') {
-    if (sel.shared.audio === null || !sel.shared.audio.loaded) {
-      return <SplashScreen />;
-    }
-    return <Journey {...props} />;
-  }
+        if (step.step === 'feedback') {
+          return <JourneyFeedbackScreen {...props} />;
+        }
 
-  if (step.step === 'feedback') {
-    return <JourneyFeedbackScreen {...props} />;
-  }
+        if (step.step === 'post') {
+          return (
+            <JourneyPostScreen {...props} classesTakenToday={state.get().classesTakenThisSession} />
+          );
+        }
 
-  if (step.step === 'post') {
-    return <JourneyPostScreen {...props} classesTakenToday={state.classesTakenThisSession} />;
-  }
+        if (step.step === 'share') {
+          return <JourneyShareScreen {...props} />;
+        }
 
-  if (step.step === 'share') {
-    if (sel.shared.blurredImage.loading || sel.shared.originalImage.loading) {
-      return <SplashScreen />;
-    }
-
-    return <JourneyShareScreen {...props} />;
-  }
-
-  throw new Error(createUnknownStepMessage(step.step));
+        throw new Error(createUnknownStepMessage(step.step));
+      }}
+    />
+  );
 };
 
 // This function will allow the type checker to catch any missing steps
-// as they will cause step not to have the `never` type
-const createUnknownStepMessage = (step: never) => {
+// as they will cause step not to have the right type
+const createUnknownStepMessage = (step: 'pick') => {
   return `Unknown step: ${JSON.stringify(step)}`;
 };

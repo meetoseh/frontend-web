@@ -1,18 +1,13 @@
 // HPFRR = Horizontal Partly Filled Rounded Rect
 
 import { ReactElement, useMemo } from 'react';
-import {
-  Animator,
-  BezierAnimator,
-  BezierColorAnimator,
-  VariableStrategyProps,
-  useAnimationLoop,
-} from './AnimationLoop';
+import { Animator, BezierAnimator, BezierColorAnimator, useAnimationLoop } from './AnimationLoop';
 import {
   SinglePassWebGLComponent,
   SinglePassWebGLComponentRenderer,
 } from './SinglePassWebGLComponent';
 import { ease } from '../lib/Bezier';
+import { VariableStrategyProps } from './VariableStrategyProps';
 
 type Props = {
   /**

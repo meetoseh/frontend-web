@@ -1,7 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../anim/VariableStrategyProps';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import { useUnwrappedValueWithCallbacks } from './useUnwrappedValueWithCallbacks';
 
 /**
- * A basic hook to get the window size with a debounced resize listener
+ * A basic hook to get the window size with a debounced resize listener. This
+ * triggers rerenders as it's a standard hook; avoid that using the VWC
+ * variant.
  *
  * @param forcedSize if specified, returned instead of the real window size.
  *   Convenient when you want to render a component that uses this hook at
@@ -11,9 +19,29 @@ export const useWindowSize = (forcedSize?: {
   width: number;
   height: number;
 }): { width: number; height: number } => {
-  const [windowSize, setWindowSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
+  return useUnwrappedValueWithCallbacks(
+    useWindowSizeValueWithCallbacks({ type: 'react-rerender', props: forcedSize })
+  );
+};
+
+/**
+ * The same idea as useWindowSize, except doesn't trigger react rerenders. Only
+ * used when it's really important that we don't trigger even a single extra
+ * react rerender on a component.
+ */
+export const useWindowSizeValueWithCallbacks = (
+  forcedSizeVariableStrategy?: VariableStrategyProps<{ width: number; height: number } | undefined>
+): ValueWithCallbacks<{ width: number; height: number }> => {
+  const forcedSizeVWC = useVariableStrategyPropsAsValueWithCallbacks(
+    forcedSizeVariableStrategy ?? { type: 'react-rerender', props: undefined }
+  );
+  const result = useWritableValueWithCallbacks<{ width: number; height: number }>(() => {
+    const forced = forcedSizeVWC.get();
+    if (forced !== undefined) {
+      return forced;
+    }
+
+    return { width: window.innerWidth, height: window.innerHeight };
   });
 
   useEffect(() => {
@@ -26,22 +54,13 @@ export const useWindowSize = (forcedSize?: {
       }
 
       timeout = null;
-      setWindowSize((oldWindowSize) => {
-        // on ios when you swipe down the window size gets slightly larger
-        // for a short time. We want to not cause useEffects to trigger
-        // when this happens
+      const reported = result.get();
+      const correct = getCurrentResult();
 
-        if (
-          window.innerWidth === oldWindowSize.width &&
-          window.innerHeight === oldWindowSize.height
-        ) {
-          return oldWindowSize;
-        }
-        return {
-          width: window.innerWidth,
-          height: window.innerHeight,
-        };
-      });
+      if (reported.width !== correct.width || reported.height !== correct.height) {
+        result.set(correct);
+        result.callbacks.call(undefined);
+      }
     };
 
     const onResize = () => {
@@ -66,7 +85,16 @@ export const useWindowSize = (forcedSize?: {
         clearTimeout(timeout);
       }
     };
-  }, []);
 
-  return forcedSize ?? windowSize;
+    function getCurrentResult() {
+      const forced = forcedSizeVWC.get();
+      if (forced !== undefined) {
+        return forced;
+      }
+
+      return { width: window.innerWidth, height: window.innerHeight };
+    }
+  }, [forcedSizeVWC, result]);
+
+  return result;
 };

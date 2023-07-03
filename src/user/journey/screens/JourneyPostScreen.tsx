@@ -10,7 +10,9 @@ import { combineClasses } from '../../../shared/lib/combineClasses';
 import { Button } from '../../../shared/forms/Button';
 import { useFavoritedModal } from '../../favorites/hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../../favorites/hooks/useUnfavoritedModal';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 const DAYS_OF_WEEK: DayOfWeek[] = [
@@ -146,7 +148,8 @@ export const JourneyPostScreen = ({
 
   const onToggleFavorited = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (shared.favorited === null) {
+      const favorited = shared.get().favorited;
+      if (favorited === null) {
         return;
       }
 
@@ -158,8 +161,8 @@ export const JourneyPostScreen = ({
       try {
         const response = await apiFetch(
           '/api/1/users/me/journeys/likes' +
-            (shared.favorited ? '?uid=' + encodeURIComponent(journey.uid) : ''),
-          shared.favorited
+            (favorited ? '?uid=' + encodeURIComponent(journey.uid) : ''),
+          favorited
             ? {
                 method: 'DELETE',
               }
@@ -176,8 +179,8 @@ export const JourneyPostScreen = ({
           throw response;
         }
 
-        const nowFavorited = !shared.favorited;
-        shared.setFavorited.call(undefined, nowFavorited);
+        const nowFavorited = !favorited;
+        shared.get().setFavorited(nowFavorited);
         if (nowFavorited) {
           setShowLikedUntil(Date.now() + 5000);
         } else {
@@ -188,8 +191,10 @@ export const JourneyPostScreen = ({
         setLikeError(desc);
       }
     },
-    [shared.favorited, journey.uid, loginContext, shared.setFavorited]
+    [shared, journey.uid, loginContext]
   );
+
+  const blurredImage = useMappedValueWithCallbacks(shared, (s) => s.blurredImage);
 
   if (streak === null) {
     return <SplashScreen />;
@@ -307,7 +312,7 @@ export const JourneyPostScreen = ({
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...shared.blurredImage} />
+        <OsehImageFromStateValueWithCallbacks state={blurredImage} />
       </div>
       <div className={styles.innerContainer}>
         {error !== null ? <ErrorBlock>{error}</ErrorBlock> : null}
@@ -352,26 +357,31 @@ export const JourneyPostScreen = ({
               Continue
             </Button>
           </div>
-          <div
-            className={styles.favoriteContainer}
-            style={shared.favorited === null ? { display: 'none' } : undefined}>
-            <Button type="button" variant="link-white" onClick={onToggleFavorited} fullWidth>
-              <div className={styles.favoriteButtonContents}>
-                {shared.favorited ? (
-                  <>
-                    <div className={styles.favoritedIcon} />
-                    Remove from favorites
-                  </>
-                ) : (
-                  <>
-                    <div className={styles.unfavoritedIcon} />
-                    Add to favorites
-                  </>
-                )}
+          <RenderGuardedComponent
+            props={shared}
+            component={(s) => (
+              <div
+                className={styles.favoriteContainer}
+                style={s.favorited === null ? { display: 'none' } : undefined}>
+                <Button type="button" variant="link-white" onClick={onToggleFavorited} fullWidth>
+                  <div className={styles.favoriteButtonContents}>
+                    {s.favorited ? (
+                      <>
+                        <div className={styles.favoritedIcon} />
+                        Remove from favorites
+                      </>
+                    ) : (
+                      <>
+                        <div className={styles.unfavoritedIcon} />
+                        Add to favorites
+                      </>
+                    )}
+                  </div>
+                </Button>
+                {likeError && <ErrorBlock>{likeError}</ErrorBlock>}
               </div>
-            </Button>
-            {likeError && <ErrorBlock>{likeError}</ErrorBlock>}
-          </div>
+            )}
+          />
           <div className={styles.bottomSpacer}></div>
         </div>
       </div>

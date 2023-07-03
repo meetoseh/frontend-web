@@ -9,6 +9,10 @@ import { FeatureAllStates } from '../../user/core/models/FeatureAllStates';
 import { VipChatRequestComponent } from '../../user/core/features/vipChatRequest/VipChatRequestComponent';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import styles from './VipChatRequestBlock.module.css';
+import { useReactManagedValueAsValueWithCallbacks } from '../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
+import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { ValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { VipChatRequestResources } from '../../user/core/features/vipChatRequest/VipChatRequestResources';
 
 /**
  * Renders a single vip chat request
@@ -44,7 +48,11 @@ export const VipChatRequestBlock = ({
       suppressEvents: true,
     };
   }, [chatRequest, windowSize.width]);
-  const resources = VipChatRequestFeature.useResources(state, true, {} as FeatureAllStates);
+  const stateVWC = useReactManagedValueAsValueWithCallbacks(state);
+  const requiredVWC = useReactManagedValueAsValueWithCallbacks(true);
+  const allStatesVWC = useReactManagedValueAsValueWithCallbacks({} as FeatureAllStates);
+  const resourcesVWC = VipChatRequestFeature.useResources(stateVWC, requiredVWC, allStatesVWC);
+  const resources = useUnwrappedValueWithCallbacks(resourcesVWC);
 
   return (
     <CrudItemBlock title={chatRequest.user.email} controls={null}>
@@ -80,9 +88,8 @@ export const VipChatRequestBlock = ({
               marginTop: '24px',
             }}>
             <VipChatRequestComponent
-              state={state}
-              resources={resources}
-              doAnticipateState={() => {}}
+              state={stateVWC}
+              resources={resourcesVWC as ValueWithCallbacks<VipChatRequestResources>}
             />
           </div>
         ) : (

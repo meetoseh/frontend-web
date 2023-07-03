@@ -1,221 +1,224 @@
-import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { OsehAudioContentState } from './OsehAudioContentState';
 import { OsehContentTarget } from './OsehContentTarget';
-import { Callbacks, ValueWithCallbacks } from '../lib/Callbacks';
+import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../anim/VariableStrategyProps';
 
 /**
  * Loads the specified audio target and returns a state object which can be used
  * to play or stop the audio. A loading or failed target will result in a perpetual
  * loading state.
+ *
+ * As the audio loads this can trigger several state changes; in order to mitigate
+ * react rerenders, this returns a value with callbacks that should be unwrapped
+ * with `useUnwrappedValueWithCallbacks` in the inner-most components that actually
+ * care about the value, to instruct react on where rerenders are really necessary
+ * (which is rarely the component calling this hook)
  */
-export const useOsehAudioContentState = (target: OsehContentTarget): OsehAudioContentState => {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCallbacksRef = useRef<Callbacks<undefined>>() as MutableRefObject<
-    Callbacks<undefined>
-  >;
-  const [play, setPlayRaw] = useState<((this: void) => Promise<void>) | null>(null);
-  const [stop, setStopRaw] = useState<((this: void) => Promise<void>) | null>(null);
+export const useOsehAudioContentState = (
+  targetVariableStrategy: VariableStrategyProps<OsehContentTarget>
+): ValueWithCallbacks<OsehAudioContentState> => {
+  const state = useWritableValueWithCallbacks<OsehAudioContentState>(() => ({
+    play: null,
+    stop: null,
+    loaded: false,
+    error: null,
+    audio: null,
+  }));
+  const targetVWC = useVariableStrategyPropsAsValueWithCallbacks(targetVariableStrategy);
 
-  if (audioCallbacksRef.current === undefined) {
-    audioCallbacksRef.current = new Callbacks();
-  }
-
-  // convenience function for using setPlay; setPlay(() => {}) doesn't work
-  // as expected since it will actually be treated as the functional variant
-  // of setPlay, which is not what we want
-  const setPlaySafe = useCallback((play: ((this: void) => Promise<void>) | null) => {
-    setPlayRaw(() => play);
-  }, []);
-
-  const setStopSafe = useCallback((stop: ((this: void) => Promise<void>) | null) => {
-    setStopRaw(() => stop);
-  }, []);
-
-  const outerTarget = target;
   useEffect(() => {
-    if (outerTarget.state !== 'loaded') {
-      if (audioRef.current !== null) {
-        audioRef.current = null;
-        audioCallbacksRef.current.call(undefined);
-        setPlaySafe(null);
-        setStopSafe(null);
-      }
-      return;
-    }
-    const target = outerTarget;
-
-    const audioSrc =
-      target.webExport.url + (target.presigned ? '' : `?jwt=${encodeURIComponent(target.jwt)}`);
-
-    let aud = audioRef.current;
-    if (aud !== null && aud.src !== audioSrc) {
-      aud = null;
-      audioRef.current = null;
-      audioCallbacksRef.current.call(undefined);
-    }
-
-    if (aud === null) {
-      aud = new Audio();
-      aud.preload = 'auto';
-      aud.src = audioSrc;
-      audioRef.current = aud;
-      audioCallbacksRef.current.call(undefined);
-    }
-
-    const audio = aud;
-
-    let active = true;
-    const onCancel: (() => void)[] = [];
-    manageAudio();
-    const unmount = () => {
-      if (!active) {
-        return;
-      }
-      active = false;
-      const cpCancellers = onCancel.slice();
-      for (const cancel of cpCancellers) {
-        cancel();
+    let targetCanceler: (() => void) | null = null;
+    targetVWC.callbacks.add(handleTargetChanged);
+    return () => {
+      targetVWC.callbacks.remove(handleTargetChanged);
+      if (targetCanceler !== null) {
+        targetCanceler();
+        targetCanceler = null;
       }
     };
-    return unmount;
 
-    async function manageAudio() {
-      setPlaySafe(null);
-      setStopSafe(null);
-      if (!audio.paused) {
-        audio.pause();
+    function handleTargetChanged() {
+      if (targetCanceler !== null) {
+        targetCanceler();
+        targetCanceler = null;
       }
 
-      const onLoadPromise = new Promise<void>((resolve) => {
-        const cancelers: (() => void)[] = [];
-        const cancel = () => {
-          for (const canceler of cancelers) {
-            canceler();
-          }
-        };
+      targetCanceler = handleTarget(targetVWC.get()) ?? null;
+    }
 
-        if (audio.readyState >= 4) {
-          cancel();
-          resolve();
+    function handleTarget(outerTarget: OsehContentTarget): (() => void) | undefined {
+      if (outerTarget.state !== 'loaded') {
+        state.set({
+          play: null,
+          stop: null,
+          loaded: false,
+          error: null,
+          audio: null,
+        });
+        state.callbacks.call(undefined);
+        return;
+      }
+      const target = outerTarget;
+
+      const audioSrc =
+        target.webExport.url + (target.presigned ? '' : `?jwt=${encodeURIComponent(target.jwt)}`);
+
+      let aud = state.get().audio;
+      if (aud !== null && aud.src !== audioSrc) {
+        aud = null;
+      }
+
+      if (aud === null) {
+        aud = new Audio();
+        aud.preload = 'auto';
+        aud.src = audioSrc;
+      }
+
+      const audio = aud;
+
+      let active = true;
+      manageAudio();
+      const unmount = () => {
+        if (!active) {
           return;
         }
+        active = false;
+      };
+      return unmount;
 
-        const onLoaded = () => {
-          cancel();
-          resolve();
-        };
+      async function manageAudio() {
+        if (!audio.paused) {
+          audio.pause();
+        }
 
-        const onPotentiallyResolvableIssue = () => {
-          if (didResetLoad) {
-            cancel();
+        state.set({
+          play: null,
+          stop: null,
+          loaded: false,
+          error: null,
+          audio,
+        });
+        state.callbacks.call(undefined);
+
+        const onLoadPromise = new Promise<void>((resolve) => {
+          const cancelers = new Callbacks<undefined>();
+
+          if (audio.readyState >= 4) {
+            cancelers.call(undefined);
             resolve();
-          } else {
-            resetLoad();
+            return;
           }
-        };
 
-        const onRecheckNetworkStateTimeout = () => {
-          recheckNetworkStateTimeout = null;
+          const onLoaded = () => {
+            cancelers.call(undefined);
+            resolve();
+          };
 
-          if (audio.networkState !== 2) {
+          const onPotentiallyResolvableIssue = () => {
             if (didResetLoad) {
-              cancel();
+              cancelers.call(undefined);
               resolve();
             } else {
               resetLoad();
             }
-          } else {
-            recheckNetworkStateTimeout = setTimeout(onRecheckNetworkStateTimeout, 100);
-          }
-        };
+          };
 
-        cancelers.push(() => audio.removeEventListener('canplaythrough', onLoaded));
-        cancelers.push(() => audio.removeEventListener('suspend', onPotentiallyResolvableIssue));
-        cancelers.push(() => audio.removeEventListener('stalled', onPotentiallyResolvableIssue));
-        cancelers.push(() => audio.removeEventListener('error', onPotentiallyResolvableIssue));
-        audio.addEventListener('canplaythrough', onLoaded);
-        audio.addEventListener('suspend', onPotentiallyResolvableIssue);
-        audio.addEventListener('stalled', onPotentiallyResolvableIssue);
-        audio.addEventListener('error', onPotentiallyResolvableIssue);
-
-        let recheckNetworkStateTimeout: NodeJS.Timeout | null = setTimeout(
-          onRecheckNetworkStateTimeout,
-          100
-        );
-        cancelers.push(() => {
-          if (recheckNetworkStateTimeout !== null) {
-            clearTimeout(recheckNetworkStateTimeout);
+          const onRecheckNetworkStateTimeout = () => {
             recheckNetworkStateTimeout = null;
-          }
-        });
 
-        let didResetLoad = false;
-        const resetLoad = () => {
-          if (didResetLoad) {
-            return;
-          }
-          didResetLoad = true;
-
-          if (audio.networkState === 3) {
-            audio.src = audioSrc;
-          }
-          let timeout: NodeJS.Timeout | null = null;
-          cancelers.push(() => {
-            if (timeout !== null) {
-              clearTimeout(timeout);
-              timeout = null;
-            }
-          });
-
-          const onLoadStart = () => {
-            if (timeout !== null) {
-              clearTimeout(timeout);
+            if (audio.networkState !== 2) {
+              if (didResetLoad) {
+                cancelers.call(undefined);
+                resolve();
+              } else {
+                resetLoad();
+              }
+            } else {
+              recheckNetworkStateTimeout = setTimeout(onRecheckNetworkStateTimeout, 100);
             }
           };
 
-          timeout = setTimeout(() => {
-            timeout = null;
-            cancel();
-            resolve();
-          }, 250);
+          cancelers.add(() => audio.removeEventListener('canplaythrough', onLoaded));
+          cancelers.add(() => audio.removeEventListener('suspend', onPotentiallyResolvableIssue));
+          cancelers.add(() => audio.removeEventListener('stalled', onPotentiallyResolvableIssue));
+          cancelers.add(() => audio.removeEventListener('error', onPotentiallyResolvableIssue));
+          audio.addEventListener('canplaythrough', onLoaded);
+          audio.addEventListener('suspend', onPotentiallyResolvableIssue);
+          audio.addEventListener('stalled', onPotentiallyResolvableIssue);
+          audio.addEventListener('error', onPotentiallyResolvableIssue);
 
-          cancelers.push(() => audio.removeEventListener('loadstart', onLoadStart));
-          audio.addEventListener('loadstart', onLoadStart);
-          audio.load();
-        };
+          let recheckNetworkStateTimeout: NodeJS.Timeout | null = setTimeout(
+            onRecheckNetworkStateTimeout,
+            100
+          );
+          cancelers.add(() => {
+            if (recheckNetworkStateTimeout !== null) {
+              clearTimeout(recheckNetworkStateTimeout);
+              recheckNetworkStateTimeout = null;
+            }
+          });
 
-        if (audio.networkState !== 2) {
-          resetLoad();
+          let didResetLoad = false;
+          const resetLoad = () => {
+            if (didResetLoad) {
+              return;
+            }
+            didResetLoad = true;
+
+            if (audio.networkState === 3) {
+              audio.src = audioSrc;
+            }
+            let timeout: NodeJS.Timeout | null = null;
+            cancelers.add(() => {
+              if (timeout !== null) {
+                clearTimeout(timeout);
+                timeout = null;
+              }
+            });
+
+            const onLoadStart = () => {
+              if (timeout !== null) {
+                clearTimeout(timeout);
+              }
+            };
+
+            timeout = setTimeout(() => {
+              timeout = null;
+              cancelers.call(undefined);
+              resolve();
+            }, 250);
+
+            cancelers.add(() => audio.removeEventListener('loadstart', onLoadStart));
+            audio.addEventListener('loadstart', onLoadStart);
+            audio.load();
+          };
+
+          if (audio.networkState !== 2) {
+            resetLoad();
+          }
+        });
+
+        await onLoadPromise;
+        if (!active) {
+          return;
         }
-      });
 
-      await onLoadPromise;
-      if (!active) {
-        return;
+        state.set({
+          play: () => audio.play(),
+          stop: async () => audio.pause(),
+          loaded: true,
+          error: null,
+          audio,
+        });
+        state.callbacks.call(undefined);
+        unmount();
       }
-
-      setPlaySafe(() => audio.play());
-      setStopSafe(async () => audio.pause());
-      unmount();
     }
-  }, [setPlaySafe, setStopSafe, outerTarget]);
+  }, [targetVWC, state]);
 
-  const audio = useMemo<ValueWithCallbacks<HTMLAudioElement | null>>(
-    () => ({
-      get: () => audioRef.current,
-      callbacks: audioCallbacksRef.current,
-    }),
-    []
-  );
-
-  return useMemo<OsehAudioContentState>(
-    () => ({
-      play,
-      stop,
-      loaded: play !== null,
-      error: null,
-      audio,
-    }),
-    [play, stop, audio]
-  );
+  return state;
 };

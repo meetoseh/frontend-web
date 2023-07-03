@@ -9,8 +9,11 @@ import { useUnfavoritedModal } from '../../favorites/hooks/useUnfavoritedModal';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 import { Callbacks } from '../../../shared/lib/Callbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { useWindowSize } from '../../../shared/hooks/useWindowSize';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 const HIDE_TIME = 10000;
 const HIDING_TIME = 365;
@@ -46,19 +49,16 @@ export const Journey = ({
   const [showLikedUntil, setShowLikedUntil] = useState<number | undefined>(undefined);
   const [showUnlikedUntil, setShowUnlikedUntil] = useState<number | undefined>(undefined);
   const [likeError, setLikeError] = useState<ReactElement | null>(null);
+  const windowSize = useWindowSize();
 
-  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize: shared.windowSize });
+  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize });
 
   useEffect(() => {
-    if (shared.audio === null) {
-      return;
-    }
-    const vwcAudio = shared.audio.audio;
     const cleanup = new Callbacks<undefined>();
-    vwcAudio.callbacks.add(handleAudioChanged);
+    shared.callbacks.add(handleAudioChanged);
     handleAudioChanged();
     return () => {
-      vwcAudio.callbacks.remove(handleAudioChanged);
+      shared.callbacks.remove(handleAudioChanged);
       cleanup.call(undefined);
       cleanup.clear();
     };
@@ -139,29 +139,27 @@ export const Journey = ({
       cleanup.call(undefined);
       cleanup.clear();
 
-      const audio = vwcAudio.get();
+      const audio = shared.get().audio.audio;
       if (audio !== null) {
         cleanup.add(handleAudioTime(audio));
         cleanup.add(handleAudioEnded(audio));
         cleanup.add(handleControls(audio));
       }
     }
-  }, [shared.audio, setScreen]);
+  }, [shared, setScreen]);
 
   useFavoritedModal(showLikedUntil);
   useUnfavoritedModal(showUnlikedUntil);
 
   const onClickedClose = useCallback(() => {
-    if (shared.audio?.stop) {
-      shared.audio.stop();
-    }
+    shared.get().audio.stop?.();
 
     if (onCloseEarly !== undefined) {
       onCloseEarly(currentTime, journey.durationSeconds);
     } else {
       setScreen('feedback', true);
     }
-  }, [setScreen, shared.audio, currentTime, journey.durationSeconds, onCloseEarly]);
+  }, [setScreen, shared, currentTime, journey.durationSeconds, onCloseEarly]);
 
   const audioProgressStyle = useMemo(() => {
     return {
@@ -171,7 +169,8 @@ export const Journey = ({
 
   const onToggleFavorited = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (shared.favorited === null) {
+      const favorited = shared.get().favorited;
+      if (favorited === null) {
         return;
       }
 
@@ -183,8 +182,8 @@ export const Journey = ({
       try {
         const response = await apiFetch(
           '/api/1/users/me/journeys/likes' +
-            (shared.favorited ? '?uid=' + encodeURIComponent(journey.uid) : ''),
-          shared.favorited
+            (favorited ? '?uid=' + encodeURIComponent(journey.uid) : ''),
+          favorited
             ? {
                 method: 'DELETE',
               }
@@ -201,8 +200,8 @@ export const Journey = ({
           throw response;
         }
 
-        const nowFavorited = !shared.favorited;
-        shared.setFavorited.call(undefined, nowFavorited);
+        const nowFavorited = !favorited;
+        shared.get().setFavorited(nowFavorited);
         if (nowFavorited) {
           setShowLikedUntil(Date.now() + 5000);
         } else {
@@ -213,13 +212,15 @@ export const Journey = ({
         setLikeError(desc);
       }
     },
-    [shared.favorited, journey.uid, loginContext, shared.setFavorited]
+    [shared, journey.uid, loginContext]
   );
 
   return (
     <div className={styles.container} ref={containerRef}>
       <div className={styles.backgroundImageContainer}>
-        <OsehImageFromState {...shared.darkenedImage} />
+        <OsehImageFromStateValueWithCallbacks
+          state={useMappedValueWithCallbacks(shared, (s) => s.darkenedImage)}
+        />
       </div>
       <div
         className={`${styles.closeButtonContainer} ${styles.control} ${
@@ -252,16 +253,23 @@ export const Journey = ({
             <div className={styles.title}>{journey.title}</div>
             <div className={styles.instructor}>{journey.instructor.name}</div>
           </div>
-          {shared.favorited !== null && (
-            <div className={styles.likeContainer}>
-              <IconButton
-                icon={shared.favorited ? styles.fullHeartIcon : styles.emptyHeartIcon}
-                srOnlyName={shared.favorited ? 'Unlike' : 'Like'}
-                onClick={onToggleFavorited}
-                disabled={false}
-              />
-            </div>
-          )}
+          <RenderGuardedComponent
+            props={shared}
+            component={(s) => (
+              <>
+                {s.favorited !== null && (
+                  <div className={styles.likeContainer}>
+                    <IconButton
+                      icon={s.favorited ? styles.fullHeartIcon : styles.emptyHeartIcon}
+                      srOnlyName={s.favorited ? 'Unlike' : 'Like'}
+                      onClick={onToggleFavorited}
+                      disabled={false}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          />
           {likeError && <ErrorBlock>{likeError}</ErrorBlock>}
         </div>
       </div>

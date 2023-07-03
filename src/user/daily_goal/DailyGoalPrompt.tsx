@@ -7,6 +7,7 @@ import { InteractivePromptRouter } from '../interactive_prompt/components/Intera
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { useOsehImageState } from '../../shared/images/useOsehImageState';
 import { OsehImageFromState } from '../../shared/images/OsehImageFromState';
+import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 
 type DailyGoalPromptProps = {
   /**
@@ -28,7 +29,11 @@ type DailyGoalPromptProps = {
  * Prompts the user about what they are trying to accomplish today
  */
 export const DailyGoalPrompt = ({ onLoaded, onFinished }: DailyGoalPromptProps): ReactElement => {
-  const publicPrompt = usePublicInteractivePrompt({ identifier: 'onboarding-prompt-feeling' });
+  const publicPromptVWC = usePublicInteractivePrompt({
+    type: 'react-rerender',
+    props: { identifier: 'onboarding-prompt-feeling' },
+  });
+  const publicPrompt = useUnwrappedValueWithCallbacks(publicPromptVWC);
   const windowSize = useWindowSize();
   const imageHandler = useOsehImageStateRequestHandler({});
   const backgroundImage = useOsehImageState(

@@ -1,6 +1,10 @@
-import { MutableRefObject, useContext, useEffect, useMemo, useRef } from 'react';
+import { useContext, useEffect } from 'react';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { Callbacks } from '../../../shared/lib/Callbacks';
+import {
+  Callbacks,
+  ValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { InteractivePrompt } from '../models/InteractivePrompt';
@@ -36,35 +40,6 @@ export type ProfilePicturesState = {
   additionalUsers: number;
 };
 
-export type ProfilePicturesStateChangedEvent = {
-  /**
-   * The previous state
-   */
-  old: ProfilePicturesState;
-
-  /**
-   * The current state
-   */
-  current: ProfilePicturesState;
-};
-
-/**
- * The actual result of the useProfilePictures hook - contains refs
- * to the state, as well as a ref to callbacks to call when the state
- * changes.
- */
-export type ProfilePicturesStateRef = {
-  /**
-   * The current value of the state
-   */
-  state: MutableRefObject<ProfilePicturesState>;
-
-  /**
-   * The callbacks to call when the state changes
-   */
-  onStateChanged: MutableRefObject<Callbacks<ProfilePicturesStateChangedEvent>>;
-};
-
 type ProfilePicturesProps = {
   /**
    * The interactive prompt to generate profile pictures for
@@ -94,25 +69,19 @@ export const useProfilePictures = ({
   prompt,
   promptTime,
   stats,
-}: ProfilePicturesProps): ProfilePicturesStateRef => {
-  const stateRef = useRef<ProfilePicturesState>() as MutableRefObject<ProfilePicturesState>;
-  const onStateChangedRef = useRef<
-    Callbacks<ProfilePicturesStateChangedEvent>
-  >() as MutableRefObject<Callbacks<ProfilePicturesStateChangedEvent>>;
+}: ProfilePicturesProps): ValueWithCallbacks<ProfilePicturesState> => {
+  const result = useWritableValueWithCallbacks(
+    (): ProfilePicturesState => ({
+      pictures: [],
+      additionalUsers: 0,
+    })
+  );
   const loginContext = useContext(LoginContext);
   const imagesHandler = useOsehImageStateRequestHandler({
     playlistCacheSize: 128,
     imageCacheSize: 128,
     cropCacheSize: 128,
   });
-
-  if (stateRef.current === undefined) {
-    stateRef.current = { pictures: [], additionalUsers: 0 };
-  }
-
-  if (onStateChangedRef.current === undefined) {
-    onStateChangedRef.current = new Callbacks();
-  }
 
   useEffect(() => {
     let active = true;
@@ -254,15 +223,11 @@ export const useProfilePictures = ({
         }
 
         const additionalUsers = stats.stats.current.users - loadedImages.length;
-        const oldState = stateRef.current;
-        stateRef.current = {
+        result.set({
           pictures: loadedImages,
           additionalUsers,
-        };
-        onStateChangedRef.current.call({
-          old: oldState,
-          current: stateRef.current,
         });
+        result.callbacks.call(undefined);
 
         if (timePromise === null || timePromise.done()) {
           timePromise = waitUntilUsingPromptTimeCancelable(promptTime, (event) => {
@@ -287,13 +252,7 @@ export const useProfilePictures = ({
       statsChangedPromise?.cancel();
       unmount();
     }
-  }, [prompt, promptTime, stats, loginContext, imagesHandler]);
+  }, [prompt, promptTime, stats, loginContext, imagesHandler, result]);
 
-  return useMemo(
-    () => ({
-      state: stateRef,
-      onStateChanged: onStateChangedRef,
-    }),
-    []
-  );
+  return result;
 };

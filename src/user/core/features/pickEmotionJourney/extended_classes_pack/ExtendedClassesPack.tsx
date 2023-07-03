@@ -10,103 +10,124 @@ import { ExtendedClassesPackPurchaseOffer } from './ExtendedClassesPackPurchaseO
 import { useStartSession } from '../../../../../shared/hooks/useInappNotificationSession';
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
+import { ValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
+import { useUnwrappedValueWithCallbacks } from '../../../../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 
 export const ExtendedClassesPack = ({
   state,
   resources,
 }: {
-  state: ECPState;
-  resources: ECPResources;
+  state: ValueWithCallbacks<ECPState>;
+  resources: ValueWithCallbacks<ECPResources>;
 }): ReactElement => {
   const loginContext = useContext(LoginContext);
   const windowSize = useWindowSize();
   const [step, setStep] = useState<
     'offerSample' | 'start' | 'journey' | 'offerPack' | 'redirecting'
   >('offerSample');
-  useStartSession(resources.session);
+  useStartSession({
+    type: 'callbacks',
+    props: () => resources.get().session,
+    callbacks: resources.callbacks,
+  });
 
   const onNext = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      resources.session?.storeAction('try_class', {
-        emotion: state.emotion?.word ?? null,
-        journey_uid: state.journey?.uid ?? null,
+      const journey = state.get().journey;
+      resources.get().session?.storeAction('try_class', {
+        emotion: state.get().emotion?.word ?? null,
+        journey_uid: journey?.uid ?? null,
       });
-      if (state.journey !== null && state.journey !== undefined) {
+      if (journey !== null && journey !== undefined) {
         apiFetch(
           '/api/1/campaigns/extended_classes_pack/started',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify({
-              journey_uid: state.journey.uid,
-              journey_jwt: state.journey.jwt,
+              journey_uid: journey.uid,
+              journey_jwt: journey.jwt,
             }),
           },
           loginContext
         );
       }
-      if (resources.journeyShared.audio?.play) {
-        resources.session?.storeAction('start_audio', null);
-        resources.journeyShared.audio.play();
+      const play = resources.get().journeyShared.audio.play;
+      if (play !== null) {
+        resources.get().session?.storeAction('start_audio', null);
+        play();
         setStep('journey');
       } else {
         setStep('start');
       }
     },
-    [resources.journeyShared.audio, resources.session, state.emotion, state.journey, loginContext]
+    [resources, state, loginContext]
   );
 
   const onNoThanks = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      resources.session?.storeAction('no_thanks', { emotion: state.emotion?.word ?? null });
-      resources.session?.reset();
-      state.ian?.onShown();
+      resources
+        .get()
+        .session?.storeAction('no_thanks', { emotion: state.get().emotion?.word ?? null });
+      resources.get().session?.reset();
+      state.get().ian?.onShown();
     },
-    [resources.session, state.ian, state.emotion?.word]
+    [resources, state]
   );
 
   const handleStartSetScreen = useCallback(() => {
-    if (resources.journeyShared.audio?.play) {
-      resources.session?.storeAction('start_audio', null);
-      resources.journeyShared.audio.play();
-      setStep('journey');
+    const audio = resources.get().journeyShared.audio;
+    if (!audio.loaded || audio.play === null) {
+      return;
     }
-  }, [resources.journeyShared.audio, resources.session]);
+    audio.play();
+    resources.get().session?.storeAction('start_audio', null);
+    setStep('journey');
+  }, [resources]);
 
   const handleStartJourneyFinished = handleStartSetScreen;
 
   const handleJourneySetScreen = useCallback(() => {
-    resources.session?.storeAction('stop_audio_normally', null);
+    resources.get().session?.storeAction('stop_audio_normally', null);
     setStep('offerPack');
-  }, [resources.session]);
+  }, [resources]);
 
   const handleJourneyJourneyFinished = handleJourneySetScreen;
 
   const handleJourneyCloseEarly = useCallback(
     (currentTime: number, totalTime: number) => {
-      resources.session?.storeAction('stop_audio_early', { current_time: currentTime });
+      resources.get().session?.storeAction('stop_audio_early', { current_time: currentTime });
       setStep('offerPack');
     },
-    [resources.session]
+    [resources]
   );
 
   const handleRedirectingToPaymentProvider = useCallback(async () => {
     setStep('redirecting');
-    await resources.session?.storeAction('buy_now', null);
-    resources.session?.reset();
+    await resources.get().session?.storeAction('buy_now', null);
+    resources.get().session?.reset();
     // we don't want to dismiss the ian as we want to go to the splash
     // screen until the redirect goes through
-  }, [resources.session]);
+  }, [resources]);
 
   const handleRejectPaymentOffer = useCallback(() => {
     setStep('redirecting');
-    resources.session?.reset();
-    state.ian?.onShown();
-  }, [resources.session, state.ian]);
+    resources.get().session?.reset();
+    state.get().ian?.onShown();
+  }, [resources, state]);
 
-  if (state.journey === null || state.journey === undefined || state.emotion === null) {
+  const stdJourney = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(state, (s) => s.journey)
+  );
+  const emotion = useUnwrappedValueWithCallbacks(
+    useMappedValueWithCallbacks(state, (s) => s.emotion)
+  );
+  const journeySharedVWC = useMappedValueWithCallbacks(resources, (r) => r.journeyShared);
+
+  if (stdJourney === null || stdJourney === undefined || emotion === null) {
     return <SplashScreen />;
   }
 
@@ -122,18 +143,14 @@ export const ExtendedClassesPack = ({
   }
 
   if (step === 'start') {
-    if (resources.journeyShared.audio === null || resources.journeyShared.audio.play === null) {
-      return <SplashScreen />;
-    }
-
     return (
       <JourneyStart
-        journey={state.journey}
-        shared={resources.journeyShared}
+        journey={stdJourney}
+        shared={journeySharedVWC}
         setScreen={handleStartSetScreen}
         isOnboarding={false}
         onJourneyFinished={handleStartJourneyFinished}
-        selectedEmotionAntonym={state.emotion.antonym}
+        selectedEmotionAntonym={emotion.antonym}
         duration="3-minute"
       />
     );
@@ -142,8 +159,8 @@ export const ExtendedClassesPack = ({
   if (step === 'journey') {
     return (
       <Journey
-        journey={state.journey}
-        shared={resources.journeyShared}
+        journey={stdJourney}
+        shared={journeySharedVWC}
         setScreen={handleJourneySetScreen}
         onCloseEarly={handleJourneyCloseEarly}
         onJourneyFinished={handleJourneyJourneyFinished}

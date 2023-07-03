@@ -1,6 +1,7 @@
 import { MutableRefObject, useEffect, useMemo, useRef } from 'react';
 import { WritableValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
-import { Animator, VariableStrategyProps, useAnimationLoop } from './AnimationLoop';
+import { Animator, useAnimationLoop } from './AnimationLoop';
+import { VariableStrategyProps } from './VariableStrategyProps';
 
 /**
  * Creates a new writable value with callbacks and uses it to push
@@ -19,7 +20,7 @@ export const useAnimatedValueWithCallbacks = <T extends object>(
   animators: Animator<T>[] | (() => Animator<T>[]),
   render: (value: T) => void
 ): WritableValueWithCallbacks<T> => {
-  const target = useWritableValueWithCallbacks(initialValue);
+  const target = useWritableValueWithCallbacks(() => initialValue);
   const targetAsVariableStrategyProps = useMemo<VariableStrategyProps<T>>(
     () => ({
       type: 'callbacks',
