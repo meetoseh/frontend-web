@@ -906,8 +906,10 @@ const Word = ({
     posVWC.callbacks.add(render);
     variantVWC.callbacks.add(render);
     pressedVWC.callbacks.add(render);
+    let waitingForNonZeroSizeCanceler = waitForNonZeroSize();
     render();
     return () => {
+      waitingForNonZeroSizeCanceler();
       posVWC.callbacks.remove(render);
       variantVWC.callbacks.remove(render);
       pressedVWC.callbacks.remove(render);
@@ -933,7 +935,41 @@ const Word = ({
       });
       target.callbacks.call(undefined);
     }
-  }, [posVWC, variantVWC, target, pressedVWC, idx]);
+
+    function waitForNonZeroSize(): () => void {
+      if (wordRef.current === null) {
+        return () => {};
+      }
+      const ele = wordRef.current;
+      let running = true;
+      const interval = setInterval(checkSize, 100);
+      const unmount = () => {
+        if (running) {
+          running = false;
+          clearInterval(interval);
+        }
+      };
+      checkSize();
+      return unmount;
+
+      function checkSize() {
+        if (!running) {
+          return;
+        }
+        render();
+
+        const realSize = ele.getBoundingClientRect();
+        const realWidth = realSize.width;
+        const realHeight = realSize.height;
+
+        if (realWidth !== 0 || realHeight !== 0) {
+          unmount();
+          sizeVWC.set({ width: realWidth, height: realHeight });
+          sizeVWC.callbacks.call(undefined);
+        }
+      }
+    }
+  }, [posVWC, variantVWC, target, pressedVWC, idx, sizeVWC]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
