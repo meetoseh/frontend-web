@@ -17,8 +17,7 @@ import { ECPPartialFeature } from './extended_classes_pack/ECPPartialFeature';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
-import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { JourneyShared } from '../../../journey/models/JourneyShared';
+import { createLoadingJourneyShared } from '../../../journey/hooks/useJourneyShared';
 
 /**
  * The core screen where the user selects an emotion and the backend
@@ -39,11 +38,11 @@ export const PickEmotionJourney = ({
   const ecpState = ECPPartialFeature.useWorldState(
     useMappedValueWithCallbacks(resources, (r) => r.selected?.word ?? null)
   );
-  const ecpIsRequired = useMappedValueWithCallbacks(
+  const ecpIsRequiredVWC = useMappedValueWithCallbacks(
     ecpState,
     (s) => ECPPartialFeature.isRequired(s) ?? false
   );
-  const ecpResources = ECPPartialFeature.useResources(ecpState, ecpIsRequired);
+  const ecpResources = ECPPartialFeature.useResources(ecpState, ecpIsRequiredVWC);
 
   useEffect(() => {
     resources.callbacks.add(handleSelectedChanged);
@@ -64,7 +63,6 @@ export const PickEmotionJourney = ({
       }
 
       if (selected !== null && step.step !== 'pick' && step.journeyUid !== selected.journey.uid) {
-        console.log('returning to pick screen because its a new journey');
         setStep({ journeyUid: null, step: 'pick' });
       }
     }
@@ -143,7 +141,13 @@ export const PickEmotionJourney = ({
     useMappedValueWithCallbacks(resources, (r) => r.forceSplash)
   );
   const selectedVWC = useMappedValueWithCallbacks(resources, (r) => r.selected);
-  const sharedVWC = useMappedValueWithCallbacks(resources, (r) => r.selected?.shared);
+  const sharedVWC = useMappedValueWithCallbacks(
+    resources,
+    (r) =>
+      r.selected?.shared ??
+      createLoadingJourneyShared({ width: 0, height: 0 }, { width: 0, height: 0 })
+  );
+  const ecpIsRequired = useUnwrappedValueWithCallbacks(ecpIsRequiredVWC);
 
   if (forceSplash) {
     return <SplashScreen type="wordmark" />;
@@ -172,7 +176,7 @@ export const PickEmotionJourney = ({
         const sel = selected;
         const props = {
           journey: selected.journey,
-          shared: sharedVWC as ValueWithCallbacks<JourneyShared>,
+          shared: sharedVWC,
           setScreen,
           onJourneyFinished: onFinishJourney,
           isOnboarding: resources.get().isOnboarding,

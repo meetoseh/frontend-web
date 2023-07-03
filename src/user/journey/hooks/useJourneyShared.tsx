@@ -41,7 +41,7 @@ export const useJourneyShared = (
   });
   const imageHandler = useOsehImageStateRequestHandler({});
   const result = useWritableValueWithCallbacks<JourneyShared>(() =>
-    createLoadingState(windowSizeVWC.get(), previewSizeVWC.get())
+    createLoadingJourneyShared(windowSizeVWC.get(), previewSizeVWC.get())
   );
 
   const targetVWC = useWritableValueWithCallbacks<OsehContentTarget>(() => ({
@@ -348,7 +348,7 @@ export const useJourneyShared = (
       };
 
       function update() {
-        result.set(createLoadingState(windowSizeVWC.get(), previewSizeVWC.get()));
+        result.set(createLoadingJourneyShared(windowSizeVWC.get(), previewSizeVWC.get()));
       }
     }
   }, [
@@ -365,7 +365,15 @@ export const useJourneyShared = (
   return result;
 };
 
-const createLoadingState = (
+/**
+ * Creates a loading-state of journey shared, appropriate when you don't have a
+ * real journey shared available.
+ *
+ * @param windowSize The size of the window
+ * @param previewSize The size of the preview
+ * @returns A loading-state of journey shared
+ */
+export const createLoadingJourneyShared = (
   windowSize: { width: number; height: number },
   previewSize: { width: number; height: number }
 ): JourneyShared => ({

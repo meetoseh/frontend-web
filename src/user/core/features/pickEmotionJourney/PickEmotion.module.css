@@ -70,10 +70,6 @@
   line-height: 100%;
 }
 
-.word:not(.pressed):hover {
-  background: rgba(255, 255, 255, 0.3) !important;
-}
-
 .votes {
   position: absolute;
   font-family: 'Open Sans', sans-serif;

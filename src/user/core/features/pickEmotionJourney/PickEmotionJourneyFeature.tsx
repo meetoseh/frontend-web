@@ -193,6 +193,11 @@ export const PickEmotionJourneyFeature: Feature<
         };
 
         async function fetchOptionsInner() {
+          selectedVWC.set(null);
+          selectedVWC.callbacks.call(undefined);
+          optionsVWC.set(null);
+          optionsVWC.callbacks.call(undefined);
+
           const now = new Date();
           const response = await apiFetch(
             '/api/1/emotions/personalized',
@@ -256,7 +261,7 @@ export const PickEmotionJourneyFeature: Feature<
 
         cleanup = handleProps();
       }
-    }, [errorVWC, loginContext, optionsVWC, stateVWC]);
+    }, [errorVWC, loginContext, optionsVWC, stateVWC, selectedVWC]);
 
     const onSelect = useCallback(
       async (word: Emotion, skipsStats?: boolean, replacedEmotionUserUid?: string | null) => {
