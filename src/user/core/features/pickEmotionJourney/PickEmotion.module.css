@@ -68,6 +68,10 @@
   color: white;
   font-family: 'Open Sans', sans-serif;
   line-height: 100%;
+  font-size: 16px;
+  letter-spacing: 0.25px;
+  padding: 12px 14px;
+  border-radius: 24px;
 }
 
 .votes {

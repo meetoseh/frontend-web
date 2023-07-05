@@ -45,7 +45,6 @@ const hereSettings: HereSettings = { type: 'floating', action: 'voted' };
  * Allows the user to pick an emotion and then go to that class
  */
 export const PickEmotion = ({
-  state,
   resources,
   gotoJourney,
 }: FeatureComponentProps<PickEmotionJourneyState, PickEmotionJourneyResources> & {
@@ -706,10 +705,10 @@ const Words = ({
 type WordSetting = {
   left: number;
   top: number;
-  fontSize: number;
-  letterSpacing: number;
-  padding: [number, number, number, number];
-  borderRadius: number;
+  /**
+   * A scale where 1 = 100% (normal size), 1.1 = 110% (10% larger), etc
+   */
+  scale: number;
   /**
    * We implement a solid color as a gradient to the same colors;
    * this allows easing the gradient in relatively easily.
@@ -722,16 +721,10 @@ type WordSetting = {
 
 const WORD_SETTINGS = {
   horizontal: {
-    fontSize: 16,
-    letterSpacing: 0.25,
-    padding: [12, 14, 12, 14] as [number, number, number, number],
-    borderRadius: 24,
+    scale: 1,
   },
   vertical: {
-    fontSize: 14,
-    letterSpacing: 0.25,
-    padding: [10, 12, 10, 12] as [number, number, number, number],
-    borderRadius: 24,
+    scale: 0.875,
   },
 };
 
@@ -747,7 +740,10 @@ const WordAdapter = ({
   word: string;
   idx: number;
   onWordClick: (word: string, idx: number) => void;
-  pressedVWC: ValueWithCallbacks<{ index: number; votes: number | null } | null>;
+  pressedVWC: ValueWithCallbacks<{
+    index: number;
+    votes: number | null;
+  } | null>;
   variantVWC: ValueWithCallbacks<'horizontal' | 'vertical'>;
   wordSizesVWC: WritableValueWithCallbacks<Size[]>;
   wordPositionsVWC: ValueWithCallbacks<Pos[]>;
@@ -761,28 +757,38 @@ const WordAdapter = ({
 
   useEffect(() => {
     size.callbacks.add(updateParentSize);
+    variantVWC.callbacks.add(updateParentSize);
     updateParentSize();
     return () => {
       size.callbacks.remove(updateParentSize);
+      variantVWC.callbacks.remove(updateParentSize);
     };
 
     function updateParentSize() {
       const currentParent = wordSizesVWC.get();
+      const variant = variantVWC.get();
       if (idx >= currentParent.length) {
         return;
       }
 
-      const correctSize = size.get();
+      const correctUnscaledSize = size.get();
+      const correctSize = {
+        width: correctUnscaledSize.width * WORD_SETTINGS[variant].scale,
+        height: correctUnscaledSize.height * WORD_SETTINGS[variant].scale,
+      };
 
       const currentSize = currentParent[idx];
       if (currentSize.width === correctSize.width && currentSize.height === correctSize.height) {
         return;
       }
 
-      currentParent[idx] = { width: correctSize.width, height: correctSize.height };
+      currentParent[idx] = {
+        width: correctSize.width,
+        height: correctSize.height,
+      };
       wordSizesVWC.callbacks.call(undefined);
     }
-  }, [idx, size, wordSizesVWC]);
+  }, [idx, size, wordSizesVWC, variantVWC]);
 
   useEffect(() => {
     wordPositionsVWC.callbacks.add(updateChildPosition);
@@ -857,10 +863,7 @@ const Word = ({
         700,
         { onTargetChange: 'replace' }
       ),
-      ...inferAnimators<
-        { fontSize: number; letterSpacing: number; padding: number[]; borderRadius: number },
-        WordSetting
-      >({ fontSize: 0, letterSpacing: 0, padding: [0, 0, 0, 0], borderRadius: 0 }, ease, 700),
+      ...inferAnimators<{ scale: number }, WordSetting>({ scale: 0 }, ease, 700),
       ...inferAnimators<
         { backgroundGradient: { color1: number[]; color2: number[] } },
         WordSetting
@@ -882,10 +885,10 @@ const Word = ({
       const ele = wordRef.current;
       ele.style.left = `${val.left}px`;
       ele.style.top = `${val.top}px`;
-      ele.style.fontSize = `${val.fontSize}px`;
-      ele.style.letterSpacing = `${val.letterSpacing.toFixed(3)}`;
-      ele.style.padding = `${val.padding[0]}px ${val.padding[1]}px ${val.padding[2]}px ${val.padding[3]}px`;
-      ele.style.borderRadius = `${val.borderRadius}px`;
+      // scale but keep left edge and top y in place
+      ele.style.transform = `translate(${50 * (val.scale - 1)}%, ${50 * (val.scale - 1)}%) scale(${
+        val.scale
+      })`;
       ele.style.background = `linear-gradient(95.08deg, rgba(${val.backgroundGradient.color1.join(
         ','
       )}) 2.49%, rgba(${val.backgroundGradient.color2.join(',')}) 97.19%)`;
@@ -893,10 +896,17 @@ const Word = ({
       const realSize = ele.getBoundingClientRect();
       const realWidth = realSize.width;
       const realHeight = realSize.height;
+      const unscaledSize = {
+        width: realWidth / val.scale,
+        height: realHeight / val.scale,
+      };
 
       const reportedSize = sizeVWC.get();
-      if (realWidth !== reportedSize.width || realHeight !== reportedSize.height) {
-        sizeVWC.set({ width: realWidth, height: realHeight });
+      if (
+        unscaledSize.width !== reportedSize.width ||
+        unscaledSize.height !== reportedSize.height
+      ) {
+        sizeVWC.set(unscaledSize);
         sizeVWC.callbacks.call(undefined);
       }
     }

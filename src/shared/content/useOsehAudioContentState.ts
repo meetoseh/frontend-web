@@ -81,13 +81,13 @@ export const useOsehAudioContentState = (
       const audio = aud;
 
       let active = true;
-      manageAudio();
       const unmount = () => {
         if (!active) {
           return;
         }
         active = false;
       };
+      manageAudio();
       return unmount;
 
       async function manageAudio() {
