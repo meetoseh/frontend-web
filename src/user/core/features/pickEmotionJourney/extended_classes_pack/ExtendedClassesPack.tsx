@@ -113,8 +113,9 @@ export const ExtendedClassesPack = ({
     // screen until the redirect goes through
   }, [resources]);
 
-  const handleRejectPaymentOffer = useCallback(() => {
+  const handleRejectPaymentOffer = useCallback(async () => {
     setStep('redirecting');
+    await resources.get().session?.storeAction('x', null);
     resources.get().session?.reset();
     state.get().ian?.onShown();
   }, [resources, state]);
