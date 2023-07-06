@@ -87,13 +87,23 @@ export const useFeaturesState = (
     f.useResources(states[i] as any, loadingFeatures[i], allStates)
   );
 
-  return useMappedValuesWithCallbacks(required, (req) => {
+  const loadingResources = resources.map((res) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useMappedValueWithCallbacks(res as ValueWithCallbacks<{ loading: boolean }>, (r) => r.loading)
+  );
+
+  return useMappedValuesWithCallbacks([...required, ...loadingResources], () => {
+    const req = required.map((r) => r.get());
     for (let i = 0; i < req.length; i++) {
       if (req[i] === undefined) {
         return undefined;
       }
 
       if (req[i]) {
+        if (loadingResources[i].get()) {
+          return undefined;
+        }
+
         return features[i].component(states[i] as any, resources[i] as any);
       }
     }
