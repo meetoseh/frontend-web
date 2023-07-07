@@ -89,4 +89,4 @@ export type WordPrompt = {
 /**
  * A prompt that a journey can have
  */
-export type Prompt = NumericPrompt | PressPrompt | ColorPrompt | WordPrompt;
+export type Prompt = NumericPrompt | ColorPrompt | WordPrompt;

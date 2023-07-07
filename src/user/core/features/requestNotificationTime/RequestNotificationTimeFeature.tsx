@@ -196,6 +196,7 @@ export const RequestNotificationTimeFeature: Feature<
         }
 
         if (interests.primaryInterest === 'sleep') {
+          // the type checker can't handle this case :/
           return {
             ...prompt,
             prompt: {
@@ -205,7 +206,7 @@ export const RequestNotificationTimeFeature: Feature<
                 text: 'Staying relaxed during the day will help you sleep at night. When do you want to be reminded to relax?',
               },
             },
-          };
+          } as any;
         }
 
         return prompt;

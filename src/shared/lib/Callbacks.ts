@@ -340,3 +340,22 @@ export const useWritableValueWithCallbacks = <T>(
     [get, set, callbacks]
   );
 };
+
+/**
+ * Similar to useWritableValueWithCallbacks, but not a hook-like function. Returns
+ * a new writable value with callbacks, initialized to initial.
+ *
+ * @param initial the initial value
+ * @returns a value with callbacks, initialized to initial
+ */
+export const createWritableValueWithCallbacks = <T>(initial: T): WritableValueWithCallbacks<T> => {
+  let current = initial;
+  const callbacks = new Callbacks<undefined>();
+  return {
+    get: () => current,
+    set: (t: T) => {
+      current = t;
+    },
+    callbacks,
+  };
+};

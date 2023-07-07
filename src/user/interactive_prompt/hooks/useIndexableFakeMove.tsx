@@ -1,36 +1,32 @@
 import { useEffect } from 'react';
 import { WritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
-import { PromptTime, PromptTimeEvent } from './usePromptTime';
-import { SimpleSelectionRef } from './useSimpleSelection';
-import { PromptStats, Stats } from './useStats';
+import { PromptTime } from './usePromptTime';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../../../shared/anim/VariableStrategyProps';
 
 type UseIndexableFakeMoveProps = {
   /**
-   * Fetches the distribution of responses for the prompt as an array
-   * of numbers, where the length of the response is the number of
-   * responses, and the value of each element is the number of people
+   * The current time
+   */
+  promptTime: VariableStrategyProps<PromptTime>;
+  /**
+   * The current distribution of responses as an array of numbers,
+   * where the length of the responses is the number of options,
+   * and the value of each element is the number of people
    * currently responding with that value.
-   * @param stats The stats to fetch the responses from.
-   * @return The distribution of responses, or undefined if the
-   *   distribution is not available.
+   *
+   * May be undefined if the distribution is currently unavailable,
+   * which will result in no changes to the client predicted stats.
    */
-  getResponses: (stats: Stats) => number[] | undefined;
-  /**
-   * The prompt time object which will allow us to subscribe to the time
-   * changing, which is used for timing out the fake move in some circumstances.
-   */
-  promptTime: PromptTime;
-  /**
-   * The prompt stats object which will allow us to subscribe to the
-   * stats changing
-   */
-  promptStats: PromptStats;
+  responses: VariableStrategyProps<number[] | undefined>;
   /**
    * The current selection. When the selection changes, we briefly
    * increase the number of people responding with the selected value
    * and decrease the number of people with the old value.
    */
-  selection: SimpleSelectionRef<number>;
+  selection: VariableStrategyProps<number | null>;
   /**
    * The client-side predicted stats to mutate. This is just the result of
    * getResponses, shifted by the fake move, and hence should be interpreted
@@ -75,31 +71,33 @@ type _FakedMove = {
  * or when the stats change.
  */
 export const useIndexableFakeMove = ({
-  getResponses,
-  promptTime,
-  promptStats,
-  selection,
+  promptTime: promptTimeVariableStrategy,
+  responses: responsesVariableStrategy,
+  selection: selectionVariableStrategy,
   clientPredictedStats,
 }: UseIndexableFakeMoveProps) => {
+  const promptTimeVWC = useVariableStrategyPropsAsValueWithCallbacks(promptTimeVariableStrategy);
+  const responsesVWC = useVariableStrategyPropsAsValueWithCallbacks(responsesVariableStrategy);
+  const selectionVWC = useVariableStrategyPropsAsValueWithCallbacks(selectionVariableStrategy);
   useEffect(() => {
     let fakedMove: _FakedMove | null = null;
     /**
      * The index of the selected value we think the stats currently reflect
      */
-    let serverSelected: number | null = selection.selection.current;
-    selection.onSelectionChanged.current.add(handleSelectionChanged);
-    promptStats.onStatsChanged.current.add(handleStatsChanged);
-    promptTime.onTimeChanged.current.add(handleTimeChanged);
+    let serverSelected: number | null = selectionVWC.get();
+    selectionVWC.callbacks.add(handleSelectionChanged);
+    responsesVWC.callbacks.add(handleStatsChanged);
+    promptTimeVWC.callbacks.add(handleTimeChanged);
     updatePredictedStats();
 
     return () => {
-      selection.onSelectionChanged.current.remove(handleSelectionChanged);
-      promptStats.onStatsChanged.current.remove(handleStatsChanged);
-      promptTime.onTimeChanged.current.remove(handleTimeChanged);
+      selectionVWC.callbacks.remove(handleSelectionChanged);
+      responsesVWC.callbacks.remove(handleStatsChanged);
+      promptTimeVWC.callbacks.remove(handleTimeChanged);
     };
 
     function updatePredictedStats() {
-      const responses = getResponses(promptStats.stats.current);
+      const responses = responsesVWC.get();
       if (responses === undefined) {
         return;
       }
@@ -141,16 +139,15 @@ export const useIndexableFakeMove = ({
     }
 
     function handleSelectionChanged() {
-      const responses = getResponses(promptStats.stats.current);
-
+      const responses = responsesVWC.get();
       if (responses === undefined) {
         fakedMove = null;
-        serverSelected = selection.selection.current;
+        serverSelected = selectionVWC.get();
         updatePredictedStats();
         return;
       }
 
-      const nowSelected = selection.selection.current;
+      const nowSelected = selectionVWC.get();
       if (nowSelected === null) {
         fakedMove =
           serverSelected === null || responses[serverSelected] < 1
@@ -161,7 +158,7 @@ export const useIndexableFakeMove = ({
                 raisingIndexLowerTrigger: null,
                 loweringIndex: serverSelected,
                 loweringIndexUpperTrigger: responses[serverSelected] - 1,
-                promptTimeToCancel: promptTime.time.current + 4500,
+                promptTimeToCancel: promptTimeVWC.get().time + 4500,
               };
         updatePredictedStats();
         return;
@@ -176,7 +173,7 @@ export const useIndexableFakeMove = ({
               loweringIndexUpperTrigger: null,
               raisingIndex: nowSelected,
               raisingIndexLowerTrigger: responses[nowSelected] + 1,
-              promptTimeToCancel: promptTime.time.current + 4500,
+              promptTimeToCancel: promptTimeVWC.get().time + 4500,
             };
 
       if (newMove !== null && serverSelected !== null && responses[serverSelected] >= 1) {
@@ -192,8 +189,9 @@ export const useIndexableFakeMove = ({
       updatePredictedStats();
     }
 
-    function handleTimeChanged(e: PromptTimeEvent) {
-      if (fakedMove === null || fakedMove.promptTimeToCancel > e.current) {
+    function handleTimeChanged() {
+      const now = promptTimeVWC.get().time;
+      if (fakedMove === null || fakedMove.promptTimeToCancel > now) {
         return;
       }
 
@@ -201,5 +199,5 @@ export const useIndexableFakeMove = ({
       fakedMove = null;
       updatePredictedStats();
     }
-  }, [getResponses, promptTime, promptStats, selection, clientPredictedStats]);
+  }, [promptTimeVWC, responsesVWC, selectionVWC, clientPredictedStats]);
 };

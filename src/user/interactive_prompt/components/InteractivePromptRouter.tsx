@@ -1,24 +1,18 @@
 import { MutableRefObject, ReactElement } from 'react';
 import { ErrorBlock } from '../../../shared/forms/ErrorBlock';
-import { InteractivePrompt } from '../models/InteractivePrompt';
+import {
+  InteractiveColorPrompt,
+  InteractiveNumericPrompt,
+  InteractivePrompt,
+  InteractiveWordPrompt,
+} from '../models/InteractivePrompt';
 import { ColorPrompt } from './ColorPrompt';
 import { CountdownTextConfig } from './CountdownText';
 import { NumericPrompt } from './NumericPrompt';
 import { WordPrompt } from './WordPrompt';
+import { PromptOnFinished } from '../models/PromptOnFinished';
 
-type InteractivePromptRouterProps = {
-  /**
-   * The prompt to display
-   */
-  prompt: InteractivePrompt;
-
-  /**
-   * Called when the user has finished the prompt
-   * @param privileged true if the user clicked a button to finish, false if the
-   *   countdown ended without user interaction
-   */
-  onFinished: (privileged: boolean) => void;
-
+type InteractivePromptRouterPropsBase = {
   /**
    * Called if the interactive prompt is a word prompt after the user selects
    * an option. This is commonly used for using an interactive prompt for
@@ -70,6 +64,24 @@ type InteractivePromptRouterProps = {
   leavingCallback: MutableRefObject<(() => void) | null>;
 };
 
+type InteractivePromptRouterProps =
+  | (InteractivePromptRouterPropsBase & {
+      prompt: InteractiveColorPrompt;
+      onFinished: PromptOnFinished<string | null>;
+    })
+  | (InteractivePromptRouterPropsBase & {
+      prompt: InteractiveWordPrompt;
+      onFinished: PromptOnFinished<string | null>;
+    })
+  | (InteractivePromptRouterPropsBase & {
+      prompt: InteractiveNumericPrompt;
+      onFinished: PromptOnFinished<number | null>;
+    })
+  | (InteractivePromptRouterPropsBase & {
+      prompt: InteractivePrompt;
+      onFinished: PromptOnFinished<unknown>;
+    });
+
 /**
  * Renders an arbitrary interactive prompt and calls the appropriate
  * callbacks.
@@ -86,10 +98,11 @@ export const InteractivePromptRouter = ({
   leavingCallback,
 }: InteractivePromptRouterProps): ReactElement => {
   if (prompt.prompt.style === 'word') {
+    // not sure why typecheck can't determine that onFinished must be string | null here
     return (
       <WordPrompt
         prompt={prompt}
-        onFinished={onFinished}
+        onFinished={onFinished as PromptOnFinished<string | null>}
         onResponse={onWordPromptResponse}
         countdown={countdown}
         subtitle={subtitle}
@@ -103,7 +116,7 @@ export const InteractivePromptRouter = ({
     return (
       <NumericPrompt
         prompt={prompt}
-        onFinished={onFinished}
+        onFinished={onFinished as PromptOnFinished<number | null>}
         countdown={countdown}
         subtitle={subtitle}
         paused={paused}
@@ -116,7 +129,7 @@ export const InteractivePromptRouter = ({
     return (
       <ColorPrompt
         prompt={prompt}
-        onFinished={onFinished}
+        onFinished={onFinished as PromptOnFinished<string | null>}
         countdown={countdown}
         subtitle={subtitle}
         paused={paused}

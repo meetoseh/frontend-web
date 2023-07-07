@@ -1,73 +1,81 @@
-import { MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { useContext, useEffect } from 'react';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { Callbacks } from '../../../shared/lib/Callbacks';
-import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
+import {
+  Callbacks,
+  ValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../shared/lib/Callbacks';
 import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { InteractivePrompt } from '../models/InteractivePrompt';
-import { PromptTime, waitUntilUsingPromptTimeCancelable } from './usePromptTime';
+import { PromptTime } from './usePromptTime';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../../../shared/anim/VariableStrategyProps';
+import { useReactManagedValueAsValueWithCallbacks } from '../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 
 /**
  * The information exported from the join/leave hook.
  */
-export type JoinLeaveInfo = {
+export type JoinLeave = {
   /**
-   * Whether the user has joined the room.
+   * If we have successfully reported that the user has joined the room, the
+   * prompt time at which they joined, otherwise null.
    */
-  joined: boolean;
+  joinedAt: number | null;
 
   /**
-   * Whether the user has left the room.
+   * If we have successfully reported that the user has left the room, the
+   * prompt time at which they left, otherwise null.
    */
-  left: boolean;
+  leftAt: number | null;
+
+  /**
+   * True if we are actively sending a join or leave event, false otherwise.
+   */
+  working: boolean;
+
+  /**
+   * True if something occurred that would have resulted in the leave event
+   * being called, false if that hasn't happened yet. This is different from
+   * `left` since if the event occurred before we joined, we wouldn't have left.
+   * Most of the time this can be treated as an internal value used to implement
+   * the hook.
+   */
+  leaving: boolean;
 
   /**
    * If an error occurred preventing join/leave events, the
    * error that occurred, otherwise null.
    */
   error: any | null;
-};
-
-export type JoinLeaveChangedEvent = {
-  /**
-   * The join/leave info prior to the change.
-   */
-  old: JoinLeaveInfo;
 
   /**
-   * The join/leave info after the change.
+   * Called to exit the room. We cannot use unmounting to decide when
+   * we have left, since the component may be remounted superfluously.
+   *
+   * Note this isn't necessarily the only way a leave event is triggered;
+   * we will trigger leave events if the browser is leaving the page and
+   * we haven't left.
+   *
+   * If called before joining, we won't ever join.
    */
-  current: JoinLeaveInfo;
-};
-
-export type JoinLeave = {
-  /**
-   * A ref object that points to the current information
-   */
-  info: MutableRefObject<JoinLeaveInfo>;
-
-  /**
-   * A ref which must be set to true before the component is unmounted in order
-   * to trigger a leave event. Otherwise, we assume the remount is superfluous.
-   */
-  leaving: MutableRefObject<boolean>;
-
-  /**
-   * The callbacks to call when the join/leave info changes
-   */
-  onInfoChanged: MutableRefObject<Callbacks<JoinLeaveChangedEvent>>;
+  leave: () => void;
 };
 
 type JoinLeaveProps = {
   /**
-   * The prompt we are generating join/leave events for
+   * The prompt we are generating join/leave events for. Note that if this
+   * changes, it should be for the same logical prompt (i.e., the uid should
+   * not change but the jwt can)
    */
-  prompt: InteractivePrompt;
+  prompt: VariableStrategyProps<InteractivePrompt>;
 
   /**
    * The prompt time that we use to decide when to generate the
    * events.
    */
-  promptTime: PromptTime;
+  promptTime: VariableStrategyProps<PromptTime>;
 };
 
 /**
@@ -79,186 +87,199 @@ type JoinLeaveProps = {
  * been sent, but it does not trigger state updates to do so. A callbacks
  * list is available if you want to be notified when the events are
  * sent.
+ *
+ * If the prompt changes, we will continue from where we left off.
+ * This means this hook must be remounted if the prompt uid changes.
+ * This isn't a serious issue since we would almost always want to
+ * remount anyway.
  */
-export const useJoinLeave = ({ prompt, promptTime }: JoinLeaveProps): JoinLeave => {
-  const loginContext = useContext(LoginContext);
-  const infoRef = useRef<JoinLeaveInfo>() as MutableRefObject<JoinLeaveInfo>;
-  if (infoRef.current === undefined) {
-    infoRef.current = { joined: false, left: false, error: null };
-  }
+export const useJoinLeave = ({
+  prompt: promptVariableStrategy,
+  promptTime: promptTimeVariableStrategy,
+}: JoinLeaveProps): ValueWithCallbacks<JoinLeave> => {
+  const promptVWC = useVariableStrategyPropsAsValueWithCallbacks(promptVariableStrategy);
+  const promptTimeVWC = useVariableStrategyPropsAsValueWithCallbacks(promptTimeVariableStrategy);
 
-  const infoChangedRef = useRef<Callbacks<JoinLeaveChangedEvent>>() as MutableRefObject<
-    Callbacks<JoinLeaveChangedEvent>
-  >;
-  if (infoChangedRef.current === undefined) {
-    infoChangedRef.current = new Callbacks();
-  }
-
-  const leavingRef = useRef(false);
-
-  const updateInfo = useCallback((newInfo: JoinLeaveInfo) => {
-    const oldInfo = infoRef.current;
-    infoRef.current = newInfo;
-    infoChangedRef.current.call({ old: oldInfo, current: newInfo });
-  }, []);
-
-  const sendingEventRef = useRef(false);
-  const sendingEventChangedRef = useRef<Callbacks<boolean>>() as MutableRefObject<
-    Callbacks<boolean>
-  >;
-  if (sendingEventChangedRef.current === undefined) {
-    sendingEventChangedRef.current = new Callbacks();
-  }
+  const loginContextVWC = useReactManagedValueAsValueWithCallbacks(useContext(LoginContext));
+  const resultVWC = useWritableValueWithCallbacks<JoinLeave>(() => ({
+    joinedAt: null,
+    leftAt: null,
+    leaving: false,
+    working: false,
+    error: null,
+    leave: () => {
+      if (!resultVWC.get().leaving) {
+        resultVWC.get().leaving = true;
+        resultVWC.callbacks.call(undefined);
+      }
+    },
+  }));
 
   useEffect(() => {
-    let active = true;
-    let cancelers = new Callbacks<undefined>();
-    handleJoin();
+    let canceler: (() => void) | null = null;
+    promptVWC.callbacks.add(handlePromptOrLoginContextChanged);
+    loginContextVWC.callbacks.add(handlePromptOrLoginContextChanged);
+    handlePromptOrLoginContextChanged();
     return () => {
-      active = false;
-      cancelers.call(undefined);
+      promptVWC.callbacks.remove(handlePromptOrLoginContextChanged);
+      loginContextVWC.callbacks.remove(handlePromptOrLoginContextChanged);
+      canceler?.();
+      canceler = null;
     };
 
-    async function handleJoinInner() {
-      if (!active) {
-        return;
-      }
-
-      if (promptTime.time.current < 0) {
-        const timePromise = waitUntilUsingPromptTimeCancelable(promptTime, (e) => e.current >= 0);
-        timePromise.promise.catch(() => {});
-        const cancelPromise = createCancelablePromiseFromCallbacks(cancelers);
-        cancelPromise.promise.catch(() => {});
-
-        await Promise.race([timePromise.promise, cancelPromise.promise]);
-        timePromise.cancel();
-        cancelPromise.cancel();
-        if (!active) {
-          return;
-        }
-      }
-
-      await waitUntilNotSendingEvent();
-      if (!active) {
-        return;
-      }
-
-      if (!infoRef.current.joined) {
-        sendingEventRef.current = true;
-        sendingEventChangedRef.current.call(true);
-        try {
-          await sendEvent('join', promptTime.time.current, prompt, loginContext);
-          updateInfo(Object.assign({}, infoRef.current, { joined: true }));
-        } catch (e) {
-          updateInfo(Object.assign({}, infoRef.current, { error: e }));
-        } finally {
-          sendingEventRef.current = false;
-          sendingEventChangedRef.current.call(false);
-        }
-      }
-
-      let alreadyLeft = false;
-      const endTime = prompt.durationSeconds * 1000;
-
-      await waitUntilNotSendingEvent();
-      if (!active) {
-        return;
-      }
-
-      sendingEventRef.current = true;
-      sendingEventChangedRef.current.call(true);
-
-      const onLeft = async (skipCallbacks: boolean) => {
-        if (alreadyLeft) {
-          return;
-        }
-        alreadyLeft = true;
-        const leftAt = Math.min(endTime, promptTime.time.current);
-        try {
-          await sendEvent('leave', leftAt, prompt, loginContext);
-          if (!skipCallbacks) {
-            updateInfo(Object.assign({}, infoRef.current, { left: true }));
-          }
-        } catch (e) {
-          if (!skipCallbacks) {
-            updateInfo(Object.assign({}, infoRef.current, { error: e }));
-          }
-        } finally {
-          if (!skipCallbacks) {
-            sendingEventRef.current = false;
-            sendingEventChangedRef.current.call(false);
-          }
+    function handlePromptAndLoginContext(
+      prompt: InteractivePrompt,
+      loginContext: LoginContextValue
+    ): () => void {
+      let active = true;
+      const cancelers = new Callbacks<undefined>();
+      const deactivate = () => {
+        if (active) {
+          active = false;
+          cancelers.call(undefined);
         }
       };
+      handle();
+      return deactivate;
 
-      const onBeforeUnload = () => {
-        onLeft(true);
-      };
+      async function handle() {
+        let leaveReceived = false;
+        resultVWC.get().leave = () => {
+          if (!leaveReceived) {
+            leaveReceived = true;
+            handleSomethingChanged();
+          }
+        };
+        resultVWC.callbacks.call(undefined);
 
-      window.addEventListener('beforeunload', onBeforeUnload);
-      cancelers.add(() => {
-        window.removeEventListener('beforeunload', onBeforeUnload);
-      });
+        cancelers.add(() => {
+          resultVWC.get().leave = () => {
+            if (!resultVWC.get().leaving) {
+              resultVWC.get().leaving = true;
+              resultVWC.callbacks.call(undefined);
+            }
+          };
+          resultVWC.callbacks.call(undefined);
+        });
 
-      const timePromise = waitUntilUsingPromptTimeCancelable(
-        promptTime,
-        (e) => e.current >= endTime
-      );
-      timePromise.promise.catch(() => {});
+        promptTimeVWC.callbacks.add(handleSomethingChanged);
+        cancelers.add(() => {
+          promptTimeVWC.callbacks.remove(handleSomethingChanged);
+        });
 
-      const cancelPromise = createCancelablePromiseFromCallbacks(cancelers);
-      cancelPromise.promise.catch(() => {});
+        window.addEventListener('beforeunload', onBeforeUnload);
+        cancelers.add(() => {
+          window.removeEventListener('beforeunload', onBeforeUnload);
+        });
 
-      await Promise.race([timePromise.promise, cancelPromise.promise]);
-      timePromise.cancel();
-      cancelPromise.cancel();
-      if (active || (leavingRef.current && !alreadyLeft)) {
-        onLeft(false);
-      } else {
-        sendingEventRef.current = false;
-        sendingEventChangedRef.current.call(false);
+        handleSomethingChanged();
+
+        // something = prompt time, leave received, working
+        function handleSomethingChanged() {
+          if (!active) {
+            return;
+          }
+
+          if (resultVWC.get().working) {
+            return;
+          }
+
+          if (resultVWC.get().leftAt !== null || resultVWC.get().error !== null) {
+            deactivate();
+            return;
+          }
+
+          if (
+            !leaveReceived &&
+            !resultVWC.get().leaving &&
+            promptTimeVWC.get().time >= prompt.durationSeconds * 1000
+          ) {
+            leaveReceived = true;
+          }
+
+          if (leaveReceived && !resultVWC.get().leaving) {
+            resultVWC.get().leaving = true;
+            resultVWC.callbacks.call(undefined);
+          }
+
+          if (resultVWC.get().leaving) {
+            const joinedAt = resultVWC.get().joinedAt;
+            const now = promptTimeVWC.get().time;
+            if (joinedAt === null) {
+              deactivate();
+              return;
+            }
+
+            if (now < joinedAt) {
+              resultVWC.get().error = new Error(
+                'Leave event received before join event (time went backwards)'
+              );
+              resultVWC.callbacks.call(undefined);
+              deactivate();
+              return;
+            }
+
+            if (now === joinedAt) {
+              // need to wait a frame; this makes the backend implementation simpler
+              // by keeping events strictly ordered without having to use a counting
+              // strategy. Causes some weirdness surrounding pauses but it's a very
+              // unlikely occurrence since pauses are mostly for development
+              return;
+            }
+
+            sendEventWrapper('leave').finally(handleSomethingChanged);
+            return;
+          }
+
+          if (resultVWC.get().joinedAt === null && promptTimeVWC.get().time >= 0) {
+            sendEventWrapper('join').finally(handleSomethingChanged);
+            return;
+          }
+        }
+
+        function onBeforeUnload() {
+          if (!leaveReceived) {
+            leaveReceived = true;
+            handleSomethingChanged();
+          }
+        }
       }
-    }
 
-    async function handleJoin() {
-      if (infoRef.current.error !== null) {
-        updateInfo(Object.assign({}, infoRef.current, { error: null }));
-      }
+      async function sendEventWrapper(event: 'join' | 'leave') {
+        if (resultVWC.get().working) {
+          throw new Error('Already working');
+        }
 
-      try {
-        await handleJoinInner();
-      } catch (e) {
-        if (!infoRef.current.joined) {
-          updateInfo(Object.assign({}, infoRef.current, { error: e }));
+        resultVWC.get().working = true;
+        resultVWC.callbacks.call(undefined);
+
+        const time = Math.min(Math.max(promptTimeVWC.get().time, 0), prompt.durationSeconds * 1000);
+
+        try {
+          await sendEvent(event, time, prompt, loginContext);
+          if (event === 'join') {
+            resultVWC.get().joinedAt = time;
+          } else if (event === 'leave') {
+            resultVWC.get().leftAt = time;
+          } else {
+            ((_: never) => {})(event);
+          }
+        } catch (e) {
+          resultVWC.get().error = e;
+        } finally {
+          resultVWC.get().working = false;
+          resultVWC.callbacks.call(undefined);
         }
       }
     }
 
-    async function waitUntilNotSendingEvent() {
-      while (sendingEventRef.current) {
-        const changedPromise = createCancelablePromiseFromCallbacks(sendingEventChangedRef.current);
-        changedPromise.promise.catch(() => {});
-        const cancelPromise = createCancelablePromiseFromCallbacks(cancelers);
-        cancelPromise.promise.catch(() => {});
-
-        await Promise.race([changedPromise.promise, cancelPromise.promise]);
-        changedPromise.cancel();
-        cancelPromise.cancel();
-        if (!active) {
-          return;
-        }
-      }
+    function handlePromptOrLoginContextChanged() {
+      canceler?.();
+      canceler = handlePromptAndLoginContext(promptVWC.get(), loginContextVWC.get());
     }
-  });
+  }, [promptVWC, promptTimeVWC, loginContextVWC, resultVWC]);
 
-  return useMemo(
-    () => ({
-      info: infoRef,
-      onInfoChanged: infoChangedRef,
-      leaving: leavingRef,
-    }),
-    []
-  );
+  return resultVWC;
 };
 
 async function sendEvent(

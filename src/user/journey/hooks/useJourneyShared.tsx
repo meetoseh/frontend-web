@@ -60,6 +60,7 @@ export const useJourneyShared = (
   // holy callback hell
   // this is surprisingly efficient despite looking like a mess
   useEffect(() => {
+    let managedJourneyUID: string | null = null;
     let unmountJourneyHandler: (() => void) | null = null;
     journeyVWC.callbacks.add(handleJourneyChanged);
     handleJourneyChanged();
@@ -81,6 +82,12 @@ export const useJourneyShared = (
       if (journeyOuter === null) {
         unmountJourneyHandler = handlePerpetualLoading();
         return;
+      }
+
+      if (managedJourneyUID !== journeyOuter.uid) {
+        result.set(createLoadingJourneyShared(windowSizeVWC.get(), previewSizeVWC.get()));
+        result.callbacks.call(undefined);
+        managedJourneyUID = journeyOuter.uid;
       }
 
       unmountJourneyHandler = handleJourney(journeyOuter);
@@ -132,6 +139,10 @@ export const useJourneyShared = (
           handleImageStateChanged();
 
           function handleImageStateChanged() {
+            if (request.state.loading) {
+              return;
+            }
+
             result.set({
               ...result.get(),
               originalImage: request.state,
@@ -186,11 +197,24 @@ export const useJourneyShared = (
           handleImageStateChanged();
 
           function handleImageStateChanged() {
-            result.set({
-              ...result.get(),
-              darkenedImage: darkenedRequest.state,
-              blurredImage: blurredRequest.state,
-            });
+            if (darkenedRequest.state.loading && blurredRequest.state.loading) {
+              return;
+            }
+
+            if (!darkenedRequest.state.loading) {
+              result.set({
+                ...result.get(),
+                darkenedImage: darkenedRequest.state,
+              });
+            }
+
+            if (!blurredRequest.state.loading) {
+              result.set({
+                ...result.get(),
+                blurredImage: blurredRequest.state,
+              });
+            }
+
             result.callbacks.call(undefined);
           }
         }
@@ -204,15 +228,9 @@ export const useJourneyShared = (
         };
 
         async function fetchContentTarget() {
-          if (targetVWC.get().state !== 'loading') {
-            targetVWC.set({
-              state: 'loading',
-              jwt: null,
-              error: null,
-              webExport: null,
-              presigned: null,
-            });
-            targetVWC.callbacks.call(undefined);
+          const oldTarget = targetVWC.get();
+          if (oldTarget.jwt === journey.audioContent.jwt && oldTarget.webExport !== null) {
+            return;
           }
 
           if (journey.audioContent.uid === null || journey.audioContent.jwt === null) {
@@ -276,6 +294,10 @@ export const useJourneyShared = (
 
           if (loginContext.state === 'logged-out') {
             setFavorited(false);
+            return;
+          }
+
+          if (result.get().favorited !== null) {
             return;
           }
 

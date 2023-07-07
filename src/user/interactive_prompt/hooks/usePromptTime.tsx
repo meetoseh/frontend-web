@@ -1,39 +1,44 @@
-import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
-import { Callbacks } from '../../../shared/lib/Callbacks';
-import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
+import { useEffect } from 'react';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../../../shared/anim/VariableStrategyProps';
 
-export type PromptTimeEvent = {
+export type UsePromptTimeProps = {
   /**
-   * The time before the change.
+   * The time to start the clock at, in milliseconds. Changing this
+   * value doesn't affect anything once the hook was initialized.
    */
-  old: DOMHighResTimeStamp;
+  initialTime: number;
 
   /**
-   * The time after the change.
+   * True if the clock is currently paused, false if it's running.
    */
-  current: DOMHighResTimeStamp;
+  paused: boolean;
 };
-/**
- * The state held to keep track of the current time relative to the start of the
- * prompt. This time is updated every frame, which is too often for react renders,
- * and hence is stored as a mutable ref object for the current value as well as
- * callbacks to be called when the time changes. Convenience functions are available
- * in this module for coarsening the time and using it in state.
- */
+
 export type PromptTime = {
   /**
    * The current time in milliseconds since the start of the prompt.
    * In some contexts it can be useful to start this value negative,
    * in which case while it's negative its absolute value is milliseconds
    * until the prompt starts.
+   *
+   * Since this number can get large, whereas frame times are usually
+   * quite small, to improve accuracy we double the space we use to
+   * store the time. This usually doesn't matter when using the time,
+   * but the small bits of the timestamp are stored in timeCompensation,
+   * and are computed via the Kahan summation algorith.
    */
-  time: MutableRefObject<DOMHighResTimeStamp>;
+  time: DOMHighResTimeStamp;
 
   /**
-   * Contains the functions to call when the time changes. This is called
-   * approximately once per frame while not paused.
+   * Stores the low part of time. Has the strange property that
+   * timeCompensation>0, but time + timeCompensation === time
+   * due to the way floating point numbers work.
    */
-  onTimeChanged: MutableRefObject<Callbacks<PromptTimeEvent>>;
+  timeCompensation: number;
 
   /**
    * True if the time is currently paused, i.e., not moving forward.
@@ -43,178 +48,93 @@ export type PromptTime = {
 };
 
 /**
- * Starts a prompt time clock with a given initial time. The prompt time is updated
- * every frame and does not trigger a rerender. The returned value is stable except
- * if the paused state changes, in which case a new object is returned.
+ * This hook acts as the main driver of action for the interactive prompt.
+ * When unpaused, increments the time in real time once per frame.
  */
-export const usePromptTime = (initialTime: number, paused: boolean): PromptTime => {
-  const now = useRef<number>() as MutableRefObject<number>;
-  const onTimeChanged = useRef<Callbacks<PromptTimeEvent>>() as MutableRefObject<
-    Callbacks<PromptTimeEvent>
-  >;
-
-  if (now.current === undefined) {
-    now.current = initialTime;
-  }
-
-  if (onTimeChanged.current === undefined) {
-    onTimeChanged.current = new Callbacks();
-  }
+export const usePromptTime = (
+  propsVariableStrategy: VariableStrategyProps<UsePromptTimeProps>
+): ValueWithCallbacks<PromptTime> => {
+  const propsVWC = useVariableStrategyPropsAsValueWithCallbacks(propsVariableStrategy);
+  const result = useWritableValueWithCallbacks<PromptTime>(() => ({
+    time: propsVWC.get().initialTime,
+    timeCompensation: 0,
+    paused: propsVWC.get().paused,
+  }));
 
   useEffect(() => {
-    if (paused) {
-      return;
-    }
-
-    let lastFrameAt: DOMHighResTimeStamp | null = null;
-    let active = true;
-    requestAnimationFrame(onFrame);
+    let mounted = true;
+    let canceler: (() => void) | null = null;
+    propsVWC.callbacks.add(handlePropsChanged);
+    handlePropsChanged();
     return () => {
-      active = false;
-    };
-
-    function onFrame(frameAt: DOMHighResTimeStamp) {
-      if (!active) {
-        return;
-      }
-
-      if (lastFrameAt === null) {
-        lastFrameAt = frameAt;
-        requestAnimationFrame(onFrame);
-        return;
-      }
-
-      const delta = frameAt - lastFrameAt;
-      lastFrameAt = frameAt;
-      const prevTime = now.current;
-      const newTime = now.current + delta;
-      now.current = newTime;
-      onTimeChanged.current.call({ old: prevTime, current: newTime });
-      requestAnimationFrame(onFrame);
-    }
-  }, [paused]);
-
-  return useMemo(
-    () => ({
-      time: now,
-      onTimeChanged,
-      paused,
-    }),
-    [paused, now, onTimeChanged]
-  );
-};
-
-/**
- * Returns a new number which is a coarsened version of the given prompt time. Specifically,
- * this computes (promptTime + offset) / granularity, rounded down to the nearest integer,
- * and causing react to rerender if the result changes.
- *
- * @param promptTime The prompt time to coarsen
- * @param offset The offset to add to the prompt time before dividing by the granularity
- * @param granularity The granularity to divide by
- */
-export const useCoarsenedPromptTime = (
-  promptTime: PromptTime,
-  offset: number,
-  granularity: number
-): number => {
-  const [coarsened, setCoarsened] = useState<number>(() =>
-    Math.floor((promptTime.time.current + offset) / granularity)
-  );
-
-  useEffect(() => {
-    let curValue = Math.floor((promptTime.time.current + offset) / granularity);
-    const callback = (event: PromptTimeEvent) => {
-      const newValue = Math.floor((event.current + offset) / granularity);
-
-      if (newValue !== curValue) {
-        curValue = newValue;
-        setCoarsened(newValue);
+      if (mounted) {
+        mounted = false;
+        propsVWC.callbacks.remove(handlePropsChanged);
+        canceler?.();
+        canceler = null;
       }
     };
 
-    promptTime.onTimeChanged.current.add(callback);
-
-    return () => {
-      promptTime.onTimeChanged.current.remove(callback);
-    };
-  }, [promptTime, offset, granularity]);
-
-  return coarsened;
-};
-
-/**
- * Waits until the given condition is true, checking once every time the prompt time
- * changes. The condition is passed the current prompt time event.
- *
- * @param promptTime The prompt time to use
- * @param condition The condition to wait for
- * @returns A promise that resolves when the condition is true
- */
-export const waitUntilUsingPromptTime = (
-  promptTime: PromptTime,
-  condition: (event: PromptTimeEvent) => boolean
-): Promise<void> => {
-  return new Promise((resolve) => {
-    const callback = (event: PromptTimeEvent) => {
-      if (condition(event)) {
-        promptTime.onTimeChanged.current.remove(callback);
-        resolve();
-      }
-    };
-
-    promptTime.onTimeChanged.current.add(callback);
-  });
-};
-
-/**
- * Equivalent to waitUntilUsingPromptTime, but returns a CancelablePromise instead
- * of a regular promise.
- * @param promptTime The prompt time to use
- * @param condition The condition to wait for
- * @returns A cancelable promise that resolves when the condition is true
- */
-export const waitUntilUsingPromptTimeCancelable = (
-  promptTime: PromptTime,
-  condition: (event: PromptTimeEvent) => boolean
-): CancelablePromise<void> => {
-  let active = true;
-  let canceler: () => void = () => {
-    active = false;
-  };
-  let done = false;
-  const promise = new Promise<void>((resolve, reject) => {
-    if (!active) {
-      reject();
-      return;
-    }
-
-    const callback = (event: PromptTimeEvent) => {
-      if (!active) {
-        return;
+    function handleProps(props: UsePromptTimeProps): (() => void) | null {
+      if (result.get().paused !== props.paused) {
+        result.get().paused = props.paused;
+        result.callbacks.call(undefined);
       }
 
-      if (condition(event)) {
+      if (props.paused) {
+        return null;
+      }
+
+      let active = true;
+      requestAnimationFrame(onFirstFrame.bind(undefined, performance.now()));
+      return () => {
         active = false;
-        done = true;
-        promptTime.onTimeChanged.current.remove(callback);
-        resolve();
+      };
+
+      function onFrame(lastFrameAt: DOMHighResTimeStamp, currentFrameAt: DOMHighResTimeStamp) {
+        if (!active) {
+          return;
+        }
+
+        handleElapsedTime(currentFrameAt - lastFrameAt);
+        requestAnimationFrame(onFrame.bind(undefined, currentFrameAt));
       }
-    };
-    canceler = () => {
-      if (!active) {
+
+      function onFirstFrame(startTime: number, currentFrameAt: DOMHighResTimeStamp) {
+        if (!active) {
+          return;
+        }
+
+        handleElapsedTime(performance.now() - startTime);
+        requestAnimationFrame(onFrame.bind(undefined, currentFrameAt));
+      }
+
+      function handleElapsedTime(elapsedTime: number) {
+        const val = result.get();
+
+        // variable names chosen to match the pseudocode on wikipedia,
+        // which makes verifying this is correct easier
+        const sum = val.time;
+        const c = val.timeCompensation;
+        const y = elapsedTime - c;
+        const t = sum + y;
+
+        val.timeCompensation = t - sum - y;
+        val.time = t;
+
+        result.callbacks.call(undefined);
+      }
+    }
+
+    function handlePropsChanged() {
+      if (!mounted) {
         return;
       }
-      active = false;
-      done = true;
-      promptTime.onTimeChanged.current.remove(callback);
-      reject();
-    };
-    promptTime.onTimeChanged.current.add(callback);
-  });
-  return {
-    promise,
-    cancel: () => canceler(),
-    done: () => done,
-  };
+
+      canceler?.();
+      canceler = handleProps(propsVWC.get());
+    }
+  }, [propsVWC, result]);
+
+  return result;
 };

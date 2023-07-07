@@ -1,14 +1,6 @@
 import { MutableRefObject, useEffect, useRef } from 'react';
 import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
-import { MappedValueWithCallbacksOpts } from './useMappedValueWithCallbacks';
-
-const defaultInputEquals = <V>(a: V[], b: V[]) => {
-  if (a.length !== b.length) {
-    return false;
-  }
-
-  return a.every((v, i) => Object.is(v, b[i]));
-};
+import { MappedValueWithCallbacksOpts, defaultEqualityFn } from './useMappedValueWithCallbacks';
 
 /**
  * Similar to useMappedValueWithCallbacks, except this one maps an array of
@@ -35,8 +27,8 @@ export const useMappedValuesWithCallbacks = <V, T extends ValueWithCallbacks<V>[
 ) => {
   const opts: Required<MappedValueWithCallbacksOpts<V[], U>> = Object.assign(
     {
-      inputEqualityFn: defaultInputEquals,
-      outputEqualityFn: Object.is,
+      inputEqualityFn: defaultEqualityFn,
+      outputEqualityFn: defaultEqualityFn,
     },
     rawOpts
   );

@@ -58,16 +58,22 @@ export const useSingletonEffect = (
       const destructorFn = typeof destructor === 'function' ? destructor : () => {};
 
       return new Promise((resolve) => {
-        if (resolvedInstantly) {
-          destructorFn();
-          resolve();
-          return;
-        }
-
-        innerResolve = () => {
+        let destructed = false;
+        const resolveOnce = () => {
+          if (destructed) {
+            return;
+          }
+          destructed = true;
           destructorFn();
           resolve();
         };
+
+        if (resolvedInstantly) {
+          resolveOnce();
+          return;
+        }
+
+        innerResolve = resolveOnce;
       });
     }
 

@@ -1,27 +1,30 @@
 import { MutableRefObject, useEffect, useRef } from 'react';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import { JoinLeave } from './useJoinLeave';
-import { PromptTime, PromptTimeEvent } from './usePromptTime';
-import { SimpleSelectionChangedEvent, SimpleSelectionRef } from './useSimpleSelection';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../../../shared/anim/VariableStrategyProps';
+import { PromptTime } from './usePromptTime';
 
 type SimpleSelectionHandlerProps<T> = {
   /**
    * The selection which should trigger the function call.
    */
-  selection: SimpleSelectionRef<T>;
+  selection: VariableStrategyProps<T>;
 
   /**
    * The prompt that the selection is for, to avoid calling the function
    * after the prompt has ended
    */
-  prompt: InteractivePrompt;
+  prompt: VariableStrategyProps<InteractivePrompt>;
 
   /**
    * The join leave state, so that we don't try calling the function
    * if we failed to join or have already left, since the session
    * is frozen in those cases.
    */
-  joinLeave: JoinLeave;
+  joinLeave: VariableStrategyProps<JoinLeave>;
 
   /**
    * The prompt time, so that we can avoid calling the function
@@ -29,7 +32,7 @@ type SimpleSelectionHandlerProps<T> = {
    * result in errors as the backend will reject two events at the
    * same time), as well as to pass the event time to the callback
    */
-  promptTime: PromptTime;
+  promptTime: VariableStrategyProps<PromptTime>;
 
   /**
    * The callback to call with the new selected value and the prompt time
@@ -67,10 +70,10 @@ type SimpleSelectionHandlerProps<T> = {
  * it could be used for other purposes.
  */
 export function useSimpleSelectionHandler<T>({
-  selection,
-  prompt,
-  joinLeave,
-  promptTime,
+  selection: selectionVariableStrategy,
+  prompt: promptVariableStrategy,
+  joinLeave: joinLeaveVariableStrategy,
+  promptTime: promptTimeVariableStrategy,
   callback,
   tEquals,
 }: SimpleSelectionHandlerProps<T>) {
@@ -81,6 +84,11 @@ export function useSimpleSelectionHandler<T>({
 
   callbackRef.current = callback;
   tEqualsRef.current = tEquals;
+
+  const selectionVWC = useVariableStrategyPropsAsValueWithCallbacks(selectionVariableStrategy);
+  const promptVWC = useVariableStrategyPropsAsValueWithCallbacks(promptVariableStrategy);
+  const joinLeaveVWC = useVariableStrategyPropsAsValueWithCallbacks(joinLeaveVariableStrategy);
+  const promptTimeVWC = useVariableStrategyPropsAsValueWithCallbacks(promptTimeVariableStrategy);
 
   useEffect(() => {
     const tOrNullEquals = (a: T | null, b: T | null): boolean => {
@@ -94,7 +102,7 @@ export function useSimpleSelectionHandler<T>({
     };
 
     let active = true;
-    let callbackSelection = selection.selection.current;
+    let callbackSelection = selectionVWC.get();
     let lastEventAt = 0;
     // if delayedEvent is true; two things are true:
     // 1. onPromptTimeEvent is registered as a callback on promptTime
@@ -102,18 +110,16 @@ export function useSimpleSelectionHandler<T>({
     let delayedEvent = false;
     let callbackRunning = false;
 
-    selection.onSelectionChanged.current.add(onSelectionEvent);
+    selectionVWC.callbacks.add(onSelectionEvent);
     return () => {
       active = false;
-      selection.onSelectionChanged.current.remove(onSelectionEvent);
+      selectionVWC.callbacks.remove(onSelectionEvent);
       if (delayedEvent) {
-        promptTime.onTimeChanged.current.remove(onPromptTimeEvent);
+        promptTimeVWC.callbacks.remove(onPromptTimeEvent);
       }
     };
 
-    function onSelectionEvent(
-      event: SimpleSelectionChangedEvent<T> | { isSynthetic: true; current: T }
-    ) {
+    function onSelectionEvent() {
       if (!active) {
         return;
       }
@@ -123,17 +129,17 @@ export function useSimpleSelectionHandler<T>({
         return;
       }
 
-      if (joinLeave.info.current.error !== null || joinLeave.info.current.left) {
-        // Can't handle events if we've failed to join or have already left
+      if (joinLeaveVWC.get().error !== null || joinLeaveVWC.get().leaving) {
+        // Can't handle events if we've failed to join or are in the process of leaving / have left
         return;
       }
 
-      if (promptTime.time.current >= prompt.durationSeconds * 1000) {
+      if (promptTimeVWC.get().time >= promptVWC.get().durationSeconds * 1000) {
         // Can't handle events after the prompt ends
         return;
       }
 
-      if (tOrNullEquals(event.current, callbackSelection)) {
+      if (tOrNullEquals(selectionVWC.get(), callbackSelection)) {
         // No change
         return;
       }
@@ -146,13 +152,13 @@ export function useSimpleSelectionHandler<T>({
         return;
       }
 
-      if (!joinLeave.info.current.joined) {
+      if (joinLeaveVWC.get().joinedAt === null) {
         // Delay events until we've actually joined the session
         delayEvent();
         return;
       }
 
-      if (lastEventAt >= promptTime.time.current) {
+      if (lastEventAt >= promptTimeVWC.get().time) {
         // Delay to prevent calling the callback multiple times at the same
         // prompt time
         delayEvent();
@@ -164,19 +170,19 @@ export function useSimpleSelectionHandler<T>({
 
     function delayEvent() {
       delayedEvent = true;
-      promptTime.onTimeChanged.current.add(onPromptTimeEvent);
+      promptTimeVWC.callbacks.add(onPromptTimeEvent);
     }
 
     function cancelDelayedEvent() {
       if (delayedEvent) {
         delayedEvent = false;
-        promptTime.onTimeChanged.current.remove(onPromptTimeEvent);
+        promptTimeVWC.callbacks.remove(onPromptTimeEvent);
       }
     }
 
     async function runCallback() {
-      const selected = selection.selection.current;
-      const now = promptTime.time.current;
+      const selected = selectionVWC.get();
+      const now = promptTimeVWC.get().time;
       if (selected === null) {
         throw new Error('runCallback while selected is null');
       }
@@ -192,39 +198,36 @@ export function useSimpleSelectionHandler<T>({
       callbackRunning = false;
       cancelDelayedEvent();
 
-      if (
-        !tOrNullEquals(selection.selection.current, selected) &&
-        selection.selection.current !== null
-      ) {
-        onSelectionEvent({ isSynthetic: true, current: selection.selection.current });
+      if (!tOrNullEquals(selectionVWC.get(), selected) && selectionVWC.get() !== null) {
+        onSelectionEvent();
       }
     }
 
-    function onPromptTimeEvent(event: PromptTimeEvent) {
+    function onPromptTimeEvent() {
       if (!active || !delayedEvent) {
         // This handler should have been removed
         return;
       }
 
-      if (joinLeave.info.current.error !== null) {
+      if (joinLeaveVWC.get().error !== null) {
         // Failed to join, no point in trying to handle events
         cancelDelayedEvent();
         return;
       }
 
-      if (joinLeave.info.current.left) {
+      if (joinLeaveVWC.get().leaving) {
         // Already left, no point in trying to handle events
         cancelDelayedEvent();
         return;
       }
 
-      if (promptTime.time.current >= prompt.durationSeconds * 1000) {
+      if (promptTimeVWC.get().time >= promptVWC.get().durationSeconds * 1000) {
         // Prompt ended, no point in trying to handle events
         cancelDelayedEvent();
         return;
       }
 
-      if (tOrNullEquals(selection.selection.current, callbackSelection)) {
+      if (tOrNullEquals(selectionVWC.get(), callbackSelection)) {
         // Before we managed to call the callback, the selection changed
         // back to what it was, so we no longer need to call the callback
         cancelDelayedEvent();
@@ -236,17 +239,17 @@ export function useSimpleSelectionHandler<T>({
         return;
       }
 
-      if (lastEventAt >= event.current) {
+      if (lastEventAt >= promptTimeVWC.get().time) {
         // Still waiting for a new prompt time
         return;
       }
 
-      if (!joinLeave.info.current.joined) {
+      if (!joinLeaveVWC.get().joinedAt === null) {
         // Still waiting to join
         return;
       }
 
       runCallback();
     }
-  }, [selection, prompt, joinLeave, promptTime]);
+  }, [selectionVWC, promptVWC, joinLeaveVWC, promptTimeVWC]);
 }

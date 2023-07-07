@@ -33,6 +33,7 @@ export const useOsehAudioContentState = (
   useEffect(() => {
     let targetCanceler: (() => void) | null = null;
     targetVWC.callbacks.add(handleTargetChanged);
+    handleTargetChanged();
     return () => {
       targetVWC.callbacks.remove(handleTargetChanged);
       if (targetCanceler !== null) {
@@ -91,6 +92,10 @@ export const useOsehAudioContentState = (
       return unmount;
 
       async function manageAudio() {
+        if (state.get().audio === audio && state.get().loaded) {
+          return;
+        }
+
         if (!audio.paused) {
           audio.pause();
         }

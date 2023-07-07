@@ -13,7 +13,11 @@ import styles from './NumericPrompt.module.css';
 import { NumericPrompt as NumericPromptType } from '../models/Prompt';
 import { PromptTime, usePromptTime } from '../hooks/usePromptTime';
 import { Stats, useStats } from '../hooks/useStats';
-import { Callbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import {
+  Callbacks,
+  WritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { useProfilePictures } from '../hooks/useProfilePictures';
 import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
@@ -28,11 +32,6 @@ import {
 } from '../../../shared/hooks/useCarouselInfo';
 import { Carousel } from '../../../shared/components/Carousel';
 import { ProfilePictures } from './ProfilePictures';
-import {
-  SimpleSelectionRef,
-  useSimpleSelection,
-  useSimpleSelectionHasSelection,
-} from '../hooks/useSimpleSelection';
 import { Button } from '../../../shared/forms/Button';
 import {
   VPFRRProps,
@@ -40,6 +39,10 @@ import {
 } from '../../../shared/anim/VerticalPartlyFilledRoundedRect';
 import { useIndexableFakeMove } from '../hooks/useIndexableFakeMove';
 import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { VariableStrategyProps } from '../../../shared/anim/VariableStrategyProps';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { PromptOnFinished } from '../models/PromptOnFinished';
 
 type NumericPromptProps = {
   /**
@@ -50,7 +53,7 @@ type NumericPromptProps = {
   /**
    * The function to call when the user finishes the prompt.
    */
-  onFinished: (privileged: boolean) => void;
+  onFinished: PromptOnFinished<number | null>;
 
   /**
    * If specified, a countdown is displayed using the given props.
@@ -114,21 +117,84 @@ export const NumericPrompt = ({
     throw new Error('NumericPrompt must be given a numeric prompt');
   }
   const prompt = intPrompt.prompt as NumericPromptType;
-  const promptTime = usePromptTime(-250, paused ?? false);
-  const stats = useStats({ prompt: intPrompt, promptTime });
-  const selection = useSimpleSelection<number>();
-  const hasSelection = useSimpleSelectionHasSelection(selection);
+  const promptTime = usePromptTime({
+    type: 'react-rerender',
+    props: { initialTime: -250, paused: paused ?? false },
+  });
+  const stats = useStats({
+    prompt: {
+      type: 'react-rerender',
+      props: intPrompt,
+    },
+    promptTime: {
+      type: 'callbacks',
+      props: promptTime.get,
+      callbacks: promptTime.callbacks,
+    },
+  });
+  const selection = useWritableValueWithCallbacks<number | null>(() => null);
+  const selectionValue = useMappedValueWithCallbacks(selection, (s) => {
+    if (s === null) {
+      return null;
+    }
+
+    let idx = -1;
+    for (let val = prompt.min; val <= prompt.max; val += prompt.step) {
+      idx++;
+      if (idx === s) {
+        return val;
+      }
+    }
+
+    return null;
+  });
+  const hasSelectionVWC = useMappedValueWithCallbacks(selection, (s) => s !== null);
   const screenSize = useWindowSize();
   const clientPredictedStats = useWritableValueWithCallbacks<number[]>(() => []);
-  const profilePictures = useProfilePictures({ prompt: intPrompt, promptTime, stats });
+  const profilePictures = useProfilePictures({
+    prompt: {
+      type: 'react-rerender',
+      props: intPrompt,
+    },
+    promptTime: {
+      type: 'callbacks',
+      props: promptTime.get,
+      callbacks: promptTime.callbacks,
+    },
+    stats: {
+      type: 'callbacks',
+      props: stats.get,
+      callbacks: stats.callbacks,
+    },
+  });
   const loginContext = useContext(LoginContext);
-  const joinLeave = useJoinLeave({ prompt: intPrompt, promptTime });
+  const joinLeave = useJoinLeave({
+    prompt: {
+      type: 'react-rerender',
+      props: intPrompt,
+    },
+    promptTime: {
+      type: 'callbacks',
+      props: promptTime.get,
+      callbacks: promptTime.callbacks,
+    },
+  });
   const windowSize = useWindowSize();
-  useOnFinished(intPrompt, promptTime, onFinished);
 
   leavingCallback.current = () => {
-    joinLeave.leaving.current = true;
+    joinLeave.get().leave();
   };
+
+  const { onSkip: handleSkip } = useOnFinished({
+    joinLeave: { type: 'callbacks', props: joinLeave.get, callbacks: joinLeave.callbacks },
+    promptTime: { type: 'callbacks', props: promptTime.get, callbacks: promptTime.callbacks },
+    selection: {
+      type: 'callbacks',
+      props: selectionValue.get,
+      callbacks: selectionValue.callbacks,
+    },
+    onFinished,
+  });
 
   const getResponses = useCallback(
     (stats: Stats) => {
@@ -145,11 +211,23 @@ export const NumericPrompt = ({
     },
     [prompt]
   );
+  const responses = useMappedValueWithCallbacks(stats, getResponses);
   useIndexableFakeMove({
-    getResponses,
-    promptTime,
-    promptStats: stats,
-    selection,
+    promptTime: {
+      type: 'callbacks',
+      props: promptTime.get,
+      callbacks: promptTime.callbacks,
+    },
+    responses: {
+      type: 'callbacks',
+      props: responses.get,
+      callbacks: responses.callbacks,
+    },
+    selection: {
+      type: 'callbacks',
+      props: selection.get,
+      callbacks: selection.callbacks,
+    },
     clientPredictedStats,
   });
 
@@ -160,13 +238,29 @@ export const NumericPrompt = ({
     }
     return res;
   }, [prompt]);
-  useStoreEvents(intPrompt, promptOptions, promptTime, joinLeave, selection, loginContext);
-
-  const handleSkip = useCallback(() => {
-    leavingCallback.current?.();
-    onFinished(true);
-  }, [onFinished, leavingCallback]);
-
+  useStoreEvents(
+    {
+      type: 'react-rerender',
+      props: intPrompt,
+    },
+    promptOptions,
+    {
+      type: 'callbacks',
+      props: promptTime.get,
+      callbacks: promptTime.callbacks,
+    },
+    {
+      type: 'callbacks',
+      props: selection.get,
+      callbacks: selection.callbacks,
+    },
+    {
+      type: 'callbacks',
+      props: joinLeave.get,
+      callbacks: joinLeave.callbacks,
+    },
+    loginContext
+  );
   const carouselInfo = useCarouselInfo({
     visibleWidth: Math.min(screenSize.width, 440),
     itemWidth: optionWidthPx,
@@ -315,13 +409,18 @@ export const NumericPrompt = ({
                 ? {}
                 : { paddingTop: '45px', paddingBottom: '60px' }
             }>
-            <Button
-              type="button"
-              fullWidth
-              variant={hasSelection ? 'filled' : 'link-white'}
-              onClick={handleSkip}>
-              {hasSelection ? (finishEarly === true ? 'Continue' : finishEarly.cta) : 'Skip'}
-            </Button>
+            <RenderGuardedComponent
+              props={hasSelectionVWC}
+              component={(hasSelection) => (
+                <Button
+                  type="button"
+                  fullWidth
+                  variant={hasSelection ? 'filled' : 'link-white'}
+                  onClick={handleSkip}>
+                  {hasSelection ? (finishEarly === true ? 'Continue' : finishEarly.cta) : 'Skip'}
+                </Button>
+              )}
+            />
           </div>
         )}
         <div
@@ -340,7 +439,7 @@ export const NumericPrompt = ({
  */
 const useCarouselSelectionForSelection = (
   carouselInfo: CarouselInfoRef,
-  selection: SimpleSelectionRef<number>
+  selection: WritableValueWithCallbacks<number | null>
 ) => {
   useEffect(() => {
     carouselInfo.onInfoChanged.current.add(handleCarouselEvent);
@@ -358,16 +457,9 @@ const useCarouselSelectionForSelection = (
     function recheckSelection() {
       const correctSelectionIndex = carouselInfo.info.current.selectedIndex;
 
-      if (
-        selection.selection.current === null ||
-        selection.selection.current !== correctSelectionIndex
-      ) {
-        const old = selection.selection.current;
-        selection.selection.current = correctSelectionIndex;
-        selection.onSelectionChanged.current.call({
-          old,
-          current: selection.selection.current,
-        });
+      if (selection.get() !== correctSelectionIndex) {
+        selection.set(correctSelectionIndex);
+        selection.callbacks.call(undefined);
       }
     }
   }, [carouselInfo, selection]);
@@ -378,23 +470,28 @@ const useCarouselSelectionForSelection = (
  * event on the server
  */
 const useStoreEvents = (
-  prompt: InteractivePrompt,
+  prompt: VariableStrategyProps<InteractivePrompt>,
   promptOptions: number[],
-  promptTime: PromptTime,
-  joinLeave: JoinLeave,
-  selection: SimpleSelectionRef<number>,
+  promptTime: VariableStrategyProps<PromptTime>,
+  selection: VariableStrategyProps<number | null>,
+  joinLeave: VariableStrategyProps<JoinLeave>,
   loginContext: LoginContextValue
 ) => {
-  const callback = async (index: number, time: number) => {
+  const callback = async (index: number | null, time: number) => {
+    if (index === null) {
+      return;
+    }
+
+    const promptVal = prompt.type === 'callbacks' ? prompt.props() : prompt.props;
     await apiFetch(
       '/api/1/interactive_prompts/events/respond_numeric_prompt',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({
-          interactive_prompt_uid: prompt.uid,
-          interactive_prompt_jwt: prompt.jwt,
-          session_uid: prompt.sessionUid,
+          interactive_prompt_uid: promptVal.uid,
+          interactive_prompt_jwt: promptVal.jwt,
+          session_uid: promptVal.sessionUid,
           prompt_time: time / 1000,
           data: {
             rating: promptOptions[index],

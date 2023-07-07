@@ -1,7 +1,8 @@
 import { ReactElement, useEffect, useRef } from 'react';
-import { PromptTime, PromptTimeEvent } from '../hooks/usePromptTime';
+import { PromptTime } from '../hooks/usePromptTime';
 import { InteractivePrompt } from '../models/InteractivePrompt';
 import styles from './CountdownText.module.css';
+import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
 
 export type CountdownTextConfig = {
   /**
@@ -14,7 +15,7 @@ type CountdownTextProps = CountdownTextConfig & {
   /**
    * The prompt time to show a countdown for
    */
-  promptTime: PromptTime;
+  promptTime: ValueWithCallbacks<PromptTime>;
 
   /**
    * The prompt to show a countdown for
@@ -36,14 +37,14 @@ export const CountdownText = ({
   const durationMs = prompt.durationSeconds * 1000;
   useEffect(() => {
     let curText = '';
-    promptTime.onTimeChanged.current.add(callback);
+    promptTime.callbacks.add(callback);
 
     return () => {
-      promptTime.onTimeChanged.current.remove(callback);
+      promptTime.callbacks.remove(callback);
     };
 
-    function callback(event: PromptTimeEvent) {
-      const newText = formatProgressAsCountdown(durationMs, event.current);
+    function callback() {
+      const newText = formatProgressAsCountdown(durationMs, promptTime.get().time);
       if (curText !== newText && textElement.current) {
         textElement.current.textContent = newText;
         curText = newText;
@@ -55,7 +56,7 @@ export const CountdownText = ({
     <div className={styles.container}>
       <div className={styles.title}>{titleText}</div>
       <div className={styles.countdown} ref={textElement}>
-        {formatProgressAsCountdown(durationMs, promptTime.time.current)}
+        {formatProgressAsCountdown(durationMs, promptTime.get().time)}
       </div>
     </div>
   );
