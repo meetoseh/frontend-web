@@ -1,12 +1,12 @@
-import { MutableRefObject, ReactElement, useContext, useEffect, useMemo, useRef } from 'react';
+import { ReactElement, useContext, useEffect, useMemo, useRef } from 'react';
 import { PromptTime, usePromptTime } from '../hooks/usePromptTime';
-import { InteractivePrompt } from '../models/InteractivePrompt';
-import { CountdownText, CountdownTextConfig } from './CountdownText';
-import { WordPrompt as WordPromptType } from '../models/Prompt';
+import { InteractivePrompt, InteractiveWordPrompt } from '../models/InteractivePrompt';
+import { CountdownText } from './CountdownText';
 import styles from './WordPrompt.module.css';
 import {
-  Callbacks,
   ValueWithCallbacks,
+  WritableValueWithCallbacks,
+  createWritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
@@ -22,66 +22,12 @@ import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
 import { Button } from '../../../shared/forms/Button';
 import { HorizontalPartlyFilledRoundedRect } from '../../../shared/anim/HorizontalPartlyFilledRoundedRect';
 import { useIndexableFakeMove } from '../hooks/useIndexableFakeMove';
-import { PromptOnFinished } from '../models/PromptOnFinished';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { VariableStrategyProps } from '../../../shared/anim/VariableStrategyProps';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { PromptProps } from '../models/PromptProps';
 
-type WordPromptProps = {
-  /**
-   * The prompt to display. Must be a word prompt.
-   */
-  prompt: InteractivePrompt;
-
-  /**
-   * The function to call when the user finishes the prompt.
-   */
-  onFinished: PromptOnFinished<string | null>;
-
-  /**
-   * If specified, the function to call when the user selects a response.
-   * @param response The value of the option the user selected.
-   */
-  onResponse?: (response: string) => void;
-
-  /**
-   * If specified, a countdown is displayed using the given props.
-   */
-  countdown?: CountdownTextConfig;
-
-  /**
-   * If specified, a subtitle is displayed with the given contents,
-   * e.g., "Class Poll".
-   */
-  subtitle?: string;
-
-  /**
-   * If set to true, the prompt time will not be updated.
-   */
-  paused?: boolean;
-
-  /**
-   * If set to true, a more obvious button is included to let the user
-   * move on. The button prominence is reduced until the user answers,
-   * but still more prominent than the default X button.
-   */
-  finishEarly?: boolean | { cta: string };
-
-  /**
-   * If specified, used to configure the max width of the title in pixels.
-   * It's often useful to configure this if the prompt title is known in
-   * advance to get an aesthetically pleasing layout.
-   */
-  titleMaxWidth?: number;
-
-  /**
-   * The ref to register a leaving callback which must be called before unmounting
-   * the component normally in order to trigger a leave event. Otherwise, a leave
-   * event is only triggered when the prompt finishes normally or the page is
-   * closed (via onbeforeunload)
-   */
-  leavingCallback: MutableRefObject<(() => void) | null>;
-};
+type WordPromptProps = PromptProps<InteractiveWordPrompt, string | null>;
 
 const unfilledColor: [number, number, number, number] = [68 / 255, 98 / 255, 102 / 255, 0.4];
 const filledColor: [number, number, number, number] = [68 / 255, 98 / 255, 102 / 255, 0.9];
@@ -98,10 +44,7 @@ export const WordPrompt = ({
   titleMaxWidth,
   leavingCallback,
 }: WordPromptProps): ReactElement => {
-  if (intPrompt.prompt.style !== 'word') {
-    throw new Error('WordPrompt must be given a word prompt');
-  }
-  const prompt = intPrompt.prompt as WordPromptType;
+  const prompt = intPrompt.prompt;
   const promptTime = usePromptTime({
     type: 'react-rerender',
     props: { initialTime: -250, paused: paused ?? false },
@@ -117,7 +60,10 @@ export const WordPrompt = ({
       callbacks: promptTime.callbacks,
     },
   });
-  const selection = useWritableValueWithCallbacks<number | null>(() => null);
+  const selection = useWritableValueWithCallbacks<number | null>(() => {
+    onResponse?.(null);
+    return null;
+  });
   const selectionWord = useMappedValueWithCallbacks(selection, (s) =>
     s === null ? null : prompt.options[s]
   );
@@ -210,22 +156,8 @@ export const WordPrompt = ({
     onFinished,
   });
 
-  const boundFilledWidthGetterSetters: {
-    get: () => number;
-    set: (v: number) => void;
-    callbacks: Callbacks<undefined>;
-  }[] = useMemo(() => {
-    return prompt.options.map(() => {
-      let width = 0;
-      const callbacks = new Callbacks<undefined>();
-      return {
-        get: () => width,
-        set: (v: number) => {
-          width = v;
-        },
-        callbacks,
-      };
-    });
+  const boundFilledWidthGetterSetters: WritableValueWithCallbacks<number>[] = useMemo(() => {
+    return prompt.options.map(() => createWritableValueWithCallbacks<number>(0));
   }, [prompt]);
 
   useEffect(() => {

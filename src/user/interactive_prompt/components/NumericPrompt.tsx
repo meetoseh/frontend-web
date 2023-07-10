@@ -1,21 +1,13 @@
-import {
-  MutableRefObject,
-  ReactElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
-import { InteractivePrompt } from '../models/InteractivePrompt';
-import { CountdownText, CountdownTextConfig } from './CountdownText';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { InteractiveNumericPrompt, InteractivePrompt } from '../models/InteractivePrompt';
+import { CountdownText } from './CountdownText';
 import styles from './NumericPrompt.module.css';
 import { NumericPrompt as NumericPromptType } from '../models/Prompt';
 import { PromptTime, usePromptTime } from '../hooks/usePromptTime';
 import { Stats, useStats } from '../hooks/useStats';
 import {
-  Callbacks,
   WritableValueWithCallbacks,
+  createWritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
@@ -42,57 +34,7 @@ import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { VariableStrategyProps } from '../../../shared/anim/VariableStrategyProps';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
-import { PromptOnFinished } from '../models/PromptOnFinished';
-
-type NumericPromptProps = {
-  /**
-   * The prompt to display. Must be a word prompt.
-   */
-  prompt: InteractivePrompt;
-
-  /**
-   * The function to call when the user finishes the prompt.
-   */
-  onFinished: PromptOnFinished<number | null>;
-
-  /**
-   * If specified, a countdown is displayed using the given props.
-   */
-  countdown?: CountdownTextConfig;
-
-  /**
-   * If specified, a subtitle is displayed with the given contents,
-   * e.g., "Class Poll".
-   */
-  subtitle?: string;
-
-  /**
-   * If set to true, the prompt time will not be updated.
-   */
-  paused?: boolean;
-
-  /**
-   * If set to true, a more obvious button is included to let the user
-   * move on. The button prominence is reduced until the user answers,
-   * but still more prominent than the default X button.
-   */
-  finishEarly?: boolean | { cta: string };
-
-  /**
-   * If specified, used to configure the max width of the title in pixels.
-   * It's often useful to configure this if the prompt title is known in
-   * advance to get an aesthetically pleasing layout.
-   */
-  titleMaxWidth?: number;
-
-  /**
-   * The ref to register a leaving callback which must be called before unmounting
-   * the component normally in order to trigger a leave event. Otherwise, a leave
-   * event is only triggered when the prompt finishes normally or the page is
-   * closed (via onbeforeunload)
-   */
-  leavingCallback: MutableRefObject<(() => void) | null>;
-};
+import { PromptProps } from '../models/PromptProps';
 
 const optionWidthPx = 75;
 const optionHeightPx = 75;
@@ -105,6 +47,7 @@ const optionFilledColor: [number, number, number, number] = [1, 1, 1, 1];
 
 export const NumericPrompt = ({
   prompt: intPrompt,
+  onResponse,
   onFinished,
   countdown,
   subtitle,
@@ -112,10 +55,7 @@ export const NumericPrompt = ({
   finishEarly,
   titleMaxWidth,
   leavingCallback,
-}: NumericPromptProps): ReactElement => {
-  if (intPrompt.prompt.style !== 'numeric') {
-    throw new Error('NumericPrompt must be given a numeric prompt');
-  }
+}: PromptProps<InteractiveNumericPrompt, number | null>): ReactElement => {
   const prompt = intPrompt.prompt as NumericPromptType;
   const promptTime = usePromptTime({
     type: 'react-rerender',
@@ -148,6 +88,18 @@ export const NumericPrompt = ({
 
     return null;
   });
+  useEffect(() => {
+    selectionValue.callbacks.add(sendOnResponse);
+    sendOnResponse();
+    return () => {
+      selectionValue.callbacks.remove(sendOnResponse);
+    };
+
+    function sendOnResponse() {
+      onResponse?.(selectionValue.get());
+    }
+  }, [selectionValue, onResponse]);
+
   const hasSelectionVWC = useMappedValueWithCallbacks(selection, (s) => s !== null);
   const screenSize = useWindowSize();
   const clientPredictedStats = useWritableValueWithCallbacks<number[]>(() => []);
@@ -270,13 +222,9 @@ export const NumericPrompt = ({
   });
   useCarouselSelectionForSelection(carouselInfo, selection);
 
-  const infos: {
-    get: () => VPFRRProps;
-    callbacks: Callbacks<undefined>;
-    set: (state: VPFRRProps) => void;
-  }[] = useMemo(() => {
-    return promptOptions.map((_, index) => {
-      let state: VPFRRProps = {
+  const infos: WritableValueWithCallbacks<VPFRRProps>[] = useMemo(() => {
+    return promptOptions.map((_, index) =>
+      createWritableValueWithCallbacks<VPFRRProps>({
         filledHeight: 0,
         borderRadius: Math.min(optionWidthPx / 2, optionHeightPx / 2),
         unfilledColor: optionUnfilledColor,
@@ -284,19 +232,8 @@ export const NumericPrompt = ({
         opacity:
           carouselInfo.info.current.selectedIndex === index ? activeOpacity : inactiveOpacity,
         border: { width: 2 },
-      };
-
-      const callbacks = new Callbacks<undefined>();
-
-      return {
-        get: () => state,
-        callbacks,
-        set: (newState: VPFRRProps) => {
-          state = newState;
-          callbacks.call(undefined);
-        },
-      };
-    });
+      })
+    );
   }, [carouselInfo, promptOptions]);
 
   // manages the opacity on the options
@@ -314,9 +251,11 @@ export const NumericPrompt = ({
       infos[event.old.selectedIndex].set(
         Object.assign({}, infos[event.old.selectedIndex].get(), { opacity: inactiveOpacity })
       );
+      infos[event.old.selectedIndex].callbacks.call(undefined);
       infos[event.current.selectedIndex].set(
         Object.assign({}, infos[event.current.selectedIndex].get(), { opacity: activeOpacity })
       );
+      infos[event.current.selectedIndex].callbacks.call(undefined);
     }
   }, [carouselInfo, infos]);
 
@@ -345,6 +284,7 @@ export const NumericPrompt = ({
 
         if (old.filledHeight !== fractional) {
           infos[index].set(Object.assign({}, old, { filledHeight: fractional }));
+          infos[index].callbacks.call(undefined);
         }
       });
     }

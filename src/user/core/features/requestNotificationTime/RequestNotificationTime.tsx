@@ -12,6 +12,7 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
+import { InteractiveWordPrompt } from '../../../interactive_prompt/models/InteractivePrompt';
 
 /**
  * Asks the user to consider how they are feeling
@@ -30,7 +31,7 @@ export const RequestNotificationTime = ({
     callbacks: resources.callbacks,
   });
 
-  const onWordPromptResponse = useCallback((response: string) => {
+  const onWordPromptResponse = useCallback((response: string | null) => {
     responseRef.current = response;
   }, []);
 
@@ -85,8 +86,8 @@ export const RequestNotificationTime = ({
               {resources.prompt.error !== null && <ErrorBlock>{resources.prompt.error}</ErrorBlock>}
               {resources.prompt.prompt !== null ? (
                 <InteractivePromptRouter
-                  prompt={resources.prompt.prompt}
-                  onWordPromptResponse={onWordPromptResponse}
+                  prompt={resources.prompt.prompt as InteractiveWordPrompt}
+                  onResponse={onWordPromptResponse}
                   onFinished={onFinish}
                   finishEarly
                   leavingCallback={leavingCallback}

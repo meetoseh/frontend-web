@@ -12,15 +12,23 @@ import { NumericPrompt } from './NumericPrompt';
 import { WordPrompt } from './WordPrompt';
 import { PromptOnFinished } from '../models/PromptOnFinished';
 
-type InteractivePromptRouterPropsBase = {
+type InteractivePromptRouterPropsBase<R> = {
   /**
-   * Called if the interactive prompt is a word prompt after the user selects
-   * an option. This is commonly used for using an interactive prompt for
-   * a settings page, which adds a lot of flashiness.
+   * Called during initialization and after the user selects an option. This is
+   * commonly used for using an interactive prompt for a settings page, which
+   * adds a lot of flashiness.
    *
    * @param response The value of the option the user selected.
    */
-  onWordPromptResponse?: (response: string) => void;
+  onResponse?: (response: R) => void;
+
+  /**
+   * The function to call when the prompt is complete and should no longer be
+   * shown. For journeys this typically means moving onto audio, for settings
+   * this can mean either restarting the interactive prompt or switching to
+   * a static settings component.
+   */
+  onFinished: PromptOnFinished<R>;
 
   /**
    * If specified, a countdown is displayed with the given properties.
@@ -64,80 +72,43 @@ type InteractivePromptRouterPropsBase = {
   leavingCallback: MutableRefObject<(() => void) | null>;
 };
 
+type InteractivePromptRouterColorProps = InteractivePromptRouterPropsBase<string | null> & {
+  prompt: InteractiveColorPrompt;
+};
+
+type InteractivePromptRouterWordProps = InteractivePromptRouterPropsBase<string | null> & {
+  prompt: InteractiveWordPrompt;
+};
+
+type InteractivePromptRouterNumericProps = InteractivePromptRouterPropsBase<number | null> & {
+  prompt: InteractiveNumericPrompt;
+};
+
+type InteractivePromptRouterGenericProps = InteractivePromptRouterPropsBase<unknown> & {
+  prompt: InteractivePrompt;
+};
+
 type InteractivePromptRouterProps =
-  | (InteractivePromptRouterPropsBase & {
-      prompt: InteractiveColorPrompt;
-      onFinished: PromptOnFinished<string | null>;
-    })
-  | (InteractivePromptRouterPropsBase & {
-      prompt: InteractiveWordPrompt;
-      onFinished: PromptOnFinished<string | null>;
-    })
-  | (InteractivePromptRouterPropsBase & {
-      prompt: InteractiveNumericPrompt;
-      onFinished: PromptOnFinished<number | null>;
-    })
-  | (InteractivePromptRouterPropsBase & {
-      prompt: InteractivePrompt;
-      onFinished: PromptOnFinished<unknown>;
-    });
+  | InteractivePromptRouterColorProps
+  | InteractivePromptRouterWordProps
+  | InteractivePromptRouterNumericProps
+  | InteractivePromptRouterGenericProps;
 
 /**
  * Renders an arbitrary interactive prompt and calls the appropriate
  * callbacks.
  */
-export const InteractivePromptRouter = ({
-  prompt,
-  onFinished,
-  onWordPromptResponse,
-  countdown,
-  subtitle,
-  paused,
-  finishEarly,
-  titleMaxWidth,
-  leavingCallback,
-}: InteractivePromptRouterProps): ReactElement => {
-  if (prompt.prompt.style === 'word') {
-    // not sure why typecheck can't determine that onFinished must be string | null here
-    return (
-      <WordPrompt
-        prompt={prompt}
-        onFinished={onFinished as PromptOnFinished<string | null>}
-        onResponse={onWordPromptResponse}
-        countdown={countdown}
-        subtitle={subtitle}
-        paused={paused}
-        finishEarly={finishEarly}
-        titleMaxWidth={titleMaxWidth}
-        leavingCallback={leavingCallback}
-      />
-    );
-  } else if (prompt.prompt.style === 'numeric') {
-    return (
-      <NumericPrompt
-        prompt={prompt}
-        onFinished={onFinished as PromptOnFinished<number | null>}
-        countdown={countdown}
-        subtitle={subtitle}
-        paused={paused}
-        finishEarly={finishEarly}
-        titleMaxWidth={titleMaxWidth}
-        leavingCallback={leavingCallback}
-      />
-    );
-  } else if (prompt.prompt.style === 'color') {
-    return (
-      <ColorPrompt
-        prompt={prompt}
-        onFinished={onFinished as PromptOnFinished<string | null>}
-        countdown={countdown}
-        subtitle={subtitle}
-        paused={paused}
-        finishEarly={finishEarly}
-        titleMaxWidth={titleMaxWidth}
-        leavingCallback={leavingCallback}
-      />
-    );
+export const InteractivePromptRouter = (props: InteractivePromptRouterProps): ReactElement => {
+  if (props.prompt.prompt.style === 'word') {
+    // not sure why typescript can't infer this type
+    props = props as InteractivePromptRouterWordProps;
+    return <WordPrompt {...props} />;
+  } else if (props.prompt.prompt.style === 'numeric') {
+    props = props as InteractivePromptRouterNumericProps;
+    return <NumericPrompt {...props} />;
+  } else if (props.prompt.prompt.style === 'color') {
+    props = props as InteractivePromptRouterColorProps;
+    return <ColorPrompt {...props} />;
   }
 
   return <ErrorBlock>This prompt is not supported on this platform yet.</ErrorBlock>;

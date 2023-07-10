@@ -8,6 +8,7 @@ import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImag
 import { useOsehImageState } from '../../shared/images/useOsehImageState';
 import { OsehImageFromState } from '../../shared/images/OsehImageFromState';
 import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { InteractiveWordPrompt } from '../interactive_prompt/models/InteractivePrompt';
 
 type DailyGoalPromptProps = {
   /**
@@ -91,9 +92,9 @@ export const DailyGoalPrompt = ({ onLoaded, onFinished }: DailyGoalPromptProps):
         <div className={styles.content}>
           {publicPrompt.prompt && (
             <InteractivePromptRouter
-              prompt={publicPrompt.prompt}
+              prompt={publicPrompt.prompt as InteractiveWordPrompt}
               onFinished={handleFinished}
-              onWordPromptResponse={setResponse}
+              onResponse={setResponse}
               countdown={undefined}
               subtitle={undefined}
               paused={!loaded}

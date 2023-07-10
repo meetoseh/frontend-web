@@ -1,6 +1,6 @@
-import { MutableRefObject, ReactElement, useContext, useEffect, useMemo } from 'react';
-import { InteractivePrompt } from '../models/InteractivePrompt';
-import { CountdownText, CountdownTextConfig } from './CountdownText';
+import { ReactElement, useContext, useEffect, useMemo } from 'react';
+import { InteractiveColorPrompt, InteractivePrompt } from '../models/InteractivePrompt';
+import { CountdownText } from './CountdownText';
 import styles from './ColorPrompt.module.css';
 import { ColorPrompt as ColorPromptType } from '../models/Prompt';
 import { PromptTime, usePromptTime } from '../hooks/usePromptTime';
@@ -10,7 +10,11 @@ import { useProfilePictures } from '../hooks/useProfilePictures';
 import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { ProfilePictures } from './ProfilePictures';
 import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
-import { Callbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import {
+  WritableValueWithCallbacks,
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../shared/lib/Callbacks';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
 import { getColor3fFromHex } from '../../../shared/lib/BezierAnimation';
@@ -24,59 +28,8 @@ import { useIndexableFakeMove } from '../hooks/useIndexableFakeMove';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { VariableStrategyProps } from '../../../shared/anim/VariableStrategyProps';
 import { useOnFinished } from '../hooks/useOnFinished';
-import { PromptOnFinished } from '../models/PromptOnFinished';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
-
-type ColorPromptProps = {
-  /**
-   * The prompt to display. Must be a color prompt.
-   */
-  prompt: InteractivePrompt;
-
-  /**
-   * The function to call when the user finishes the prompt. The selection
-   * is a hex string, e.g., "#ff0000" for red.
-   */
-  onFinished: PromptOnFinished<string | null>;
-
-  /**
-   * If specified, a countdown is displayed using the given props.
-   */
-  countdown?: CountdownTextConfig;
-
-  /**
-   * If specified, a subtitle is displayed with the given contents,
-   * e.g., "Class Poll".
-   */
-  subtitle?: string;
-
-  /**
-   * If set to true, the prompt time will not be updated.
-   */
-  paused?: boolean;
-
-  /**
-   * If set to true, a more obvious button is included to let the user
-   * move on. The button prominence is reduced until the user answers,
-   * but still more prominent than the default X button.
-   */
-  finishEarly?: boolean | { cta: string };
-
-  /**
-   * If specified, used to configure the max width of the title in pixels.
-   * It's often useful to configure this if the prompt title is known in
-   * advance to get an aesthetically pleasing layout.
-   */
-  titleMaxWidth?: number;
-
-  /**
-   * The ref to register a leaving callback which must be called before unmounting
-   * the component normally in order to trigger a leave event. Otherwise, a leave
-   * event is only triggered when the prompt finishes normally or the page is
-   * closed (via onbeforeunload)
-   */
-  leavingCallback: MutableRefObject<(() => void) | null>;
-};
+import { PromptProps } from '../models/PromptProps';
 
 const colorInactiveOpacity = 0.4;
 const colorActiveOpacity = 1.0;
@@ -92,6 +45,7 @@ const getResponses = (stats: Stats): number[] | undefined => stats.colorActive ?
  */
 export const ColorPrompt = ({
   prompt: intPrompt,
+  onResponse,
   onFinished,
   countdown,
   subtitle,
@@ -99,10 +53,7 @@ export const ColorPrompt = ({
   finishEarly,
   titleMaxWidth,
   leavingCallback,
-}: ColorPromptProps): ReactElement => {
-  if (intPrompt.prompt.style !== 'color') {
-    throw new Error('ColorPrompt must be given a color prompt');
-  }
+}: PromptProps<InteractiveColorPrompt, string | null>): ReactElement => {
   const prompt = intPrompt.prompt as ColorPromptType;
   const promptTime = usePromptTime({
     type: 'react-rerender',
@@ -119,7 +70,10 @@ export const ColorPrompt = ({
       callbacks: promptTime.callbacks,
     },
   });
-  const selection = useWritableValueWithCallbacks<number | null>(() => null);
+  const selection = useWritableValueWithCallbacks<number | null>(() => {
+    onResponse?.(null);
+    return null;
+  });
   const selectionColor = useMappedValueWithCallbacks(selection, (s) =>
     s === null ? null : prompt.colors[s]
   );
@@ -276,33 +230,19 @@ export const ColorPrompt = ({
   }, [colorRows, itemWidth]);
 
   const colorStates = useMemo(() => {
-    const result: {
-      get: () => VPFRRProps;
-      set: (state: VPFRRProps) => void;
-      callbacks: Callbacks<undefined>;
-    }[] = [];
+    const result: WritableValueWithCallbacks<VPFRRProps>[] = [];
     for (let outerIndex = 0; outerIndex < prompt.colors.length; outerIndex++) {
-      (() => {
-        const color = prompt.colors[outerIndex];
-        let state: VPFRRProps = {
+      const color = prompt.colors[outerIndex];
+      result.push(
+        createWritableValueWithCallbacks<VPFRRProps>({
           filledHeight: 0.5,
           borderRadius: Math.ceil(Math.min(itemWidth, rowHeight) * 0.1),
           unfilledColor: addOpacity(color, colorBackgroundOpacity),
           filledColor: addOpacity(color, colorForegroundOpacity),
           opacity: colorInactiveOpacity,
           border: { width: 2 },
-        };
-        const callbacks = new Callbacks<undefined>();
-
-        result.push({
-          get: () => state,
-          set: (newState) => {
-            state = newState;
-            callbacks.call(undefined);
-          },
-          callbacks,
-        });
-      })();
+        })
+      );
     }
     return result;
   }, [prompt, itemWidth, rowHeight]);
@@ -321,6 +261,7 @@ export const ColorPrompt = ({
         colorStates[highlighted].set(
           Object.assign({}, colorStates[highlighted].get(), { opacity: colorInactiveOpacity })
         );
+        colorStates[highlighted].callbacks.call(undefined);
         highlighted = null;
       }
     }
@@ -339,6 +280,7 @@ export const ColorPrompt = ({
       colorStates[selected].set(
         Object.assign({}, colorStates[selected].get(), { opacity: colorActiveOpacity })
       );
+      colorStates[selected].callbacks.call(undefined);
     }
   }, [selection, colorStates]);
 
@@ -364,6 +306,7 @@ export const ColorPrompt = ({
 
         if (old.filledHeight !== fractional) {
           colorStates[index].set(Object.assign({}, old, { filledHeight: fractional }));
+          colorStates[index].callbacks.call(undefined);
         }
       });
     }
@@ -387,6 +330,7 @@ export const ColorPrompt = ({
                     if (old === clicked) {
                       return;
                     }
+                    onResponse?.(color);
                     selection.set(clicked);
                     selection.callbacks.call(undefined);
                   }}
