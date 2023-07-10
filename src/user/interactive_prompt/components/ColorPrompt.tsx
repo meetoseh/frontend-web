@@ -1,22 +1,14 @@
-import { ReactElement, useContext, useEffect, useMemo } from 'react';
-import { InteractiveColorPrompt, InteractivePrompt } from '../models/InteractivePrompt';
+import { ReactElement, useEffect, useMemo } from 'react';
+import { InteractiveColorPrompt } from '../models/InteractivePrompt';
 import { CountdownText } from './CountdownText';
 import styles from './ColorPrompt.module.css';
-import { ColorPrompt as ColorPromptType } from '../models/Prompt';
-import { PromptTime, usePromptTime } from '../hooks/usePromptTime';
-import { Stats, useStats } from '../hooks/useStats';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
-import { useProfilePictures } from '../hooks/useProfilePictures';
-import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { ProfilePictures } from './ProfilePictures';
-import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
 import {
   WritableValueWithCallbacks,
   createWritableValueWithCallbacks,
-  useWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
 import { getColor3fFromHex } from '../../../shared/lib/BezierAnimation';
 import { PromptTitle } from './PromptTitle';
 import { Button } from '../../../shared/forms/Button';
@@ -24,12 +16,11 @@ import {
   VPFRRProps,
   VerticalPartlyFilledRoundedRect,
 } from '../../../shared/anim/VerticalPartlyFilledRoundedRect';
-import { useIndexableFakeMove } from '../hooks/useIndexableFakeMove';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
-import { VariableStrategyProps } from '../../../shared/anim/VariableStrategyProps';
-import { useOnFinished } from '../hooks/useOnFinished';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { PromptProps } from '../models/PromptProps';
+import { PromptSettings } from '../models/PromptSettings';
+import { usePromptResources } from '../hooks/usePromptResources';
 
 const colorInactiveOpacity = 0.4;
 const colorActiveOpacity = 1.0;
@@ -37,143 +28,46 @@ const colorActiveOpacity = 1.0;
 const colorForegroundOpacity = 1.0;
 const colorBackgroundOpacity = 0.4;
 
-const getResponses = (stats: Stats): number[] | undefined => stats.colorActive ?? undefined;
+const settings: PromptSettings<InteractiveColorPrompt, string | null> = {
+  getSelectionFromIndex: (prompt, index) => (index ? prompt.prompt.colors[index] ?? null : null),
+  getResponseDistributionFromStats: (prompt, stats) =>
+    stats.colorActive ?? prompt.prompt.colors.map(() => 0),
+  storeResponse: async (loginContext, prompt, time, response, index) => {
+    if (index === null) {
+      return;
+    }
+
+    await apiFetch(
+      '/api/1/interactive_prompts/events/respond_color_prompt',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          interactive_prompt_uid: prompt.uid,
+          interactive_prompt_jwt: prompt.jwt,
+          session_uid: prompt.sessionUid,
+          prompt_time: time / 1000,
+          data: {
+            index,
+          },
+        }),
+        keepalive: true,
+      },
+      loginContext
+    );
+  },
+};
 
 /**
  * Displays an color interactive prompt, where users can select a color and
  * see what colors other users have selected.
  */
-export const ColorPrompt = ({
-  prompt: intPrompt,
-  onResponse,
-  onFinished,
-  countdown,
-  subtitle,
-  paused,
-  finishEarly,
-  titleMaxWidth,
-  leavingCallback,
-}: PromptProps<InteractiveColorPrompt, string | null>): ReactElement => {
-  const prompt = intPrompt.prompt as ColorPromptType;
-  const promptTime = usePromptTime({
-    type: 'react-rerender',
-    props: { initialTime: -250, paused: paused ?? false },
-  });
-  const stats = useStats({
-    prompt: {
-      type: 'react-rerender',
-      props: intPrompt,
-    },
-    promptTime: {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-  });
-  const selection = useWritableValueWithCallbacks<number | null>(() => {
-    onResponse?.(null);
-    return null;
-  });
-  const selectionColor = useMappedValueWithCallbacks(selection, (s) =>
-    s === null ? null : prompt.colors[s]
-  );
-  const hasSelectionVWC = useMappedValueWithCallbacks(selection, (s) => s !== null);
+export const ColorPrompt = (
+  props: PromptProps<InteractiveColorPrompt, string | null>
+): ReactElement => {
+  const resources = usePromptResources(props, settings);
+  const hasSelectionVWC = useMappedValueWithCallbacks(resources.selectedIndex, (s) => s !== null);
   const screenSize = useWindowSize();
-  const clientPredictedStats = useWritableValueWithCallbacks<number[]>(() => []);
-  const profilePictures = useProfilePictures({
-    prompt: {
-      type: 'react-rerender',
-      props: intPrompt,
-    },
-    promptTime: {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-    stats: {
-      type: 'callbacks',
-      props: stats.get,
-      callbacks: stats.callbacks,
-    },
-  });
-  const loginContext = useContext(LoginContext);
-  const joinLeave = useJoinLeave({
-    prompt: {
-      type: 'react-rerender',
-      props: intPrompt,
-    },
-    promptTime: {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-  });
-  const responses = useMappedValueWithCallbacks(stats, getResponses, {
-    inputEqualityFn: () => false,
-    outputEqualityFn: (a, b) => {
-      if (a === undefined || b === undefined) {
-        return a === b;
-      }
-
-      return a.length === b.length && a.every((v, i) => v === b[i]);
-    },
-  });
-  useIndexableFakeMove({
-    promptTime: {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-    responses: {
-      type: 'callbacks',
-      props: responses.get,
-      callbacks: responses.callbacks,
-    },
-    selection: {
-      type: 'callbacks',
-      props: selection.get,
-      callbacks: selection.callbacks,
-    },
-    clientPredictedStats,
-  });
-  useStoreEvents(
-    {
-      type: 'react-rerender',
-      props: intPrompt,
-    },
-    {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-    {
-      type: 'callbacks',
-      props: selection.get,
-      callbacks: selection.callbacks,
-    },
-    {
-      type: 'callbacks',
-      props: joinLeave.get,
-      callbacks: joinLeave.callbacks,
-    },
-    loginContext
-  );
-  const windowSize = useWindowSize();
-
-  leavingCallback.current = () => {
-    joinLeave.get().leave();
-  };
-
-  const { onSkip: handleSkip } = useOnFinished({
-    joinLeave: { type: 'callbacks', props: joinLeave.get, callbacks: joinLeave.callbacks },
-    promptTime: { type: 'callbacks', props: promptTime.get, callbacks: promptTime.callbacks },
-    selection: {
-      type: 'callbacks',
-      props: selectionColor.get,
-      callbacks: selectionColor.callbacks,
-    },
-    onFinished,
-  });
 
   const colorsContainerWidth = Math.min(390, Math.min(screenSize.width, 440) - 64);
   const colorsGapPx = 32;
@@ -182,14 +76,15 @@ export const ColorPrompt = ({
 
   const colorToIndex = useMemo(() => {
     const lookup = new Map<string, number>();
-    for (let i = 0; i < prompt.colors.length; i++) {
-      lookup.set(prompt.colors[i], i);
+    const colors = resources.prompt.prompt.colors;
+    for (let i = 0; i < colors.length; i++) {
+      lookup.set(colors[i], i);
     }
     return lookup;
-  }, [prompt]);
+  }, [resources]);
 
   const colorRows: string[][] = useMemo(() => {
-    const colors = prompt.colors;
+    const colors = resources.prompt.prompt.colors;
     if (colors.length <= 4) {
       return [colors];
     }
@@ -208,7 +103,7 @@ export const ColorPrompt = ({
       rows.push(row);
     }
     return rows;
-  }, [prompt.colors]);
+  }, [resources]);
 
   const rowHeight = (colorsHeightPx - (colorRows.length - 1) * colorsGapPx) / colorRows.length;
 
@@ -230,9 +125,10 @@ export const ColorPrompt = ({
   }, [colorRows, itemWidth]);
 
   const colorStates = useMemo(() => {
+    const colors = resources.prompt.prompt.colors;
     const result: WritableValueWithCallbacks<VPFRRProps>[] = [];
-    for (let outerIndex = 0; outerIndex < prompt.colors.length; outerIndex++) {
-      const color = prompt.colors[outerIndex];
+    for (let outerIndex = 0; outerIndex < colors.length; outerIndex++) {
+      const color = colors[outerIndex];
       result.push(
         createWritableValueWithCallbacks<VPFRRProps>({
           filledHeight: 0.5,
@@ -245,14 +141,14 @@ export const ColorPrompt = ({
       );
     }
     return result;
-  }, [prompt, itemWidth, rowHeight]);
+  }, [resources, itemWidth, rowHeight]);
 
   // manages the opacity on the options
   useEffect(() => {
-    selection.callbacks.add(handleEvent);
+    resources.selectedIndex.callbacks.add(handleEvent);
     let highlighted: number | null = null;
     return () => {
-      selection.callbacks.remove(handleEvent);
+      resources.selectedIndex.callbacks.remove(handleEvent);
       removeHighlight();
     };
 
@@ -267,7 +163,7 @@ export const ColorPrompt = ({
     }
 
     function handleEvent() {
-      const selected = selection.get();
+      const selected = resources.selectedIndex.get();
       if (selected === highlighted) {
         return;
       }
@@ -282,18 +178,18 @@ export const ColorPrompt = ({
       );
       colorStates[selected].callbacks.call(undefined);
     }
-  }, [selection, colorStates]);
+  }, [resources, colorStates]);
 
   // manages the height on the options
   useEffect(() => {
-    clientPredictedStats.callbacks.add(update);
+    resources.clientPredictedResponseDistribution.callbacks.add(update);
     update();
     return () => {
-      clientPredictedStats.callbacks.remove(update);
+      resources.clientPredictedResponseDistribution.callbacks.remove(update);
     };
 
     function update() {
-      const newCorrectedStats = clientPredictedStats.get();
+      const newCorrectedStats = resources.clientPredictedResponseDistribution.get();
       const total = newCorrectedStats.reduce((a, b) => a + b, 0);
       const fractionals =
         total === 0
@@ -310,13 +206,21 @@ export const ColorPrompt = ({
         }
       });
     }
-  }, [clientPredictedStats, colorStates]);
+  }, [resources, colorStates]);
+
+  const finishEarly = props.finishEarly;
 
   return (
     <div className={styles.container}>
-      {countdown && <CountdownText promptTime={promptTime} prompt={intPrompt} {...countdown} />}
+      {props.countdown && (
+        <CountdownText promptTime={resources.time} prompt={resources.prompt} {...props.countdown} />
+      )}
       <div className={styles.prompt}>
-        <PromptTitle text={prompt.text} subtitle={subtitle} titleMaxWidth={titleMaxWidth} />
+        <PromptTitle
+          text={resources.prompt.prompt.text}
+          subtitle={props.subtitle}
+          titleMaxWidth={props.titleMaxWidth}
+        />
         <div className={styles.colors}>
           {colorRows.map((row, rowIndex) => (
             <div key={rowIndex} className={styles.colorRow} style={{ height: `${rowHeight}px` }}>
@@ -325,14 +229,13 @@ export const ColorPrompt = ({
                   key={`${color}-${colIndex}`}
                   className={styles.color}
                   onClick={() => {
-                    const old = selection.get();
+                    const old = resources.selectedIndex.get();
                     const clicked = colorToIndex.get(color)!;
                     if (old === clicked) {
                       return;
                     }
-                    onResponse?.(color);
-                    selection.set(clicked);
-                    selection.callbacks.call(undefined);
+                    resources.selectedIndex.set(clicked);
+                    resources.selectedIndex.callbacks.call(undefined);
                   }}
                   style={{ width: `${itemWidth}px` }}>
                   <VerticalPartlyFilledRoundedRect
@@ -353,7 +256,7 @@ export const ColorPrompt = ({
           <div
             className={styles.continueContainer}
             style={
-              countdown && windowSize.height <= 750
+              props.countdown && screenSize.height <= 750
                 ? {}
                 : { paddingTop: '45px', paddingBottom: '60px' }
             }>
@@ -364,7 +267,7 @@ export const ColorPrompt = ({
                   type="button"
                   fullWidth
                   variant={hasSelection ? 'filled' : 'link-white'}
-                  onClick={handleSkip}>
+                  onClick={resources.onSkip}>
                   {hasSelection ? (finishEarly === true ? 'Continue' : finishEarly.cta) : 'Skip'}
                 </Button>
               )}
@@ -376,57 +279,11 @@ export const ColorPrompt = ({
           style={
             finishEarly ? {} : { width: `${trueColorsWidth}px`, padding: '0', alignSelf: 'center' }
           }>
-          <ProfilePictures profilePictures={profilePictures} />
+          <ProfilePictures profilePictures={resources.profilePictures} />
         </div>
       </div>
     </div>
   );
-};
-
-/**
- * When the user changes their selection this hook will store the appropriate
- * event on the server
- */
-const useStoreEvents = (
-  prompt: VariableStrategyProps<InteractivePrompt>,
-  promptTime: VariableStrategyProps<PromptTime>,
-  selection: VariableStrategyProps<number | null>,
-  joinLeave: VariableStrategyProps<JoinLeave>,
-  loginContext: LoginContextValue
-) => {
-  const handler = async (index: number | null, time: number) => {
-    if (index === null) {
-      return;
-    }
-
-    const promptVal = prompt.type === 'callbacks' ? prompt.props() : prompt.props;
-    await apiFetch(
-      '/api/1/interactive_prompts/events/respond_color_prompt',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          interactive_prompt_uid: promptVal.uid,
-          interactive_prompt_jwt: promptVal.jwt,
-          session_uid: promptVal.sessionUid,
-          prompt_time: time / 1000,
-          data: {
-            index,
-          },
-        }),
-        keepalive: true,
-      },
-      loginContext
-    );
-  };
-
-  useSimpleSelectionHandler({
-    selection,
-    prompt,
-    joinLeave,
-    promptTime,
-    callback: handler,
-  });
 };
 
 /**

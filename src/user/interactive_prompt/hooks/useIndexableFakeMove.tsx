@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { WritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { PromptTime } from './usePromptTime';
 import {
   VariableStrategyProps,
@@ -16,23 +16,14 @@ type UseIndexableFakeMoveProps = {
    * where the length of the responses is the number of options,
    * and the value of each element is the number of people
    * currently responding with that value.
-   *
-   * May be undefined if the distribution is currently unavailable,
-   * which will result in no changes to the client predicted stats.
    */
-  responses: VariableStrategyProps<number[] | undefined>;
+  responses: VariableStrategyProps<number[]>;
   /**
    * The current selection. When the selection changes, we briefly
    * increase the number of people responding with the selected value
    * and decrease the number of people with the old value.
    */
   selection: VariableStrategyProps<number | null>;
-  /**
-   * The client-side predicted stats to mutate. This is just the result of
-   * getResponses, shifted by the fake move, and hence should be interpreted
-   * just like getResponses.
-   */
-  clientPredictedStats: WritableValueWithCallbacks<number[]>;
 };
 
 type _FakedMove = {
@@ -67,18 +58,19 @@ type _FakedMove = {
 };
 
 /**
- * A react hook to mutate the client predicted stats when the selection changes
- * or when the stats change.
+ * A react hook which returns the client-side predicted response distribution
+ * for a prompt whose responses can be described as a fixed finite number of
+ * discrete options.
  */
 export const useIndexableFakeMove = ({
   promptTime: promptTimeVariableStrategy,
   responses: responsesVariableStrategy,
   selection: selectionVariableStrategy,
-  clientPredictedStats,
-}: UseIndexableFakeMoveProps) => {
+}: UseIndexableFakeMoveProps): ValueWithCallbacks<number[]> => {
   const promptTimeVWC = useVariableStrategyPropsAsValueWithCallbacks(promptTimeVariableStrategy);
   const responsesVWC = useVariableStrategyPropsAsValueWithCallbacks(responsesVariableStrategy);
   const selectionVWC = useVariableStrategyPropsAsValueWithCallbacks(selectionVariableStrategy);
+  const clientPredictedStats = useWritableValueWithCallbacks<number[]>(() => responsesVWC.get());
   useEffect(() => {
     let fakedMove: _FakedMove | null = null;
     /**
@@ -200,4 +192,5 @@ export const useIndexableFakeMove = ({
       updatePredictedStats();
     }
   }, [promptTimeVWC, responsesVWC, selectionVWC, clientPredictedStats]);
+  return clientPredictedStats;
 };

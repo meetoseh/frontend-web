@@ -1,21 +1,13 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
-import { InteractiveNumericPrompt, InteractivePrompt } from '../models/InteractivePrompt';
+import { ReactElement, useEffect, useMemo, useRef } from 'react';
+import { InteractiveNumericPrompt } from '../models/InteractivePrompt';
 import { CountdownText } from './CountdownText';
 import styles from './NumericPrompt.module.css';
-import { NumericPrompt as NumericPromptType } from '../models/Prompt';
-import { PromptTime, usePromptTime } from '../hooks/usePromptTime';
-import { Stats, useStats } from '../hooks/useStats';
 import {
   WritableValueWithCallbacks,
   createWritableValueWithCallbacks,
-  useWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
-import { useProfilePictures } from '../hooks/useProfilePictures';
-import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
-import { JoinLeave, useJoinLeave } from '../hooks/useJoinLeave';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { useOnFinished } from '../hooks/useOnFinished';
 import { PromptTitle } from './PromptTitle';
 import {
   CarouselInfoChangedEvent,
@@ -29,12 +21,11 @@ import {
   VPFRRProps,
   VerticalPartlyFilledRoundedRect,
 } from '../../../shared/anim/VerticalPartlyFilledRoundedRect';
-import { useIndexableFakeMove } from '../hooks/useIndexableFakeMove';
-import { useSimpleSelectionHandler } from '../hooks/useSimpleSelectionHandler';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
-import { VariableStrategyProps } from '../../../shared/anim/VariableStrategyProps';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { PromptProps } from '../models/PromptProps';
+import { PromptSettings } from '../models/PromptSettings';
+import { usePromptResources } from '../hooks/usePromptResources';
 
 const optionWidthPx = 75;
 const optionHeightPx = 75;
@@ -45,174 +36,73 @@ const activeOpacity = 1.0;
 const optionUnfilledColor: [number, number, number, number] = [1, 1, 1, 0.5];
 const optionFilledColor: [number, number, number, number] = [1, 1, 1, 1];
 
-export const NumericPrompt = ({
-  prompt: intPrompt,
-  onResponse,
-  onFinished,
-  countdown,
-  subtitle,
-  paused,
-  finishEarly,
-  titleMaxWidth,
-  leavingCallback,
-}: PromptProps<InteractiveNumericPrompt, number | null>): ReactElement => {
-  const prompt = intPrompt.prompt as NumericPromptType;
-  const promptTime = usePromptTime({
-    type: 'react-rerender',
-    props: { initialTime: -250, paused: paused ?? false },
-  });
-  const stats = useStats({
-    prompt: {
-      type: 'react-rerender',
-      props: intPrompt,
-    },
-    promptTime: {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-  });
-  const selection = useWritableValueWithCallbacks<number | null>(() => null);
-  const selectionValue = useMappedValueWithCallbacks(selection, (s) => {
-    if (s === null) {
+const settings: PromptSettings<InteractiveNumericPrompt, number | null> = {
+  getSelectionFromIndex: (prompt, index) => {
+    if (index === null) {
       return null;
     }
 
     let idx = -1;
-    for (let val = prompt.min; val <= prompt.max; val += prompt.step) {
+    for (let val = prompt.prompt.min; val <= prompt.prompt.max; val += prompt.prompt.step) {
       idx++;
-      if (idx === s) {
+      if (idx === index) {
         return val;
       }
     }
 
     return null;
-  });
-  useEffect(() => {
-    selectionValue.callbacks.add(sendOnResponse);
-    sendOnResponse();
-    return () => {
-      selectionValue.callbacks.remove(sendOnResponse);
-    };
+  },
+  getResponseDistributionFromStats: (prompt, stats) => {
+    const numericActive = stats.numericActive ?? new Map<number, number>();
 
-    function sendOnResponse() {
-      onResponse?.(selectionValue.get());
+    const result: number[] = [];
+    for (let i = prompt.prompt.min; i <= prompt.prompt.max; i += prompt.prompt.step) {
+      result.push(numericActive.get(i) ?? 0);
     }
-  }, [selectionValue, onResponse]);
+    return result;
+  },
+  storeResponse: async (loginContext, prompt, time, response, index) => {
+    if (index === null) {
+      return;
+    }
 
-  const hasSelectionVWC = useMappedValueWithCallbacks(selection, (s) => s !== null);
+    await apiFetch(
+      '/api/1/interactive_prompts/events/respond_numeric_prompt',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          interactive_prompt_uid: prompt.uid,
+          interactive_prompt_jwt: prompt.jwt,
+          session_uid: prompt.sessionUid,
+          prompt_time: time / 1000,
+          data: {
+            rating: response,
+          },
+        }),
+        keepalive: true,
+      },
+      loginContext
+    );
+  },
+};
+
+export const NumericPrompt = (
+  props: PromptProps<InteractiveNumericPrompt, number | null>
+): ReactElement => {
+  const resources = usePromptResources(props, settings);
+  const hasSelectionVWC = useMappedValueWithCallbacks(resources.selectedIndex, (s) => s !== null);
   const screenSize = useWindowSize();
-  const clientPredictedStats = useWritableValueWithCallbacks<number[]>(() => []);
-  const profilePictures = useProfilePictures({
-    prompt: {
-      type: 'react-rerender',
-      props: intPrompt,
-    },
-    promptTime: {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-    stats: {
-      type: 'callbacks',
-      props: stats.get,
-      callbacks: stats.callbacks,
-    },
-  });
-  const loginContext = useContext(LoginContext);
-  const joinLeave = useJoinLeave({
-    prompt: {
-      type: 'react-rerender',
-      props: intPrompt,
-    },
-    promptTime: {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-  });
-  const windowSize = useWindowSize();
-
-  leavingCallback.current = () => {
-    joinLeave.get().leave();
-  };
-
-  const { onSkip: handleSkip } = useOnFinished({
-    joinLeave: { type: 'callbacks', props: joinLeave.get, callbacks: joinLeave.callbacks },
-    promptTime: { type: 'callbacks', props: promptTime.get, callbacks: promptTime.callbacks },
-    selection: {
-      type: 'callbacks',
-      props: selectionValue.get,
-      callbacks: selectionValue.callbacks,
-    },
-    onFinished,
-  });
-
-  const getResponses = useCallback(
-    (stats: Stats) => {
-      if (stats.numericActive === null) {
-        return undefined;
-      }
-      const numericActive = stats.numericActive;
-
-      const result: number[] = [];
-      for (let i = prompt.min; i <= prompt.max; i += prompt.step) {
-        result.push(numericActive.get(i) ?? 0);
-      }
-      return result;
-    },
-    [prompt]
-  );
-  const responses = useMappedValueWithCallbacks(stats, getResponses);
-  useIndexableFakeMove({
-    promptTime: {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-    responses: {
-      type: 'callbacks',
-      props: responses.get,
-      callbacks: responses.callbacks,
-    },
-    selection: {
-      type: 'callbacks',
-      props: selection.get,
-      callbacks: selection.callbacks,
-    },
-    clientPredictedStats,
-  });
 
   const promptOptions = useMemo<number[]>(() => {
+    const prompt = resources.prompt.prompt;
     const res: number[] = [];
     for (let i = prompt.min; i <= prompt.max; i += prompt.step) {
       res.push(i);
     }
     return res;
-  }, [prompt]);
-  useStoreEvents(
-    {
-      type: 'react-rerender',
-      props: intPrompt,
-    },
-    promptOptions,
-    {
-      type: 'callbacks',
-      props: promptTime.get,
-      callbacks: promptTime.callbacks,
-    },
-    {
-      type: 'callbacks',
-      props: selection.get,
-      callbacks: selection.callbacks,
-    },
-    {
-      type: 'callbacks',
-      props: joinLeave.get,
-      callbacks: joinLeave.callbacks,
-    },
-    loginContext
-  );
+  }, [resources]);
+
   const carouselInfo = useCarouselInfo({
     visibleWidth: Math.min(screenSize.width, 440),
     itemWidth: optionWidthPx,
@@ -220,7 +110,7 @@ export const NumericPrompt = ({
     numItems: promptOptions.length,
     height: optionHeightPx,
   });
-  useCarouselSelectionForSelection(carouselInfo, selection);
+  useCarouselSelectionForSelection(carouselInfo, resources.selectedIndex);
 
   const infos: WritableValueWithCallbacks<VPFRRProps>[] = useMemo(() => {
     return promptOptions.map((_, index) =>
@@ -262,14 +152,14 @@ export const NumericPrompt = ({
   const statsAmountRef = useRef<HTMLDivElement>(null);
   // manages the height on the options and the value of statsAmountRef
   useEffect(() => {
-    clientPredictedStats.callbacks.add(update);
+    resources.clientPredictedResponseDistribution.callbacks.add(update);
     update();
     return () => {
-      clientPredictedStats.callbacks.remove(update);
+      resources.clientPredictedResponseDistribution.callbacks.remove(update);
     };
 
     function update() {
-      const newCorrectedStats = clientPredictedStats.get();
+      const newCorrectedStats = resources.clientPredictedResponseDistribution.get();
 
       const total = newCorrectedStats.reduce((a, b) => a + b, 0);
       const fractionals =
@@ -288,13 +178,21 @@ export const NumericPrompt = ({
         }
       });
     }
-  }, [stats, clientPredictedStats, infos, promptOptions]);
+  }, [resources, infos, promptOptions]);
+
+  const finishEarly = props.finishEarly;
 
   return (
     <div className={styles.container}>
-      {countdown && <CountdownText promptTime={promptTime} prompt={intPrompt} {...countdown} />}
+      {props.countdown && (
+        <CountdownText promptTime={resources.time} prompt={resources.prompt} {...props.countdown} />
+      )}
       <div className={styles.prompt}>
-        <PromptTitle text={prompt.text} subtitle={subtitle} titleMaxWidth={titleMaxWidth} />
+        <PromptTitle
+          text={resources.prompt.prompt.text}
+          subtitle={props.subtitle}
+          titleMaxWidth={props.titleMaxWidth}
+        />
         <div className={styles.carouselContainer}>
           <Carousel info={carouselInfo}>
             {promptOptions.map((option, optionIndex) => (
@@ -345,7 +243,7 @@ export const NumericPrompt = ({
           <div
             className={styles.continueContainer}
             style={
-              countdown && windowSize.height <= 750
+              props.countdown && screenSize.height <= 750
                 ? {}
                 : { paddingTop: '45px', paddingBottom: '60px' }
             }>
@@ -356,7 +254,7 @@ export const NumericPrompt = ({
                   type="button"
                   fullWidth
                   variant={hasSelection ? 'filled' : 'link-white'}
-                  onClick={handleSkip}>
+                  onClick={resources.onSkip}>
                   {hasSelection ? (finishEarly === true ? 'Continue' : finishEarly.cta) : 'Skip'}
                 </Button>
               )}
@@ -366,7 +264,7 @@ export const NumericPrompt = ({
         <div
           className={styles.profilePictures}
           style={{ width: `${carouselInfo.info.current.visibleWidth}px` }}>
-          <ProfilePictures profilePictures={profilePictures} />
+          <ProfilePictures profilePictures={resources.profilePictures} />
         </div>
       </div>
     </div>
@@ -374,8 +272,7 @@ export const NumericPrompt = ({
 };
 
 /**
- * Uses the carousel info as the current selected value for the numeric prompt,
- * converting indices to values using promptOptions
+ * Uses the carousel info as the current selected value for the numeric prompt
  */
 const useCarouselSelectionForSelection = (
   carouselInfo: CarouselInfoRef,
@@ -403,51 +300,4 @@ const useCarouselSelectionForSelection = (
       }
     }
   }, [carouselInfo, selection]);
-};
-
-/**
- * When the user changes their selection this hook will store the appropriate
- * event on the server
- */
-const useStoreEvents = (
-  prompt: VariableStrategyProps<InteractivePrompt>,
-  promptOptions: number[],
-  promptTime: VariableStrategyProps<PromptTime>,
-  selection: VariableStrategyProps<number | null>,
-  joinLeave: VariableStrategyProps<JoinLeave>,
-  loginContext: LoginContextValue
-) => {
-  const callback = async (index: number | null, time: number) => {
-    if (index === null) {
-      return;
-    }
-
-    const promptVal = prompt.type === 'callbacks' ? prompt.props() : prompt.props;
-    await apiFetch(
-      '/api/1/interactive_prompts/events/respond_numeric_prompt',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          interactive_prompt_uid: promptVal.uid,
-          interactive_prompt_jwt: promptVal.jwt,
-          session_uid: promptVal.sessionUid,
-          prompt_time: time / 1000,
-          data: {
-            rating: promptOptions[index],
-          },
-        }),
-        keepalive: true,
-      },
-      loginContext
-    );
-  };
-
-  useSimpleSelectionHandler({
-    selection,
-    prompt,
-    joinLeave,
-    promptTime,
-    callback,
-  });
 };
