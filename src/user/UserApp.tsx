@@ -7,7 +7,6 @@ import '../assets/fonts.css';
 import styles from './UserApp.module.css';
 import { apiFetch } from '../shared/ApiConstants';
 import { useFonts } from '../shared/lib/useFonts';
-import { FullscreenContext, FullscreenProvider } from '../shared/contexts/FullscreenContext';
 import { useFeaturesState } from './core/hooks/useFeaturesState';
 import { InterestsAutoProvider } from '../shared/contexts/InterestsContext';
 import { useTimedValue } from '../shared/hooks/useTimedValue';
@@ -18,9 +17,7 @@ export default function UserApp(): ReactElement {
     <LoginProvider>
       <InterestsAutoProvider>
         <ModalProvider>
-          <FullscreenProvider>
-            <UserAppInner />
-          </FullscreenProvider>
+          <UserAppInner />
         </ModalProvider>
       </InterestsAutoProvider>
     </LoginProvider>
@@ -43,7 +40,6 @@ const requiredFonts = [
  */
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const fullscreenContext = useContext(FullscreenContext);
   const [state, setState] = useState<'loading' | 'features' | 'login'>('loading');
   const fontsLoaded = useFonts(requiredFonts);
   const features = useFeaturesState();
@@ -128,22 +124,6 @@ const UserAppInner = (): ReactElement => {
 
     setState('features');
   }, [loginContext.state, fontsLoaded, handlingCheckout]);
-
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-
-    const uid = fullscreenContext.addFullscreenReason.bind(undefined)();
-
-    return () => {
-      fullscreenContext.removeFullscreenReason.bind(undefined)(uid);
-    };
-  }, [
-    fullscreenContext.addFullscreenReason,
-    fullscreenContext.removeFullscreenReason,
-    loginContext.state,
-  ]);
 
   useEffect(() => {
     if (state === 'features' && !beenLoaded) {

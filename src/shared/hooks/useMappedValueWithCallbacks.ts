@@ -38,7 +38,13 @@ export type MappedValueWithCallbacksOpts<T, U> = {
 };
 
 export const defaultEqualityFn = <T>(a: T, b: T) => {
-  if (a === null || a === undefined || typeof a === 'number' || typeof a === 'string') {
+  if (
+    a === null ||
+    a === undefined ||
+    typeof a === 'number' ||
+    typeof a === 'string' ||
+    typeof a === 'boolean'
+  ) {
     return a === b;
   }
 

@@ -94,13 +94,14 @@ export const useFeaturesState = (
 
   return useMappedValuesWithCallbacks([...required, ...loadingResources], () => {
     const req = required.map((r) => r.get());
+    const loading = loadingResources.map((r) => r.get());
     for (let i = 0; i < req.length; i++) {
       if (req[i] === undefined) {
         return undefined;
       }
 
       if (req[i]) {
-        if (loadingResources[i].get()) {
+        if (loading[i]) {
           return undefined;
         }
 
