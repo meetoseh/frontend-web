@@ -68,7 +68,7 @@ export const WordPrompt = (props: WordPromptProps): ReactElement => {
     resources.clientPredictedResponseDistribution.callbacks.add(updateWidths);
     updateWidths();
     return () => {
-      resources.clientPredictedResponseDistribution.callbacks.add(updateWidths);
+      resources.clientPredictedResponseDistribution.callbacks.remove(updateWidths);
     };
 
     function updateWidths() {
