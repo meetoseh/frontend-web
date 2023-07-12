@@ -3,17 +3,15 @@ import { InteractiveNumericPrompt } from '../models/InteractivePrompt';
 import { CountdownText } from './CountdownText';
 import styles from './NumericPrompt.module.css';
 import {
+  ValueWithCallbacks,
   WritableValueWithCallbacks,
   createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { PromptTitle } from './PromptTitle';
-import {
-  CarouselInfoChangedEvent,
-  CarouselInfoRef,
-  useCarouselInfo,
-} from '../../../shared/hooks/useCarouselInfo';
+import { CarouselInfo, useCarouselInfo } from '../../../shared/hooks/useCarouselInfo';
 import { Carousel } from '../../../shared/components/Carousel';
 import { ProfilePictures } from './ProfilePictures';
 import { Button } from '../../../shared/forms/Button';
@@ -103,12 +101,23 @@ export const NumericPrompt = (
     return res;
   }, [resources]);
 
-  const carouselInfo = useCarouselInfo({
-    visibleWidth: Math.min(screenSize.width, 440),
-    itemWidth: optionWidthPx,
-    itemGap: optionGapPx,
-    numItems: promptOptions.length,
-    height: optionHeightPx,
+  const panningVWC = useWritableValueWithCallbacks<boolean>(() => false);
+  const [carouselInfo, selectItemInCarousel, panCarouselTo] = useCarouselInfo({
+    settings: {
+      type: 'react-rerender',
+      props: {
+        visibleWidth: Math.min(screenSize.width, 440),
+        itemWidth: optionWidthPx,
+        itemGap: optionGapPx,
+        numItems: promptOptions.length,
+        height: optionHeightPx,
+      },
+    },
+    panning: {
+      type: 'callbacks',
+      props: panningVWC.get,
+      callbacks: panningVWC.callbacks,
+    },
   });
   useCarouselSelectionForSelection(carouselInfo, resources.selectedIndex);
 
@@ -119,35 +128,49 @@ export const NumericPrompt = (
         borderRadius: Math.min(optionWidthPx / 2, optionHeightPx / 2),
         unfilledColor: optionUnfilledColor,
         filledColor: optionFilledColor,
-        opacity:
-          carouselInfo.info.current.selectedIndex === index ? activeOpacity : inactiveOpacity,
+        opacity: resources.selectedIndex.get() === index ? activeOpacity : inactiveOpacity,
         border: { width: 2 },
       })
     );
-  }, [carouselInfo, promptOptions]);
+  }, [resources, promptOptions]);
 
   // manages the opacity on the options
   useEffect(() => {
-    carouselInfo.onInfoChanged.current.add(handleInfoEvent);
+    let highlighted: number | null = null;
+    resources.selectedIndex.callbacks.add(handleInfoEvent);
+    handleInfoEvent();
     return () => {
-      carouselInfo.onInfoChanged.current.remove(handleInfoEvent);
+      resources.selectedIndex.callbacks.remove(handleInfoEvent);
+      removeHighlight();
     };
 
-    function handleInfoEvent(event: CarouselInfoChangedEvent) {
-      if (event.current.selectedIndex === event.old.selectedIndex) {
+    function removeHighlight() {
+      if (highlighted === null) {
+        return;
+      }
+      infos[highlighted].set(
+        Object.assign({}, infos[highlighted].get(), { opacity: inactiveOpacity })
+      );
+      infos[highlighted].callbacks.call(undefined);
+      highlighted = null;
+    }
+
+    function handleInfoEvent() {
+      const sel = resources.selectedIndex.get();
+      if (sel === highlighted) {
         return;
       }
 
-      infos[event.old.selectedIndex].set(
-        Object.assign({}, infos[event.old.selectedIndex].get(), { opacity: inactiveOpacity })
-      );
-      infos[event.old.selectedIndex].callbacks.call(undefined);
-      infos[event.current.selectedIndex].set(
-        Object.assign({}, infos[event.current.selectedIndex].get(), { opacity: activeOpacity })
-      );
-      infos[event.current.selectedIndex].callbacks.call(undefined);
+      removeHighlight();
+      if (sel === null) {
+        return;
+      }
+
+      infos[sel].set(Object.assign({}, infos[sel].get(), { opacity: activeOpacity }));
+      infos[sel].callbacks.call(undefined);
+      highlighted = sel;
     }
-  }, [carouselInfo, infos]);
+  }, [resources, infos]);
 
   const statsAmountRef = useRef<HTMLDivElement>(null);
   // manages the height on the options and the value of statsAmountRef
@@ -194,7 +217,7 @@ export const NumericPrompt = (
           titleMaxWidth={props.titleMaxWidth}
         />
         <div className={styles.carouselContainer}>
-          <Carousel info={carouselInfo}>
+          <Carousel info={carouselInfo} panning={panningVWC} panCarouselTo={panCarouselTo}>
             {promptOptions.map((option, optionIndex) => (
               <button
                 key={option}
@@ -202,7 +225,7 @@ export const NumericPrompt = (
                 className={styles.item}
                 onClick={(e) => {
                   e.preventDefault();
-                  const oldInfo = carouselInfo.info.current;
+                  const oldInfo = carouselInfo.get();
                   if (
                     oldInfo.selectedIndex === optionIndex ||
                     oldInfo.panning ||
@@ -211,14 +234,7 @@ export const NumericPrompt = (
                     return;
                   }
 
-                  const newInfo = Object.assign({}, carouselInfo.info.current, {
-                    selectedIndex: optionIndex,
-                  });
-                  carouselInfo.info.current = newInfo;
-                  carouselInfo.onInfoChanged.current.call({
-                    old: oldInfo,
-                    current: newInfo,
-                  });
+                  selectItemInCarousel(optionIndex);
                 }}>
                 <div className={styles.itemBackground}>
                   <VerticalPartlyFilledRoundedRect
@@ -263,7 +279,7 @@ export const NumericPrompt = (
         )}
         <div
           className={styles.profilePictures}
-          style={{ width: `${carouselInfo.info.current.visibleWidth}px` }}>
+          style={{ width: `${carouselInfo.get().computed.visibleWidth}px` }}>
           <ProfilePictures profilePictures={resources.profilePictures} />
         </div>
       </div>
@@ -275,24 +291,18 @@ export const NumericPrompt = (
  * Uses the carousel info as the current selected value for the numeric prompt
  */
 const useCarouselSelectionForSelection = (
-  carouselInfo: CarouselInfoRef,
+  carouselInfo: ValueWithCallbacks<CarouselInfo>,
   selection: WritableValueWithCallbacks<number | null>
 ) => {
   useEffect(() => {
-    carouselInfo.onInfoChanged.current.add(handleCarouselEvent);
+    carouselInfo.callbacks.add(recheckSelection);
     recheckSelection();
     return () => {
-      carouselInfo.onInfoChanged.current.remove(handleCarouselEvent);
+      carouselInfo.callbacks.remove(recheckSelection);
     };
 
-    function handleCarouselEvent(event: CarouselInfoChangedEvent) {
-      if (event.old.selectedIndex !== event.current.selectedIndex) {
-        recheckSelection();
-      }
-    }
-
     function recheckSelection() {
-      const correctSelectionIndex = carouselInfo.info.current.selectedIndex;
+      const correctSelectionIndex = carouselInfo.get().selectedIndex;
 
       if (selection.get() !== correctSelectionIndex) {
         selection.set(correctSelectionIndex);

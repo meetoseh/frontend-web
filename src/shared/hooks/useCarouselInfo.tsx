@@ -1,110 +1,19 @@
-import { MutableRefObject, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ease } from '../lib/Bezier';
-import { BezierAnimation, calculateAnimValue } from '../lib/BezierAnimation';
-import { Callbacks } from '../lib/Callbacks';
+import { BezierAnimation, animIsComplete, calculateAnimValue } from '../lib/BezierAnimation';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../anim/VariableStrategyProps';
+import { useMappedValueWithCallbacks } from './useMappedValueWithCallbacks';
+import { useMappedValuesWithCallbacks } from './useMappedValuesWithCallbacks';
 
 /**
- * Describes the current state of the carousel. This is usually put inside
- * of a mutable reference to avoid it triggering state changes.
+ * Describes the settings that determine where things within the carousel
+ * are positioned.
  */
-export type CarouselInfo = {
-  /**
-   * The width that the carousel would take up if it had infinite horizontal
-   * space.
-   */
-  outerWidth: number;
-
-  /**
-   * The height of the carousel, as well as each item in the carousel.
-   */
-  height: number;
-
-  /**
-   * The width that the carousel actually has.
-   */
-  visibleWidth: number;
-
-  /**
-   * The width of each item in the carousel.
-   */
-  itemWidth: number;
-
-  /**
-   * The horizontal gap between each item in the carousel.
-   */
-  itemGap: number;
-
-  /**
-   * The number of items in the carousel
-   */
-  numItems: number;
-
-  /**
-   * The horizontal offset in pixels that is applied to each item compared
-   * to their default position.
-   *
-   * In the default position, the first item starts at an x-offset of 0 relative
-   * to the carousel.
-   */
-  carouselOffset: number;
-
-  /**
-   * The index of thet option in the carousel that we currently
-   * consider selected. When panning stops, if this item is not
-   * centered, the carousel will animate itself such that it is.
-   *
-   * While panning the carousel will update the selected index
-   * to whatever is closest to the center of the carousel.
-   */
-  selectedIndex: number;
-
-  /**
-   * True if the carousel is currently being panned by the user,
-   * false otherwise. This must be handled by whatever component
-   * is rendering the carousel.
-   */
-  panning: boolean;
-
-  /**
-   * True if the carousel is currently animating itself such that
-   * the selected item is centered, false otherwise. This will
-   * be handled by useCarouselInfo automatically.
-   */
-  gluing: boolean;
-
-  /**
-   * True if clicks within the carousel should be ignored as
-   * relics of panning, false otherwise. This will be handled
-   * by useCarouselInfo automatically.
-   */
-  inClickCooldown: boolean;
-};
-
-export type CarouselInfoChangedEvent = {
-  /**
-   * The carousel info prior to the change
-   */
-  old: CarouselInfo;
-
-  /**
-   * The carousel info after the change
-   */
-  current: CarouselInfo;
-};
-
-export type CarouselInfoRef = {
-  /**
-   * The current carousel info.
-   */
-  info: MutableRefObject<CarouselInfo>;
-
-  /**
-   * Called when the carousel info changes.
-   */
-  onInfoChanged: MutableRefObject<Callbacks<CarouselInfoChangedEvent>>;
-};
-
-type CarouselInfoProps = {
+export type CarouselSettings = {
   /**
    * The width that the carousel actually has.
    */
@@ -132,351 +41,358 @@ type CarouselInfoProps = {
   itemGap: number;
 };
 
+export type CarouselComputedSettings = CarouselSettings & {
+  /**
+   * The width that the carousel would take up if it had infinite horizontal
+   * space.
+   */
+  outerWidth: number;
+};
+
+/**
+ * Describes the current state of the carousel. This is usually put inside
+ * of a mutable reference to avoid it triggering state changes.
+ */
+export type CarouselInfo = {
+  /**
+   * The computed settings for the carousel, which include all the
+   * settings from the props, as well as any additional relevant
+   * information which can be deduced from them, irrespective of
+   * panning.
+   */
+  computed: CarouselComputedSettings;
+
+  /**
+   * The horizontal offset in pixels that is applied to each item compared
+   * to their default position.
+   *
+   * In the default position, the first item starts at an x-offset of 0 relative
+   * to the carousel.
+   *
+   * This value is already animated as necessary and thus should not go through
+   * an animation loop, or if it does, it should use the trivial animator to avoid
+   * double animation.
+   */
+  carouselOffset: number;
+
+  /**
+   * The index of thet option in the carousel that we currently
+   * consider selected. When panning stops, if this item is not
+   * centered, the carousel will animate itself such that it is.
+   *
+   * While panning the carousel will update the selected index
+   * to whatever is closest to the center of the carousel.
+   */
+  selectedIndex: number;
+
+  /**
+   * True if the carousel is currently being panned by the user,
+   * false otherwise. This is forwarded from the props for convenience.
+   */
+  panning: boolean;
+
+  /**
+   * True if the carousel is currently animating itself such that
+   * the selected item is centered, false otherwise.
+   */
+  gluing: boolean;
+
+  /**
+   * True if clicks within the carousel should be ignored as
+   * relics of panning, false otherwise.
+   */
+  inClickCooldown: boolean;
+};
+
+type CarouselInfoProps = {
+  settings: VariableStrategyProps<CarouselSettings>;
+
+  /**
+   * True if the carousel is currently being panned by the user,
+   * false otherwise.
+   */
+  panning: VariableStrategyProps<boolean>;
+};
+
+/**
+ * Handles the logic behind a standard horizontal carousel. Specifically,
+ * if the caller can detect pans and clicks, this hook will handle gluing
+ * the carousel to the nearest item when the user stops panning, or animating
+ * to the selected item when the user clicks on an item.
+ *
+ * @param settings The settings that determine where things within the carousel
+ *   are positioned.
+ * @param panning True if the carousel is currently being panned by the user,
+ *   false otherwise.
+ * @returns
+ *   1. The current carousel settings for rendering
+ *   2. The function to call when the user clicks on an item. This will already
+ *      incorporate ignoring clicks while panning, though sometimes performance
+ *      can be improved by still taking that into account (and, e.g., clever use
+ *      of the CSS property pointer-events).
+ *   3. The function to call to modify the carousel offset to the given value due
+ *      to panning. An error will be raised if not panning.
+ */
 export const useCarouselInfo = ({
-  visibleWidth,
-  numItems,
-  itemWidth,
-  itemGap,
-  height,
-}: CarouselInfoProps): CarouselInfoRef => {
-  const info = useRef<CarouselInfo>() as MutableRefObject<CarouselInfo>;
-  const onInfoChanged = useRef<Callbacks<CarouselInfoChangedEvent>>() as MutableRefObject<
-    Callbacks<CarouselInfoChangedEvent>
-  >;
-
-  if (info.current === undefined) {
-    const initialIdx = Math.ceil(numItems / 2);
-    const initialIdxDefaultLoc = (initialIdx - 1) * (itemWidth + itemGap);
-    const desiredLoc = visibleWidth / 2 - itemWidth / 2;
-
-    info.current = {
-      outerWidth: numItems * (itemWidth + itemGap) - itemGap,
-      height,
-      visibleWidth,
-      itemWidth,
-      itemGap,
-      numItems,
-      carouselOffset: desiredLoc - initialIdxDefaultLoc,
-      selectedIndex: initialIdx,
-      panning: false,
-      gluing: false,
-      inClickCooldown: false,
-    };
-  }
-
-  if (onInfoChanged.current === undefined) {
-    onInfoChanged.current = new Callbacks();
-  }
-
-  useEffect(() => {
-    if (
-      info.current.visibleWidth === visibleWidth &&
-      info.current.numItems === numItems &&
-      info.current.itemWidth === itemWidth &&
-      info.current.itemGap === itemGap &&
-      info.current.height === height
-    ) {
-      return;
-    }
-
-    const oldInfo = info.current;
-    const newInfo = Object.assign({}, oldInfo, {
-      outerWidth: numItems * (itemWidth + itemGap) - itemGap,
-      visibleWidth,
-      numItems,
-      itemWidth,
-      itemGap,
-      height,
-    });
-    if (newInfo.selectedIndex >= newInfo.numItems) {
-      newInfo.selectedIndex = newInfo.numItems - 1;
-    }
-
-    info.current = newInfo;
-    onInfoChanged.current.call({ old: oldInfo, current: newInfo });
-  }, [visibleWidth, numItems, itemWidth, itemGap, height]);
-
-  useEffect(() => {
-    let active = true;
-    let glueAnimation: BezierAnimation | null = null;
-    let handlerCounter = 0;
-    onInfoChanged.current.add(handleInfoEvent);
-    handleInitialInfo(info.current);
-    return () => {
-      active = false;
-      glueAnimation = null;
-      onInfoChanged.current.remove(handleInfoEvent);
-    };
-
-    function handleInitialInfo(current: CarouselInfo) {
-      if (current.panning) {
-        if (!current.gluing) {
-          return;
-        }
-
-        const newInfo = Object.assign({}, current, { gluing: false });
-        info.current = newInfo;
-        onInfoChanged.current.call({ old: current, current: newInfo });
-        return;
-      }
-
-      const centerOffset = current.visibleWidth / 2 - current.itemWidth / 2;
-      const selectedDefaultOffset = current.selectedIndex * (current.itemWidth + current.itemGap);
-      const desiredCarouselOffset = centerOffset - selectedDefaultOffset;
-      if (current.carouselOffset === desiredCarouselOffset) {
-        if (current.gluing) {
-          const newInfo = Object.assign({}, current, { gluing: false });
-          info.current = newInfo;
-          onInfoChanged.current.call({ old: current, current: newInfo });
-        }
-        return;
-      }
-
-      glueAnimation = {
-        from: current.carouselOffset,
-        to: desiredCarouselOffset,
-        startedAt: null,
-        duration: 350,
-        ease: ease,
+  settings: settingsVariableStrategy,
+  panning: panningVariableStrategy,
+}: CarouselInfoProps): [
+  ValueWithCallbacks<CarouselInfo>,
+  (idx: number) => void,
+  (pannedTo: number) => void
+] => {
+  const settingsVWC = useVariableStrategyPropsAsValueWithCallbacks(settingsVariableStrategy);
+  const computedVWC = useMappedValueWithCallbacks(
+    settingsVWC,
+    ({ visibleWidth, height, numItems, itemWidth, itemGap }) => {
+      return {
+        outerWidth: numItems * (itemWidth + itemGap) - itemGap,
+        visibleWidth,
+        height,
+        numItems,
+        itemWidth,
+        itemGap,
       };
-      const handlerId = ++handlerCounter;
-
-      if (!current.gluing) {
-        const newInfo = Object.assign({}, current, { gluing: true });
-        info.current = newInfo;
-        onInfoChanged.current.call({ old: current, current: newInfo });
-      }
-
-      requestAnimationFrame((now) => handleFrame(handlerId, now));
+    },
+    {
+      inputEqualityFn: (a, b) =>
+        a.visibleWidth === b.visibleWidth &&
+        a.height === b.height &&
+        a.numItems === b.numItems &&
+        a.itemWidth === b.itemWidth &&
+        a.itemGap === b.itemGap,
     }
+  );
 
-    function handleInfoEvent(event: CarouselInfoChangedEvent) {
-      if (!active) {
-        return;
-      }
-
-      if (event.current.gluing && event.current.panning) {
-        glueAnimation = null;
-        handlerCounter++;
-        const newInfo = Object.assign({}, event.current, {
-          gluing: false,
-        });
-        info.current = newInfo;
-        onInfoChanged.current.replaceCall(
-          { old: event.current, current: newInfo },
-          { old: event.old, current: newInfo }
-        );
-        return;
-      }
-
-      if (event.old.panning && !event.current.panning) {
-        const centerOffset = event.current.visibleWidth / 2 - event.current.itemWidth / 2;
-        const nearestIdx = Math.max(
-          0,
-          Math.min(
-            event.current.numItems - 1,
-            getCarouselIndexForOffset(
-              event.current.itemWidth,
-              event.current.itemGap,
-              event.current.carouselOffset,
-              centerOffset
-            )
-          )
-        );
-
-        const nearestDefaultOffset = nearestIdx * (event.current.itemWidth + event.current.itemGap);
-        const desiredCarouselOffset = centerOffset - nearestDefaultOffset;
-        if (
-          event.current.carouselOffset === desiredCarouselOffset &&
-          event.current.selectedIndex === nearestIdx
-        ) {
-          return;
-        }
-
-        if (
-          event.current.gluing &&
-          event.current.selectedIndex === nearestIdx &&
-          glueAnimation !== null &&
-          glueAnimation.to === desiredCarouselOffset
-        ) {
-          return;
-        }
-
-        if (glueAnimation === null || glueAnimation.to !== desiredCarouselOffset) {
-          glueAnimation = {
-            from: event.current.carouselOffset,
-            to: desiredCarouselOffset,
-            startedAt: null,
-            duration: 350,
-            ease: ease,
-          };
-        }
-
-        const newInfo = Object.assign({}, event.current, {
-          gluing: true,
-          selectedIndex: nearestIdx,
-        });
-        info.current = newInfo;
-        onInfoChanged.current.replaceCall(
-          { old: event.current, current: newInfo },
-          { old: event.old, current: newInfo }
-        );
-        const handlerId = ++handlerCounter;
-        requestAnimationFrame((now) => handleFrame(handlerId, now));
-        return;
-      }
-
-      if (event.old.selectedIndex !== event.current.selectedIndex && !event.current.panning) {
-        const centerOffset = event.current.visibleWidth / 2 - event.current.itemWidth / 2;
-        const selectedDefaultOffset =
-          event.current.selectedIndex * (event.current.itemWidth + event.current.itemGap);
-        const desiredCarouselOffset = centerOffset - selectedDefaultOffset;
-
-        if (event.current.carouselOffset === desiredCarouselOffset) {
-          if (event.current.gluing) {
-            glueAnimation = null;
-            handlerCounter++;
-            const newInfo = Object.assign({}, event.current, { gluing: false });
-            info.current = newInfo;
-            onInfoChanged.current.replaceCall(
-              { old: event.current, current: newInfo },
-              { old: event.old, current: newInfo }
-            );
-          }
-          return;
-        }
-
-        if (
-          event.current.gluing &&
-          glueAnimation !== null &&
-          glueAnimation.to === desiredCarouselOffset
-        ) {
-          return;
-        }
-
-        let handlerId: number | null = null;
-        if (glueAnimation === null || glueAnimation.to !== desiredCarouselOffset) {
-          glueAnimation = {
-            from: event.current.carouselOffset,
-            to: desiredCarouselOffset,
-            startedAt: null,
-            duration: 350,
-            ease: ease,
-          };
-          handlerId = ++handlerCounter;
-        }
-
-        if (!event.current.gluing) {
-          const newInfo = Object.assign({}, event.current, { gluing: true });
-          info.current = newInfo;
-          onInfoChanged.current.replaceCall(
-            { old: event.current, current: newInfo },
-            { old: event.old, current: newInfo }
-          );
-        }
-
-        if (handlerId !== null && handlerId === handlerCounter) {
-          const myHandlerId = handlerId;
-          requestAnimationFrame((now) => handleFrame(myHandlerId, now));
-        }
-      }
+  const panningVWC = useVariableStrategyPropsAsValueWithCallbacks(panningVariableStrategy);
+  const selectedVWC = useWritableValueWithCallbacks<number>(() =>
+    Math.ceil(settingsVWC.get().numItems / 2)
+  );
+  const selectedDesiredOffset = useMappedValuesWithCallbacks(
+    [computedVWC, selectedVWC],
+    (): number => {
+      const idx = selectedVWC.get();
+      const s = computedVWC.get();
+      const defaultLoc = idx * (s.itemWidth + s.itemGap);
+      const desiredLoc = s.visibleWidth / 2 - s.itemWidth / 2;
+      return desiredLoc - defaultLoc;
     }
+  );
+  const carouselOffsetVWC = useWritableValueWithCallbacks<number>(() =>
+    selectedDesiredOffset.get()
+  );
+  const gluingVWC = useWritableValueWithCallbacks<boolean>(() => false);
+  const inClickCooldownVWC = useWritableValueWithCallbacks<boolean>(() => false);
 
-    function handleFrame(handlerId: number, now: DOMHighResTimeStamp) {
-      if (!active || glueAnimation === null || handlerCounter !== handlerId) {
-        return;
-      }
-
-      const newOffset = calculateAnimValue(glueAnimation, now);
-      const oldInfo = info.current;
-      const newInfo = Object.assign({}, oldInfo, {
-        carouselOffset: newOffset,
-      });
-
-      if (
-        glueAnimation.startedAt !== null &&
-        now >= glueAnimation.startedAt + glueAnimation.duration
-      ) {
-        glueAnimation = null;
-        newInfo.gluing = false;
-      }
-
-      info.current = newInfo;
-      onInfoChanged.current.call({ old: oldInfo, current: newInfo });
-
-      if (newInfo.gluing && handlerCounter === handlerId) {
-        requestAnimationFrame((now) => handleFrame(handlerId, now));
-      }
-    }
-  }, []);
-
+  // in case the number of items changes, ensure selected index is still valid
   useEffect(() => {
-    let timeout: NodeJS.Timeout | null = null;
-    onInfoChanged.current.add(handleEvent);
+    computedVWC.callbacks.add(onSettingsChanged);
+    onSettingsChanged();
     return () => {
-      onInfoChanged.current.remove(handleEvent);
-      if (timeout !== null) {
-        clearTimeout(timeout);
-      }
+      computedVWC.callbacks.remove(onSettingsChanged);
     };
 
-    function handleEvent(event: CarouselInfoChangedEvent) {
-      if (event.current.panning) {
-        if (timeout !== null) {
-          clearTimeout(timeout);
-          timeout = null;
-        }
+    function onSettingsChanged() {
+      const selected = selectedVWC.get();
+      if (selected >= computedVWC.get().numItems) {
+        selectedVWC.set(computedVWC.get().numItems - 1);
+        selectedVWC.callbacks.call(undefined);
+      }
+    }
+  }, [computedVWC, selectedVWC]);
 
-        if (!event.current.inClickCooldown) {
-          const newInfo = Object.assign({}, event.current, {
-            inClickCooldown: true,
-          });
-          info.current = newInfo;
-          onInfoChanged.current.replaceCall(
-            { old: event.current, current: newInfo },
-            { old: event.old, current: newInfo }
-          );
+  // while we're panning and for 350ms after, we ignore clicks
+  const clickCooldownTimeout = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    panningVWC.callbacks.add(recheckCooldown);
+    recheckCooldown();
+    return () => {
+      panningVWC.callbacks.remove(recheckCooldown);
+    };
+
+    function recheckCooldown() {
+      if (panningVWC.get()) {
+        if (!inClickCooldownVWC.get()) {
+          inClickCooldownVWC.set(true);
+          inClickCooldownVWC.callbacks.call(undefined);
+        }
+        if (clickCooldownTimeout.current !== null) {
+          clearTimeout(clickCooldownTimeout.current);
+          clickCooldownTimeout.current = null;
         }
         return;
       }
 
-      if (event.old.panning && !event.current.panning) {
-        if (timeout !== null) {
-          clearTimeout(timeout);
-          timeout = null;
-        }
-
-        if (!event.current.inClickCooldown) {
-          const newInfo = Object.assign({}, event.current, {
-            inClickCooldown: true,
-          });
-          info.current = newInfo;
-          onInfoChanged.current.replaceCall(
-            { old: event.current, current: newInfo },
-            { old: event.old, current: newInfo }
-          );
-        }
-
-        timeout = setTimeout(() => {
-          timeout = null;
-          const newInfo = Object.assign({}, event.current, {
-            inClickCooldown: false,
-          });
-          info.current = newInfo;
-          onInfoChanged.current.call({ old: event.current, current: newInfo });
+      if (inClickCooldownVWC.get() && clickCooldownTimeout.current === null) {
+        clickCooldownTimeout.current = setTimeout(() => {
+          clickCooldownTimeout.current = null;
+          inClickCooldownVWC.set(false);
+          inClickCooldownVWC.callbacks.call(undefined);
         }, 350);
         return;
       }
     }
-  }, []);
+  }, [panningVWC, inClickCooldownVWC]);
 
-  return useMemo(
-    () => ({
-      info,
-      onInfoChanged,
-    }),
-    []
-  );
+  // when we stop panning, select the item closest to the center
+  const wasPanningRef = useRef<boolean>(panningVWC.get());
+  useEffect(() => {
+    panningVWC.callbacks.add(onPanningChanged);
+    return () => {
+      panningVWC.callbacks.remove(onPanningChanged);
+    };
+
+    function onPanningChanged() {
+      const wasPanning = wasPanningRef.current;
+      const nowPanning = panningVWC.get();
+      wasPanningRef.current = nowPanning;
+
+      if (!wasPanning || nowPanning) {
+        return;
+      }
+
+      const s = computedVWC.get();
+
+      const centerOffset = s.visibleWidth / 2 - s.itemWidth / 2;
+      const nearestIdx = Math.max(
+        0,
+        Math.min(
+          s.numItems - 1,
+          getCarouselIndexForOffset(s.itemWidth, s.itemGap, carouselOffsetVWC.get(), centerOffset)
+        )
+      );
+
+      if (nearestIdx !== selectedVWC.get()) {
+        selectedVWC.set(nearestIdx);
+        selectedVWC.callbacks.call(undefined);
+      }
+    }
+  }, [panningVWC, selectedVWC, computedVWC, carouselOffsetVWC]);
+
+  // when we're not panning, glue to the desired offset
+  useEffect(() => {
+    let animation: BezierAnimation | null = null;
+    let active = true;
+    let animating = false;
+    panningVWC.callbacks.add(recheckAnimation);
+    selectedDesiredOffset.callbacks.add(recheckAnimation);
+    return () => {
+      if (active) {
+        active = false;
+        panningVWC.callbacks.remove(recheckAnimation);
+        selectedDesiredOffset.callbacks.remove(recheckAnimation);
+      }
+    };
+
+    function recheckAnimation() {
+      if (panningVWC.get()) {
+        animation = null;
+        return;
+      }
+
+      if (selectedDesiredOffset.get() === carouselOffsetVWC.get()) {
+        animation = null;
+        return;
+      }
+
+      if (animation === null || animation.to !== selectedDesiredOffset.get()) {
+        animation = {
+          startedAt: null,
+          from: carouselOffsetVWC.get(),
+          to: selectedDesiredOffset.get(),
+          duration: 350,
+          ease,
+        };
+      }
+      ensureAnimating();
+    }
+
+    function ensureAnimating() {
+      if (animating || !active) {
+        return;
+      }
+
+      animating = true;
+      requestAnimationFrame(onFirstFrame.bind(undefined, performance.now()));
+    }
+
+    function onFirstFrame(oldPerfNow: number, newFrameTime: DOMHighResTimeStamp) {
+      handleFrame(performance.now() - oldPerfNow, newFrameTime);
+    }
+
+    function onFrame(oldFrameTime: DOMHighResTimeStamp, newFrameTime: DOMHighResTimeStamp) {
+      handleFrame(newFrameTime - oldFrameTime, newFrameTime);
+    }
+
+    function handleFrame(delta: number, newFrameTime: DOMHighResTimeStamp) {
+      if (!active) {
+        return;
+      }
+
+      if (animation === null) {
+        animating = false;
+        return;
+      }
+
+      if (animation.startedAt === null) {
+        animation.startedAt = newFrameTime - delta;
+      }
+
+      if (animIsComplete(animation, newFrameTime)) {
+        const target = animation.to;
+        animation = null;
+        animating = false;
+        carouselOffsetVWC.set(target);
+        carouselOffsetVWC.callbacks.call(undefined);
+        return;
+      }
+
+      const newVal = calculateAnimValue(animation, newFrameTime);
+      carouselOffsetVWC.set(newVal);
+      carouselOffsetVWC.callbacks.call(undefined);
+      requestAnimationFrame(onFrame.bind(undefined, newFrameTime));
+    }
+  }, [panningVWC, carouselOffsetVWC, selectedDesiredOffset]);
+
+  return [
+    useMappedValuesWithCallbacks(
+      [computedVWC, carouselOffsetVWC, selectedVWC, panningVWC, gluingVWC, inClickCooldownVWC],
+      () => ({
+        computed: computedVWC.get(),
+        carouselOffset: carouselOffsetVWC.get(),
+        selectedIndex: selectedVWC.get(),
+        panning: panningVWC.get(),
+        gluing: gluingVWC.get(),
+        inClickCooldown: inClickCooldownVWC.get(),
+      })
+    ),
+    useCallback(
+      (clickedIndex: number) => {
+        if (inClickCooldownVWC.get()) {
+          return;
+        }
+        if (clickedIndex === selectedVWC.get()) {
+          return;
+        }
+        selectedVWC.set(clickedIndex);
+        selectedVWC.callbacks.call(undefined);
+      },
+      [selectedVWC, inClickCooldownVWC]
+    ),
+    useCallback(
+      (offset: number) => {
+        if (!panningVWC.get()) {
+          throw new Error('cannot use the panToOffset function when not panning');
+        }
+
+        if (carouselOffsetVWC.get() !== offset) {
+          carouselOffsetVWC.set(offset);
+          carouselOffsetVWC.callbacks.call(undefined);
+        }
+      },
+      [panningVWC, carouselOffsetVWC]
+    ),
+  ];
 };
 
 /**

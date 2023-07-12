@@ -1,14 +1,26 @@
 import { PropsWithChildren, ReactElement, useEffect, useRef } from 'react';
 import TinyGesture from 'tinygesture';
-import { CarouselInfoChangedEvent, CarouselInfoRef } from '../hooks/useCarouselInfo';
+import { CarouselInfo } from '../hooks/useCarouselInfo';
 import styles from './Carousel.module.css';
+import { ValueWithCallbacks, WritableValueWithCallbacks } from '../lib/Callbacks';
 
 type CarouselProps = {
   /**
-   * Information about how the carousel should be displayed. The carousel
-   * component will inject handling for panning.
+   * Information about how the carousel should be displayed.
    */
-  info: CarouselInfoRef;
+  info: ValueWithCallbacks<CarouselInfo>;
+
+  /**
+   * Where we report panning state to, which should be forwarded to the
+   * carousel info.
+   */
+  panning: WritableValueWithCallbacks<boolean>;
+
+  /**
+   * The function to use to pan the carousel
+   * @param offset The new desired offset
+   */
+  panCarouselTo: (offset: number) => void;
 };
 
 /**
@@ -17,7 +29,12 @@ type CarouselProps = {
  * they should have the correct size and gap. The carousel will wrap them in
  * a flex container with flex-flow row nowrap.
  */
-export const Carousel = ({ info, children }: PropsWithChildren<CarouselProps>): ReactElement => {
+export const Carousel = ({
+  info: infoVWC,
+  panning: panningVWC,
+  panCarouselTo,
+  children,
+}: PropsWithChildren<CarouselProps>): ReactElement => {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
 
@@ -30,40 +47,49 @@ export const Carousel = ({ info, children }: PropsWithChildren<CarouselProps>): 
     const outer = outerRef.current;
     const inner = innerRef.current;
 
-    info.onInfoChanged.current.add(handleInfoEvent);
-    updateLeft();
-    updateSize();
+    infoVWC.callbacks.add(handleInfoEvent);
+    let renderedPos = updatePosition();
+    let renderedSize = updateSize();
 
     return () => {
       inner.style.removeProperty('left');
-      info.onInfoChanged.current.remove(handleInfoEvent);
+      infoVWC.callbacks.remove(handleInfoEvent);
     };
 
-    function handleInfoEvent(event: CarouselInfoChangedEvent) {
+    function handleInfoEvent() {
+      const info = infoVWC.get();
       if (
-        event.current.visibleWidth !== event.old.visibleWidth ||
-        event.current.height !== event.old.height ||
-        event.current.outerWidth !== event.old.outerWidth
+        info.computed.visibleWidth !== renderedSize.visibleWidth ||
+        info.computed.height !== renderedSize.height ||
+        info.computed.outerWidth !== renderedSize.outerWidth
       ) {
-        updateSize();
+        renderedSize = updateSize();
       }
 
-      if (event.current.carouselOffset !== event.old.carouselOffset) {
-        updateLeft();
+      if (renderedPos !== info.carouselOffset) {
+        renderedPos = updatePosition();
       }
     }
 
-    function updateLeft() {
-      inner.style.left = `${info.info.current.carouselOffset}px`;
+    function updatePosition(): number {
+      const pos = infoVWC.get().carouselOffset;
+      inner.style.left = `${pos}px`;
+      return pos;
     }
 
-    function updateSize() {
-      outer.style.width = `${info.info.current.visibleWidth}px`;
-      outer.style.height = `${info.info.current.height}px`;
-      inner.style.height = `${info.info.current.height}px`;
-      inner.style.width = `${info.info.current.outerWidth}px`;
+    function updateSize(): { outerWidth: number; visibleWidth: number; height: number } {
+      const size = {
+        outerWidth: infoVWC.get().computed.outerWidth,
+        visibleWidth: infoVWC.get().computed.visibleWidth,
+        height: infoVWC.get().computed.height,
+      };
+      outer.style.width = `${size.visibleWidth}px`;
+      outer.style.height = `${size.height}px`;
+      inner.style.height = `${size.height}px`;
+      inner.style.width = `${size.outerWidth}px`;
+      return size;
     }
-  }, [info]);
+  }, [infoVWC]);
 
   // panning
   useEffect(() => {
@@ -73,14 +99,14 @@ export const Carousel = ({ info, children }: PropsWithChildren<CarouselProps>): 
 
     const outer = outerRef.current;
     const gesture = new TinyGesture(outer);
-    let carouselOffsetAtPanStart: number = info.info.current.carouselOffset;
+    let carouselOffsetAtPanStart: number = infoVWC.get().carouselOffset;
     let panStartAt: number = 0;
     gesture.on('panstart', () => {
-      if (info.info.current.panning) {
+      if (infoVWC.get().panning) {
         return;
       }
 
-      carouselOffsetAtPanStart = info.info.current.carouselOffset;
+      carouselOffsetAtPanStart = infoVWC.get().carouselOffset;
       panStartAt = Date.now();
     });
     gesture.on('panmove', () => {
@@ -88,54 +114,61 @@ export const Carousel = ({ info, children }: PropsWithChildren<CarouselProps>): 
         return;
       }
 
-      const oldInfo = info.info.current;
+      const oldInfo = infoVWC.get();
       if (!oldInfo.panning && Math.abs(gesture.touchMoveX) < 5 && Date.now() - panStartAt < 250) {
         return;
       }
 
-      const newInfo = Object.assign({}, info.info.current, {
-        carouselOffset: carouselOffsetAtPanStart + gesture.touchMoveX,
-        panning: true,
-      });
-      info.info.current = newInfo;
-      info.onInfoChanged.current.call({ old: oldInfo, current: newInfo });
+      if (!panningVWC.get()) {
+        panningVWC.set(true);
+        panningVWC.callbacks.call(undefined);
+      }
+
+      const newOffset = carouselOffsetAtPanStart + gesture.touchMoveX;
+      if (newOffset !== oldInfo.carouselOffset) {
+        panCarouselTo(newOffset);
+      }
     });
     gesture.on('panend', () => {
-      if (!info.info.current.panning) {
+      if (!infoVWC.get().panning) {
         return;
       }
       if (gesture.touchEndX === null || gesture.touchStartX === null) {
         throw new Error('Expected touchEndX/touchStartX to be set');
       }
 
-      const oldInfo = info.info.current;
-      const newInfo = Object.assign({}, info.info.current, {
-        panning: false,
-        carouselOffset: carouselOffsetAtPanStart + gesture.touchEndX - gesture.touchStartX,
-      });
-      info.info.current = newInfo;
-      info.onInfoChanged.current.call({ old: oldInfo, current: newInfo });
+      const finalPanLoc = carouselOffsetAtPanStart + gesture.touchEndX - gesture.touchStartX;
+      if (infoVWC.get().carouselOffset !== finalPanLoc) {
+        panCarouselTo(finalPanLoc);
+      }
+      panningVWC.set(false);
+      panningVWC.callbacks.call(undefined);
     });
 
     return () => {
       gesture.destroy();
+
+      if (panningVWC.get()) {
+        panningVWC.set(false);
+        panningVWC.callbacks.call(undefined);
+      }
     };
-  }, [info]);
+  }, [infoVWC, panningVWC, panCarouselTo]);
 
   return (
     <div
       ref={outerRef}
       className={styles.outer}
       style={{
-        width: `${info.info.current.visibleWidth}px`,
-        height: `${info.info.current.height}px`,
+        width: `${infoVWC.get().computed.visibleWidth}px`,
+        height: `${infoVWC.get().computed.height}px`,
       }}>
       <div
         ref={innerRef}
         className={styles.inner}
         style={{
-          width: `${info.info.current.outerWidth}px`,
-          height: `${info.info.current.height}px`,
+          width: `${infoVWC.get().computed.outerWidth}px`,
+          height: `${infoVWC.get().computed.height}px`,
         }}>
         {children}
       </div>
