@@ -8,7 +8,7 @@ import { SplashScreen } from '../../../splash/SplashScreen';
 import { JourneyRouterScreenId } from '../../../journey/JourneyRouter';
 import { JourneyPostScreen } from '../../../journey/screens/JourneyPostScreen';
 import { JourneyShareScreen } from '../../../journey/screens/JourneyShareScreen';
-import { JourneyStart } from '../../../journey/screens/JourneyStart';
+import { JourneyStartScreen } from '../../../journey/screens/JourneyStartScreen';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { JourneyFeedbackScreen } from '../../../journey/screens/JourneyFeedbackScreen';
@@ -187,7 +187,7 @@ export const PickEmotionJourney = ({
         }
 
         if (step.step === 'start') {
-          return <JourneyStart {...props} selectedEmotionAntonym={sel.word.antonym} />;
+          return <JourneyStartScreen {...props} selectedEmotionAntonym={sel.word.antonym} />;
         }
 
         if (step.step === 'journey') {

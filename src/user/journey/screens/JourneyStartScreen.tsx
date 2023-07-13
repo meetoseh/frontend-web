@@ -2,7 +2,7 @@ import { ReactElement, useCallback, useRef } from 'react';
 import { Button } from '../../../shared/forms/Button';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
-import styles from './JourneyStart.module.css';
+import styles from './JourneyStartScreen.module.css';
 import { Journey } from './Journey';
 import { combineClasses } from '../../../shared/lib/combineClasses';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
@@ -17,7 +17,7 @@ import { useWindowSizeValueWithCallbacks } from '../../../shared/hooks/useWindow
  * This is useful for elevating to a privileged context, which is required
  * for starting the journey audio.
  */
-export const JourneyStart = ({
+export const JourneyStartScreen = ({
   journey,
   shared,
   setScreen,

@@ -7,7 +7,7 @@ import { Journey } from './screens/Journey';
 import { JourneyLobbyScreen } from './screens/JourneyLobbyScreen';
 import { JourneyPostScreen } from './screens/JourneyPostScreen';
 import { JourneyShareScreen } from './screens/JourneyShareScreen';
-import { JourneyStart } from './screens/JourneyStart';
+import { JourneyStartScreen } from './screens/JourneyStartScreen';
 import { JourneyFeedbackScreen } from './screens/JourneyFeedbackScreen';
 
 type JourneyRouterProps = {
@@ -94,7 +94,7 @@ export const JourneyRouter = ({
   }
 
   if (screen === 'start') {
-    return <JourneyStart {...screenProps} />;
+    return <JourneyStartScreen {...screenProps} />;
   }
 
   if (screen === 'journey') {

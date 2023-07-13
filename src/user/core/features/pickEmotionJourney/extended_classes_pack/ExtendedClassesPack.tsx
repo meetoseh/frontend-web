@@ -2,7 +2,7 @@ import { ReactElement, useCallback, useContext, useState } from 'react';
 import { ECPResources } from './ECPResources';
 import { ECPState } from './ECPState';
 import { useWindowSize } from '../../../../../shared/hooks/useWindowSize';
-import { JourneyStart } from '../../../../journey/screens/JourneyStart';
+import { JourneyStartScreen } from '../../../../journey/screens/JourneyStartScreen';
 import { SplashScreen } from '../../../../splash/SplashScreen';
 import { Journey } from '../../../../journey/screens/Journey';
 import { ExtendedClassesPackOfferSample } from './ExtendedClassesPackOfferSample';
@@ -145,7 +145,7 @@ export const ExtendedClassesPack = ({
 
   if (step === 'start') {
     return (
-      <JourneyStart
+      <JourneyStartScreen
         journey={stdJourney}
         shared={journeySharedVWC}
         setScreen={handleStartSetScreen}

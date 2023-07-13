@@ -7,7 +7,7 @@ import { useJourneyShared } from './hooks/useJourneyShared';
 import { useSingletonEffect } from '../../shared/lib/useSingletonEffect';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
-import { JourneyStart } from './screens/JourneyStart';
+import { JourneyStartScreen } from './screens/JourneyStartScreen';
 import { JourneyLobbyScreen } from './screens/JourneyLobbyScreen';
 import { Journey } from './screens/Journey';
 import { JourneyRouterScreenId } from './JourneyRouter';
@@ -202,7 +202,7 @@ const JourneyPublicLinkInner = ({
 
   if (screen === 'start' || !startedAudio) {
     return (
-      <JourneyStart
+      <JourneyStartScreen
         journey={journey}
         shared={shared}
         setScreen={handleSetScreen}
