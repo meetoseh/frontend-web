@@ -1,6 +1,7 @@
 import { AnchorHTMLAttributes, PropsWithChildren, ReactElement, useEffect, useRef } from 'react';
 import styles from './Button.module.css';
 import { combineClasses } from '../lib/combineClasses';
+import { InlineOsehSpinner } from '../components/InlineOsehSpinner';
 
 type ButtonProps = {
   /**
@@ -56,6 +57,11 @@ type ButtonProps = {
    * an anchor tag
    */
   download?: AnchorHTMLAttributes<HTMLAnchorElement>['download'];
+
+  /**
+   * If true, a spinner is displayed on the button before the text
+   */
+  spinner?: boolean;
 };
 
 /**
@@ -67,6 +73,7 @@ export const Button = ({
   fullWidth = false,
   variant = 'filled',
   disabled = false,
+  spinner = false,
   onClick = undefined,
   onLinkClick = undefined,
   onMouseEnter = undefined,
@@ -99,9 +106,11 @@ export const Button = ({
         className={combineClasses(
           styles.button,
           styles[variant],
-          fullWidth ? styles.fullWidth : undefined
+          fullWidth ? styles.fullWidth : undefined,
+          spinner ? styles.buttonWithSpinner : undefined
         )}>
-        {children}
+        {spinner && <ButtonSpinner variant={variant} />}
+        <div className={styles.childrenContainer}>{children}</div>
       </button>
     );
   }
@@ -115,10 +124,39 @@ export const Button = ({
       className={combineClasses(
         styles.button,
         styles[variant],
-        fullWidth ? styles.fullWidth : undefined
+        fullWidth ? styles.fullWidth : undefined,
+        spinner ? styles.buttonWithSpinner : undefined
       )}
       download={download}>
-      {children}
+      {spinner && <ButtonSpinner variant={variant} />}
+      <div className={styles.childrenContainer}>{children}</div>
     </a>
   );
 };
+
+const ButtonSpinner = ({
+  variant,
+}: {
+  variant: Required<ButtonProps>['variant'];
+}): ReactElement => (
+  <div className={styles.spinnerContainer}>
+    <InlineOsehSpinner
+      size={{
+        type: 'react-rerender',
+        props: { height: 24 },
+      }}
+      variant={
+        {
+          filled: 'black',
+          'filled-white': 'black',
+          outlined: 'white',
+          'outlined-white': 'white',
+          link: 'white',
+          'link-small': 'white',
+          'link-white': 'white',
+          'link-small-upper': 'white',
+        }[variant] as 'white' | 'black'
+      }
+    />
+  </div>
+);

@@ -1,9 +1,10 @@
-import { CSSProperties, RefObject, useEffect, useMemo } from 'react';
-import { useWindowSize } from './useWindowSize';
+import { CSSProperties, RefObject, useEffect } from 'react';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import { useUnwrappedValueWithCallbacks } from './useUnwrappedValueWithCallbacks';
 
 type FullHeightProps = {
   attribute?: 'height' | 'minHeight' | 'maxHeight';
-  windowSize?: { height: number } | undefined;
+  windowSizeVWC: ValueWithCallbacks<{ width: number; height: number }>;
 };
 
 /**
@@ -12,23 +13,25 @@ type FullHeightProps = {
  * safari insisted it work that way (
  * https://nicolas-hoizey.com/articles/2015/02/18/viewport-height-is-taller-than-the-visible-part-of-the-document-in-some-mobile-browsers/#february-23rd-update
  * )
- *
- * If window size is specified, it's used, otherwise it's taken as if by the
- * useWindowSize hook. It must either always be specified or never specified.
  */
 export const useFullHeight = ({
   element,
   attribute = 'height',
-  windowSize = undefined,
+  windowSizeVWC,
 }: FullHeightProps & { element: RefObject<HTMLElement> }): void => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const myWindowSize: { height: number } = windowSize ?? useWindowSize();
-
   useEffect(() => {
-    if (element.current !== null && element.current !== undefined) {
-      element.current.style[attribute] = `${myWindowSize.height}px`;
+    windowSizeVWC.callbacks.add(updateElement);
+    updateElement();
+    return () => {
+      windowSizeVWC.callbacks.remove(updateElement);
+    };
+
+    function updateElement() {
+      if (element.current !== null && element.current !== undefined) {
+        element.current.style[attribute] = `${windowSizeVWC.get().height}px`;
+      }
     }
-  }, [myWindowSize, element, attribute]);
+  }, [windowSizeVWC, element, attribute]);
 };
 
 /**
@@ -38,14 +41,28 @@ export const useFullHeight = ({
  */
 export const useFullHeightStyle = ({
   attribute = 'height',
-  windowSize = undefined,
+  windowSizeVWC,
 }: FullHeightProps): CSSProperties => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const myWindowSize: { height: number } = windowSize ?? useWindowSize();
+  const resultVWC = useWritableValueWithCallbacks<CSSProperties>(() => ({
+    [attribute]: `${windowSizeVWC.get().height}px`,
+  }));
 
-  return useMemo(() => {
-    return {
-      [attribute]: `${myWindowSize.height}px`,
+  // we dont map so that attribute changing recomputed
+  useEffect(() => {
+    resultVWC.callbacks.add(updateResult);
+    updateResult();
+    return () => {
+      resultVWC.callbacks.remove(updateResult);
     };
-  }, [attribute, myWindowSize.height]);
+
+    function updateResult() {
+      const newHeight = `${windowSizeVWC.get().height}px`;
+      if (resultVWC.get()[attribute] !== newHeight) {
+        resultVWC.set({ [attribute]: newHeight });
+        resultVWC.callbacks.call(undefined);
+      }
+    }
+  }, [attribute, windowSizeVWC, resultVWC]);
+
+  return useUnwrappedValueWithCallbacks(resultVWC);
 };

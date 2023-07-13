@@ -14,15 +14,17 @@ import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import styles from './CourseActivateScreen.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { SplashScreen } from '../splash/SplashScreen';
-import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
-import { useWindowSize } from '../../shared/hooks/useWindowSize';
+import { useWindowSizeValueWithCallbacks } from '../../shared/hooks/useWindowSize';
 import { SocialSignins, useProviderUrls, useRedirectUrl } from '../login/LoginApp';
 import { Button } from '../../shared/forms/Button';
 import { CourseAttachScreen } from './CourseAttachScreen';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
-import { useOsehImageState } from '../../shared/images/useOsehImageState';
 import { OsehImage } from '../../shared/images/OsehImage';
-import { OsehImageFromState } from '../../shared/images/OsehImageFromState';
+import { useOsehImageStateValueWithCallbacks } from '../../shared/images/useOsehImageStateValueWithCallbacks';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
+import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
+import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
+import { OsehImageFromStateValueWithCallbacks } from '../../shared/images/OsehImageFromStateValueWithCallbacks';
 
 /**
  * The activation screen for a course, which should be the first screen after a
@@ -212,43 +214,74 @@ export const CourseActivateScreen = (): ReactElement => {
     [slug, visitor, loginContext, course, timezone]
   );
 
-  const windowSize = useWindowSize();
-  const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
-  const background = useOsehImageState(
-    {
-      uid: course?.backgroundImage?.uid ?? null,
-      jwt: course?.backgroundImage?.jwt ?? null,
-      displayWidth: windowSize.width,
-      displayHeight: windowSize.height,
-      alt: '',
-      placeholderColor: '#121111',
-    },
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
+  const componentRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (componentRef.current === null) {
+      return;
+    }
+    const ele = componentRef.current;
+    windowSizeVWC.callbacks.add(updateComponentStyle);
+    updateComponentStyle();
+    return () => {
+      windowSizeVWC.callbacks.remove(updateComponentStyle);
+    };
+
+    function updateComponentStyle() {
+      if (windowSizeVWC.get().height < 450) {
+        ele.removeAttribute('style');
+      } else {
+        ele.style.height = `${windowSizeVWC.get().height}px`;
+      }
+    }
+  }, [windowSizeVWC]);
+  const background = useOsehImageStateValueWithCallbacks(
+    adaptValueWithCallbacksAsVariableStrategyProps(
+      useMappedValueWithCallbacks(
+        windowSizeVWC,
+        (windowSize) => ({
+          uid: course?.backgroundImage?.uid ?? null,
+          jwt: course?.backgroundImage?.jwt ?? null,
+          displayWidth: windowSize.width,
+          displayHeight: windowSize.height,
+          alt: '',
+          placeholderColor: '#121111',
+        }),
+        {
+          inputEqualityFn: () => false,
+        }
+      )
+    ),
     imageHandler
   );
   const urls = useProviderUrls(loginContext.state === 'logged-out');
+  const backgroundLoading = useMappedValueWithCallbacks(background, (bg) => bg.loading);
 
   if (slug === null || session === null) {
     return (
       <div className={styles.container}>
         <div className={styles.imageContainer}>
-          <OsehImage
-            uid={
-              windowSize.width < 450
-                ? 'oseh_if_ds8R1NIo4ch3pD7vBRT2cg'
-                : 'oseh_if_hH68hcmVBYHanoivLMgstg'
-            }
-            jwt={null}
-            displayWidth={windowSize.width}
-            displayHeight={windowSize.height}
-            alt=""
-            isPublic={true}
-            handler={imageHandler}
+          <RenderGuardedComponent
+            props={windowSizeVWC}
+            component={(windowSize) => (
+              <OsehImage
+                uid={
+                  windowSize.width < 450
+                    ? 'oseh_if_ds8R1NIo4ch3pD7vBRT2cg'
+                    : 'oseh_if_hH68hcmVBYHanoivLMgstg'
+                }
+                jwt={null}
+                displayWidth={windowSize.width}
+                displayHeight={windowSize.height}
+                alt=""
+                isPublic={true}
+                handler={imageHandler}
+              />
+            )}
           />
         </div>
         <div className={styles.innerContainer}>
-          <div
-            className={styles.primaryContainer}
-            style={windowSize.width < 450 ? fullHeightStyle : undefined}>
+          <div className={styles.primaryContainer} ref={componentRef}>
             <div className={styles.logoAndInfoContainer}>
               <div className={styles.logoContainer}>
                 <div className={styles.logo} />
@@ -271,7 +304,7 @@ export const CourseActivateScreen = (): ReactElement => {
     );
   }
 
-  if (course === null || background.loading || loginContext.state === 'loading') {
+  if (course === null || backgroundLoading || loginContext.state === 'loading') {
     return <SplashScreen type="wordmark" />;
   }
 
@@ -283,12 +316,10 @@ export const CourseActivateScreen = (): ReactElement => {
     return (
       <div className={styles.container}>
         <div className={styles.imageContainer}>
-          <OsehImageFromState {...background} />
+          <OsehImageFromStateValueWithCallbacks state={background} />
         </div>
         <div className={styles.innerContainer}>
-          <div
-            className={styles.primaryContainer}
-            style={windowSize.width < 450 ? fullHeightStyle : undefined}>
+          <div className={styles.primaryContainer} ref={componentRef}>
             <div className={styles.logoAndInfoContainer}>
               <div className={styles.logoContainer}>
                 <div className={styles.logo} />

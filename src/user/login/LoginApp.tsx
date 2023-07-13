@@ -1,14 +1,14 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import '../../assets/fonts.css';
 import styles from './LoginApp.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { SplashScreen } from '../splash/SplashScreen';
 import { HTTP_API_URL } from '../../shared/ApiConstants';
-import { useWindowSize } from '../../shared/hooks/useWindowSize';
+import { useWindowSizeValueWithCallbacks } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/images/OsehImage';
-import { useFullHeightStyle } from '../../shared/hooks/useFullHeight';
 import { InterestsContext } from '../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -135,8 +135,27 @@ export const useRedirectUrl = (redirectUrl: string | undefined) => {
  */
 export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactElement => {
   const interests = useContext(InterestsContext);
-  const windowSize = useWindowSize();
-  const fullHeightStyle = useFullHeightStyle({ attribute: 'height', windowSize });
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
+  const componentRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (componentRef.current === null) {
+      return;
+    }
+    const ele = componentRef.current;
+    windowSizeVWC.callbacks.add(updateComponentStyle);
+    updateComponentStyle();
+    return () => {
+      windowSizeVWC.callbacks.remove(updateComponentStyle);
+    };
+
+    function updateComponentStyle() {
+      if (windowSizeVWC.get().height < 450) {
+        ele.removeAttribute('style');
+      } else {
+        ele.style.height = `${windowSizeVWC.get().height}px`;
+      }
+    }
+  }, [windowSizeVWC]);
   const urls = useProviderUrls();
   const imageHandler = useOsehImageStateRequestHandler({});
   useRedirectUrl(redirectUrl);
@@ -148,24 +167,27 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImage
-          uid={
-            windowSize.width < 450
-              ? 'oseh_if_ds8R1NIo4ch3pD7vBRT2cg'
-              : 'oseh_if_hH68hcmVBYHanoivLMgstg'
-          }
-          jwt={null}
-          displayWidth={windowSize.width}
-          displayHeight={windowSize.height}
-          alt=""
-          isPublic={true}
-          handler={imageHandler}
+        <RenderGuardedComponent
+          props={windowSizeVWC}
+          component={(windowSize) => (
+            <OsehImage
+              uid={
+                windowSize.width < 450
+                  ? 'oseh_if_ds8R1NIo4ch3pD7vBRT2cg'
+                  : 'oseh_if_hH68hcmVBYHanoivLMgstg'
+              }
+              jwt={null}
+              displayWidth={windowSize.width}
+              displayHeight={windowSize.height}
+              alt=""
+              isPublic={true}
+              handler={imageHandler}
+            />
+          )}
         />
       </div>
       <div className={styles.innerContainer}>
-        <div
-          className={styles.primaryContainer}
-          style={windowSize.width < 450 ? fullHeightStyle : undefined}>
+        <div className={styles.primaryContainer} ref={componentRef}>
           <div className={styles.logoAndInfoContainer}>
             <div className={styles.logoContainer}>
               <div className={styles.logo} />

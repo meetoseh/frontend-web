@@ -8,6 +8,7 @@ import { combineClasses } from '../../../shared/lib/combineClasses';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { useUnwrappedValueWithCallbacks } from '../../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { useWindowSizeValueWithCallbacks } from '../../../shared/hooks/useWindowSize';
 
 /**
  * Shows a screen allowing the user to perform an interaction to start the
@@ -33,7 +34,8 @@ export const JourneyStart = ({
     useMappedValueWithCallbacks(shared, (s) => s.audio.play !== null)
   );
 
-  useFullHeight({ element: containerRef, attribute: 'minHeight' });
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
+  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSizeVWC });
 
   const onSkipClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -61,7 +63,12 @@ export const JourneyStart = ({
             <div className={styles.journeyTitle}>{journey.title}</div>
             <div className={styles.journeyDescription}>{journey.description.text}</div>
             <div className={styles.skipForNowContainer}>
-              <Button type="button" fullWidth={true} onClick={onSkipClick} disabled={!audioReady}>
+              <Button
+                type="button"
+                fullWidth={true}
+                onClick={onSkipClick}
+                disabled={!audioReady}
+                spinner={!audioReady}>
                 {audioReady ? <>Let&rsquo;s Go</> : <>Loading...</>}
               </Button>
             </div>
@@ -94,7 +101,8 @@ export const JourneyStart = ({
               variant="filled-white"
               fullWidth={true}
               onClick={onSkipClick}
-              disabled={!audioReady}>
+              disabled={!audioReady}
+              spinner={!audioReady}>
               {audioReady ? <>Let&rsquo;s Go</> : <>Loading...</>}
             </Button>
           </div>

@@ -19,5 +19,8 @@
   "[python]": {
     "editor.tabSize": 4,
   },
-  "css.lint.validProperties": ["composes"]
+  "css.lint.validProperties": ["composes"],
+  "[json]": {
+    "editor.formatOnSave": false,
+  }
 }

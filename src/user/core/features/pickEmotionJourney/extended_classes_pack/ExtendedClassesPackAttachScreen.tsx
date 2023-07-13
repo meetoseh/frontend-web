@@ -1,9 +1,11 @@
 import { Button } from '../../../../../shared/forms/Button';
 import { useFullHeightStyle } from '../../../../../shared/hooks/useFullHeight';
-import { useWindowSize } from '../../../../../shared/hooks/useWindowSize';
-import { OsehImageFromState } from '../../../../../shared/images/OsehImageFromState';
-import { useOsehImageState } from '../../../../../shared/images/useOsehImageState';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
+import { useWindowSizeValueWithCallbacks } from '../../../../../shared/hooks/useWindowSize';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { useOsehImageStateRequestHandler } from '../../../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageStateValueWithCallbacks } from '../../../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import styles from './ExtendedClassesPackAttachScreen.module.css';
 
 /**
@@ -11,25 +13,27 @@ import styles from './ExtendedClassesPackAttachScreen.module.css';
  */
 export const ExtendedClassesPackAttachScreen = ({ session }: { session: string | null }) => {
   const images = useOsehImageStateRequestHandler({});
-  const windowSize = useWindowSize();
-  const background = useOsehImageState(
-    {
-      uid: 'oseh_if_0ykGW_WatP5-mh-0HRsrNw',
-      jwt: null,
-      displayWidth: windowSize.width,
-      displayHeight: windowSize.height,
-      isPublic: true,
-      alt: '',
-      placeholderColor: '#01181e',
-    },
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
+  const background = useOsehImageStateValueWithCallbacks(
+    adaptValueWithCallbacksAsVariableStrategyProps(
+      useMappedValueWithCallbacks(windowSizeVWC, (windowSize) => ({
+        uid: 'oseh_if_0ykGW_WatP5-mh-0HRsrNw',
+        jwt: null,
+        displayWidth: windowSize.width,
+        displayHeight: windowSize.height,
+        isPublic: true,
+        alt: '',
+        placeholderColor: '#01181e',
+      }))
+    ),
     images
   );
-  const fullHeightStyle = useFullHeightStyle({ attribute: 'minHeight', windowSize });
+  const fullHeightStyle = useFullHeightStyle({ attribute: 'minHeight', windowSizeVWC });
 
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...background} />
+        <OsehImageFromStateValueWithCallbacks state={background} />
       </div>
       <div className={styles.innerContainer} style={fullHeightStyle}>
         <div className={styles.content}>

@@ -7,7 +7,7 @@ import { useFullHeight } from '../../../../../shared/hooks/useFullHeight';
 import { Button } from '../../../../../shared/forms/Button';
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { OsehImageFromStateValueWithCallbacks } from '../../../../../shared/images/OsehImageFromStateValueWithCallbacks';
-import { useWindowSize } from '../../../../../shared/hooks/useWindowSize';
+import { useWindowSizeValueWithCallbacks } from '../../../../../shared/hooks/useWindowSize';
 import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 import { ValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
 
@@ -28,18 +28,18 @@ export const ExtendedClassesPackPurchaseOffer = ({
   }
   const containerRef = useRef<HTMLDivElement>(null);
   const backgroundOverlay = useRef<HTMLDivElement>(null);
-  const windowSize = useWindowSize();
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
   useFullHeight({
     element: containerRef,
     attribute: 'minHeight',
-    windowSize,
+    windowSizeVWC,
   });
 
   useFullHeight({
     element: backgroundOverlay,
     attribute: 'minHeight',
-    windowSize,
+    windowSizeVWC,
   });
 
   const handleXClick = useCallback(

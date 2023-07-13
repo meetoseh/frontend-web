@@ -4,6 +4,7 @@ import '../assets/fonts.css';
 import styles from './RequireLoggedIn.module.css';
 import { LoginButton } from '../shared/LoginButton';
 import { useFullHeight } from '../shared/hooks/useFullHeight';
+import { useWindowSizeValueWithCallbacks } from '../shared/hooks/useWindowSize';
 
 /**
  * Redirects the user to the login page if they are not logged in. Requires
@@ -13,8 +14,9 @@ export const RequireLoggedIn = ({ children }: PropsWithChildren<{}>): ReactEleme
   const loginContext = useContext(LoginContext);
   const [hiding, setHiding] = useState(loginContext.state === 'logged-out');
   const containerRef = useRef<HTMLDivElement>(null);
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
-  useFullHeight({ element: containerRef, attribute: 'minHeight' });
+  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSizeVWC });
 
   useEffect(() => {
     setHiding(loginContext.state === 'logged-out');

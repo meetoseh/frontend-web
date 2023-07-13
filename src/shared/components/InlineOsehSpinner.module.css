@@ -1,0 +1,4 @@
+.container svg {
+  /* fixes blurry image: https://stackoverflow.com/questions/72404034/chrome-shows-lottie-animation-blurry */
+  transform: unset !important;
+}

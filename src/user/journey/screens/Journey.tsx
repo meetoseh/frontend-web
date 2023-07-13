@@ -12,7 +12,7 @@ import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { Callbacks } from '../../../shared/lib/Callbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
-import { useWindowSize } from '../../../shared/hooks/useWindowSize';
+import { useWindowSizeValueWithCallbacks } from '../../../shared/hooks/useWindowSize';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 const HIDE_TIME = 10000;
@@ -49,9 +49,9 @@ export const Journey = ({
   const [showLikedUntil, setShowLikedUntil] = useState<number | undefined>(undefined);
   const [showUnlikedUntil, setShowUnlikedUntil] = useState<number | undefined>(undefined);
   const [likeError, setLikeError] = useState<ReactElement | null>(null);
-  const windowSize = useWindowSize();
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
-  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSize });
+  useFullHeight({ element: containerRef, attribute: 'minHeight', windowSizeVWC });
 
   useEffect(() => {
     const cleanup = new Callbacks<undefined>();

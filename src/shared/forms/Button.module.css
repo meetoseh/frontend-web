@@ -16,6 +16,16 @@
   border: 3px solid #446266;
 }
 
+.buttonWithSpinner {
+  position: relative;
+}
+
+.spinnerContainer {
+  position: absolute;
+  top: calc(50% - 12px);
+  left: 13px;
+}
+
 .outlined {
   background: transparent;
   color: #446266;
@@ -136,7 +146,6 @@
 
 .filled-white:disabled {
   background: #c8cdd0;
-  color: white;
 }
 
 .outlined-white:disabled {
