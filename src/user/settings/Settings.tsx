@@ -49,12 +49,12 @@ export const Settings = () => {
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setError(null)}>
         <ErrorBlock>{error}</ErrorBlock>
       </ModalWrapper>
     );
-  }, [error, modalContext.setModals]);
+  }, [error, modalContext.modals]);
 
   const deleteAccount = useCallback(
     async (force: boolean): Promise<void> => {
@@ -133,7 +133,7 @@ export const Settings = () => {
     const onCancel = async () => setShowDeleteConfirmInitialPrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="Are you sure you want to delete your account?"
@@ -151,7 +151,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showDeleteConfirmInitialPrompt, modalContext.setModals, deleteAccount, loginContext]);
+  }, [showDeleteConfirmInitialPrompt, modalContext.modals, deleteAccount, loginContext]);
 
   useEffect(() => {
     if (!showDeleteConfirmApplePrompt) {
@@ -169,7 +169,7 @@ export const Settings = () => {
     const onCancel = () => setShowDeleteConfirmApplePrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="To unsubscribe from Oseh+"
@@ -186,7 +186,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showDeleteConfirmApplePrompt, modalContext.setModals, deleteAccount]);
+  }, [showDeleteConfirmApplePrompt, modalContext.modals, deleteAccount]);
 
   useEffect(() => {
     if (!showDeleteConfirmGooglePrompt) {
@@ -204,7 +204,7 @@ export const Settings = () => {
     const onCancel = () => setShowDeleteConfirmGooglePrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="To unsubscribe from Oseh+"
@@ -222,7 +222,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showDeleteConfirmGooglePrompt, modalContext.setModals, deleteAccount]);
+  }, [showDeleteConfirmGooglePrompt, modalContext.modals, deleteAccount]);
 
   useEffect(() => {
     if (!showDeleteConfirmStripePrompt) {
@@ -240,7 +240,7 @@ export const Settings = () => {
     const onCancel = () => setShowDeleteConfirmStripePrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="Are you sure you want to cancel your subscription?"
@@ -257,7 +257,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showDeleteConfirmStripePrompt, modalContext.setModals, deleteAccount]);
+  }, [showDeleteConfirmStripePrompt, modalContext.modals, deleteAccount]);
 
   useEffect(() => {
     if (!showDeleteConfirmPromoPrompt) {
@@ -275,7 +275,7 @@ export const Settings = () => {
     const onCancel = () => setShowDeleteConfirmPromoPrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="You do not have an active subscription."
@@ -287,7 +287,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showDeleteConfirmPromoPrompt, modalContext.setModals, deleteAccount]);
+  }, [showDeleteConfirmPromoPrompt, modalContext.modals, deleteAccount]);
 
   useEffect(() => {
     let active = true;
@@ -416,7 +416,7 @@ export const Settings = () => {
     const onCancel = () => setShowCancelInitialPrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="Are you sure you want to unsubscribe from Oseh+?"
@@ -433,7 +433,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showCancelInitialPrompt, modalContext.setModals, loginContext]);
+  }, [showCancelInitialPrompt, modalContext.modals, loginContext]);
 
   useEffect(() => {
     if (!showCancelApplePrompt) {
@@ -443,7 +443,7 @@ export const Settings = () => {
     const onCancel = () => setShowCancelApplePrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="To unsubscribe from Oseh+"
@@ -459,7 +459,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showCancelApplePrompt, modalContext.setModals]);
+  }, [showCancelApplePrompt, modalContext.modals]);
 
   useEffect(() => {
     if (!showCancelPromoPrompt) {
@@ -469,7 +469,7 @@ export const Settings = () => {
     const onCancel = () => setShowCancelPromoPrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="You do not have an active subscription."
@@ -480,7 +480,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showCancelPromoPrompt, modalContext.setModals]);
+  }, [showCancelPromoPrompt, modalContext.modals]);
 
   useEffect(() => {
     if (!showCancelNoSubscriptionPrompt) {
@@ -490,7 +490,7 @@ export const Settings = () => {
     const onCancel = () => setShowCancelNoSubscriptionPrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="You’ve already cancelled your subscription to Oseh+"
@@ -506,7 +506,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showCancelNoSubscriptionPrompt, modalContext.setModals]);
+  }, [showCancelNoSubscriptionPrompt, modalContext.modals]);
 
   useEffect(() => {
     if (!showCancelSuccessPrompt) {
@@ -516,7 +516,7 @@ export const Settings = () => {
     const onCancel = () => setShowCancelSuccessPrompt(false);
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper minimalStyling={true} onClosed={onCancel}>
         <SettingsForceDelete
           title="You are no longer subscribed to Oseh+."
@@ -527,7 +527,7 @@ export const Settings = () => {
         />
       </ModalWrapper>
     );
-  }, [showCancelSuccessPrompt, modalContext.setModals]);
+  }, [showCancelSuccessPrompt, modalContext.modals]);
 
   useEffect(() => {
     if (loginContext.state === 'logged-out') {

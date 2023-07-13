@@ -1,39 +1,69 @@
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../anim/VariableStrategyProps';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
 
 /**
- * Yields true until the given time, then yields false. If the time
- * is undefined, yields false.
+ * Provides true until the given time, then provides false. If the time
+ * is undefined, provides false.
  *
  * @param time The time, or undefined to yield false.
  * @returns True until the given time, then false.
  */
-export const useBeforeTime = (time?: number): boolean => {
-  const [show, setShow] = useState(() => time !== undefined && Date.now() < time);
+export const useBeforeTime = (
+  timeVariableStrategy: VariableStrategyProps<number | undefined>
+): ValueWithCallbacks<boolean> => {
+  const timeVWC = useVariableStrategyPropsAsValueWithCallbacks(timeVariableStrategy);
+  const showVWC = useWritableValueWithCallbacks(() => {
+    const time = timeVWC.get();
+    return time !== undefined && time > Date.now();
+  });
 
-  useEffect(() => {
-    if (time === undefined) {
-      setShow(false);
-      return;
-    }
+  useValueWithCallbacksEffect(
+    timeVWC,
+    useCallback(
+      (time: number | undefined) => {
+        if (time === undefined) {
+          if (showVWC.get()) {
+            showVWC.set(false);
+            showVWC.callbacks.call(undefined);
+          }
+          return;
+        }
 
-    const now = Date.now();
-    if (now >= time) {
-      setShow(false);
-      return;
-    }
+        const now = Date.now();
+        if (now >= time) {
+          if (showVWC.get()) {
+            showVWC.set(false);
+            showVWC.callbacks.call(undefined);
+          }
+          return;
+        }
 
-    setShow(true);
-    let timeout: NodeJS.Timeout | null = setTimeout(() => {
-      timeout = null;
-      setShow(false);
-    }, time - now);
-    return () => {
-      if (timeout !== null) {
-        clearTimeout(timeout);
-        timeout = null;
-      }
-    };
-  }, [time]);
+        if (!showVWC.get()) {
+          showVWC.set(true);
+          showVWC.callbacks.call(undefined);
+        }
+        let timeout: NodeJS.Timeout | null = setTimeout(() => {
+          timeout = null;
+          if (showVWC.get()) {
+            showVWC.set(false);
+            showVWC.callbacks.call(undefined);
+          }
+        }, time - now);
+        return () => {
+          if (timeout !== null) {
+            clearTimeout(timeout);
+            timeout = null;
+          }
+        };
+      },
+      [showVWC]
+    )
+  );
 
-  return show;
+  return showVWC;
 };

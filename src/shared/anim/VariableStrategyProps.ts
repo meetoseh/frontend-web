@@ -98,8 +98,10 @@ export const useVariableStrategyPropsAsValueWithCallbacks = <P>(
 
   useEffect(() => {
     if (props.type === 'react-rerender') {
-      result.set(props.props);
-      result.callbacks.call(undefined);
+      if (!optsRef.current.equalityFn(result.get(), props.props)) {
+        result.set(props.props);
+        result.callbacks.call(undefined);
+      }
       return;
     }
 

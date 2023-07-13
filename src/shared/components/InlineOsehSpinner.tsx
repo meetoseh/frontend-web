@@ -74,4 +74,4 @@ export const InlineOsehSpinner = ({
 };
 
 const HOLD_TIME_MS = { forward: 750, backward: 500 };
-const NATURAL_ASPECT_RATIO = 1341 / 1080;
+const NATURAL_ASPECT_RATIO = 197 / 186;

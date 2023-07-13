@@ -201,7 +201,7 @@ export const JourneyBlock = ({
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setShowUploadImage(false)}>
         <CreateJourneyUploadBackgroundImage
           onUploaded={(image) => {
@@ -211,7 +211,7 @@ export const JourneyBlock = ({
         />
       </ModalWrapper>
     );
-  }, [showUploadImage, modalContext.setModals]);
+  }, [showUploadImage, modalContext.modals]);
 
   useEffect(() => {
     if (!showChooseImage) {
@@ -219,7 +219,7 @@ export const JourneyBlock = ({
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setShowChooseImage(false)}>
         <CreateJourneyChooseBackgroundImage
           onSelected={(image) => {
@@ -230,7 +230,7 @@ export const JourneyBlock = ({
         />
       </ModalWrapper>
     );
-  }, [showChooseImage, modalContext.setModals, imageHandler]);
+  }, [showChooseImage, modalContext.modals, imageHandler]);
 
   const save = useCallback(async () => {
     setSaving(true);

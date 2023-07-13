@@ -1,8 +1,13 @@
-import { useContext, useEffect, useRef } from 'react';
+import { useCallback, useContext, useRef } from 'react';
 import { useBeforeTime } from '../../../shared/hooks/useBeforeTime';
 import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
 import styles from './useFavoritedModal.module.css';
 import { useTimedFade } from '../../../shared/hooks/usedTimedFade';
+import {
+  VariableStrategyProps,
+  useVariableStrategyPropsAsValueWithCallbacks,
+} from '../../../shared/anim/VariableStrategyProps';
+import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
 
 /**
  * Shows a basic popup at the top of the screen the a message like
@@ -11,17 +16,25 @@ import { useTimedFade } from '../../../shared/hooks/usedTimedFade';
  *
  * Requires a modal context.
  */
-export const useFavoritedModal = (showUntil?: number) => {
+export const useFavoritedModal = (
+  showUntilVariableStrategy: VariableStrategyProps<number | undefined>
+) => {
+  const showUntilVWC = useVariableStrategyPropsAsValueWithCallbacks(showUntilVariableStrategy);
   const modalContext = useContext(ModalContext);
-  const show = useBeforeTime(showUntil);
+  const showVWC = useBeforeTime(showUntilVariableStrategy);
 
-  useEffect(() => {
-    if (!show || showUntil === undefined) {
-      return;
-    }
+  useValuesWithCallbacksEffect(
+    [showUntilVWC, showVWC],
+    useCallback(() => {
+      const showUntil = showUntilVWC.get();
+      const show = showVWC.get();
+      if (!show || showUntil === undefined) {
+        return;
+      }
 
-    return addModalWithCallbackToRemove(modalContext.setModals, <Modal until={showUntil} />);
-  }, [modalContext.setModals, show, showUntil]);
+      return addModalWithCallbackToRemove(modalContext.modals, <Modal until={showUntil} />);
+    }, [modalContext.modals, showUntilVWC, showVWC])
+  );
 };
 
 const Modal = ({ until }: { until: number }) => {

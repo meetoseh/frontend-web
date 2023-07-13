@@ -274,7 +274,7 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
     };
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setPromptingFullscreen(false)}>
         <div className={styles.prompt}>
           <div className={styles.promptTitle}>Go fullscreen?</div>
@@ -292,7 +292,7 @@ export const FullscreenProvider = ({ children }: { children: ReactElement }): Re
         </div>
       </ModalWrapper>
     );
-  }, [promptingFullscreen, modalContext.setModals, goFullscreen]);
+  }, [promptingFullscreen, modalContext.modals, goFullscreen]);
 
   useEffect(() => {
     if (

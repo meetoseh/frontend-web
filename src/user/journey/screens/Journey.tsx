@@ -148,8 +148,8 @@ export const Journey = ({
     }
   }, [shared, setScreen]);
 
-  useFavoritedModal(showLikedUntil);
-  useUnfavoritedModal(showUnlikedUntil);
+  useFavoritedModal({ type: 'react-rerender', props: showLikedUntil });
+  useUnfavoritedModal({ type: 'react-rerender', props: showUnlikedUntil });
 
   const onClickedClose = useCallback(() => {
     shared.get().audio.stop?.();

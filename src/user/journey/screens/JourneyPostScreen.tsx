@@ -123,8 +123,8 @@ export const JourneyPostScreen = ({
     }
   }, [loginContext]);
 
-  useFavoritedModal(showLikedUntil);
-  useUnfavoritedModal(showUnlikedUntil);
+  useFavoritedModal({ type: 'react-rerender', props: showLikedUntil });
+  useUnfavoritedModal({ type: 'react-rerender', props: showUnlikedUntil });
 
   const onContinue = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {

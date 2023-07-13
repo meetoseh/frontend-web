@@ -265,7 +265,7 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setActiveSession(null)}>
         <div className={styles.modalTitle}>{activeSession.session.inappNotification.name}</div>
         {activeSession.actions === undefined ? (
@@ -292,7 +292,7 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
         )}
       </ModalWrapper>
     );
-  }, [activeSession, modalContext.setModals]);
+  }, [activeSession, modalContext.modals]);
 
   const onViewSession = useMemo<((e: React.MouseEvent<HTMLButtonElement>) => void)[]>(() => {
     if (sessions === undefined) {

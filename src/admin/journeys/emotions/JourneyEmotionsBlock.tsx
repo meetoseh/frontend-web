@@ -95,7 +95,7 @@ export const JourneyEmotionsBlock = ({ journeyUid }: JourneyEmotionsBlockProps):
     };
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setViewingEmotion(null)}>
         <JourneyEmotionDetails
           journeyUid={journeyUid}
@@ -104,7 +104,7 @@ export const JourneyEmotionsBlock = ({ journeyUid }: JourneyEmotionsBlockProps):
         />
       </ModalWrapper>
     );
-  }, [modalContext.setModals, viewingEmotion, journeyUid]);
+  }, [modalContext.modals, viewingEmotion, journeyUid]);
 
   useEffect(() => {
     if (!addingEmotion) {
@@ -117,7 +117,7 @@ export const JourneyEmotionsBlock = ({ journeyUid }: JourneyEmotionsBlockProps):
     };
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setAddingEmotion(false)}>
         <JourneyAddEmotion
           journeyUid={journeyUid}
@@ -126,7 +126,7 @@ export const JourneyEmotionsBlock = ({ journeyUid }: JourneyEmotionsBlockProps):
         />
       </ModalWrapper>
     );
-  }, [modalContext.setModals, addingEmotion, journeyUid, emotions]);
+  }, [modalContext.modals, addingEmotion, journeyUid, emotions]);
 
   const boundOnClick = useMemo(
     () => emotions.map((emotion) => () => setViewingEmotion(emotion)),

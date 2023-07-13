@@ -93,7 +93,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setShowChooseAudioContentModal(false)}>
         <CreateJourneyChooseAudioContent
           onSelected={(content) => {
@@ -103,7 +103,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
         />
       </ModalWrapper>
     );
-  }, [modalContext.setModals, showChooseAudioContentModal]);
+  }, [modalContext.modals, showChooseAudioContentModal]);
 
   useEffect(() => {
     if (!showAddAudioContentModal) {
@@ -111,7 +111,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setShowAddAudioContentModal(false)}>
         <CreateJourneyUploadAudioContent
           onUploaded={(content) => {
@@ -121,7 +121,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
         />
       </ModalWrapper>
     );
-  }, [modalContext.setModals, showAddAudioContentModal]);
+  }, [modalContext.modals, showAddAudioContentModal]);
 
   useEffect(() => {
     if (!showChooseBackgroundImageModal) {
@@ -129,7 +129,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setShowChooseBackgroundImageModal(false)}>
         <CreateJourneyChooseBackgroundImage
           onSelected={(image) => {
@@ -140,7 +140,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
         />
       </ModalWrapper>
     );
-  }, [showChooseBackgroundImageModal, modalContext.setModals, imageHandler]);
+  }, [showChooseBackgroundImageModal, modalContext.modals, imageHandler]);
 
   const create = useCallback(
     async (e: MouseEvent<HTMLButtonElement>) => {
@@ -217,7 +217,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setShowAddBackgroundImageModal(false)}>
         <CreateJourneyUploadBackgroundImage
           onUploaded={(image) => {
@@ -227,7 +227,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
         />
       </ModalWrapper>
     );
-  }, [showAddBackgroundImageModal, modalContext.setModals]);
+  }, [showAddBackgroundImageModal, modalContext.modals]);
 
   const onBackgroundImagePreviewTypeChanged = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {

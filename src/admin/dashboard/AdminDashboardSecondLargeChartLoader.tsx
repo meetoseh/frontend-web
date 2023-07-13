@@ -61,12 +61,12 @@ export const AdminDashboardSecondLargeChartLoader = ({
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setShowNewUsersHelp(false)}>
         <NewUsersDetails chart={newUsersChart!} />
       </ModalWrapper>
     );
-  }, [modalContext.setModals, showNewUsersHelp, newUsersChart]);
+  }, [modalContext.modals, showNewUsersHelp, newUsersChart]);
 
   if (newUsersChart.loading) {
     return <AdminDashboardLargeChartPlaceholder />;

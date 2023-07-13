@@ -1,11 +1,10 @@
+import { createContext, PropsWithChildren, ReactElement } from 'react';
 import {
-  createContext,
-  Dispatch,
-  PropsWithChildren,
-  ReactElement,
-  SetStateAction,
-  useState,
-} from 'react';
+  Callbacks,
+  useWritableValueWithCallbacks,
+  WritableValueWithCallbacks,
+} from '../lib/Callbacks';
+import { RenderGuardedComponent } from '../components/RenderGuardedComponent';
 
 export type Modals = { key: string; element: ReactElement }[];
 
@@ -15,32 +14,48 @@ export type ModalContextValue = {
    * which is currently visible. Each element is associated with a unique key,
    * which can be used to close the modal.
    */
-  modals: Modals;
-
-  /**
-   * Sets the modals which are currently open.
-   */
-  setModals: Dispatch<SetStateAction<Modals>>;
+  modals: WritableValueWithCallbacks<Modals>;
 };
 
 /**
  * Context which holds the modals which are currently open. It's recommended
  * that the ModalProvider be used to set this context.
  */
-export const ModalContext = createContext<ModalContextValue>({ modals: [], setModals: () => {} });
+export const ModalContext = createContext<ModalContextValue>({
+  modals: {
+    get: () => {
+      throw new Error('uninitialized');
+    },
+    set: () => {
+      throw new Error('uninitialized');
+    },
+    get callbacks(): Callbacks<undefined> {
+      throw new Error('uninitialized');
+    },
+  },
+});
 
 /**
  * Provides a ModalContext to the children. The modals are placed at the end of
- * of the children, so this should be a fairly high-level component.
+ * of the children, so this should be a fairly high-level component. This will
+ * not rerender the children when the modals change, though it will rerender
+ * all active modals.
  */
 export const ModalProvider = ({ children }: PropsWithChildren<object>): ReactElement => {
-  const [modals, setModals] = useState<Modals>([]);
+  const modals = useWritableValueWithCallbacks<Modals>(() => []);
   return (
-    <ModalContext.Provider value={{ modals, setModals }}>
+    <ModalContext.Provider value={{ modals }}>
       {children}
-      {modals.map((m) => (
-        <div key={m.key}>{m.element}</div>
-      ))}
+      <RenderGuardedComponent
+        props={modals}
+        component={(modals) => (
+          <>
+            {modals.map((m) => (
+              <div key={m.key}>{m.element}</div>
+            ))}
+          </>
+        )}
+      />
     </ModalContext.Provider>
   );
 };
@@ -55,19 +70,21 @@ export const ModalProvider = ({ children }: PropsWithChildren<object>): ReactEle
  * @returns A function that can be called to remove the modal
  */
 export const addModalWithCallbackToRemove = (
-  setModals: Dispatch<SetStateAction<Modals>>,
+  modalsVWC: WritableValueWithCallbacks<Modals>,
   element: ReactElement
 ): ((this: void) => void) => {
   const uid = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
-  setModals((modals) => [
-    ...modals,
+  modalsVWC.set([
+    ...modalsVWC.get(),
     {
       key: uid,
       element: element,
     },
   ]);
+  modalsVWC.callbacks.call(undefined);
 
   return () => {
-    setModals((modals) => modals.filter((modal) => modal.key !== uid));
+    modalsVWC.set(modalsVWC.get().filter((modal) => modal.key !== uid));
+    modalsVWC.callbacks.call(undefined);
   };
 };

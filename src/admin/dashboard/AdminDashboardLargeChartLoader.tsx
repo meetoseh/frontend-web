@@ -204,12 +204,12 @@ export const AdminDashboardLargeChartLoader = (): ReactElement => {
     }
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setShowRetentionDetails(null)}>
         <RetentionDetails {...showRetentionDetails} />
       </ModalWrapper>
     );
-  }, [modalContext.setModals, showRetentionDetails]);
+  }, [modalContext.modals, showRetentionDetails]);
 
   return remainingToLoad > 0 ||
     Object.keys(dailyChartsRef.current).length + Object.keys(monthlyChartsRef.current).length ===

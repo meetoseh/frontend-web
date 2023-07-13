@@ -369,7 +369,7 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
     let total = 0;
 
     return addModalWithCallbackToRemove(
-      modalContext.setModals,
+      modalContext.modals,
       <ModalWrapper onClosed={() => setInspectingFeedbackScore(null)}>
         <div className={styles.explanation}>The feedback portion:</div>
         <DashboardTable
@@ -433,7 +433,7 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
         </div>
       </ModalWrapper>
     );
-  }, [modalContext.setModals, inspectingFeedbackScore]);
+  }, [modalContext.modals, inspectingFeedbackScore]);
 
   const identifier = user.givenName ?? user.email;
 

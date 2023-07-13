@@ -353,9 +353,9 @@ export const CourseJourneyItem = ({
     [item, mapItems, loginContext, setItem]
   );
 
-  useFavoritedModal(showLikedUntil);
-  useUnfavoritedModal(showUnlikedUntil);
-  useUnfavoritableModal(showUnfavoritableUntil);
+  useFavoritedModal({ type: 'react-rerender', props: showLikedUntil });
+  useUnfavoritedModal({ type: 'react-rerender', props: showUnlikedUntil });
+  useUnfavoritableModal({ type: 'react-rerender', props: showUnfavoritableUntil });
 
   const ellipsedTitle = useMemo(
     () => textOverflowEllipses(item.journey.title, 13),

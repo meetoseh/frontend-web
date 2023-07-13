@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useMemo } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import { MinimalJourney } from '../lib/MinimalJourney';
 import styles from './HistoryItem.module.css';
@@ -9,8 +9,13 @@ import { useFavoritedModal } from '../hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../hooks/useUnfavoritedModal';
 import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { useOsehImageState } from '../../../shared/images/useOsehImageState';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { setVWC } from '../../../shared/lib/setVWC';
+import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { InlineOsehSpinner } from '../../../shared/components/InlineOsehSpinner';
 
 type HistoryItemProps = {
   /**
@@ -56,16 +61,19 @@ export const HistoryItem = ({
   instructorImages,
 }: HistoryItemProps) => {
   const loginContext = useContext(LoginContext);
-  const [error, setError] = useState<ReactElement | null>(null);
-  const [liking, setLiking] = useState(false);
-  const [showLikedUntil, setShowLikedUntil] = useState<number | undefined>(undefined);
-  const [showUnlikedUntil, setShowUnlikedUntil] = useState<number | undefined>(undefined);
-  const instructorImage = useOsehImageState(
+  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const likingVWC = useWritableValueWithCallbacks<boolean>(() => false);
+  const showLikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
+  const showUnlikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
+  const instructorImageVWC = useOsehImageStateValueWithCallbacks(
     {
-      ...item.instructor.image,
-      displayWidth: 14,
-      displayHeight: 14,
-      alt: 'profile',
+      type: 'react-rerender',
+      props: {
+        ...item.instructor.image,
+        displayWidth: 14,
+        displayHeight: 14,
+        alt: 'profile',
+      },
     },
     instructorImages
   );
@@ -74,10 +82,10 @@ export const HistoryItem = ({
       e.preventDefault();
       e.stopPropagation();
 
-      setLiking(true);
-      setError(null);
-      setShowLikedUntil(undefined);
-      setShowUnlikedUntil(undefined);
+      setVWC(likingVWC, true);
+      setVWC(errorVWC, null);
+      setVWC(showLikedUntilVWC, undefined);
+      setVWC(showUnlikedUntilVWC, undefined);
       try {
         const response = await apiFetch(
           '/api/1/users/me/journeys/likes',
@@ -100,15 +108,15 @@ export const HistoryItem = ({
           ...item,
           likedAt: new Date(),
         });
-        setShowLikedUntil(Date.now() + 5000);
+        setVWC(showLikedUntilVWC, Date.now() + 5000);
       } catch (e) {
         const err = await describeError(e);
-        setError(err);
+        setVWC(errorVWC, err);
       } finally {
-        setLiking(false);
+        setVWC(likingVWC, false);
       }
     },
-    [item, loginContext, setItem]
+    [item, loginContext, setItem, errorVWC, likingVWC, showLikedUntilVWC, showUnlikedUntilVWC]
   );
 
   const onUnlike = useCallback(
@@ -116,10 +124,10 @@ export const HistoryItem = ({
       e.preventDefault();
       e.stopPropagation();
 
-      setLiking(true);
-      setError(null);
-      setShowLikedUntil(undefined);
-      setShowUnlikedUntil(undefined);
+      setVWC(likingVWC, true);
+      setVWC(errorVWC, null);
+      setVWC(showLikedUntilVWC, undefined);
+      setVWC(showUnlikedUntilVWC, undefined);
       try {
         const response = await apiFetch(
           '/api/1/users/me/journeys/likes?uid=' + encodeURIComponent(item.uid),
@@ -136,19 +144,19 @@ export const HistoryItem = ({
           ...item,
           likedAt: null,
         });
-        setShowUnlikedUntil(Date.now() + 5000);
+        setVWC(showUnlikedUntilVWC, Date.now() + 5000);
       } catch (e) {
         const err = await describeError(e);
-        setError(err);
+        setVWC(errorVWC, err);
       } finally {
-        setLiking(false);
+        setVWC(likingVWC, false);
       }
     },
-    [item, loginContext, setItem]
+    [item, loginContext, setItem, errorVWC, likingVWC, showLikedUntilVWC, showUnlikedUntilVWC]
   );
 
-  useFavoritedModal(showLikedUntil);
-  useUnfavoritedModal(showUnlikedUntil);
+  useFavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showLikedUntilVWC));
+  useUnfavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showUnlikedUntilVWC));
 
   const ellipsedTitle = useMemo(() => textOverflowEllipses(item.title, 15), [item.title]);
 
@@ -162,20 +170,35 @@ export const HistoryItem = ({
           <div className={styles.title}>{ellipsedTitle}</div>
           <div className={styles.instructor}>
             <div className={styles.instructorPictureContainer}>
-              <OsehImageFromState {...instructorImage} />
+              <OsehImageFromStateValueWithCallbacks state={instructorImageVWC} />
             </div>
             <div className={styles.instructorName}>{item.instructor.name}</div>
           </div>
         </div>
         <div className={styles.favoritedContainer}>
-          <IconButton
-            icon={item.likedAt === null ? styles.unfavoritedIcon : styles.favoritedIcon}
-            srOnlyName={item.likedAt === null ? 'Like' : 'Unlike'}
-            onClick={item.likedAt === null ? onLike : onUnlike}
-            disabled={liking}
+          <RenderGuardedComponent
+            props={likingVWC}
+            component={(liking) =>
+              liking ? (
+                <InlineOsehSpinner
+                  size={{ type: 'react-rerender', props: { height: 24 } }}
+                  variant="white"
+                />
+              ) : (
+                <IconButton
+                  icon={item.likedAt === null ? styles.unfavoritedIcon : styles.favoritedIcon}
+                  srOnlyName={item.likedAt === null ? 'Like' : 'Unlike'}
+                  onClick={item.likedAt === null ? onLike : onUnlike}
+                  disabled={liking}
+                />
+              )
+            }
           />
         </div>
-        {error && <ErrorBlock>{error}</ErrorBlock>}
+        <RenderGuardedComponent
+          props={errorVWC}
+          component={(error) => <>{error && <ErrorBlock>{error}</ErrorBlock>}</>}
+        />
       </div>
     </div>
   );
