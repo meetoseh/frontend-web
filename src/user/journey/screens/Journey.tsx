@@ -1,4 +1,12 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  PropsWithChildren,
+  ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
 import styles from './Journey.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
@@ -9,14 +17,23 @@ import { useUnfavoritedModal } from '../../favorites/hooks/useUnfavoritedModal';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
-import { Callbacks } from '../../../shared/lib/Callbacks';
+import {
+  Callbacks,
+  ValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../shared/lib/Callbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { useWindowSizeValueWithCallbacks } from '../../../shared/hooks/useWindowSize';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { inferAnimators } from '../../../shared/anim/AnimationLoop';
+import { ease } from '../../../shared/lib/Bezier';
+import { useAnimatedValueWithCallbacks } from '../../../shared/anim/useAnimatedValueWithCallbacks';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { setVWC } from '../../../shared/lib/setVWC';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 
 const HIDE_TIME = 10000;
-const HIDING_TIME = 365;
 
 /**
  * Takes the meta information about a journey returned from any of the endpoints
@@ -42,13 +59,11 @@ export const Journey = ({
 }): ReactElement => {
   const loginContext = useContext(LoginContext);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [controlsVisibility, setControlsVisibility] = useState<'visible' | 'hiding' | 'hidden'>(
-    'visible'
-  );
-  const [currentTime, setCurrentTime] = useState(0);
-  const [showLikedUntil, setShowLikedUntil] = useState<number | undefined>(undefined);
-  const [showUnlikedUntil, setShowUnlikedUntil] = useState<number | undefined>(undefined);
-  const [likeError, setLikeError] = useState<ReactElement | null>(null);
+  const controlsVisible = useWritableValueWithCallbacks<boolean>(() => true);
+  const currentTimeVWC = useWritableValueWithCallbacks<number>(() => 0);
+  const showLikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
+  const showUnlikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
+  const likeErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSizeVWC });
@@ -65,7 +80,7 @@ export const Journey = ({
 
     function handleAudioTime(audio: HTMLAudioElement): () => void {
       const onTimeUpdate = () => {
-        setCurrentTime(audio.currentTime);
+        setVWC(currentTimeVWC, audio.currentTime);
       };
 
       onTimeUpdate();
@@ -93,17 +108,13 @@ export const Journey = ({
 
     function handleControls(audio: HTMLAudioElement): () => void {
       if (audio.paused) {
-        setControlsVisibility('visible');
+        setVWC(controlsVisible, true);
         return () => {};
       }
 
       let timeout: NodeJS.Timeout | null = null;
       const doHide = () => {
-        setControlsVisibility('hiding');
-        timeout = setTimeout(() => {
-          timeout = null;
-          setControlsVisibility('hidden');
-        }, HIDING_TIME);
+        setVWC(controlsVisible, false);
       };
       timeout = setTimeout(doHide, HIDE_TIME);
 
@@ -111,7 +122,7 @@ export const Journey = ({
         if (timeout !== null) {
           clearTimeout(timeout);
         }
-        setControlsVisibility('visible');
+        setVWC(controlsVisible, true);
         timeout = setTimeout(doHide, HIDE_TIME);
       };
 
@@ -146,26 +157,35 @@ export const Journey = ({
         cleanup.add(handleControls(audio));
       }
     }
-  }, [shared, setScreen]);
+  }, [shared, setScreen, controlsVisible, currentTimeVWC]);
 
-  useFavoritedModal({ type: 'react-rerender', props: showLikedUntil });
-  useUnfavoritedModal({ type: 'react-rerender', props: showUnlikedUntil });
+  useFavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showLikedUntilVWC));
+  useUnfavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showUnlikedUntilVWC));
 
   const onClickedClose = useCallback(() => {
     shared.get().audio.stop?.();
 
     if (onCloseEarly !== undefined) {
-      onCloseEarly(currentTime, journey.durationSeconds);
+      onCloseEarly(currentTimeVWC.get(), journey.durationSeconds);
     } else {
       setScreen('feedback', true);
     }
-  }, [setScreen, shared, currentTime, journey.durationSeconds, onCloseEarly]);
+  }, [setScreen, shared, currentTimeVWC, journey.durationSeconds, onCloseEarly]);
 
-  const audioProgressStyle = useMemo(() => {
-    return {
-      width: `${(currentTime / journey.durationSeconds) * 100}%`,
-    };
-  }, [currentTime, journey.durationSeconds]);
+  const audioProgressRef = useRef<HTMLDivElement>(null);
+  useValueWithCallbacksEffect(
+    currentTimeVWC,
+    useCallback(
+      (currentTime) => {
+        if (audioProgressRef.current === null) {
+          return;
+        }
+        audioProgressRef.current.style.width = `${(currentTime / journey.durationSeconds) * 100}%`;
+        return undefined;
+      },
+      [journey.durationSeconds]
+    )
+  );
 
   const onToggleFavorited = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -175,9 +195,9 @@ export const Journey = ({
       }
 
       e.preventDefault();
-      setShowLikedUntil(undefined);
-      setShowUnlikedUntil(undefined);
-      setLikeError(null);
+      setVWC(showLikedUntilVWC, undefined);
+      setVWC(showUnlikedUntilVWC, undefined);
+      setVWC(likeErrorVWC, null);
 
       try {
         const response = await apiFetch(
@@ -203,16 +223,16 @@ export const Journey = ({
         const nowFavorited = !favorited;
         shared.get().setFavorited(nowFavorited);
         if (nowFavorited) {
-          setShowLikedUntil(Date.now() + 5000);
+          setVWC(showLikedUntilVWC, Date.now() + 5000);
         } else {
-          setShowUnlikedUntil(Date.now() + 5000);
+          setVWC(showUnlikedUntilVWC, Date.now() + 5000);
         }
       } catch (err) {
         const desc = await describeError(err);
-        setLikeError(desc);
+        setVWC(likeErrorVWC, desc);
       }
     },
-    [shared, journey.uid, loginContext]
+    [shared, journey.uid, loginContext, showLikedUntilVWC, showUnlikedUntilVWC, likeErrorVWC]
   );
 
   return (
@@ -222,32 +242,27 @@ export const Journey = ({
           state={useMappedValueWithCallbacks(shared, (s) => s.darkenedImage)}
         />
       </div>
-      <div
-        className={`${styles.closeButtonContainer} ${styles.control} ${
-          styles['control_' + controlsVisibility]
-        }`}>
+      <Control
+        className={`${styles.closeButtonContainer} ${styles.control}`}
+        visible={controlsVisible}>
         <div className={styles.closeButtonInnerContainer}>
           <button type="button" className={styles.close} onClick={onClickedClose}>
             <div className={styles.closeIcon} />
             <div className={assistiveStyles.srOnly}>Close</div>
           </button>
         </div>
-      </div>
-      <div
-        className={`${styles.audioControlsContainer} ${styles.control} ${
-          styles['control_' + controlsVisibility]
-        }`}>
+      </Control>
+      <Control
+        className={`${styles.audioControlsContainer} ${styles.control}`}
+        visible={controlsVisible}>
         <div className={styles.audioControlsInnerContainer}>
           <div className={styles.audioProgressContainer}>
-            <div className={styles.audioProgress} style={audioProgressStyle}></div>
+            <div className={styles.audioProgress} ref={audioProgressRef}></div>
             <div className={styles.audioProgressCircle}></div>
           </div>
         </div>
-      </div>
-      <div
-        className={`${styles.innerContainer} ${styles.control} ${
-          styles['control_' + controlsVisibility]
-        }`}>
+      </Control>
+      <Control className={`${styles.innerContainer} ${styles.control}`} visible={controlsVisible}>
         <div className={styles.content}>
           <div className={styles.titleAndInstructor}>
             <div className={styles.title}>{journey.title}</div>
@@ -270,9 +285,58 @@ export const Journey = ({
               </>
             )}
           />
-          {likeError && <ErrorBlock>{likeError}</ErrorBlock>}
+          <RenderGuardedComponent
+            props={likeErrorVWC}
+            component={(likeError) => <>{likeError && <ErrorBlock>{likeError}</ErrorBlock>}</>}
+          />
         </div>
-      </div>
+      </Control>
+    </div>
+  );
+};
+
+const Control = ({
+  visible,
+  className,
+  children,
+}: PropsWithChildren<{
+  visible: ValueWithCallbacks<boolean>;
+  className: string;
+}>): ReactElement => {
+  const animators = useMemo(
+    () => inferAnimators<{ opacity: number }, { opacity: number }>({ opacity: 0 }, ease, 350),
+    []
+  );
+  const containerRef = useRef<HTMLDivElement>(null);
+  const target = useAnimatedValueWithCallbacks({ opacity: 1 }, animators, (val) => {
+    if (containerRef.current === null) {
+      return;
+    }
+    const ele = containerRef.current;
+    if (val.opacity <= 0) {
+      ele.style.display = 'none';
+      ele.style.removeProperty('opacity');
+      return;
+    }
+
+    ele.style.removeProperty('display');
+    ele.style.opacity = `${val.opacity * 100}%`;
+  });
+
+  useValueWithCallbacksEffect(
+    visible,
+    useCallback(
+      (val) => {
+        setVWC(target, { opacity: val ? 1 : 0 }, (a, b) => a.opacity === b.opacity);
+        return undefined;
+      },
+      [target]
+    )
+  );
+
+  return (
+    <div className={className} ref={containerRef}>
+      {children}
     </div>
   );
 };

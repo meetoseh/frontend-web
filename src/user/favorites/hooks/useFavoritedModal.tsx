@@ -2,7 +2,7 @@ import { useCallback, useContext, useRef } from 'react';
 import { useBeforeTime } from '../../../shared/hooks/useBeforeTime';
 import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
 import styles from './useFavoritedModal.module.css';
-import { useTimedFade } from '../../../shared/hooks/usedTimedFade';
+import { useTimedFade } from '../../../shared/hooks/useTimedFade';
 import {
   VariableStrategyProps,
   useVariableStrategyPropsAsValueWithCallbacks,

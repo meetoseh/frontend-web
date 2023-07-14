@@ -140,7 +140,28 @@ export const PickEmotionJourney = ({
   const forceSplash = useUnwrappedValueWithCallbacks(
     useMappedValueWithCallbacks(resources, (r) => r.forceSplash)
   );
-  const selectedVWC = useMappedValueWithCallbacks(resources, (r) => r.selected);
+  const selectedVWC = useMappedValueWithCallbacks(
+    resources,
+    (r) =>
+      r.selected === null
+        ? null
+        : {
+            word: r.selected.word,
+            journey: r.selected.journey,
+          },
+    {
+      inputEqualityFn(a, b) {
+        if (a.selected === null || b.selected === null) {
+          return a.selected === b.selected;
+        }
+
+        return (
+          a.selected.word.word === b.selected.word.word &&
+          a.selected.journey.uid === b.selected.journey.uid
+        );
+      },
+    }
+  );
   const sharedVWC = useMappedValueWithCallbacks(
     resources,
     (r) =>

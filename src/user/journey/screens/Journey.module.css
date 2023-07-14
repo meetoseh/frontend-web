@@ -153,23 +153,3 @@
   align-items: center;
   justify-content: center;
 }
-
-.control_visible {
-  opacity: 100%;
-}
-
-.control_hiding,
-.control_hidden {
-  display: none;
-}
-
-@media not (prefers-reduced-motion) {
-  .control_hiding {
-    display: flex;
-    opacity: 0;
-  }
-
-  .control {
-    transition: opacity 0.35s ease-in;
-  }
-}
