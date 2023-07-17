@@ -445,7 +445,7 @@ export const PickEmotionJourneyFeature: Feature<
         const takeAnotherClass = takeAnotherClassVWC.get();
 
         return {
-          loading: error === null && (options === null || background.loading),
+          loading: selected === null && error === null && (options === null || background.loading),
           error: error,
           profilePicture: profilePicture,
           options:

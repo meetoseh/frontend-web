@@ -112,24 +112,10 @@
   backdrop-filter: blur(2px);
 }
 
-.answer:not(.selected) {
-  background: rgba(68, 98, 102, 0.4);
-}
-
-.answer.selected {
-  background: linear-gradient(95.08deg, #57b8a2 2.49%, #009999 97.19%);
-}
-
 .answerEmoji {
   font-size: 32px;
   line-height: 32px;
   margin-right: 18px;
-  filter: grayscale(0%);
-  transition: filter 0.35s ease;
-}
-
-.answer:not(.selected) .answerEmoji {
-  filter: grayscale(100%);
 }
 
 .answerText {

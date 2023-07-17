@@ -62,7 +62,6 @@ export const useUnwrappedValueWithCallbacks = <T>(
             setValue(setTo);
           }
         });
-        setValue(newValue);
       }
     }
   }, [original]);

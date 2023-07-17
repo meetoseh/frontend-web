@@ -5,6 +5,7 @@ import { useUnwrappedValueWithCallbacks } from '../hooks/useUnwrappedValueWithCa
 type RenderGuardedComponentProps<T> = {
   props: ValueWithCallbacks<T>;
   component: (current: T) => ReactElement;
+  equalityFn?: (a: T, b: T) => boolean;
 };
 
 /**
@@ -25,8 +26,9 @@ type RenderGuardedComponentProps<T> = {
 export function RenderGuardedComponent<T>({
   props,
   component,
+  equalityFn,
 }: RenderGuardedComponentProps<T>): ReactElement {
-  const realProps = useUnwrappedValueWithCallbacks(props);
+  const realProps = useUnwrappedValueWithCallbacks(props, equalityFn);
 
   return component(realProps);
 }

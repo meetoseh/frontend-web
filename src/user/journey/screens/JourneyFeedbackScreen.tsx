@@ -1,21 +1,17 @@
-import {
-  MutableRefObject,
-  ReactElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import styles from './JourneyFeedbackScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
-import { combineClasses } from '../../../shared/lib/combineClasses';
 import { Button } from '../../../shared/forms/Button';
-import { Callbacks } from '../../../shared/lib/Callbacks';
+import {
+  Callbacks,
+  ValueWithCallbacks,
+  WritableValueWithCallbacks,
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../shared/lib/Callbacks';
 import { ease, easeInOut, easeOutBack } from '../../../shared/lib/Bezier';
 import {
   BezierAnimation,
@@ -24,6 +20,11 @@ import {
 } from '../../../shared/lib/BezierAnimation';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { setVWC } from '../../../shared/lib/setVWC';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { BezierAnimator, BezierColorAnimator } from '../../../shared/anim/AnimationLoop';
+import { useAnimatedValueWithCallbacks } from '../../../shared/anim/useAnimatedValueWithCallbacks';
 
 /**
  * Asks the user for feedback about the journey so that we can curate the
@@ -33,52 +34,29 @@ export const JourneyFeedbackScreen = ({
   journey,
   shared,
   setScreen,
-  onJourneyFinished,
-  isOnboarding,
 }: JourneyScreenProps): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const [response, setResponse] = useState<number | null>(null);
-
-  const currentResponse = useRef<number | null>() as MutableRefObject<number | null>;
-  if (currentResponse.current === undefined) {
-    currentResponse.current = null;
-  }
-
-  const responseChanged = useRef<Callbacks<undefined>>() as MutableRefObject<Callbacks<undefined>>;
-  if (responseChanged.current === undefined) {
-    responseChanged.current = new Callbacks();
-  }
-
-  if (currentResponse.current !== response) {
-    currentResponse.current = response;
-    responseChanged.current.call(undefined);
-  }
-
-  const emojiRefs = useRef<(HTMLDivElement | null)[]>() as MutableRefObject<
-    (HTMLDivElement | null)[]
-  >;
-  if (emojiRefs.current === undefined) {
-    emojiRefs.current = [null, null, null, null];
-  }
-  const emojiRefsChanged = useRef<Callbacks<undefined>>() as MutableRefObject<Callbacks<undefined>>;
-  if (emojiRefsChanged.current === undefined) {
-    emojiRefsChanged.current = new Callbacks();
-  }
-
-  const setEmojiRefs = useMemo<((ref: HTMLDivElement | null | undefined) => void)[]>(
+  const responseVWC = useWritableValueWithCallbacks<number | null>(() => null);
+  const emojiStatesVWCs = useMemo(
     () =>
-      [0, 1, 2, 3].map((i) => (ref) => {
-        emojiRefs.current[i] = ref ?? null;
-        emojiRefsChanged.current.call(undefined);
-      }),
+      [0, 1, 2, 3].map(() =>
+        createWritableValueWithCallbacks<FeedbackButtonState>({
+          rotation: 0,
+          scale: 1,
+          ...getTarget(false),
+        })
+      ),
     []
   );
 
-  // Manages the emoji animation when a response is selected
+  // Manages the emoji rotation & scale when a response is selected
   useEffect(() => {
     let active = true;
     let canceled = new Callbacks<undefined>();
-    let animations: { rotation: BezierAnimation[]; scale: BezierAnimation[] } | null = null;
+    let animations: {
+      rotation: BezierAnimation[];
+      scale: BezierAnimation[];
+    } | null = null;
     let animating = false;
 
     startManaging();
@@ -92,19 +70,18 @@ export const JourneyFeedbackScreen = ({
     function startManaging() {
       onResponseChanged();
 
-      responseChanged.current.add(onResponseChanged);
-      emojiRefsChanged.current.add(onEmojiRefsChanged);
+      responseVWC.callbacks.add(onResponseChanged);
 
       canceled.add(() => {
-        responseChanged.current.remove(onResponseChanged);
-        emojiRefsChanged.current.remove(onEmojiRefsChanged);
+        responseVWC.callbacks.remove(onResponseChanged);
       });
     }
 
     function onResponseChanged() {
       clearStyles();
 
-      if (currentResponse.current === null) {
+      const response = responseVWC.get();
+      if (response === null) {
         animations = null;
         return;
       }
@@ -150,19 +127,23 @@ export const JourneyFeedbackScreen = ({
       }
     }
 
-    function onEmojiRefsChanged() {
-      clearStyles();
-    }
-
     function clearStyles() {
-      const newRefs = emojiRefs.current;
-      for (let i = 0; i < newRefs.length; i++) {
-        newRefs[i]?.removeAttribute('style');
-      }
+      emojiStatesVWCs.forEach((s, idx) => {
+        setVWC(
+          s,
+          {
+            ...s.get(),
+            rotation: 0,
+            scale: 1,
+          },
+          emojiStateEqualityFn
+        );
+      });
     }
 
     function onFrame(now: DOMHighResTimeStamp) {
-      if (!active || animations === null || currentResponse.current === null) {
+      const response = responseVWC.get();
+      if (!active || animations === null || response === null) {
         animating = false;
         return;
       }
@@ -181,22 +162,30 @@ export const JourneyFeedbackScreen = ({
         return;
       }
 
-      const div = emojiRefs.current[currentResponse.current - 1];
-      if (div === null) {
-        requestAnimationFrame(onFrame);
-        return;
-      }
-
       const rotation =
         animations.rotation.length === 0 ? 0 : calculateAnimValue(animations.rotation[0], now);
       const scale =
         animations.scale.length === 0 ? 1 : calculateAnimValue(animations.scale[0], now);
-      div.style.transform = `rotate(${rotation}deg) scale(${scale})`;
+      setVWC(
+        emojiStatesVWCs[response - 1],
+        {
+          ...emojiStatesVWCs[response - 1].get(),
+          rotation,
+          scale,
+        },
+        emojiStateEqualityFn
+      );
       requestAnimationFrame(onFrame);
     }
-  }, []);
+  }, [emojiStatesVWCs, responseVWC]);
+
+  useSimpleButtonAnimators(emojiStatesVWCs[0], responseVWC, 1);
+  useSimpleButtonAnimators(emojiStatesVWCs[1], responseVWC, 2);
+  useSimpleButtonAnimators(emojiStatesVWCs[2], responseVWC, 3);
+  useSimpleButtonAnimators(emojiStatesVWCs[3], responseVWC, 4);
 
   const storeResponse = useCallback(async () => {
+    const response = responseVWC.get();
     if (response === null || loginContext.state !== 'logged-in') {
       return;
     }
@@ -223,7 +212,7 @@ export const JourneyFeedbackScreen = ({
     if (!resp.ok) {
       console.warn('Failed to store feedback response', resp);
     }
-  }, [loginContext, response, journey.uid, journey.jwt]);
+  }, [loginContext, responseVWC, journey.uid, journey.jwt]);
 
   const onX = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -236,16 +225,13 @@ export const JourneyFeedbackScreen = ({
 
   const onContinue = onX;
 
-  const classNameForResponse = (resp: number): string | undefined =>
-    combineClasses(styles.answer, response === resp ? styles.selected : undefined);
-
   const clickResponse = useMemo<((e: React.MouseEvent<HTMLButtonElement>) => void)[]>(
     () =>
       [1, 2, 3, 4].map((i) => (e) => {
         e.preventDefault();
-        setResponse(i);
+        setVWC(responseVWC, i);
       }),
-    []
+    [responseVWC]
   );
 
   return (
@@ -269,40 +255,45 @@ export const JourneyFeedbackScreen = ({
           <div className={styles.question}>
             <div className={styles.title}>How did that feel?</div>
             <div className={styles.answers}>
-              <button className={classNameForResponse(1)} onClick={clickResponse[0]}>
-                <div className={styles.answerEmoji} ref={setEmojiRefs[0]}>
-                  😍
-                </div>
-                <div className={styles.answerText}>Loved</div>
-              </button>
-              <button className={classNameForResponse(2)} onClick={clickResponse[1]}>
-                <div className={styles.answerEmoji} ref={setEmojiRefs[1]}>
-                  😌
-                </div>
-                <div className={styles.answerText}>Liked</div>
-              </button>
-              <button className={classNameForResponse(3)} onClick={clickResponse[2]}>
-                <div className={styles.answerEmoji} ref={setEmojiRefs[2]}>
-                  😕
-                </div>
-                <div className={styles.answerText}>Disliked</div>
-              </button>
-              <button className={classNameForResponse(4)} onClick={clickResponse[3]}>
-                <div className={styles.answerEmoji} ref={setEmojiRefs[3]}>
-                  ☹️
-                </div>
-                <div className={styles.answerText}>Hated</div>
-              </button>
+              <FeedbackButton
+                onClick={clickResponse[0]}
+                emoji={'😍'}
+                text="Loved"
+                state={emojiStatesVWCs[0]}
+              />
+              <FeedbackButton
+                onClick={clickResponse[1]}
+                emoji={'😌'}
+                text="Liked"
+                state={emojiStatesVWCs[1]}
+              />
+              <FeedbackButton
+                onClick={clickResponse[2]}
+                emoji={'😕'}
+                text="Disliked"
+                state={emojiStatesVWCs[2]}
+              />
+              <FeedbackButton
+                onClick={clickResponse[3]}
+                emoji={'☹️'}
+                text="Hated"
+                state={emojiStatesVWCs[3]}
+              />
             </div>
           </div>
           <div className={styles.continueContainer}>
-            <Button
-              type="button"
-              variant={response === null ? 'link-white' : 'filled-white'}
-              onClick={onContinue}
-              fullWidth>
-              {response === null ? 'Skip' : 'Continue'}
-            </Button>
+            <RenderGuardedComponent
+              props={useMappedValueWithCallbacks(responseVWC, (r) => r !== null)}
+              component={(haveResponse) => (
+                <Button
+                  type="button"
+                  variant={haveResponse ? 'filled-white' : 'link-white'}
+                  onClick={onContinue}
+                  fullWidth>
+                  {haveResponse ? 'Continue' : 'Skip'}
+                </Button>
+              )}
+            />
             <div className={styles.infoText}>
               Your ratings will be used to personalize your experience
             </div>
@@ -310,5 +301,146 @@ export const JourneyFeedbackScreen = ({
         </div>
       </div>
     </div>
+  );
+};
+
+type FeedbackButtonState = {
+  /* 0-1 grayscale strength */
+  grayscale: number;
+  /* degrees */
+  rotation: number;
+  /* 0-1 scale */
+  scale: number;
+  /* 0-255 rgb, 0-1 opacity */
+  gradient: {
+    color1: [number, number, number, number];
+    color2: [number, number, number, number];
+  };
+};
+
+const emojiStateEqualityFn = (a: FeedbackButtonState, b: FeedbackButtonState) =>
+  a.grayscale === b.grayscale && a.rotation === b.rotation && a.scale === b.scale;
+
+type FeedbackButtonProps = {
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  emoji: string;
+  text: string;
+  state: ValueWithCallbacks<FeedbackButtonState>;
+};
+
+const FeedbackButton = ({
+  onClick,
+  emoji,
+  text,
+  state: stateVWC,
+}: FeedbackButtonProps): React.ReactElement => {
+  const emojiRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useValueWithCallbacksEffect(
+    stateVWC,
+    useCallback((state) => {
+      if (emojiRef.current === null || buttonRef.current === null) {
+        return;
+      }
+      const container = buttonRef.current;
+      const emoji = emojiRef.current;
+      emoji.style.transform = `rotate(${state.rotation}deg) scale(${state.scale})`;
+      emoji.style.filter = `grayscale(${state.grayscale * 100}%)`;
+      container.style.background = `linear-gradient(95.08deg, rgba(${state.gradient.color1.join(
+        ','
+      )}) 2.49%, rgba(${state.gradient.color2.join(',')}) 97.19%)`;
+      return undefined;
+    }, [])
+  );
+
+  return (
+    <button className={styles.answer} onClick={onClick} ref={buttonRef}>
+      <div className={styles.answerEmoji} ref={emojiRef}>
+        {emoji}
+      </div>
+      <div className={styles.answerText}>{text}</div>
+    </button>
+  );
+};
+
+type SimpleFeedbackButtonState = {
+  grayscale: number;
+  gradient: FeedbackButtonState['gradient'];
+};
+
+const getTarget = (selected: boolean): SimpleFeedbackButtonState => {
+  return selected
+    ? {
+        grayscale: 0,
+        gradient: {
+          color1: [87, 184, 162, 1],
+          color2: [0, 153, 153, 1],
+        },
+      }
+    : {
+        grayscale: 1,
+        gradient: {
+          color1: [68, 98, 102, 0.4],
+          color2: [68, 98, 102, 0.4],
+        },
+      };
+};
+
+const useSimpleButtonAnimators = (
+  stateVWC: WritableValueWithCallbacks<FeedbackButtonState>,
+  responseVWC: ValueWithCallbacks<number | null>,
+  response: number
+) => {
+  const target = useAnimatedValueWithCallbacks<SimpleFeedbackButtonState>(
+    getTarget(responseVWC.get() === response),
+    () => [
+      new BezierAnimator(
+        ease,
+        350,
+        (p) => p.grayscale,
+        (p, v) => (p.grayscale = v)
+      ),
+      new BezierColorAnimator(
+        ease,
+        350,
+        (p) => p.gradient.color1,
+        (p, v) => (p.gradient.color1 = v)
+      ),
+      new BezierColorAnimator(
+        ease,
+        350,
+        (p) => p.gradient.color2,
+        (p, v) => (p.gradient.color2 = v)
+      ),
+    ],
+    (p) => {
+      setVWC(
+        stateVWC,
+        {
+          ...stateVWC.get(),
+          ...p,
+        },
+        emojiStateEqualityFn
+      );
+    }
+  );
+
+  useValueWithCallbacksEffect(
+    responseVWC,
+    useCallback(
+      (selected) => {
+        setVWC(
+          target,
+          getTarget(selected === response),
+          (a, b) =>
+            a.grayscale === b.grayscale &&
+            a.gradient.color1.every((v, i) => v === b.gradient.color1[i]) &&
+            a.gradient.color2.every((v, i) => v === b.gradient.color2[i])
+        );
+        return undefined;
+      },
+      [response, target]
+    )
   );
 };
