@@ -1,5 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect } from 'react';
-import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
+import { describeError } from '../../../shared/forms/ErrorBlock';
 import styles from './JourneyPostScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
