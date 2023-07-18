@@ -142,7 +142,13 @@ export const PickEmotion = ({
     [tentativelyPressedVWC, resources]
   );
 
-  const onGotoFavoritesClick = '/favorites';
+  const onGotoFavoritesClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      resources.get().gotoFavorites();
+    },
+    [resources]
+  );
 
   const onGotoClassClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {

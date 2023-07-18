@@ -8,8 +8,10 @@ import { MinimalJourney, minimalJourneyKeyMap } from '../lib/MinimalJourney';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
 import { HistoryItem } from './HistoryItem';
-import styles from '../screens/FavoritesTabbedPane.module.css';
+import styles from './shared.module.css';
 import { InfiniteList } from '../../../shared/components/InfiniteList';
+import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 
 export type FavoritesListProps = {
   /**
@@ -23,7 +25,7 @@ export type FavoritesListProps = {
   /**
    * The height of the list in logical pixels
    */
-  listHeight: number;
+  listHeight: ValueWithCallbacks<number>;
 
   /**
    * The handler to use to fetch images.
@@ -159,17 +161,22 @@ export const FavoritesList = ({
   }, [gotoJourneyByUID, imageHandler]);
 
   return (
-    <InfiniteList
-      listing={infiniteListing}
-      component={boundComponent}
-      itemComparer={compareHistoryItems}
-      height={listHeight}
-      gap={10}
-      initialComponentHeight={75}
-      emptyElement={
-        <div className={styles.empty}>You don&rsquo;t have any favorite classes yet</div>
-      }
-      keyFn={journeyKeyFn}
+    <RenderGuardedComponent
+      props={listHeight}
+      component={(listHeight) => (
+        <InfiniteList
+          listing={infiniteListing}
+          component={boundComponent}
+          itemComparer={compareHistoryItems}
+          height={listHeight}
+          gap={10}
+          initialComponentHeight={75}
+          emptyElement={
+            <div className={styles.empty}>You don&rsquo;t have any favorite classes yet</div>
+          }
+          keyFn={journeyKeyFn}
+        />
+      )}
     />
   );
 };

@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useState } from 'react';
+import { ReactElement, useContext, useEffect } from 'react';
 import { LoginContext, LoginProvider } from '../shared/contexts/LoginContext';
 import { ModalProvider } from '../shared/contexts/ModalContext';
 import { LoginApp } from './login/LoginApp';
@@ -9,8 +9,12 @@ import { apiFetch } from '../shared/ApiConstants';
 import { useFonts } from '../shared/lib/useFonts';
 import { useFeaturesState } from './core/hooks/useFeaturesState';
 import { InterestsAutoProvider } from '../shared/contexts/InterestsContext';
-import { useTimedValue } from '../shared/hooks/useTimedValue';
+import { useTimedValueWithCallbacks } from '../shared/hooks/useTimedValue';
 import { RenderGuardedComponent } from '../shared/components/RenderGuardedComponent';
+import { useWritableValueWithCallbacks } from '../shared/lib/Callbacks';
+import { setVWC } from '../shared/lib/setVWC';
+import { useValueWithCallbacksEffect } from '../shared/hooks/useValueWithCallbacksEffect';
+import { useMappedValuesWithCallbacks } from '../shared/hooks/useMappedValuesWithCallbacks';
 
 export default function UserApp(): ReactElement {
   return (
@@ -40,18 +44,17 @@ const requiredFonts = [
  */
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const [state, setState] = useState<'loading' | 'features' | 'login'>('loading');
   const fontsLoaded = useFonts(requiredFonts);
   const features = useFeaturesState();
 
+  const stateVWC = useWritableValueWithCallbacks<'loading' | 'features' | 'login'>(() => 'loading');
   // Since on first load the user likely sees white anyway, it's better to leave
   // it white and then go straight to the content if we can do so rapidly, rather
   // than going white screen -> black screen (start of splash) -> content. Of course,
   // if loading takes a while, we'll show the splash screen.
-  const flashWhiteInsteadOfSplash = useTimedValue(true, false, 250);
-
-  const [beenLoaded, setBeenLoaded] = useState(false);
-  const [handlingCheckout, setHandlingCheckout] = useState(true);
+  const flashWhiteInsteadOfSplashVWC = useTimedValueWithCallbacks(true, false, 250);
+  const beenLoadedVWC = useWritableValueWithCallbacks<boolean>(() => false);
+  const handlingCheckoutVWC = useWritableValueWithCallbacks<boolean>(() => true);
 
   useEffect(() => {
     let active = true;
@@ -62,7 +65,7 @@ const UserAppInner = (): ReactElement => {
 
     async function checkCheckoutSuccess() {
       if (loginContext.state === 'logged-out') {
-        setHandlingCheckout(false);
+        setVWC(handlingCheckoutVWC, false);
         return;
       }
 
@@ -72,11 +75,11 @@ const UserAppInner = (): ReactElement => {
 
       const searchParams = new URLSearchParams(window.location.search);
       if (!searchParams.has('checkout_uid')) {
-        setHandlingCheckout(false);
+        setVWC(handlingCheckoutVWC, false);
         return;
       }
 
-      setHandlingCheckout(true);
+      setVWC(handlingCheckoutVWC, true);
       try {
         const uid = searchParams.get('checkout_uid');
 
@@ -105,41 +108,69 @@ const UserAppInner = (): ReactElement => {
         );
       } finally {
         if (active) {
-          setHandlingCheckout(false);
+          setVWC(handlingCheckoutVWC, false);
         }
       }
     }
-  }, [loginContext]);
+  }, [loginContext, handlingCheckoutVWC]);
 
-  useEffect(() => {
+  useValueWithCallbacksEffect(handlingCheckoutVWC, (handlingCheckout): undefined => {
     if (loginContext.state === 'loading' || !fontsLoaded || handlingCheckout) {
-      setState('loading');
+      setVWC(stateVWC, 'loading');
       return;
     }
 
     if (loginContext.state === 'logged-out') {
-      setState('login');
+      setVWC(stateVWC, 'login');
       return;
     }
 
-    setState('features');
-  }, [loginContext.state, fontsLoaded, handlingCheckout]);
+    setVWC(beenLoadedVWC, true);
+    setVWC(stateVWC, 'features');
+  });
 
-  useEffect(() => {
-    if (state === 'features' && !beenLoaded) {
-      setBeenLoaded(true);
+  const splashTypeVWC = useMappedValuesWithCallbacks(
+    [flashWhiteInsteadOfSplashVWC, beenLoadedVWC],
+    (): 'white' | 'word' | 'brand' => {
+      if (beenLoadedVWC.get()) {
+        return 'brand';
+      }
+      if (flashWhiteInsteadOfSplashVWC.get()) {
+        return 'white';
+      }
+      return 'word';
     }
-  }, [state, beenLoaded]);
+  );
 
   return (
     <div className={styles.container}>
-      {state === 'loading' && !flashWhiteInsteadOfSplash ? (
-        <SplashScreen type={beenLoaded ? 'brandmark' : 'wordmark'} />
-      ) : null}
-      {state === 'login' ? <LoginApp /> : null}
-      <div className={state !== 'features' ? styles.displayNone : ''}>
-        <RenderGuardedComponent props={features} component={(f) => f ?? <></>} />
-      </div>
+      <RenderGuardedComponent
+        props={stateVWC}
+        component={(state) => {
+          if (state === 'login') {
+            return <LoginApp />;
+          }
+
+          if (state === 'features') {
+            return <RenderGuardedComponent props={features} component={(f) => f ?? <></>} />;
+          }
+
+          return (
+            <RenderGuardedComponent
+              props={splashTypeVWC}
+              component={(splashType) => {
+                if (splashType === 'brand') {
+                  return <SplashScreen type="brandmark" />;
+                }
+                if (splashType === 'word') {
+                  return <SplashScreen type="wordmark" />;
+                }
+                return <></>;
+              }}
+            />
+          );
+        }}
+      />
     </div>
   );
 };

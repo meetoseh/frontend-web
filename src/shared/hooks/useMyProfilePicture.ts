@@ -75,7 +75,14 @@ export const useMyProfilePictureStateValueWithCallbacks = (
     state: 'loading',
     image: null,
   }));
-  const propsVWC = useVariableStrategyPropsAsValueWithCallbacks(propsVariableStrategy);
+  const propsVWC = useVariableStrategyPropsAsValueWithCallbacks(propsVariableStrategy, {
+    equalityFn: (a, b) =>
+      a.loginContext === b.loginContext &&
+      a.displayWidth === b.displayWidth &&
+      a.displayHeight === b.displayHeight &&
+      a.handler === b.handler &&
+      a.load === b.load,
+  });
 
   useEffect(() => {
     let cleanup: (() => void) | null = null;
@@ -100,7 +107,7 @@ export const useMyProfilePictureStateValueWithCallbacks = (
 
     function handleProps(props: MyProfilePictureStateProps): (() => void) | undefined {
       const loginContext = props.loginContext;
-      const load = props.load;
+      const load = props.load ?? true;
       if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null || !load) {
         if (state.get().state !== 'loading') {
           state.set({ state: 'loading', image: null });

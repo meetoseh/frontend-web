@@ -39,8 +39,8 @@
 }
 
 .closeIcon {
-  composes: icon from '../../../shared/icons.module.css';
-  background-image: url('../icons/close.svg');
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('../pickEmotionJourney/icons/close.svg');
 }
 
 .content {
@@ -120,7 +120,7 @@
 }
 
 .tab {
-  composes: unstyled from '../../../shared/buttons.module.css';
+  composes: unstyled from '../../../../shared/buttons.module.css';
 }
 
 .activeTab {
@@ -142,21 +142,4 @@
   /* make space for the check */
   margin-left: -8px;
   width: calc(100% + 8px);
-}
-
-.empty {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(2px);
-  border-radius: 10px;
-  padding: 17px 34px;
-  text-align: center;
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
 }

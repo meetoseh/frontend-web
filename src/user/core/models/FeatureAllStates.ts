@@ -1,3 +1,4 @@
+import { FavoritesState } from '../features/favorites/FavoritesState';
 import { GoalDaysPerWeekState } from '../features/goalDaysPerWeek/GoalDaysPerWeekState';
 import { PickEmotionJourneyState } from '../features/pickEmotionJourney/PickEmotionJourneyState';
 import { RequestNameState } from '../features/requestName/RequestNameState';
@@ -14,4 +15,5 @@ export type FeatureAllStates = {
   vipChatRequest: VipChatRequestState;
   pickEmotionJourney: PickEmotionJourneyState;
   goalDaysPerWeek: GoalDaysPerWeekState;
+  favorites: FavoritesState;
 };

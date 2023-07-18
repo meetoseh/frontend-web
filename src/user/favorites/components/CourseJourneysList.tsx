@@ -6,10 +6,12 @@ import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImag
 import { InfiniteListing, NetworkedInfiniteListing } from '../../../shared/lib/InfiniteListing';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
-import styles from '../screens/FavoritesTabbedPane.module.css';
+import styles from './shared.module.css';
 import { InfiniteList } from '../../../shared/components/InfiniteList';
 import { MinimalCourseJourney, minimalCourseJourneyKeyMap } from '../lib/MinimalCourseJourney';
 import { CourseJourneyItem } from './CourseJourneyItem';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
 
 export type CourseJourneysListProps = {
   /**
@@ -23,7 +25,7 @@ export type CourseJourneysListProps = {
   /**
    * The height of the list in logical pixels
    */
-  listHeight: number;
+  listHeight: ValueWithCallbacks<number>;
 
   /**
    * The handler to use to fetch images.
@@ -178,17 +180,22 @@ export const CourseJourneysList = ({
   }, [gotoJourneyInCourse, imageHandler, infiniteListing]);
 
   return (
-    <InfiniteList
-      listing={infiniteListing}
-      component={boundComponent}
-      itemComparer={compareHistoryItems}
-      height={listHeight}
-      gap={10}
-      initialComponentHeight={75}
-      emptyElement={
-        <div className={styles.empty}>You haven&rsquo;t purchased any classes yet.</div>
-      }
-      keyFn={journeyKeyFn}
+    <RenderGuardedComponent
+      props={listHeight}
+      component={(listHeight) => (
+        <InfiniteList
+          listing={infiniteListing}
+          component={boundComponent}
+          itemComparer={compareHistoryItems}
+          height={listHeight}
+          gap={10}
+          initialComponentHeight={75}
+          emptyElement={
+            <div className={styles.empty}>You haven&rsquo;t purchased any classes yet.</div>
+          }
+          keyFn={journeyKeyFn}
+        />
+      )}
     />
   );
 };

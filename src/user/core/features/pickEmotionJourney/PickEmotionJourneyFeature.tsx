@@ -109,7 +109,7 @@ export const PickEmotionJourneyFeature: Feature<
       })
     );
   },
-  useResources: (stateVWC, requiredVWC) => {
+  useResources: (stateVWC, requiredVWC, allStates) => {
     const loginContext = useContext(LoginContext);
     const optionsVWC = useWritableValueWithCallbacks<{
       clientUid: string;
@@ -474,6 +474,9 @@ export const PickEmotionJourneyFeature: Feature<
           onSelect,
           onFinishedJourney,
           takeAnotherClass,
+          gotoFavorites: () => {
+            allStates.get().favorites.setShow(true, true);
+          },
         };
       }
     );

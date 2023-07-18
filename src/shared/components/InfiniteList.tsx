@@ -23,7 +23,7 @@ type InfiniteListProps<T extends object> = {
 
   /**
    * The component which converts from an item to a react element to render
-   * within a wrapping coponent. Most common implementations only need the
+   * within a wrapping component. Most common implementations only need the
    * first two arguments, but the full list and index are provided for when
    * complicated joining is required.
    */

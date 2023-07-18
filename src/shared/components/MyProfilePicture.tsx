@@ -24,7 +24,7 @@ type MyProfilePictureProps = {
 };
 
 /**
- * Shows the users profile picture as a 60x60 image. Requires a login
+ * Shows the users profile picture as a 45x45 image. Requires a login
  * context. Returns an empty fragment if the user doesn't have a profile
  * picture.
  */

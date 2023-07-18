@@ -115,4 +115,9 @@ export type PickEmotionJourneyResources = {
    * reset back to the initial state and inform other states
    */
   onFinishedJourney: () => void;
+
+  /**
+   * Should be called if the user wants to go to the favorites screen.
+   */
+  gotoFavorites: () => void;
 };

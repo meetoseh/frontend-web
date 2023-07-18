@@ -10,6 +10,7 @@ import { GoalDaysPerWeekFeature } from '../features/goalDaysPerWeek/GoalDaysPerW
 import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { FavoritesFeature } from '../features/favorites/FavoritesFeature';
 
 const features = [
   RequestNameFeature,
@@ -18,6 +19,7 @@ const features = [
   RequestNotificationTimeFeature,
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
+  FavoritesFeature,
   PickEmotionJourneyFeature,
 ];
 
