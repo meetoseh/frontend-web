@@ -21,6 +21,6 @@
   },
   "css.lint.validProperties": ["composes"],
   "[json]": {
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
   }
 }

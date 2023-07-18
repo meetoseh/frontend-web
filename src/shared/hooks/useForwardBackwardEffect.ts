@@ -58,43 +58,26 @@ type UseForwardBackwardEffectResult = {
   playerStyle: ValueWithCallbacks<{ width: string; height: string }>;
 };
 
-const pickNearestToAspectRatio = (
-  options: { width: number; height: number }[],
-  aspectRatio: number
-): { width: number; height: number } => {
-  let bestAspectRatio: number | null = null;
-  let bestOption: { width: number; height: number } | null = null;
-  for (const option of options) {
-    const optionAspectRatio = option.width / option.height;
-    if (
-      bestAspectRatio === null ||
-      Math.abs(optionAspectRatio - aspectRatio) < Math.abs(bestAspectRatio - aspectRatio)
-    ) {
-      bestAspectRatio = optionAspectRatio;
-      bestOption = option;
-    }
-  }
-  if (bestOption === null) {
-    throw new Error('No options provided');
-  }
-  return bestOption;
-};
-
-const computeSize = (size: CalculableSize): { width: number; height: number } => {
+const computeSize = (
+  size: CalculableSize
+): { width: number; height: number; paddingRight: number; paddingBottom: number } => {
   if ('width' in size && 'height' in size) {
-    if (size.width === Math.floor(size.width) && size.height === Math.floor(size.height)) {
-      return size;
-    }
+    const dpi = window.devicePixelRatio;
+    const scaledTarget = {
+      width: size.width * dpi,
+      height: size.height * dpi,
+    };
+    const scaledPadding = {
+      paddingRight: Math.ceil(scaledTarget.width) - scaledTarget.width,
+      paddingBottom: Math.ceil(scaledTarget.height) - scaledTarget.height,
+    };
 
-    return pickNearestToAspectRatio(
-      [
-        { width: Math.floor(size.width), height: Math.floor(size.height) },
-        { width: Math.floor(size.width), height: Math.ceil(size.height) },
-        { width: Math.ceil(size.width), height: Math.floor(size.height) },
-        { width: Math.ceil(size.width), height: Math.ceil(size.height) },
-      ],
-      size.width / size.height
-    );
+    return {
+      width: scaledTarget.width / dpi,
+      height: scaledTarget.height / dpi,
+      paddingRight: scaledPadding.paddingRight / dpi,
+      paddingBottom: scaledPadding.paddingBottom / dpi,
+    };
   } else if ('width' in size && 'aspectRatio' in size) {
     return computeSize({ width: size.width, height: size.width / size.aspectRatio });
   } else {
@@ -116,12 +99,17 @@ export const useForwardBackwardEffect = ({
   const playerVWC = useVariableStrategyPropsAsValueWithCallbacks(playerVariableStrategy);
   const sizeVWC = useVariableStrategyPropsAsValueWithCallbacks(sizeVariableStrategy);
   const holdTimeVWC = useVariableStrategyPropsAsValueWithCallbacks(holdTimeVariableStrategy);
-  const playerSizeVWC = useWritableValueWithCallbacks<{ width: number; height: number }>(() =>
-    computeSize(sizeVWC.get())
-  );
+  const playerSizeVWC = useWritableValueWithCallbacks<{
+    width: number;
+    height: number;
+    paddingBottom: number;
+    paddingRight: number;
+  }>(() => computeSize(sizeVWC.get()));
   const playerStyleVWC = useMappedValueWithCallbacks(playerSizeVWC, (size) => ({
     width: `${size.width}px`,
     height: `${size.height}px`,
+    paddingBottom: `${size.paddingBottom}px`,
+    paddingRight: `${size.paddingRight}px`,
   }));
 
   useEffect(() => {

@@ -1,20 +1,26 @@
-import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useMemo } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import styles from './CourseJourneyItem.module.css';
-import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
+import { describeError } from '../../../shared/forms/ErrorBlock';
 import { HTTP_API_URL, apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
-import { useFavoritedModal } from '../hooks/useFavoritedModal';
-import { useUnfavoritedModal } from '../hooks/useUnfavoritedModal';
 import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { useOsehImageState } from '../../../shared/images/useOsehImageState';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
-import { useUnfavoritableModal } from '../hooks/useUnfavoritableModal';
 import { MinimalCourseJourney } from '../lib/MinimalCourseJourney';
 import { combineClasses } from '../../../shared/lib/combineClasses';
 import { OsehContentRefLoadable } from '../../../shared/content/OsehContentRef';
 import { ContentFileWebExport } from '../../../shared/content/OsehContentTarget';
+import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { useToggleFavorited } from '../../journey/hooks/useToggleFavorited';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { useReactManagedValueAsValueWithCallbacks } from '../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
+import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
+import { setVWC } from '../../../shared/lib/setVWC';
+import { useErrorModal } from '../../../shared/hooks/useErrorModal';
+import { ModalContext } from '../../../shared/contexts/ModalContext';
 
 type HistoryItemProps = {
   /**
@@ -72,118 +78,59 @@ export const CourseJourneyItem = ({
   instructorImages,
 }: HistoryItemProps) => {
   const loginContext = useContext(LoginContext);
-  const [error, setError] = useState<ReactElement | null>(null);
-  const [working, setWorking] = useState(false);
-  const [showLikedUntil, setShowLikedUntil] = useState<number | undefined>(undefined);
-  const [showUnlikedUntil, setShowUnlikedUntil] = useState<number | undefined>(undefined);
-  const [showUnfavoritableUntil, setShowUnfavoritableUntil] = useState<number | undefined>(
-    undefined
-  );
-  const instructorImage = useOsehImageState(
+  const instructorImage = useOsehImageStateValueWithCallbacks(
     {
-      ...item.journey.instructor.image,
-      displayWidth: 14,
-      displayHeight: 14,
-      alt: 'profile',
+      type: 'react-rerender',
+      props: {
+        ...item.journey.instructor.image,
+        displayWidth: 14,
+        displayHeight: 14,
+        alt: 'profile',
+      },
     },
     instructorImages
   );
-  const onLike = useCallback(
-    async (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
 
-      if (item.journey.lastTakenAt === null) {
-        setShowUnfavoritableUntil(Date.now() + 5000);
-        return;
-      }
-
-      setWorking(true);
-      setError(null);
-      setShowLikedUntil(undefined);
-      setShowUnlikedUntil(undefined);
-      try {
-        const response = await apiFetch(
-          '/api/1/users/me/journeys/likes',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-            },
-            body: JSON.stringify({
-              journey_uid: item.journey.uid,
-            }),
-          },
-          loginContext
-        );
-        if (!response.ok) {
-          throw response;
-        }
-
+  const likingVWC = useWritableValueWithCallbacks<boolean>(() => false);
+  const itemVWC = useReactManagedValueAsValueWithCallbacks(item);
+  const toggleFavorited = useToggleFavorited({
+    journey: item.journey,
+    shared: useMappedValueWithCallbacks(itemVWC, (item) => ({
+      favorited: item.journey.likedAt !== null,
+      setFavorited: (favorited: boolean) => {
         setItem({
           ...item,
           journey: {
             ...item.journey,
-            likedAt: new Date(),
+            likedAt: favorited ? new Date() : null,
           },
         });
-        setShowLikedUntil(Date.now() + 5000);
-      } catch (e) {
-        const err = await describeError(e);
-        setError(err);
-      } finally {
-        setWorking(false);
-      }
+      },
+    })),
+    knownUnfavoritable: {
+      type: 'react-rerender',
+      props: item.journey.lastTakenAt === null,
     },
-    [item, loginContext, setItem]
-  );
-
-  const onUnlike = useCallback(
+    working: likingVWC,
+  });
+  const onToggleFavorited = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
-
-      setWorking(true);
-      setError(null);
-      setShowLikedUntil(undefined);
-      setShowUnlikedUntil(undefined);
-      try {
-        const response = await apiFetch(
-          '/api/1/users/me/journeys/likes?uid=' + encodeURIComponent(item.journey.uid),
-          {
-            method: 'DELETE',
-          },
-          loginContext
-        );
-        if (!response.ok) {
-          throw response;
-        }
-
-        setItem({
-          ...item,
-          journey: {
-            ...item.journey,
-            likedAt: null,
-          },
-        });
-        setShowUnlikedUntil(Date.now() + 5000);
-      } catch (e) {
-        const err = await describeError(e);
-        setError(err);
-      } finally {
-        setWorking(false);
-      }
+      toggleFavorited();
     },
-    [item, loginContext, setItem]
+    [toggleFavorited]
   );
 
+  const downloadingVWC = useWritableValueWithCallbacks<boolean>(() => false);
+  const downloadErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const onDownload = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
 
-      setWorking(true);
-      setError(null);
+      setVWC(downloadingVWC, true);
+      setVWC(downloadErrorVWC, null);
       try {
         let response = await apiFetch(
           '/api/1/courses/start_journey_download',
@@ -255,7 +202,7 @@ export const CourseJourneyItem = ({
         }
 
         if (bestExport === null) {
-          setError(<>No suitable export found</>);
+          setVWC(downloadErrorVWC, <>No suitable export found</>);
           return;
         }
 
@@ -345,17 +292,21 @@ export const CourseJourneyItem = ({
       } catch (e) {
         console.log('error:', e);
         const err = await describeError(e);
-        setError(err);
+        setVWC(downloadErrorVWC, err);
       } finally {
-        setWorking(false);
+        setVWC(downloadingVWC, false);
       }
     },
-    [item, mapItems, loginContext, setItem]
+    [downloadingVWC, downloadErrorVWC, item, loginContext, mapItems, setItem]
   );
 
-  useFavoritedModal({ type: 'react-rerender', props: showLikedUntil });
-  useUnfavoritedModal({ type: 'react-rerender', props: showUnlikedUntil });
-  useUnfavoritableModal({ type: 'react-rerender', props: showUnfavoritableUntil });
+  const modalContext = useContext(ModalContext);
+  useErrorModal(modalContext.modals, downloadErrorVWC, 'CourseJourneyItem download');
+
+  const workingVWC = useMappedValuesWithCallbacks(
+    [likingVWC, downloadingVWC],
+    () => likingVWC.get() || downloadingVWC.get()
+  );
 
   const ellipsedTitle = useMemo(
     () => textOverflowEllipses(item.journey.title, 13),
@@ -379,34 +330,43 @@ export const CourseJourneyItem = ({
           <div className={styles.title}>{ellipsedTitle}</div>
           <div className={styles.instructor}>
             <div className={styles.instructorPictureContainer}>
-              <OsehImageFromState {...instructorImage} />
+              <OsehImageFromStateValueWithCallbacks state={instructorImage} />
             </div>
             <div className={styles.instructorName}>{item.journey.instructor.name}</div>
           </div>
         </div>
         <div className={styles.favoriteAndDownloadContainer}>
           <div className={styles.downloadIconWrapper}>
-            <IconButton
-              icon={working ? styles.waitingIcon : styles.downloadIcon}
-              srOnlyName={'Download'}
-              onClick={onDownload}
-              disabled={working}
+            <RenderGuardedComponent
+              props={workingVWC}
+              component={(working) => (
+                <IconButton
+                  icon={working ? styles.waitingIcon : styles.downloadIcon}
+                  srOnlyName={'Download'}
+                  onClick={onDownload}
+                  disabled={working}
+                />
+              )}
             />
           </div>
-          <IconButton
-            icon={
-              working
-                ? styles.waitingIcon
-                : item.journey.likedAt === null
-                ? styles.unfavoritedIcon
-                : styles.favoritedIcon
-            }
-            srOnlyName={item.journey.likedAt === null ? 'Like' : 'Unlike'}
-            onClick={item.journey.likedAt === null ? onLike : onUnlike}
-            disabled={working}
+          <RenderGuardedComponent
+            props={workingVWC}
+            component={(working) => (
+              <IconButton
+                icon={
+                  working
+                    ? styles.waitingIcon
+                    : item.journey.likedAt === null
+                    ? styles.unfavoritedIcon
+                    : styles.favoritedIcon
+                }
+                srOnlyName={item.journey.likedAt === null ? 'Like' : 'Unlike'}
+                onClick={onToggleFavorited}
+                disabled={working}
+              />
+            )}
           />
         </div>
-        {error && <ErrorBlock>{error}</ErrorBlock>}
       </div>
     </div>
   );

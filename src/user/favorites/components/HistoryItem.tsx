@@ -1,10 +1,8 @@
-import { ReactElement, useCallback, useContext, useMemo } from 'react';
+import { ReactElement, useCallback, useMemo } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import { MinimalJourney } from '../lib/MinimalJourney';
 import styles from './HistoryItem.module.css';
-import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
-import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext } from '../../../shared/contexts/LoginContext';
+import { ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { useFavoritedModal } from '../hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../hooks/useUnfavoritedModal';
 import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';
@@ -12,10 +10,12 @@ import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImag
 import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
-import { setVWC } from '../../../shared/lib/setVWC';
 import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { InlineOsehSpinner } from '../../../shared/components/InlineOsehSpinner';
+import { useReactManagedValueAsValueWithCallbacks } from '../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
+import { useToggleFavorited } from '../../journey/hooks/useToggleFavorited';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 type HistoryItemProps = {
   /**
@@ -60,7 +60,6 @@ export const HistoryItem = ({
   onClick,
   instructorImages,
 }: HistoryItemProps) => {
-  const loginContext = useContext(LoginContext);
   const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const likingVWC = useWritableValueWithCallbacks<boolean>(() => false);
   const showLikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
@@ -77,82 +76,31 @@ export const HistoryItem = ({
     },
     instructorImages
   );
-  const onLike = useCallback(
+  const itemVWC = useReactManagedValueAsValueWithCallbacks(item);
+  const toggleFavorited = useToggleFavorited({
+    journey: item,
+    shared: useMappedValueWithCallbacks(itemVWC, (item) => ({
+      favorited: item.likedAt !== null,
+      setFavorited: (favorited: boolean) => {
+        setItem({
+          ...item,
+          likedAt: favorited ? new Date() : null,
+        });
+      },
+    })),
+    knownUnfavoritable: {
+      type: 'react-rerender',
+      props: item.lastTakenAt === null,
+    },
+    working: likingVWC,
+  });
+  const onToggleFavorited = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
-
-      setVWC(likingVWC, true);
-      setVWC(errorVWC, null);
-      setVWC(showLikedUntilVWC, undefined);
-      setVWC(showUnlikedUntilVWC, undefined);
-      try {
-        const response = await apiFetch(
-          '/api/1/users/me/journeys/likes',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-            },
-            body: JSON.stringify({
-              journey_uid: item.uid,
-            }),
-          },
-          loginContext
-        );
-        if (!response.ok) {
-          throw response;
-        }
-
-        setItem({
-          ...item,
-          likedAt: new Date(),
-        });
-        setVWC(showLikedUntilVWC, Date.now() + 5000);
-      } catch (e) {
-        const err = await describeError(e);
-        setVWC(errorVWC, err);
-      } finally {
-        setVWC(likingVWC, false);
-      }
+      toggleFavorited();
     },
-    [item, loginContext, setItem, errorVWC, likingVWC, showLikedUntilVWC, showUnlikedUntilVWC]
-  );
-
-  const onUnlike = useCallback(
-    async (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      setVWC(likingVWC, true);
-      setVWC(errorVWC, null);
-      setVWC(showLikedUntilVWC, undefined);
-      setVWC(showUnlikedUntilVWC, undefined);
-      try {
-        const response = await apiFetch(
-          '/api/1/users/me/journeys/likes?uid=' + encodeURIComponent(item.uid),
-          {
-            method: 'DELETE',
-          },
-          loginContext
-        );
-        if (!response.ok) {
-          throw response;
-        }
-
-        setItem({
-          ...item,
-          likedAt: null,
-        });
-        setVWC(showUnlikedUntilVWC, Date.now() + 5000);
-      } catch (e) {
-        const err = await describeError(e);
-        setVWC(errorVWC, err);
-      } finally {
-        setVWC(likingVWC, false);
-      }
-    },
-    [item, loginContext, setItem, errorVWC, likingVWC, showLikedUntilVWC, showUnlikedUntilVWC]
+    [toggleFavorited]
   );
 
   useFavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showLikedUntilVWC));
@@ -188,7 +136,7 @@ export const HistoryItem = ({
                 <IconButton
                   icon={item.likedAt === null ? styles.unfavoritedIcon : styles.favoritedIcon}
                   srOnlyName={item.likedAt === null ? 'Like' : 'Unlike'}
-                  onClick={item.likedAt === null ? onLike : onUnlike}
+                  onClick={onToggleFavorited}
                   disabled={liking}
                 />
               )

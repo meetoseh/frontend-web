@@ -1,22 +1,9 @@
-import {
-  PropsWithChildren,
-  ReactElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import { PropsWithChildren, ReactElement, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useFullHeight } from '../../../shared/hooks/useFullHeight';
 import styles from './Journey.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
 import { IconButton } from '../../../shared/forms/IconButton';
-import { useFavoritedModal } from '../../favorites/hooks/useFavoritedModal';
-import { useUnfavoritedModal } from '../../favorites/hooks/useUnfavoritedModal';
-import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext } from '../../../shared/contexts/LoginContext';
-import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import {
   Callbacks,
   ValueWithCallbacks,
@@ -31,7 +18,7 @@ import { ease } from '../../../shared/lib/Bezier';
 import { useAnimatedValueWithCallbacks } from '../../../shared/anim/useAnimatedValueWithCallbacks';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../shared/lib/setVWC';
-import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
+import { useToggleFavorited } from '../hooks/useToggleFavorited';
 
 const HIDE_TIME = 10000;
 
@@ -57,13 +44,9 @@ export const Journey = ({
    */
   onCloseEarly?: (currentTime: number, totalTime: number) => void;
 }): ReactElement => {
-  const loginContext = useContext(LoginContext);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsVisible = useWritableValueWithCallbacks<boolean>(() => true);
   const currentTimeVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const showLikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
-  const showUnlikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
-  const likeErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSizeVWC });
@@ -159,9 +142,6 @@ export const Journey = ({
     }
   }, [shared, setScreen, controlsVisible, currentTimeVWC]);
 
-  useFavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showLikedUntilVWC));
-  useUnfavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showUnlikedUntilVWC));
-
   const onClickedClose = useCallback(() => {
     shared.get().audio.stop?.();
 
@@ -187,52 +167,16 @@ export const Journey = ({
     )
   );
 
+  const toggleFavorited = useToggleFavorited({
+    journey,
+    shared,
+  });
   const onToggleFavorited = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
-      const favorited = shared.get().favorited;
-      if (favorited === null) {
-        return;
-      }
-
       e.preventDefault();
-      setVWC(showLikedUntilVWC, undefined);
-      setVWC(showUnlikedUntilVWC, undefined);
-      setVWC(likeErrorVWC, null);
-
-      try {
-        const response = await apiFetch(
-          '/api/1/users/me/journeys/likes' +
-            (favorited ? '?uid=' + encodeURIComponent(journey.uid) : ''),
-          favorited
-            ? {
-                method: 'DELETE',
-              }
-            : {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify({
-                  journey_uid: journey.uid,
-                }),
-              },
-          loginContext
-        );
-        if (!response.ok) {
-          throw response;
-        }
-
-        const nowFavorited = !favorited;
-        shared.get().setFavorited(nowFavorited);
-        if (nowFavorited) {
-          setVWC(showLikedUntilVWC, Date.now() + 5000);
-        } else {
-          setVWC(showUnlikedUntilVWC, Date.now() + 5000);
-        }
-      } catch (err) {
-        const desc = await describeError(err);
-        setVWC(likeErrorVWC, desc);
-      }
+      toggleFavorited();
     },
-    [shared, journey.uid, loginContext, showLikedUntilVWC, showUnlikedUntilVWC, likeErrorVWC]
+    [toggleFavorited]
   );
 
   return (
@@ -284,10 +228,6 @@ export const Journey = ({
                 )}
               </>
             )}
-          />
-          <RenderGuardedComponent
-            props={likeErrorVWC}
-            component={(likeError) => <>{likeError && <ErrorBlock>{likeError}</ErrorBlock>}</>}
           />
         </div>
       </Control>
