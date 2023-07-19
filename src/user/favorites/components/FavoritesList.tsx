@@ -172,7 +172,6 @@ export const FavoritesList = ({
           emptyElement={
             <div className={styles.empty}>You don&rsquo;t have any favorite classes yet</div>
           }
-          keyFn={journeyKeyFn}
         />
       )}
     />
@@ -180,7 +179,6 @@ export const FavoritesList = ({
 };
 
 const compareHistoryItems = (a: MinimalJourney, b: MinimalJourney): boolean => a.uid === b.uid;
-const journeyKeyFn = (item: MinimalJourney): string => item.uid;
 
 const HistoryItemComponent = ({
   gotoJourneyByUid,

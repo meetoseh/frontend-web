@@ -1,20 +1,15 @@
-.container {
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
-  scrollbar-width: none; /* Firefox */
-  display: flex;
-  flex-direction: column;
-  overflow-y: scroll;
-  width: 100%;
-}
-
-.container::-webkit-scrollbar {
-  display: none; /* Safari and Chrome */
-}
-
 .item {
   width: 100%;
 }
 
-.item:not(:nth-child(2)) {
-  margin-top: 10px;
+.loading {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  color: #ccc;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
 }

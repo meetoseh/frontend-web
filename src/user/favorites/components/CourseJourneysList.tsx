@@ -192,7 +192,6 @@ export const CourseJourneysList = ({
           emptyElement={
             <div className={styles.empty}>You haven&rsquo;t purchased any classes yet.</div>
           }
-          keyFn={journeyKeyFn}
         />
       )}
     />
@@ -201,7 +200,6 @@ export const CourseJourneysList = ({
 
 const compareHistoryItems = (a: MinimalCourseJourney, b: MinimalCourseJourney): boolean =>
   a.associationUid === b.associationUid;
-const journeyKeyFn = (item: MinimalCourseJourney): string => item.associationUid;
 
 const CourseJourneyItemComponent = ({
   gotoJourneyInCourse,

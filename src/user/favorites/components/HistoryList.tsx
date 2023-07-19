@@ -166,7 +166,6 @@ export const HistoryList = ({
           gap={10}
           initialComponentHeight={75}
           emptyElement={<div className={styles.empty}>You haven&rsquo;t taken any classes yet</div>}
-          keyFn={journeyKeyFn}
         />
       )}
     />
@@ -174,7 +173,6 @@ export const HistoryList = ({
 };
 
 const compareHistoryItems = (a: MinimalJourney, b: MinimalJourney): boolean => a.uid === b.uid;
-const journeyKeyFn = (item: MinimalJourney): string => item.uid;
 
 const HistoryItemComponent = ({
   gotoJourneyByUid,
