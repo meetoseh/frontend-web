@@ -12,6 +12,7 @@ import styles from './shared.module.css';
 import { InfiniteList } from '../../../shared/components/InfiniteList';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 export type HistoryListProps = {
   /**
@@ -137,19 +138,17 @@ export const HistoryList = ({
 
   const boundComponent = useMemo<
     (
-      item: MinimalJourney,
+      item: ValueWithCallbacks<MinimalJourney>,
       setItem: (newItem: MinimalJourney) => void,
-      items: MinimalJourney[],
-      index: number
+      visible: ValueWithCallbacks<{ items: MinimalJourney[]; index: number }>
     ) => ReactElement
   >(() => {
-    return (item, setItem, items, index) => (
+    return (item, setItem, visible) => (
       <HistoryItemComponent
         gotoJourneyByUid={gotoJourneyByUID}
         item={item}
         setItem={setItem}
-        items={items}
-        index={index}
+        visible={visible}
         instructorImages={imageHandler}
       />
     );
@@ -181,30 +180,30 @@ const HistoryItemComponent = ({
   gotoJourneyByUid,
   item,
   setItem,
-  items,
-  index,
+  visible,
   instructorImages,
 }: {
   gotoJourneyByUid: (uid: string) => void;
-  item: MinimalJourney;
+  item: ValueWithCallbacks<MinimalJourney>;
   setItem: (item: MinimalJourney) => void;
-  items: MinimalJourney[];
-  index: number;
+  visible: ValueWithCallbacks<{ items: MinimalJourney[]; index: number }>;
   instructorImages: OsehImageStateRequestHandler;
 }): ReactElement => {
   const gotoJourney = useCallback(() => {
-    gotoJourneyByUid(item.uid);
-  }, [gotoJourneyByUid, item.uid]);
+    gotoJourneyByUid(item.get().uid);
+  }, [gotoJourneyByUid, item]);
 
   return (
     <HistoryItem
       item={item}
       setItem={setItem}
-      separator={
-        index === 0 ||
-        items[index - 1].lastTakenAt?.toLocaleDateString() !==
-          item.lastTakenAt?.toLocaleDateString()
-      }
+      separator={useMappedValueWithCallbacks(
+        visible,
+        (v) =>
+          v.index === 0 ||
+          v.items[v.index - 1].lastTakenAt?.toLocaleDateString() !==
+            v.items[v.index].lastTakenAt?.toLocaleDateString()
+      )}
       onClick={gotoJourney}
       instructorImages={instructorImages}
     />

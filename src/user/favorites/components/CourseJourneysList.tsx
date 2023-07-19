@@ -12,6 +12,7 @@ import { MinimalCourseJourney, minimalCourseJourneyKeyMap } from '../lib/Minimal
 import { CourseJourneyItem } from './CourseJourneyItem';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 export type CourseJourneysListProps = {
   /**
@@ -160,20 +161,18 @@ export const CourseJourneysList = ({
 
   const boundComponent = useMemo<
     (
-      item: MinimalCourseJourney,
+      item: ValueWithCallbacks<MinimalCourseJourney>,
       setItem: (newItem: MinimalCourseJourney) => void,
-      items: MinimalCourseJourney[],
-      index: number
+      visible: ValueWithCallbacks<{ items: MinimalCourseJourney[]; index: number }>
     ) => ReactElement
   >(() => {
-    return (item, setItem, items, index) => (
+    return (item, setItem, visible) => (
       <CourseJourneyItemComponent
         gotoJourneyInCourse={gotoJourneyInCourse}
         item={item}
         setItem={setItem}
         replaceItem={infiniteListing.replaceItem.bind(infiniteListing)}
-        items={items}
-        index={index}
+        visible={visible}
         instructorImages={imageHandler}
       />
     );
@@ -206,26 +205,25 @@ const journeyKeyFn = (item: MinimalCourseJourney): string => item.associationUid
 
 const CourseJourneyItemComponent = ({
   gotoJourneyInCourse,
-  item,
+  item: itemVWC,
   setItem,
   replaceItem,
-  items,
-  index,
+  visible: visibleVWC,
   instructorImages,
 }: {
   gotoJourneyInCourse: (journeyUid: string, courseUid: string) => Promise<void>;
-  item: MinimalCourseJourney;
+  item: ValueWithCallbacks<MinimalCourseJourney>;
   setItem: (item: MinimalCourseJourney) => void;
   replaceItem: (
     isItem: (i: MinimalCourseJourney) => boolean,
     newItem: (oldItem: MinimalCourseJourney) => MinimalCourseJourney
   ) => void;
-  items: MinimalCourseJourney[];
-  index: number;
+  visible: ValueWithCallbacks<{ items: MinimalCourseJourney[]; index: number }>;
   instructorImages: OsehImageStateRequestHandler;
 }): ReactElement => {
   const loginContext = useContext(LoginContext);
   const gotoJourney = useCallback(async () => {
+    const item = itemVWC.get();
     await gotoJourneyInCourse(item.journey.uid, item.course.uid);
 
     if (item.isNext) {
@@ -242,7 +240,7 @@ const CourseJourneyItemComponent = ({
         loginContext
       );
     }
-  }, [gotoJourneyInCourse, item.journey.uid, item.course.uid, item.isNext, loginContext]);
+  }, [gotoJourneyInCourse, loginContext, itemVWC]);
   const mapItems = useCallback(
     (fn: (item: MinimalCourseJourney) => MinimalCourseJourney) => {
       replaceItem(() => true, fn);
@@ -250,12 +248,17 @@ const CourseJourneyItemComponent = ({
     [replaceItem]
   );
 
+  const separatorVWC = useMappedValueWithCallbacks(
+    visibleVWC,
+    (v) => v.index === 0 || v.items[v.index - 1].course.uid !== v.items[v.index].course.uid
+  );
+
   return (
     <CourseJourneyItem
-      item={item}
+      item={itemVWC}
       setItem={setItem}
       mapItems={mapItems}
-      separator={index === 0 || items[index - 1].course.uid !== item.course.uid}
+      separator={separatorVWC}
       onClick={gotoJourney}
       instructorImages={instructorImages}
     />

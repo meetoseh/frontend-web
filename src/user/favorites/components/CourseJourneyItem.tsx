@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useMemo } from 'react';
+import { ReactElement, useCallback, useContext, useRef } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import styles from './CourseJourneyItem.module.css';
 import { describeError } from '../../../shared/forms/ErrorBlock';
@@ -13,20 +13,21 @@ import { ContentFileWebExport } from '../../../shared/content/OsehContentTarget'
 import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { useToggleFavorited } from '../../journey/hooks/useToggleFavorited';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
-import { useReactManagedValueAsValueWithCallbacks } from '../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
-import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../shared/contexts/ModalContext';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 type HistoryItemProps = {
   /**
    * The item to render
    */
-  item: MinimalCourseJourney;
+  item: ValueWithCallbacks<MinimalCourseJourney>;
 
   /**
    * If the user modifies the item, i.e., by favoriting/unfavoriting it,
@@ -51,7 +52,7 @@ type HistoryItemProps = {
    * If true, a separator indicating the name of the course will be shown
    * above the block.
    */
-  separator?: boolean;
+  separator: ValueWithCallbacks<boolean>;
 
   /**
    * Called if the user clicks the item outside of the normally clickable
@@ -70,31 +71,37 @@ type HistoryItemProps = {
  * may not have taken before.
  */
 export const CourseJourneyItem = ({
-  item,
+  item: itemVWC,
   setItem,
   mapItems,
-  separator,
+  separator: separatorVWC,
   onClick,
   instructorImages,
 }: HistoryItemProps) => {
   const loginContext = useContext(LoginContext);
-  const instructorImage = useOsehImageStateValueWithCallbacks(
-    {
-      type: 'react-rerender',
-      props: {
-        ...item.journey.instructor.image,
-        displayWidth: 14,
-        displayHeight: 14,
-        alt: 'profile',
-      },
-    },
+  const instructorImageVWC = useOsehImageStateValueWithCallbacks(
+    adaptValueWithCallbacksAsVariableStrategyProps(
+      useMappedValueWithCallbacks(
+        itemVWC,
+        (item) => ({
+          ...item.journey.instructor.image,
+          displayWidth: 14,
+          displayHeight: 14,
+          alt: 'profile',
+        }),
+        {
+          outputEqualityFn: (a, b) => a.uid === b.uid && a.jwt === b.jwt,
+        }
+      )
+    ),
     instructorImages
   );
 
   const likingVWC = useWritableValueWithCallbacks<boolean>(() => false);
-  const itemVWC = useReactManagedValueAsValueWithCallbacks(item);
   const toggleFavorited = useToggleFavorited({
-    journey: item.journey,
+    journey: adaptValueWithCallbacksAsVariableStrategyProps(
+      useMappedValueWithCallbacks(itemVWC, (item) => item.journey)
+    ),
     shared: useMappedValueWithCallbacks(itemVWC, (item) => ({
       favorited: item.journey.likedAt !== null,
       setFavorited: (favorited: boolean) => {
@@ -107,10 +114,9 @@ export const CourseJourneyItem = ({
         });
       },
     })),
-    knownUnfavoritable: {
-      type: 'react-rerender',
-      props: item.journey.lastTakenAt === null,
-    },
+    knownUnfavoritable: adaptValueWithCallbacksAsVariableStrategyProps(
+      useMappedValueWithCallbacks(itemVWC, (item) => item.journey.lastTakenAt === null)
+    ),
     working: likingVWC,
   });
   const onToggleFavorited = useCallback(
@@ -129,6 +135,7 @@ export const CourseJourneyItem = ({
       e.preventDefault();
       e.stopPropagation();
 
+      const item = itemVWC.get();
       setVWC(downloadingVWC, true);
       setVWC(downloadErrorVWC, null);
       try {
@@ -297,7 +304,7 @@ export const CourseJourneyItem = ({
         setVWC(downloadingVWC, false);
       }
     },
-    [downloadingVWC, downloadErrorVWC, item, loginContext, mapItems, setItem]
+    [downloadingVWC, downloadErrorVWC, itemVWC, loginContext, mapItems, setItem]
   );
 
   const modalContext = useContext(ModalContext);
@@ -308,31 +315,85 @@ export const CourseJourneyItem = ({
     () => likingVWC.get() || downloadingVWC.get()
   );
 
-  const ellipsedTitle = useMemo(
-    () => textOverflowEllipses(item.journey.title, 13),
-    [item.journey.title]
+  const ellipsedTitle = useMappedValueWithCallbacks(itemVWC, (item) =>
+    textOverflowEllipses(item.journey.title, 13)
+  );
+  const isNextVWC = useMappedValueWithCallbacks(itemVWC, (item) => item.isNext);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useValueWithCallbacksEffect(isNextVWC, (isNext): undefined => {
+    containerRef.current?.classList.toggle(styles.containerIsNext, isNext);
+    return undefined;
+  });
+
+  const takenVWC = useMappedValueWithCallbacks(
+    itemVWC,
+    (item) => item.journey.lastTakenAt !== null
+  );
+  const instructorName = useMappedValueWithCallbacks(
+    itemVWC,
+    (item) => item.journey.instructor.name
+  );
+  const favorited = useMappedValueWithCallbacks(itemVWC, (item) => item.journey.likedAt !== null);
+
+  const workingAndFavoritedVWC = useMappedValuesWithCallbacks(
+    [workingVWC, favorited],
+    (): [boolean, boolean] => {
+      return [workingVWC.get(), favorited.get()];
+    },
+    {
+      outputEqualityFn: (a, b) => a[0] === b[0] && a[1] === b[1],
+    }
   );
 
   return (
     <div onClick={onClick} className={styles.outerContainer}>
-      {separator && <div className={styles.separator}>{item.course.title}</div>}
+      <RenderGuardedComponent
+        props={separatorVWC}
+        component={(separator) => {
+          if (!separator) {
+            return <></>;
+          }
+
+          return (
+            <RenderGuardedComponent
+              props={itemVWC}
+              component={(item) => {
+                return <div className={styles.separator}>{item.course.title}</div>;
+              }}
+            />
+          );
+        }}
+      />
       <div
         className={combineClasses(
           styles.container,
-          item.isNext ? styles.containerIsNext : undefined
-        )}>
-        {item.journey.lastTakenAt !== null && (
-          <div className={styles.checkContainer}>
-            <div className={styles.checkIcon} />
-          </div>
+          isNextVWC.get() ? styles.containerIsNext : undefined
         )}
+        ref={containerRef}>
+        <RenderGuardedComponent
+          props={takenVWC}
+          component={(taken) =>
+            taken ? (
+              <div className={styles.checkContainer}>
+                <div className={styles.checkIcon} />
+              </div>
+            ) : (
+              <></>
+            )
+          }
+        />
         <div className={styles.titleAndInstructor}>
-          <div className={styles.title}>{ellipsedTitle}</div>
+          <div className={styles.title}>
+            <RenderGuardedComponent props={ellipsedTitle} component={(t) => <>{t}</>} />
+          </div>
           <div className={styles.instructor}>
             <div className={styles.instructorPictureContainer}>
-              <OsehImageFromStateValueWithCallbacks state={instructorImage} />
+              <OsehImageFromStateValueWithCallbacks state={instructorImageVWC} />
             </div>
-            <div className={styles.instructorName}>{item.journey.instructor.name}</div>
+            <div className={styles.instructorName}>
+              <RenderGuardedComponent props={instructorName} component={(n) => <>{n}</>} />
+            </div>
           </div>
         </div>
         <div className={styles.favoriteAndDownloadContainer}>
@@ -350,17 +411,17 @@ export const CourseJourneyItem = ({
             />
           </div>
           <RenderGuardedComponent
-            props={workingVWC}
-            component={(working) => (
+            props={workingAndFavoritedVWC}
+            component={([working, favorited]) => (
               <IconButton
                 icon={
                   working
                     ? styles.waitingIcon
-                    : item.journey.likedAt === null
-                    ? styles.unfavoritedIcon
-                    : styles.favoritedIcon
+                    : favorited
+                    ? styles.favoritedIcon
+                    : styles.unfavoritedIcon
                 }
-                srOnlyName={item.journey.likedAt === null ? 'Like' : 'Unlike'}
+                srOnlyName={favorited ? 'Unlike' : 'Like'}
                 onClick={onToggleFavorited}
                 disabled={working}
               />

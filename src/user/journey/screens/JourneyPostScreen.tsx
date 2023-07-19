@@ -143,7 +143,10 @@ export const JourneyPostScreen = ({
     [onJourneyFinished]
   );
 
-  const toggleFavorited = useToggleFavorited({ journey, shared });
+  const toggleFavorited = useToggleFavorited({
+    journey: { type: 'react-rerender', props: journey },
+    shared,
+  });
   const onToggleFavorited = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();

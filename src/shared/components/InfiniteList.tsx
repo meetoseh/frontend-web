@@ -1,7 +1,20 @@
-import { MutableRefObject, ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import { MutableRefObject, ReactElement, useCallback, useEffect, useMemo, useRef } from 'react';
 import { InfiniteListing } from '../lib/InfiniteListing';
 import styles from './InfiniteList.module.css';
-import { Callbacks } from '../lib/Callbacks';
+import {
+  Callbacks,
+  ValueWithCallbacks,
+  WritableValueWithCallbacks,
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../lib/Callbacks';
+import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';
+import { setVWC } from '../lib/setVWC';
+import {
+  useMappedDeltaValueWithCallbacks,
+  useMappedValueWithCallbacks,
+} from '../hooks/useMappedValueWithCallbacks';
+import { RenderGuardedComponent } from './RenderGuardedComponent';
 
 type InfiniteListProps<T extends object> = {
   /**
@@ -27,7 +40,11 @@ type InfiniteListProps<T extends object> = {
    * first two arguments, but the full list and index are provided for when
    * complicated joining is required.
    */
-  component: (item: T, setItem: (newItem: T) => void, items: T[], index: number) => ReactElement;
+  component: (
+    item: ValueWithCallbacks<T>,
+    replaceItem: (item: T) => void,
+    visible: ValueWithCallbacks<{ items: T[]; index: number }>
+  ) => ReactElement;
 
   /**
    * The height of the listing; listings are always fixed width and height
@@ -85,12 +102,8 @@ type ScrollPaddingValue = {
   top: number;
   bottom: number;
 };
-
-type ScrollPadding = {
-  value: ScrollPaddingValue;
-  changed: Callbacks<ScrollPaddingValue>;
-  set: (value: ScrollPaddingValue) => void;
-};
+const scrollPaddingEqualityFn = (a: ScrollPaddingValue, b: ScrollPaddingValue) =>
+  a.top === b.top && a.bottom === b.bottom;
 
 /**
  * Uses an infinite listing object to render items within a scrollable
@@ -116,34 +129,17 @@ export function InfiniteList<T extends object>({
   emptyElement,
   keyFn,
 }: InfiniteListProps<T>): ReactElement {
-  const items = listing.items;
-
-  const setItemsCounter = useState(0)[1];
-  const renderedItemsRef = useRef<T[]>([]);
-  const renderedItemHeightsRef = useRef<number[] | null>(null);
-  const renderedItemsChangedRef = useRef<Callbacks<undefined>>(null) as MutableRefObject<
-    Callbacks<undefined>
-  >;
-
-  if (renderedItemsChangedRef.current === null) {
-    renderedItemsChangedRef.current = new Callbacks();
-  }
-
+  const itemsVWC = useListingItemsAsVWC(listing);
+  const elementsVWC = useElements(itemsVWC, component, itemComparer, keyFn, listing);
+  const heightsVWC = useElementHeights(elementsVWC);
   /*
    * Scroll padding is specifically for ios; we could not have it and it'd still work on android.
    * It's only necessary because safari doesn't support scroll anchoring
    */
-  const scrollPadding = useRef<ScrollPadding>() as MutableRefObject<ScrollPadding>;
-  if (scrollPadding.current === undefined) {
-    scrollPadding.current = {
-      value: { top: 0, bottom: 0 },
-      changed: new Callbacks(),
-      set: (value) => {
-        scrollPadding.current.value = value;
-        scrollPadding.current.changed.call(value);
-      },
-    };
-  }
+  const scrollPaddingVWC = useWritableValueWithCallbacks<ScrollPaddingValue>(() => ({
+    top: 0,
+    bottom: 0,
+  }));
 
   const listRef = useRef<HTMLDivElement>(null);
   const paddingTopRef = useRef<HTMLDivElement>(null);
@@ -161,45 +157,43 @@ export function InfiniteList<T extends object>({
       return;
     }
 
-    scrollPadding.current.set({ top: 0, bottom: listing.definitelyNoneBelow ? 20 : 500 });
+    setVWC(
+      scrollPaddingVWC,
+      { top: 0, bottom: listing.definitelyNoneBelow ? 20 : 500 },
+      scrollPaddingEqualityFn
+    );
     list.scrollTo({ top: 0, behavior: 'auto' });
-  }, [listing]);
+  }, [listing, scrollPaddingVWC]);
 
-  // ensure listing or listing.items changes triggers a rerender
-  useEffect(() => {
-    const onItemsChanged = () => {
-      setItemsCounter((c) => c + 1);
-    };
-
-    listing.itemsChanged.add(onItemsChanged);
-    return () => {
-      listing.itemsChanged.remove(onItemsChanged);
-    };
-  }, [listing, setItemsCounter]);
+  // After the items change, the elements will be updated and then the heights,
+  // all before this callback. Thus to get this callback to be called precisely
+  // once its sufficient to just use itemsVWC as the trigger.
+  const itemsElementsAndHeights = useMappedValueWithCallbacks(
+    itemsVWC,
+    useCallback(
+      () => ({
+        items: itemsVWC.get(),
+        elements: elementsVWC.get(),
+        heights: heightsVWC.get(),
+      }),
+      [itemsVWC, elementsVWC, heightsVWC]
+    )
+  );
 
   // when rendering after listing.items changes, if listing.items is a simple
   // rotation of the list, visually maintain the scroll position.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (items === null) {
-      renderedItemsRef.current = [];
-      renderedItemsChangedRef.current.call(undefined);
+  useMappedDeltaValueWithCallbacks(itemsElementsAndHeights, (old, updated) => {
+    if (
+      old === undefined ||
+      old.items === null ||
+      updated.items === null ||
+      listRef.current === null
+    ) {
       return;
     }
 
-    if (listRef.current === null) {
-      return;
-    }
     const list = listRef.current;
-
-    const oldItems = renderedItemsRef.current;
-    const oldHeights = renderedItemHeightsRef.current;
-    const heights = getHeights();
-
-    if (items.length !== oldItems.length || oldHeights === null) {
-      renderedItemsRef.current = items;
-      renderedItemHeightsRef.current = heights;
-      renderedItemsChangedRef.current.call(undefined);
+    if (old.items.length !== updated.items.length) {
       return;
     }
 
@@ -208,33 +202,31 @@ export function InfiniteList<T extends object>({
     }
 
     if (listing.definitelyNoneAbove) {
-      if (scrollPadding.current.value.top !== 0) {
-        scrollPadding.current.set({ top: 0, bottom: scrollPadding.current.value.bottom });
-      }
+      setVWC(
+        scrollPaddingVWC,
+        { top: 0, bottom: scrollPaddingVWC.get().bottom },
+        scrollPaddingEqualityFn
+      );
     }
 
     if (listing.definitelyNoneBelow) {
-      if (scrollPadding.current.value.bottom !== 20) {
-        scrollPadding.current.set({ top: scrollPadding.current.value.top, bottom: 20 });
-      }
+      setVWC(
+        scrollPaddingVWC,
+        { top: scrollPaddingVWC.get().top, bottom: 20 },
+        scrollPaddingEqualityFn
+      );
     } else {
-      if (scrollPadding.current.value.bottom !== 500) {
-        scrollPadding.current.set({ top: scrollPadding.current.value.top, bottom: 500 });
-      }
+      setVWC(scrollPaddingVWC, { top: scrollPaddingVWC.get().top, bottom: 500 });
     }
-
-    renderedItemsRef.current = items;
-    renderedItemHeightsRef.current = heights;
-    renderedItemsChangedRef.current.call(undefined);
     return;
 
     function checkDownRotation(): boolean {
-      if (items === null) {
+      if (old === undefined || old.items === null || updated.items === null) {
         return false;
       }
 
       for (let i = 1; i <= listing.rotationLength; i++) {
-        if (oldItems[0] === items[i]) {
+        if (old.items[0] === updated.items[i]) {
           handleDownRotation(i);
           return true;
         }
@@ -251,7 +243,11 @@ export function InfiniteList<T extends object>({
       // above by that amount
 
       let adjustment: number;
-      if (oldHeights === null) {
+      if (
+        old === undefined ||
+        old.heights.some((h) => h === null) ||
+        updated.heights.some((h) => h === null)
+      ) {
         const topOfFirstAddedItem = list.children[1].getBoundingClientRect().top;
         const bottomOfLastAddedItem = list.children[amt].getBoundingClientRect().bottom + gap;
         adjustment = topOfFirstAddedItem - bottomOfLastAddedItem;
@@ -259,25 +255,29 @@ export function InfiniteList<T extends object>({
         const idxOfTopInOld = 5;
         const idxOfTopInNew = idxOfTopInOld + amt;
 
-        const yBefore = computeTopUsingHeights(0, oldHeights, idxOfTopInOld);
-        const yAfter = computeTopUsingHeights(0, heights, idxOfTopInNew);
+        const yBefore = computeTopUsingHeights(0, old.heights as number[], idxOfTopInOld);
+        const yAfter = computeTopUsingHeights(0, updated.heights as number[], idxOfTopInNew);
 
         adjustment = yBefore - yAfter;
       }
 
-      scrollPadding.current.set({
-        top: Math.max(scrollPadding.current.value.top + adjustment, 0),
-        bottom: scrollPadding.current.value.bottom,
-      });
+      setVWC(
+        scrollPaddingVWC,
+        {
+          top: Math.max(scrollPaddingVWC.get().top + adjustment, 0),
+          bottom: scrollPaddingVWC.get().bottom,
+        },
+        scrollPaddingEqualityFn
+      );
     }
 
     function checkUpRotation(): boolean {
-      if (items === null) {
+      if (old === undefined || old.items === null || updated.items === null) {
         return false;
       }
 
       for (let i = 1; i <= listing.rotationLength; i++) {
-        if (oldItems[i] === items[0]) {
+        if (old.items[i] === updated.items[0]) {
           handleUpRotation(i);
           return true;
         }
@@ -290,30 +290,31 @@ export function InfiniteList<T extends object>({
       // top of the list, so theres less real space there, so we need more
       // padding above.
       let heightRemoved = 0;
-      if (oldHeights === null) {
+      if (
+        old === undefined ||
+        old.items === null ||
+        old.heights.some((h) => h === null) ||
+        updated.heights.some((h) => h === null)
+      ) {
         heightRemoved = (initialComponentHeight + gap) * amt;
       } else {
-        const idxOfBottomInOld = oldItems.length - 1;
-        const idxOfBottomInNew = oldItems.length - 1 - amt;
+        const idxOfBottomInOld = old.items.length - 1;
+        const idxOfBottomInNew = old.items.length - 1 - amt;
 
-        const yBefore = computeTopUsingHeights(0, oldHeights, idxOfBottomInOld);
-        const yAfter = computeTopUsingHeights(0, heights, idxOfBottomInNew);
+        const yBefore = computeTopUsingHeights(0, old.heights as number[], idxOfBottomInOld);
+        const yAfter = computeTopUsingHeights(0, updated.heights as number[], idxOfBottomInNew);
 
         heightRemoved = yBefore - yAfter;
       }
       const adjustment = heightRemoved;
-      scrollPadding.current.set({
-        top: scrollPadding.current.value.top + adjustment,
-        bottom: scrollPadding.current.value.bottom,
-      });
-    }
-
-    function getHeights(): number[] {
-      const res = [];
-      for (let i = 1; i < list.children.length - 2; i++) {
-        res.push(list.children[i].getBoundingClientRect().height);
-      }
-      return res;
+      setVWC(
+        scrollPaddingVWC,
+        {
+          top: scrollPaddingVWC.get().top + adjustment,
+          bottom: scrollPaddingVWC.get().bottom,
+        },
+        scrollPaddingEqualityFn
+      );
     }
 
     function computeTopUsingHeights(padding: number, heights: number[], idx: number) {
@@ -343,12 +344,12 @@ export function InfiniteList<T extends object>({
     let locked = false;
 
     let active = true;
-    renderedItemsChangedRef.current.add(onItemsChanged);
+    itemsVWC.callbacks.add(onItemsChanged);
     list.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       if (active) {
         active = false;
-        renderedItemsChangedRef.current.remove(onItemsChanged);
+        itemsVWC.callbacks.remove(onItemsChanged);
         list.removeEventListener('scroll', onScroll, { capture: false });
         if (waitingForItemsChangedTimeout !== null) {
           clearTimeout(waitingForItemsChangedTimeout);
@@ -427,7 +428,7 @@ export function InfiniteList<T extends object>({
 
       checkVisible();
     }
-  }, [height, gap, listing]);
+  }, [height, gap, listing, itemsVWC]);
 
   // Changing scrollPadding immediately effects the corresponding elements
   useEffect(() => {
@@ -446,11 +447,11 @@ export function InfiniteList<T extends object>({
 
     let active = true;
     updateStyles();
-    scrollPadding.current.changed.add(updateStyles);
+    scrollPaddingVWC.callbacks.add(updateStyles);
     return () => {
       if (active) {
         active = false;
-        scrollPadding.current.changed.remove(updateStyles);
+        scrollPaddingVWC.callbacks.remove(updateStyles);
       }
     };
 
@@ -459,8 +460,8 @@ export function InfiniteList<T extends object>({
         return;
       }
 
-      const top = scrollPadding.current.value.top;
-      const bottom = scrollPadding.current.value.bottom;
+      const top = scrollPaddingVWC.get().top;
+      const bottom = scrollPaddingVWC.get().bottom;
       const expectedTop = `${top}px`;
       const expectedBottom = `${bottom}px`;
 
@@ -474,7 +475,7 @@ export function InfiniteList<T extends object>({
       paddingBottom.style.minHeight = expectedBottom;
       paddingTop.style.minHeight = expectedTop;
     }
-  }, []);
+  }, [scrollPaddingVWC]);
 
   const listStyle = useMemo<React.CSSProperties>(() => {
     return {
@@ -482,39 +483,220 @@ export function InfiniteList<T extends object>({
     };
   }, [height]);
 
-  const replaceItemByIndex = useMemo<((newItem: T) => void)[]>(() => {
-    if (items === null) {
-      return [];
+  const stateVWC = useMappedValueWithCallbacks(
+    itemsVWC,
+    (items): 'loading' | 'empty' | 'elements' => {
+      if (items === null) {
+        return 'loading';
+      }
+
+      if (items.length === 0) {
+        return 'empty';
+      }
+
+      return 'elements';
     }
-
-    return items.map((item) => {
-      return (newItem: T) => {
-        listing.replaceItem((oldItem) => itemComparer(oldItem, item), newItem);
-      };
-    });
-  }, [listing, items, itemComparer]);
-
-  if (loadingElement !== undefined && items === null) {
-    return loadingElement;
-  }
-
-  if (emptyElement !== undefined && items?.length === 0) {
-    return emptyElement;
-  }
+  );
 
   return (
-    <div style={listStyle} className={styles.container} ref={listRef}>
-      <div ref={paddingTopRef}></div>
-      {items?.map((item, index) => {
+    <RenderGuardedComponent
+      props={stateVWC}
+      component={(s) => {
+        if (loadingElement !== undefined && s === 'loading') {
+          return loadingElement;
+        }
+
+        if (emptyElement !== undefined && s === 'empty') {
+          return emptyElement;
+        }
+
         return (
-          <div
-            key={keyFn === undefined ? index.toString() : keyFn(item, index)}
-            className={styles.item}>
-            {component(item, replaceItemByIndex[index], items, index)}
-          </div>
+          <RenderGuardedComponent
+            props={elementsVWC}
+            component={(elements) => (
+              <div style={listStyle} className={styles.container} ref={listRef}>
+                <div ref={paddingTopRef}></div>
+                {elements.map((el) => el.react)}
+                <div ref={paddingBottomRef}></div>
+              </div>
+            )}
+          />
         );
-      })}
-      <div ref={paddingBottomRef}></div>
-    </div>
+      }}
+    />
   );
+}
+
+/**
+ * Gets the items within an infinite listing as a value with callbacks.
+ */
+function useListingItemsAsVWC<T extends object>(
+  listing: InfiniteListing<T>
+): ValueWithCallbacks<T[] | null> {
+  const itemsChangedAsStdCallbacksRef = useRef<Callbacks<undefined>>() as MutableRefObject<
+    Callbacks<undefined>
+  >;
+  if (itemsChangedAsStdCallbacksRef.current === undefined) {
+    itemsChangedAsStdCallbacksRef.current = new Callbacks();
+  }
+  useEffect(() => {
+    listing.itemsChanged.add(doCall);
+    return () => {
+      listing.itemsChanged.remove(doCall);
+    };
+
+    function doCall() {
+      itemsChangedAsStdCallbacksRef.current.call(undefined);
+    }
+  }, [listing.itemsChanged]);
+
+  return useMemo(
+    (): ValueWithCallbacks<T[] | null> => ({
+      get: () => listing.items,
+      callbacks: itemsChangedAsStdCallbacksRef.current,
+    }),
+    [listing]
+  );
+}
+
+/**
+ * Converts the given items to react elements, with refs to the underlying dom
+ * elements (when the react elements are mounted).
+ */
+function useElements<T extends object>(
+  items: ValueWithCallbacks<T[] | null>,
+  component: InfiniteListProps<T>['component'],
+  itemComparer: InfiniteListProps<T>['itemComparer'],
+  keyFn: InfiniteListProps<T>['keyFn'],
+  listing: InfiniteListing<T>
+): ValueWithCallbacks<{ react: ReactElement; dom: HTMLDivElement | null }[]> {
+  const resultPackedVWC = useWritableValueWithCallbacks<
+    {
+      react: ReactElement;
+      dom: WritableValueWithCallbacks<HTMLDivElement | null>;
+      item: WritableValueWithCallbacks<T>;
+      items: WritableValueWithCallbacks<{ items: T[]; index: number }>;
+    }[]
+  >(() => []);
+
+  useValueWithCallbacksEffect(
+    items,
+    useCallback(
+      (items) => {
+        items = items ?? [];
+        const old = resultPackedVWC.get();
+
+        const result = [];
+        for (let i = 0; i < items.length && i < old.length; i++) {
+          setVWC(old[i].item, items[i]);
+          setVWC(old[i].items, { items, index: i });
+        }
+        for (let i = result.length; i < items.length; i++) {
+          const newItem = createWritableValueWithCallbacks(items[i]);
+          const newItems = createWritableValueWithCallbacks({ items, index: i });
+          const newDOM = createWritableValueWithCallbacks<HTMLDivElement | null>(null);
+          const newReact = (
+            <div
+              className={styles.item}
+              ref={(r) => setVWC(newDOM, r)}
+              key={keyFn === undefined ? i.toString() : keyFn(items[i], i)}>
+              {component(
+                newItem,
+                (newValue) => {
+                  listing.replaceItem(itemComparer.bind(undefined, newItem.get()), newValue);
+                },
+                newItems
+              )}
+            </div>
+          );
+          result.push({ react: newReact, dom: newDOM, item: newItem, items: newItems });
+        }
+
+        setVWC(resultPackedVWC, result);
+        return undefined;
+      },
+      [resultPackedVWC, component, itemComparer, keyFn, listing]
+    )
+  );
+
+  const resultVWC = useWritableValueWithCallbacks<
+    {
+      react: ReactElement;
+      dom: HTMLDivElement | null;
+    }[]
+  >(() => []);
+
+  useValueWithCallbacksEffect(resultPackedVWC, (packed) => {
+    const cancelers = new Callbacks<undefined>();
+    registerInnerListeners();
+    updateResult();
+    return () => cancelers.call(undefined);
+
+    function registerInnerListeners() {
+      packed.forEach((p) => {
+        p.dom.callbacks.add(updateResult);
+        cancelers.add(() => p.dom.callbacks.remove(updateResult));
+      });
+    }
+
+    function updateResult() {
+      setVWC(
+        resultVWC,
+        packed.map((p) => ({ react: p.react, dom: p.dom.get() }))
+      );
+    }
+  });
+
+  return resultVWC;
+}
+
+function arrEqualityFn<T>(a: T[], b: T[]) {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+function useElementHeights(
+  elements: ValueWithCallbacks<{ react: ReactElement; dom: HTMLDivElement | null }[]>
+): ValueWithCallbacks<(number | null)[]> {
+  const resultVWC = useWritableValueWithCallbacks<(number | null)[]>(() => []);
+
+  useValueWithCallbacksEffect(elements, (elements) => {
+    const cancelers = new Callbacks<undefined>();
+    registerInnerListeners();
+    updateResult();
+    return () => cancelers.call(undefined);
+
+    function registerInnerListeners() {
+      if (!window.ResizeObserver) {
+        return;
+      }
+
+      elements.forEach((element) => {
+        if (element === null || element.dom === null) {
+          return;
+        }
+
+        const observer = new ResizeObserver(() => {
+          updateResult();
+        });
+        observer.observe(element.dom);
+        cancelers.add(() => observer.disconnect());
+      });
+    }
+
+    function updateResult() {
+      setVWC(
+        resultVWC,
+        elements.map((e) => {
+          if (e.dom === null) {
+            return null;
+          }
+          const bounds = e.dom.getBoundingClientRect();
+          return bounds.height;
+        }),
+        arrEqualityFn
+      );
+    }
+  });
+
+  return resultVWC;
 }

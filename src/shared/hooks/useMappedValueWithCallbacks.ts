@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   ValueWithCallbacks,
   createWritableValueWithCallbacks,
@@ -65,6 +65,28 @@ export const useMappedValueWithCallbacks = <T, U>(
   mapper: (value: T) => U,
   rawOpts?: MappedValueWithCallbacksOpts<T, U>
 ): ValueWithCallbacks<U> => {
+  return useMappedDeltaValueWithCallbacks(
+    original,
+    useCallback((_, value) => mapper(value), [mapper]),
+    rawOpts
+  );
+};
+/**
+ * Creates a new value with callbacks which maps the original value using the
+ * given mapper function, functioning as a react hook. The mapper is passed
+ * the last input the mapper was passed as well as the new input, allowing
+ * delta detection.
+ *
+ * @param original The original value with callbacks
+ * @param mapper The mapper function
+ * @param rawOpts Additional options while mapping
+ * @returns The mapped value with callbacks
+ */
+export const useMappedDeltaValueWithCallbacks = <T, U>(
+  original: ValueWithCallbacks<T>,
+  mapper: (oldValue: T | undefined, newValue: T) => U,
+  rawOpts?: MappedValueWithCallbacksOpts<T, U>
+): ValueWithCallbacks<U> => {
   const opts: Required<MappedValueWithCallbacksOpts<T, U>> = Object.assign(
     {
       inputEqualityFn: defaultEqualityFn,
@@ -76,7 +98,7 @@ export const useMappedValueWithCallbacks = <T, U>(
   const result = useWritableValueWithCallbacks<U>(() => {
     const newInput = original.get();
     lastInputRef.current = newInput;
-    return mapper(newInput);
+    return mapper(undefined, newInput);
   });
 
   useEffect(() => {
@@ -92,12 +114,12 @@ export const useMappedValueWithCallbacks = <T, U>(
         return;
       }
 
-      const newOutput = mapper(newInput);
+      const newOutput = mapper(lastInputRef.current, newInput);
+      lastInputRef.current = newInput;
+
       if (opts.outputEqualityFn.call(undefined, result.get(), newOutput)) {
         return;
       }
-
-      lastInputRef.current = newInput;
       result.set(newOutput);
       result.callbacks.call(undefined);
     }

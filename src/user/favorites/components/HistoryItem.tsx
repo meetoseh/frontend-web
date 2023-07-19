@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useMemo } from 'react';
+import { ReactElement, useCallback } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import { MinimalJourney } from '../lib/MinimalJourney';
 import styles from './HistoryItem.module.css';
@@ -7,13 +7,12 @@ import { useFavoritedModal } from '../hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../hooks/useUnfavoritedModal';
 import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { InlineOsehSpinner } from '../../../shared/components/InlineOsehSpinner';
-import { useReactManagedValueAsValueWithCallbacks } from '../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useToggleFavorited } from '../../journey/hooks/useToggleFavorited';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
@@ -21,7 +20,7 @@ type HistoryItemProps = {
   /**
    * The item to render
    */
-  item: MinimalJourney;
+  item: ValueWithCallbacks<MinimalJourney>;
 
   /**
    * If the user modifies the item, i.e., by favoriting/unfavoriting it,
@@ -36,7 +35,7 @@ type HistoryItemProps = {
    * If true, a separator indicating the date the item was taken is rendered
    * just before the item.
    */
-  separator?: boolean;
+  separator: ValueWithCallbacks<boolean>;
 
   /**
    * Called if the user clicks the item outside of the normally clickable
@@ -54,9 +53,9 @@ type HistoryItemProps = {
  * Renders a minimal journey for the favorites or history tab.
  */
 export const HistoryItem = ({
-  item,
+  item: itemVWC,
   setItem,
-  separator,
+  separator: separatorVWC,
   onClick,
   instructorImages,
 }: HistoryItemProps) => {
@@ -65,20 +64,24 @@ export const HistoryItem = ({
   const showLikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
   const showUnlikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
   const instructorImageVWC = useOsehImageStateValueWithCallbacks(
-    {
-      type: 'react-rerender',
-      props: {
-        ...item.instructor.image,
-        displayWidth: 14,
-        displayHeight: 14,
-        alt: 'profile',
-      },
-    },
+    adaptValueWithCallbacksAsVariableStrategyProps(
+      useMappedValueWithCallbacks(
+        itemVWC,
+        (item) => ({
+          ...item.instructor.image,
+          displayWidth: 14,
+          displayHeight: 14,
+          alt: 'profile',
+        }),
+        {
+          outputEqualityFn: (a, b) => a.uid === b.uid && a.jwt === b.jwt,
+        }
+      )
+    ),
     instructorImages
   );
-  const itemVWC = useReactManagedValueAsValueWithCallbacks(item);
   const toggleFavorited = useToggleFavorited({
-    journey: item,
+    journey: adaptValueWithCallbacksAsVariableStrategyProps(itemVWC),
     shared: useMappedValueWithCallbacks(itemVWC, (item) => ({
       favorited: item.likedAt !== null,
       setFavorited: (favorited: boolean) => {
@@ -88,10 +91,9 @@ export const HistoryItem = ({
         });
       },
     })),
-    knownUnfavoritable: {
-      type: 'react-rerender',
-      props: item.lastTakenAt === null,
-    },
+    knownUnfavoritable: adaptValueWithCallbacksAsVariableStrategyProps(
+      useMappedValueWithCallbacks(itemVWC, (item) => item.lastTakenAt === null)
+    ),
     working: likingVWC,
   });
   const onToggleFavorited = useCallback(
@@ -106,21 +108,49 @@ export const HistoryItem = ({
   useFavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showLikedUntilVWC));
   useUnfavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showUnlikedUntilVWC));
 
-  const ellipsedTitle = useMemo(() => textOverflowEllipses(item.title, 15), [item.title]);
+  const ellipsedTitle = useMappedValueWithCallbacks(itemVWC, (item) =>
+    textOverflowEllipses(item.title, 15)
+  );
+  const instructorName = useMappedValueWithCallbacks(itemVWC, (item) => item.instructor.name);
+  const favorited = useMappedValueWithCallbacks(itemVWC, (item) => item.likedAt !== null);
 
   return (
     <div onClick={onClick}>
-      {separator && item.lastTakenAt !== null && (
-        <div className={styles.separator}>{item.lastTakenAt.toLocaleDateString()}</div>
-      )}
+      <RenderGuardedComponent
+        props={separatorVWC}
+        component={(separator) => {
+          if (!separator) {
+            return <></>;
+          }
+
+          return (
+            <RenderGuardedComponent
+              props={itemVWC}
+              component={(item) => {
+                if (item.lastTakenAt === null) {
+                  return <></>;
+                }
+
+                return (
+                  <div className={styles.separator}>{item.lastTakenAt.toLocaleDateString()}</div>
+                );
+              }}
+            />
+          );
+        }}
+      />
       <div className={styles.container}>
         <div className={styles.titleAndInstructor}>
-          <div className={styles.title}>{ellipsedTitle}</div>
+          <div className={styles.title}>
+            <RenderGuardedComponent props={ellipsedTitle} component={(t) => <>{t}</>} />
+          </div>
           <div className={styles.instructor}>
             <div className={styles.instructorPictureContainer}>
               <OsehImageFromStateValueWithCallbacks state={instructorImageVWC} />
             </div>
-            <div className={styles.instructorName}>{item.instructor.name}</div>
+            <div className={styles.instructorName}>
+              <RenderGuardedComponent props={instructorName} component={(n) => <>{n}</>} />
+            </div>
           </div>
         </div>
         <div className={styles.favoritedContainer}>
@@ -133,11 +163,16 @@ export const HistoryItem = ({
                   variant="white"
                 />
               ) : (
-                <IconButton
-                  icon={item.likedAt === null ? styles.unfavoritedIcon : styles.favoritedIcon}
-                  srOnlyName={item.likedAt === null ? 'Like' : 'Unlike'}
-                  onClick={onToggleFavorited}
-                  disabled={liking}
+                <RenderGuardedComponent
+                  props={favorited}
+                  component={(favorited) => (
+                    <IconButton
+                      icon={favorited ? styles.favoritedIcon : styles.unfavoritedIcon}
+                      srOnlyName={favorited ? 'Unlike' : 'Like'}
+                      onClick={onToggleFavorited}
+                      disabled={liking}
+                    />
+                  )}
                 />
               )
             }

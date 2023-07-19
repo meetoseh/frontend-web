@@ -19,7 +19,7 @@ type UseToggleFavoritedProps = {
   /**
    * The journey whose favorited state should be toggled
    */
-  journey: { uid: string };
+  journey: VariableStrategyProps<{ uid: string }>;
 
   /**
    * The shared state for the journey, including if it's currently
@@ -78,7 +78,7 @@ export const useToggleFavorited = ({
     try {
       await toggleFavorited(
         loginContext,
-        journey,
+        journey.type === 'react-rerender' ? journey.props : journey.props(),
         shared,
         showLikedUntilVWC,
         showUnlikedUntilVWC,

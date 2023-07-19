@@ -10,7 +10,7 @@ import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
 import { HistoryItem } from './HistoryItem';
 import styles from './shared.module.css';
 import { InfiniteList } from '../../../shared/components/InfiniteList';
-import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 
 export type FavoritesListProps = {
@@ -142,19 +142,17 @@ export const FavoritesList = ({
 
   const boundComponent = useMemo<
     (
-      item: MinimalJourney,
+      item: ValueWithCallbacks<MinimalJourney>,
       setItem: (newItem: MinimalJourney) => void,
-      items: MinimalJourney[],
-      index: number
+      visible: ValueWithCallbacks<{ items: MinimalJourney[]; index: number }>
     ) => ReactElement
   >(() => {
-    return (item, setItem, items, index) => (
+    return (item, setItem, visible) => (
       <HistoryItemComponent
         gotoJourneyByUid={gotoJourneyByUID}
         item={item}
         setItem={setItem}
-        items={items}
-        index={index}
+        visible={visible}
         instructorImages={imageHandler}
       />
     );
@@ -188,26 +186,25 @@ const HistoryItemComponent = ({
   gotoJourneyByUid,
   item,
   setItem,
-  items,
-  index,
+  visible,
   instructorImages,
 }: {
   gotoJourneyByUid: (uid: string) => void;
-  item: MinimalJourney;
+  item: ValueWithCallbacks<MinimalJourney>;
   setItem: (item: MinimalJourney) => void;
-  items: MinimalJourney[];
-  index: number;
+  visible: ValueWithCallbacks<{ items: MinimalJourney[]; index: number }>;
   instructorImages: OsehImageStateRequestHandler;
 }): ReactElement => {
   const gotoJourney = useCallback(() => {
-    gotoJourneyByUid(item.uid);
-  }, [gotoJourneyByUid, item.uid]);
+    gotoJourneyByUid(item.get().uid);
+  }, [gotoJourneyByUid, item]);
+  const separator = useWritableValueWithCallbacks(() => false);
 
   return (
     <HistoryItem
       item={item}
       setItem={setItem}
-      separator={false}
+      separator={separator}
       onClick={gotoJourney}
       instructorImages={instructorImages}
     />

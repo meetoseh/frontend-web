@@ -168,7 +168,7 @@ export const Journey = ({
   );
 
   const toggleFavorited = useToggleFavorited({
-    journey,
+    journey: { type: 'react-rerender', props: journey },
     shared,
   });
   const onToggleFavorited = useCallback(
