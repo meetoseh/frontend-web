@@ -1,4 +1,13 @@
-import { Dispatch, ReactElement, SetStateAction, useCallback, useMemo } from 'react';
+import {
+  Dispatch,
+  ReactElement,
+  SetStateAction,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { CrudFetcherFilter, CrudFetcherSort } from '../crud/CrudFetcher';
 import { CrudFormElement } from '../crud/CrudFormElement';
 import { CrudFiltersBlock } from '../crud/CrudFiltersBlock';
@@ -10,6 +19,8 @@ import {
   isoDateStringToLocaleDate,
 } from '../../shared/lib/dateToLocaleISODateString';
 import { Checkbox } from '../../shared/forms/Checkbox';
+import { LoginContext } from '../../shared/contexts/LoginContext';
+import { apiFetch } from '../../shared/ApiConstants';
 
 type UserFilterAndSortBlockProps = {
   /**
@@ -76,8 +87,6 @@ const SORTS: { name: string; sort: CrudFetcherSort }[] = [
   },
 ];
 
-const INTERESTS = ['sleep', 'anxiety', 'mindful'];
-
 /**
  * Controls the filter and sort for the user listing
  */
@@ -87,6 +96,56 @@ export const UserFilterAndSortBlock = ({
   filter,
   setFilter,
 }: UserFilterAndSortBlockProps): ReactElement => {
+  const loginContext = useContext(LoginContext);
+  const [interests, setInterests] = useState<string[]>(['anxiety', 'mindful', 'sleep']);
+
+  useEffect(() => {
+    let active = true;
+    fetchInterests();
+    return () => {
+      active = false;
+    };
+
+    async function fetchInterestsInner() {
+      const response = await apiFetch(
+        '/api/1/interests/search',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          body: JSON.stringify({
+            sort: [
+              {
+                key: 'slug',
+                dir: 'asc',
+                before: null,
+                after: null,
+              },
+            ],
+            limit: 100,
+          }),
+        },
+        loginContext
+      );
+      if (!response.ok) {
+        throw response;
+      }
+      const interests: { items: { slug: string }[] } = await response.json();
+      if (active) {
+        setInterests(interests.items.map((i) => i.slug));
+      }
+    }
+
+    async function fetchInterests() {
+      try {
+        await fetchInterestsInner();
+      } catch (e) {
+        console.warn('failed to fetch interests for filtering: ', e);
+      }
+    }
+  }, [loginContext]);
+
   const sortName = useMemo(() => {
     return SORTS.find((s) => JSON.stringify(s.sort) === JSON.stringify(sort))!.name;
   }, [sort]);
@@ -383,7 +442,7 @@ export const UserFilterAndSortBlock = ({
               });
             }}>
             <option value="">All</option>
-            {INTERESTS.map((pi) => (
+            {interests.map((pi) => (
               <option key={pi} value={pi}>
                 {pi}
               </option>

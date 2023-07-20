@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect } from 'react';
+import { ReactElement, useContext, useEffect, useMemo } from 'react';
 import { LoginContext, LoginProvider } from '../shared/contexts/LoginContext';
 import { ModalProvider } from '../shared/contexts/ModalContext';
 import { LoginApp } from './login/LoginApp';
@@ -13,8 +13,10 @@ import { useTimedValueWithCallbacks } from '../shared/hooks/useTimedValue';
 import { RenderGuardedComponent } from '../shared/components/RenderGuardedComponent';
 import { useWritableValueWithCallbacks } from '../shared/lib/Callbacks';
 import { setVWC } from '../shared/lib/setVWC';
-import { useValueWithCallbacksEffect } from '../shared/hooks/useValueWithCallbacksEffect';
 import { useMappedValuesWithCallbacks } from '../shared/hooks/useMappedValuesWithCallbacks';
+import { getUTMFromURL } from '../shared/hooks/useVisitor';
+import { IsaiahCourseLoginScreen } from './core/features/isaiahCourse/IsaiahCourseLoginScreen';
+import { useValuesWithCallbacksEffect } from '../shared/hooks/useValuesWithCallbacksEffect';
 
 export default function UserApp(): ReactElement {
   return (
@@ -46,6 +48,7 @@ const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const fontsLoaded = useFonts(requiredFonts);
   const features = useFeaturesState();
+  const utm = useMemo(() => getUTMFromURL(), []);
 
   const stateVWC = useWritableValueWithCallbacks<'loading' | 'features' | 'login'>(() => 'loading');
   // Since on first load the user likely sees white anyway, it's better to leave
@@ -114,14 +117,19 @@ const UserAppInner = (): ReactElement => {
     }
   }, [loginContext, handlingCheckoutVWC]);
 
-  useValueWithCallbacksEffect(handlingCheckoutVWC, (handlingCheckout): undefined => {
-    if (loginContext.state === 'loading' || !fontsLoaded || handlingCheckout) {
+  useValuesWithCallbacksEffect([handlingCheckoutVWC, features], (): undefined => {
+    if (loginContext.state === 'loading' || !fontsLoaded || handlingCheckoutVWC.get()) {
       setVWC(stateVWC, 'loading');
       return;
     }
 
     if (loginContext.state === 'logged-out') {
       setVWC(stateVWC, 'login');
+      return;
+    }
+
+    if (features.get() === undefined) {
+      setVWC(stateVWC, 'loading');
       return;
     }
 
@@ -148,6 +156,10 @@ const UserAppInner = (): ReactElement => {
         props={stateVWC}
         component={(state) => {
           if (state === 'login') {
+            if (utm !== null && utm.campaign === 'course' && utm.content === 'affirmation-course') {
+              return <IsaiahCourseLoginScreen />;
+            }
+
             return <LoginApp />;
           }
 

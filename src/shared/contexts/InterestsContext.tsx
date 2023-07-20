@@ -52,6 +52,13 @@ export type InterestsContextValue =
        * primaryInterest and interests properties.
        */
       state: 'loaded';
+
+      /**
+       * The visitor state, since it's convenient to include this as a context
+       * whenever interests are being used and it's required for interests
+       */
+      visitor: Visitor;
+
       /**
        * The primary interest for the user, typically used for personalization.
        */
@@ -91,6 +98,12 @@ export type InterestsContextValue =
        * no interests.
        */
       state: 'unavailable';
+
+      /**
+       * The visitor state, since it's convenient to include this as a context
+       * whenever interests are being used and it's required for interests
+       */
+      visitor: Visitor;
 
       /**
        * Used to set the interests for the user locally and in the backend. This
@@ -231,6 +244,10 @@ const getInterestFromUTM = (utm: UTM): { primaryInterest: string; interests: str
     } else if (utm.content === 'mindful') {
       return { primaryInterest: 'mindful', interests: ['mindful'] };
     }
+  } else if (utm.source === 'oseh.com' && utm.medium === 'referral' && utm.campaign === 'course') {
+    if (utm.content === 'affirmation-course') {
+      return { primaryInterest: 'isaiah-course', interests: ['isaiah-course'] };
+    }
   }
   return null;
 };
@@ -298,6 +315,7 @@ export const InterestsProvider = ({
         });
         setBaseState({
           state: 'loaded',
+          visitor,
           primaryInterest: data.primary_interest,
           interests: data.interests,
           setInterests: _noSetInterests,
@@ -310,8 +328,8 @@ export const InterestsProvider = ({
 
   const clearInterests = useCallback(async () => {
     deleteLocalInterests();
-    setBaseState({ state: 'unavailable', setInterests: _noSetInterests });
-  }, []);
+    setBaseState({ state: 'unavailable', visitor, setInterests: _noSetInterests });
+  }, [visitor]);
 
   useLogoutHandler(clearInterests);
 
@@ -397,6 +415,7 @@ export const InterestsProvider = ({
         if (locallyStored !== null && locallyStored.expiresAt > nowMS) {
           setBaseState({
             state: 'loaded',
+            visitor,
             primaryInterest: locallyStored.primaryInterest,
             interests: locallyStored.interests,
             setInterests: _noSetInterests,
@@ -417,6 +436,7 @@ export const InterestsProvider = ({
           storeInterestsLocally(serverStored);
           setBaseState({
             state: 'loaded',
+            visitor,
             primaryInterest: serverStored.primaryInterest,
             interests: serverStored.interests,
             setInterests: _noSetInterests,
@@ -425,7 +445,7 @@ export const InterestsProvider = ({
           return;
         }
 
-        setBaseState({ state: 'unavailable', setInterests: _noSetInterests });
+        setBaseState({ state: 'unavailable', visitor, setInterests: _noSetInterests });
       }
 
       async function fetchState() {
@@ -433,7 +453,7 @@ export const InterestsProvider = ({
           await fetchStateInner();
         } catch (e) {
           if (active) {
-            setBaseState({ state: 'unavailable', setInterests: _noSetInterests });
+            setBaseState({ state: 'unavailable', visitor, setInterests: _noSetInterests });
           }
         } finally {
           onDone();
@@ -451,18 +471,20 @@ export const InterestsProvider = ({
     if (baseState.state === 'unavailable') {
       return {
         state: 'unavailable',
+        visitor,
         setInterests,
       };
     }
 
     return {
       state: 'loaded',
+      visitor,
       primaryInterest: baseState.primaryInterest,
       interests: baseState.interests,
       setInterests,
       clearLocallyStoredInterests: clearInterests,
     };
-  }, [baseState, setInterests, clearInterests]);
+  }, [baseState, visitor, setInterests, clearInterests]);
 
   return <InterestsContext.Provider value={state}>{children}</InterestsContext.Provider>;
 };

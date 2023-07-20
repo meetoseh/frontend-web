@@ -88,6 +88,27 @@
         [873, 312]
       ],
       "transparency": true
+    },
+    {
+      "uid": "oseh_if_sqEZCjA1sP6vaIrzz5Lvsw",
+      "name": "isaiah quinn",
+      "comment": "used for login page background when user has the isaiah-course interest",
+      "source": "server_images/Isaiah_Quinn_Rodriguez.jpg",
+      "resolutions": "full-bleed",
+      "transparency": false,
+      "focal_point": [0.5, 0.35]
+    },
+    {
+      "uid": "oseh_if_utnIdo3z0V65FnFSc-Rs-g",
+      "name": "red mountains",
+      "comment": "used when a nature photo is desired for signup reward",
+      "source": "server_images/pexels-rok-romih-3848158.jpg",
+      "resolutions": [
+        [336, 184],
+        [672, 368],
+        [840, 460],
+        [1008, 552]
+      ]
     }
   ]
 }

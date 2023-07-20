@@ -276,6 +276,8 @@ export const RequestPhone = ({
                       <span style={{ whiteSpace: 'nowrap' }}>friendly nudges</span>
                     </>
                   );
+                } else if (interests.primaryInterest === 'isaiah-course') {
+                  return <>Oseh is much better with notifications</>;
                 } else {
                   return defaultCopy;
                 }

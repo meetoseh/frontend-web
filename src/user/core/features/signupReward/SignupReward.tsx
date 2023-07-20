@@ -1,7 +1,7 @@
 import { FeatureComponentProps } from '../../models/Feature';
 import { SignupRewardResources } from './SignupRewardResources';
 import styles from './SignupReward.module.css';
-import { useCallback, useContext } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { Button } from '../../../../shared/forms/Button';
 import { SignupRewardState } from './SignupRewardState';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
@@ -25,11 +25,43 @@ export const SignupReward = ({
   });
   const windowSize = useWindowSize();
 
+  const sentCustomizationEventRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (sentCustomizationEventRef.current || interests.state !== 'loaded') {
+      return;
+    }
+    sentCustomizationEventRef.current = true;
+    resources.get().session?.storeAction('customized', { interest: interests.primaryInterest });
+  }, [interests, resources]);
+
   const onFinish = useCallback(() => {
     resources.get().session?.storeAction?.call(undefined, 'next', null);
     resources.get().session?.reset?.call(undefined);
     state.get().ian?.onShown?.call(undefined);
   }, [state, resources]);
+
+  const checklistItems = useMemo((): ReactElement[] => {
+    const result = [
+      <>Classes for every mood</>,
+      <>Daily check-ins</>,
+      <>Bite-sized to fit your schedule</>,
+    ];
+
+    if (interests.state !== 'loaded') {
+      return result;
+    }
+
+    if (interests.primaryInterest === 'anxiety') {
+      result[0] = <>Variety of unique themes</>;
+    } else if (interests.primaryInterest === 'sleep') {
+      result[0] = <>Classes to induce any dream</>;
+    } else if (interests.primaryInterest === 'isaiah-course') {
+      result[0] = <>Access to Isaiah&rsquo;s Course</>;
+      result[1] = <>100s of other classes for any mood</>;
+      result[2] = <>Reminders to keep you motivated</>;
+    }
+    return result;
+  }, [interests]);
 
   return (
     <div className={styles.container}>
@@ -63,23 +95,11 @@ export const SignupReward = ({
         </div>
         <div className={styles.horizontalRule} />
         <div className={styles.checkList}>
-          <div className={styles.checkListItem}>
-            {(() => {
-              const defaultCopy = <>Classes for every mood</>;
-
-              if (interests.state !== 'loaded') {
-                return defaultCopy;
-              } else if (interests.primaryInterest === 'anxiety') {
-                return <>Variety of unique themes</>;
-              } else if (interests.primaryInterest === 'sleep') {
-                return <>Classes to induce any dream</>;
-              } else {
-                return defaultCopy;
-              }
-            })()}
-          </div>
-          <div className={styles.checkListItem}>Daily check-ins</div>
-          <div className={styles.checkListItem}>Bite-sized to fit your schedule</div>
+          {checklistItems.map((item, i) => (
+            <div key={i} className={styles.checkListItem}>
+              {item}
+            </div>
+          ))}
         </div>
         <div className={styles.bannerContainer}>
           <OsehImageFromStateValueWithCallbacks

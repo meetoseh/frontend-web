@@ -11,6 +11,7 @@ import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedVal
 import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { FavoritesFeature } from '../features/favorites/FavoritesFeature';
+import { IsaiahCourseFeature } from '../features/isaiahCourse/IsaiahCourseFeature';
 
 const features = [
   RequestNameFeature,
@@ -19,6 +20,7 @@ const features = [
   RequestNotificationTimeFeature,
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
+  IsaiahCourseFeature,
   FavoritesFeature,
   PickEmotionJourneyFeature,
 ];
@@ -99,18 +101,22 @@ export const useFeaturesState = (
     const loading = loadingResources.map((r) => r.get());
     for (let i = 0; i < req.length; i++) {
       if (req[i] === undefined) {
+        console.log('waiting on ', i, ' to decide if required');
         return undefined;
       }
 
       if (req[i]) {
         if (loading[i]) {
+          console.log('waiting on', i);
           return undefined;
         }
 
+        console.log('presenting', i);
         return features[i].component(states[i] as any, resources[i] as any);
       }
     }
 
+    console.log('no feature requested');
     return null;
   });
 };

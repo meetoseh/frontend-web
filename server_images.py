@@ -47,65 +47,84 @@ import time
 import os
 
 
-RESOLUTION_PRESETS: Dict[str, List[Tuple[int, int]]] = {
-    "full-bleed": [
-        # MOBILE
-        (360, 800),
-        (414, 896),
-        (360, 640),
-        (390, 844),
-        (412, 915),
-        (360, 780),
-        (375, 812),
-        (375, 667),
-        (360, 760),
-        (393, 851),
-        (393, 873),
-        (412, 892),
-        (428, 926),
-        # MOBILE 2X
-        (720, 1600),
-        (828, 1792),
-        (720, 1280),
-        (780, 1688),
-        (824, 1830),
-        (720, 1560),
-        (750, 1624),
-        (750, 1334),
-        (720, 1520),
-        (786, 1702),
-        (786, 1746),
-        (824, 1784),
-        (856, 1852),
-        # FROM TESTING WITH STATUS BARS
-        (360, 736),
-        (1472, 720),
-        # DESKTOP
-        (1920, 1080),
-        (1366, 768),
-        (1536, 864),
-    ],
-    "headshot": [
-        (38, 38),
-        (45, 45),
-        (56, 56),
-        (60, 60),
-        (76, 76),
-        (90, 90),
-        (112, 112),
-        (120, 120),
-        (168, 168),
-        (180, 180),
-        (189, 189),
-        (224, 224),
-        (256, 256),
-        (378, 378),
-        (512, 512),
-        (567, 567),
-    ],
-}
+RESOLUTION_PRESETS: Dict[str, List[Tuple[int, int]]] = dict()
+RESOLUTION_PRESETS["full-bleed-mobile-1x"] = [
+    (360, 800),
+    (414, 896),
+    (360, 640),
+    (390, 844),
+    (412, 915),
+    (360, 780),
+    (375, 812),
+    (375, 667),
+    (360, 760),
+    (393, 851),
+    (393, 873),
+    (412, 892),
+    (428, 926),
+]
+RESOLUTION_PRESETS["full-bleed-mobile-2x"] = [
+    (w * 2, h * 2) for (w, h) in RESOLUTION_PRESETS["full-bleed-mobile-1x"]
+]
+RESOLUTION_PRESETS["full-bleed-mobile-3x"] = [
+    (w * 3, h * 3) for (w, h) in RESOLUTION_PRESETS["full-bleed-mobile-1x"]
+]
+RESOLUTION_PRESETS["full-bleed-mobile-special"] = [
+    # Resolutions that we know are specifically common window sizes, but
+    # don't actually correspond to the devices resolution (i.e., they are
+    # after status bars are taken into account)
+    (360, 736),
+    (1472, 720),
+]
+RESOLUTION_PRESETS["full-bleed-mobile"] = [
+    *RESOLUTION_PRESETS["full-bleed-mobile-1x"],
+    *RESOLUTION_PRESETS["full-bleed-mobile-2x"],
+    *RESOLUTION_PRESETS["full-bleed-mobile-3x"],
+    *RESOLUTION_PRESETS["full-bleed-mobile-special"],
+]
+RESOLUTION_PRESETS["full-bleed-desktop"] = [
+    (2560, 1600),
+    (1920, 1080),
+    (1366, 768),
+    (1536, 864),
+]
+RESOLUTION_PRESETS["full-bleed"] = [
+    *RESOLUTION_PRESETS["full-bleed-mobile"],
+    *RESOLUTION_PRESETS["full-bleed-desktop"],
+]
+RESOLUTION_PRESETS["headshot"] = [
+    (38, 38),
+    (45, 45),
+    (56, 56),
+    (60, 60),
+    (76, 76),
+    (90, 90),
+    (112, 112),
+    (120, 120),
+    (168, 168),
+    (180, 180),
+    (189, 189),
+    (224, 224),
+    (256, 256),
+    (378, 378),
+    (512, 512),
+    (567, 567),
+]
 
-ResolutionPreset = Literal["full-bleed", "headshot"]
+
+for key, opts in RESOLUTION_PRESETS.items():
+    RESOLUTION_PRESETS[key] = list(dict.fromkeys(opts))
+
+ResolutionPreset = Literal[
+    "full-bleed-mobile-1x",
+    "full-bleed-mobile-2x",
+    "full-bleed-mobile-3x",
+    "full-bleed-mobile-special",
+    "full-bleed-mobile",
+    "full-bleed-desktop",
+    "full-bleed",
+    "headshot",
+]
 
 
 class ServerImageFile(BaseModel):
@@ -123,6 +142,10 @@ class ServerImageFile(BaseModel):
         description="list of resolutions to generate, or a preset, or a combination"
     )
     transparency: bool = Field(False, description="whether to use a transparent format")
+    focal_point: Tuple[float, float] = Field(
+        (0.5, 0.5),
+        description="focal point for cropping, where 0, 0 is the top left and 1, 1 is bottom right",
+    )
 
 
 class ServerImageConfig(BaseModel):
@@ -202,11 +225,23 @@ async def update_server_images(itgs: Itgs):
             file.resolutions = list(dict((k, 1) for k in new_resolutions))
 
         old_resolutions = None
+        old_transparency = None
+        old_focal_point = None
         old_file = old_config_lookup.get(file.uid)
         if old_file is not None:
             old_resolutions = old_file.resolutions
+            old_transparency = old_file.transparency
+            old_focal_point = old_file.focal_point
 
-        await ensure_file_exists(itgs, file, force=old_resolutions != file.resolutions)
+        await ensure_file_exists(
+            itgs,
+            file,
+            force=(
+                old_resolutions != file.resolutions
+                or old_transparency != file.transparency
+                or old_focal_point != file.focal_point
+            ),
+        )
 
     if old_config is not None:
         existing_uids: Set[str] = set()
@@ -303,6 +338,7 @@ async def ensure_file_exists(itgs: Itgs, file: ServerImageFile, force: bool = Fa
         file_resolutions=file.resolutions,
         job_uid=job_uid,
         transparency=file.transparency,
+        focal_point=file.focal_point,
     )
 
     await job_done_task

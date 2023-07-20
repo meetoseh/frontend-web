@@ -12,8 +12,7 @@ import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hoo
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
-
-const bannerImageUid = 'oseh_if_F7sVhs4BJ7nnhPjyhi09-g';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 
 export const SignupRewardFeature: Feature<SignupRewardState, SignupRewardResources> = {
   identifier: 'signupReward',
@@ -38,23 +37,36 @@ export const SignupRewardFeature: Feature<SignupRewardState, SignupRewardResourc
     const givenNameRaw = loginContext.userAttributes?.givenName ?? null;
     const givenNameVWC = useReactManagedValueAsValueWithCallbacks(givenNameRaw);
     const images = useOsehImageStateRequestHandler({});
+    const interestsRaw = useContext(InterestsContext);
+    const interestsVWC = useReactManagedValueAsValueWithCallbacks(interestsRaw);
     const image = useOsehImageStateValueWithCallbacks(
-      {
-        type: 'callbacks',
-        props: () => ({
-          uid: required.get() ? bannerImageUid : null,
+      adaptValueWithCallbacksAsVariableStrategyProps(
+        useMappedValuesWithCallbacks([required, interestsVWC], () => ({
+          uid: (() => {
+            if (!required.get()) {
+              return null;
+            }
+
+            const interests = interestsVWC.get();
+            if (interests.state === 'loading') {
+              return null;
+            }
+
+            if (interests.state === 'loaded' && interests.primaryInterest === 'isaiah-course') {
+              return 'oseh_if_utnIdo3z0V65FnFSc-Rs-g';
+            }
+
+            return 'oseh_if_F7sVhs4BJ7nnhPjyhi09-g';
+          })(),
           jwt: null,
           displayWidth: 336,
           displayHeight: 184,
           alt: '',
           isPublic: true,
-        }),
-        callbacks: required.callbacks,
-      },
+        }))
+      ),
       images
     );
-    const interestsRaw = useContext(InterestsContext);
-    const interestsVWC = useReactManagedValueAsValueWithCallbacks(interestsRaw);
 
     return useMappedValuesWithCallbacks([session, givenNameVWC, image, interestsVWC], () => ({
       session: session.get(),
