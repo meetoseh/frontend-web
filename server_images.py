@@ -287,7 +287,7 @@ async def ensure_file_exists(itgs: Itgs, file: ServerImageFile, force: bool = Fa
         print("  deleting old exports..")
         jobs = await itgs.jobs()
         job_uid = secrets.token_urlsafe(16)
-        job_done_task = asyncio.create_task(wait_job_done(itgs, job_uid, 60))
+        job_done_task = asyncio.create_task(wait_job_done(itgs, job_uid, 120))
         await jobs.enqueue(
             "runners.delete_image_file", uid=file.uid, job_uid=job_uid, force=True
         )
@@ -327,7 +327,7 @@ async def ensure_file_exists(itgs: Itgs, file: ServerImageFile, force: bool = Fa
 
     print(f"Queuing job for {file.source=}...")
     job_uid = secrets.token_urlsafe(16)
-    job_done_task = asyncio.create_task(wait_job_done(itgs, job_uid, 60))
+    job_done_task = asyncio.create_task(wait_job_done(itgs, job_uid, 120))
 
     jobs = await itgs.jobs()
     await jobs.enqueue(
