@@ -313,7 +313,10 @@ export const selectBestItemUsingPixelRatio = ({
 
     const satisfactorilyLarge = item.width >= want.width && item.height >= want.height;
     if (pixelRatio === preferredPixelRatio && satisfactorilyLarge) {
-      return { item };
+      if (item.width === want.width && item.height === want.height) {
+        return { item };
+      }
+      return { item, cropTo: { width: want.width, height: want.height } };
     }
     if (satisfactorilyLarge) {
       return {
