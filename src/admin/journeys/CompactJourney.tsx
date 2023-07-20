@@ -83,29 +83,38 @@ export const CompactJourney = ({
           handler={imageHandler}
         />
       </div>
-      <div className={styles.journeyTitleContainer}>{journey.title}</div>
-      <div className={styles.journeyByContainer}>by</div>
-      <div className={styles.journeyInstructorContainer}>
-        {journey.instructor.picture && (
-          <div className={styles.journeyInstructorIconContainer}>
-            <OsehImage
-              uid={journey.instructor.picture.uid}
-              jwt={journey.instructor.picture.jwt}
-              displayWidth={45}
-              displayHeight={45}
-              alt={journey.instructor.name}
-              handler={imageHandler}
-            />
+      <div className={styles.right}>
+        {journey.deletedAt !== null && (
+          <div className={styles.rightRow}>
+            <div className={styles.deletedNote}>Deleted</div>
           </div>
         )}
+        <div className={styles.rightRow}>
+          <div className={styles.journeyTitleContainer}>{journey.title}</div>
+          <div className={styles.journeyByContainer}>by</div>
+          <div className={styles.journeyInstructorContainer}>
+            {journey.instructor.picture && (
+              <div className={styles.journeyInstructorIconContainer}>
+                <OsehImage
+                  uid={journey.instructor.picture.uid}
+                  jwt={journey.instructor.picture.jwt}
+                  displayWidth={45}
+                  displayHeight={45}
+                  alt={journey.instructor.name}
+                  handler={imageHandler}
+                />
+              </div>
+            )}
 
-        <div className={styles.journeyInstructorNameContainer}>{journey.instructor.name}</div>
+            <div className={styles.journeyInstructorNameContainer}>{journey.instructor.name}</div>
 
-        {views?.journeyUid === journey.uid && (
-          <div className={styles.journeyViewsContainer}>
-            {views.count} {views.count === 1 ? 'view' : 'views'}
+            {views?.journeyUid === journey.uid && (
+              <div className={styles.journeyViewsContainer}>
+                {views.count} {views.count === 1 ? 'view' : 'views'}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

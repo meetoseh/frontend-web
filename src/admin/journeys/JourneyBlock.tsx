@@ -158,7 +158,14 @@ export const JourneyBlock = ({
           method: 'POST',
           headers: { 'Content-Type': 'application/json; charset=utf-8' },
           body: JSON.stringify({
-            filters: { variation_of_journey_uid: { operator: 'eq', value: journey.uid } },
+            filters: {
+              variation_of_journey_uid: { operator: 'eq', value: journey.uid },
+              ...(journey.deletedAt === null
+                ? {
+                    deleted_at: { operator: 'eq', value: null },
+                  }
+                : {}),
+            },
           }),
         },
         loginContext
@@ -179,7 +186,7 @@ export const JourneyBlock = ({
       const variations = data.items.map((item) => convertUsingKeymap(item, journeyKeyMap));
       setVariations(variations);
     }
-  }, [journey.uid, loginContext]);
+  }, [journey.uid, journey.deletedAt, loginContext]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 992);

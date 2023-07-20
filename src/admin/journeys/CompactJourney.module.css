@@ -44,3 +44,23 @@
 .journeyViewsContainer::after {
   content: ')';
 }
+
+.right {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.rightRow {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+}
+
+.deletedNote {
+  font-size: 12px;
+  line-height: 12px;
+  color: #666060;
+  font-style: italic;
+}
