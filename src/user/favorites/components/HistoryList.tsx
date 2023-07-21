@@ -1,10 +1,8 @@
 import { ReactElement, useCallback, useContext, useMemo, useRef } from 'react';
 import { JourneyRef, journeyRefKeyMap } from '../../journey/models/JourneyRef';
-import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { InfiniteListing, NetworkedInfiniteListing } from '../../../shared/lib/InfiniteListing';
-import { MinimalJourney, minimalJourneyKeyMap } from '../lib/MinimalJourney';
+import { MinimalJourney } from '../lib/MinimalJourney';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
 import { HistoryItem } from './HistoryItem';
@@ -12,7 +10,9 @@ import styles from './shared.module.css';
 import { InfiniteList } from '../../../shared/components/InfiniteList';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
-import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { useHistoryList } from '../hooks/useHistoryList';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
+import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 
 export type HistoryListProps = {
   /**
@@ -44,54 +44,11 @@ export const HistoryList = ({
   imageHandler,
 }: HistoryListProps): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const loginContextRef = useRef(loginContext);
-  loginContextRef.current = loginContext;
-  const windowSize = useWindowSize();
 
-  const infiniteListing = useMemo<InfiniteListing<MinimalJourney>>(() => {
-    const numVisible = Math.ceil(windowSize.height / 80) + 15;
-    const result = new NetworkedInfiniteListing<MinimalJourney>(
-      '/api/1/users/me/search_history',
-      Math.min(numVisible * 2 + 10, 150),
-      numVisible,
-      10,
-      {},
-      [
-        {
-          key: 'last_taken_at',
-          dir: 'desc',
-          before: null,
-          after: null,
-        },
-        {
-          key: 'uid',
-          dir: 'asc',
-          before: null,
-          after: null,
-        },
-      ],
-      (item, dir) => {
-        return [
-          {
-            key: 'last_taken_at',
-            dir: dir === 'before' ? 'asc' : 'desc',
-            before: null,
-            after: item.lastTakenAt === null ? null : item.lastTakenAt.getTime() / 1000,
-          },
-          {
-            key: 'uid',
-            dir: dir === 'before' ? 'desc' : 'asc',
-            before: null,
-            after: item.uid,
-          },
-        ];
-      },
-      minimalJourneyKeyMap,
-      () => loginContextRef.current
-    );
-    result.reset();
-    return result;
-  }, [windowSize.height]);
+  const infiniteListing = useHistoryList(
+    { type: 'react-rerender', props: loginContext },
+    adaptValueWithCallbacksAsVariableStrategyProps(listHeight)
+  );
 
   const loading = useRef<boolean>(false);
   const gotoJourneyByUID = useCallback(
@@ -140,15 +97,15 @@ export const HistoryList = ({
     (
       item: ValueWithCallbacks<MinimalJourney>,
       setItem: (newItem: MinimalJourney) => void,
-      visible: ValueWithCallbacks<{ items: MinimalJourney[]; index: number }>
+      previous: ValueWithCallbacks<MinimalJourney | null>
     ) => ReactElement
   >(() => {
-    return (item, setItem, visible) => (
+    return (item, setItem, previous) => (
       <HistoryItemComponent
         gotoJourneyByUid={gotoJourneyByUID}
         item={item}
         setItem={setItem}
-        visible={visible}
+        previous={previous}
         instructorImages={imageHandler}
       />
     );
@@ -178,30 +135,34 @@ const HistoryItemComponent = ({
   gotoJourneyByUid,
   item,
   setItem,
-  visible,
+  previous,
   instructorImages,
 }: {
   gotoJourneyByUid: (uid: string) => void;
   item: ValueWithCallbacks<MinimalJourney>;
   setItem: (item: MinimalJourney) => void;
-  visible: ValueWithCallbacks<{ items: MinimalJourney[]; index: number }>;
+  previous: ValueWithCallbacks<MinimalJourney | null>;
   instructorImages: OsehImageStateRequestHandler;
 }): ReactElement => {
   const gotoJourney = useCallback(() => {
     gotoJourneyByUid(item.get().uid);
   }, [gotoJourneyByUid, item]);
 
+  const separator = useMappedValuesWithCallbacks([item, previous], () => {
+    const prev = previous.get();
+    const itm = item.get();
+
+    return (
+      prev === null ||
+      prev.lastTakenAt?.toLocaleDateString() !== itm.lastTakenAt?.toLocaleDateString()
+    );
+  });
+
   return (
     <HistoryItem
       item={item}
       setItem={setItem}
-      separator={useMappedValueWithCallbacks(
-        visible,
-        (v) =>
-          v.index === 0 ||
-          v.items[v.index - 1].lastTakenAt?.toLocaleDateString() !==
-            v.items[v.index].lastTakenAt?.toLocaleDateString()
-      )}
+      separator={separator}
       onClick={gotoJourney}
       instructorImages={instructorImages}
     />

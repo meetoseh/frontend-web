@@ -12,7 +12,7 @@ import { MinimalCourseJourney, minimalCourseJourneyKeyMap } from '../lib/Minimal
 import { CourseJourneyItem } from './CourseJourneyItem';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
-import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 
 export type CourseJourneysListProps = {
   /**
@@ -163,16 +163,16 @@ export const CourseJourneysList = ({
     (
       item: ValueWithCallbacks<MinimalCourseJourney>,
       setItem: (newItem: MinimalCourseJourney) => void,
-      visible: ValueWithCallbacks<{ items: MinimalCourseJourney[]; index: number }>
+      previous: ValueWithCallbacks<MinimalCourseJourney | null>
     ) => ReactElement
   >(() => {
-    return (item, setItem, visible) => (
+    return (item, setItem, previous) => (
       <CourseJourneyItemComponent
         gotoJourneyInCourse={gotoJourneyInCourse}
         item={item}
         setItem={setItem}
         replaceItem={infiniteListing.replaceItem.bind(infiniteListing)}
-        visible={visible}
+        previous={previous}
         instructorImages={imageHandler}
       />
     );
@@ -206,7 +206,7 @@ const CourseJourneyItemComponent = ({
   item: itemVWC,
   setItem,
   replaceItem,
-  visible: visibleVWC,
+  previous: previousVWC,
   instructorImages,
 }: {
   gotoJourneyInCourse: (journeyUid: string, courseUid: string) => Promise<void>;
@@ -216,7 +216,7 @@ const CourseJourneyItemComponent = ({
     isItem: (i: MinimalCourseJourney) => boolean,
     newItem: (oldItem: MinimalCourseJourney) => MinimalCourseJourney
   ) => void;
-  visible: ValueWithCallbacks<{ items: MinimalCourseJourney[]; index: number }>;
+  previous: ValueWithCallbacks<MinimalCourseJourney | null>;
   instructorImages: OsehImageStateRequestHandler;
 }): ReactElement => {
   const loginContext = useContext(LoginContext);
@@ -246,10 +246,12 @@ const CourseJourneyItemComponent = ({
     [replaceItem]
   );
 
-  const separatorVWC = useMappedValueWithCallbacks(
-    visibleVWC,
-    (v) => v.index === 0 || v.items[v.index - 1].course.uid !== v.items[v.index].course.uid
-  );
+  const separatorVWC = useMappedValuesWithCallbacks([itemVWC, previousVWC], () => {
+    const previous = previousVWC.get();
+    const item = itemVWC.get();
+
+    return previous === null || previous.course.uid !== item.course.uid;
+  });
 
   return (
     <CourseJourneyItem

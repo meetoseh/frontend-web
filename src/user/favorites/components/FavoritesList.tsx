@@ -143,16 +143,14 @@ export const FavoritesList = ({
   const boundComponent = useMemo<
     (
       item: ValueWithCallbacks<MinimalJourney>,
-      setItem: (newItem: MinimalJourney) => void,
-      visible: ValueWithCallbacks<{ items: MinimalJourney[]; index: number }>
+      setItem: (newItem: MinimalJourney) => void
     ) => ReactElement
   >(() => {
-    return (item, setItem, visible) => (
+    return (item, setItem) => (
       <HistoryItemComponent
         gotoJourneyByUid={gotoJourneyByUID}
         item={item}
         setItem={setItem}
-        visible={visible}
         instructorImages={imageHandler}
       />
     );
@@ -184,13 +182,11 @@ const HistoryItemComponent = ({
   gotoJourneyByUid,
   item,
   setItem,
-  visible,
   instructorImages,
 }: {
   gotoJourneyByUid: (uid: string) => void;
   item: ValueWithCallbacks<MinimalJourney>;
   setItem: (item: MinimalJourney) => void;
-  visible: ValueWithCallbacks<{ items: MinimalJourney[]; index: number }>;
   instructorImages: OsehImageStateRequestHandler;
 }): ReactElement => {
   const gotoJourney = useCallback(() => {
