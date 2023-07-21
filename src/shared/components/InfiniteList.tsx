@@ -5,7 +5,6 @@ import {
   Callbacks,
   ValueWithCallbacks,
   WritableValueWithCallbacks,
-  createWritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../lib/Callbacks';
 import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';

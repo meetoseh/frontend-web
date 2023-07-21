@@ -1,6 +1,5 @@
 import { ReactElement, useCallback, useContext, useMemo, useRef } from 'react';
 import { JourneyRef, journeyRefKeyMap } from '../../journey/models/JourneyRef';
-import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { InfiniteListing, NetworkedInfiniteListing } from '../../../shared/lib/InfiniteListing';
@@ -46,10 +45,9 @@ export const CourseJourneysList = ({
   const loginContext = useContext(LoginContext);
   const loginContextRef = useRef(loginContext);
   loginContextRef.current = loginContext;
-  const windowSize = useWindowSize();
 
   const infiniteListing = useMemo<InfiniteListing<MinimalCourseJourney>>(() => {
-    const numVisible = Math.ceil(windowSize.height / 80) + 15;
+    const numVisible = Math.ceil(listHeight.get() / 85) * 25;
     const result = new NetworkedInfiniteListing<MinimalCourseJourney>(
       '/api/1/users/me/search_course_journeys',
       Math.min(numVisible * 2 + 10, 150),
@@ -115,7 +113,7 @@ export const CourseJourneysList = ({
     );
     result.reset();
     return result;
-  }, [windowSize.height]);
+  }, [listHeight]);
 
   const loading = useRef<boolean>(false);
   const gotoJourneyInCourse = useCallback(
