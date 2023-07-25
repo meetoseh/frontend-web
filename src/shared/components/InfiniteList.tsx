@@ -176,7 +176,7 @@ export function InfiniteList<T extends object>({
         loadedStartIndex += 1;
       }
 
-      let loadedEndIndex = itemsUnloadedAboveVWC.get() + listingUntrackable.items.length;
+      let loadedEndIndex = itemsUnloadedAboveVWC.get() + (listingUntrackable.items?.length || 0);
       if (!listingUntrackable.definitelyNoneBelow) {
         // we don't want to render the last item as it wouldn't have
         // the correct neighbor

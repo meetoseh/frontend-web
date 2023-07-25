@@ -8,6 +8,7 @@ import {
   useVariableStrategyPropsAsValueWithCallbacks,
 } from '../../../shared/anim/VariableStrategyProps';
 import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 /**
  * Shows a basic popup at the top of the screen the a message like
@@ -40,10 +41,19 @@ export const useUnfavoritableModal = (
 const Modal = ({ until }: { until: number }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useTimedFade(containerRef, until);
+  const opacity = useTimedFade(until);
+  useValueWithCallbacksEffect(opacity, (op) => {
+    if (containerRef.current !== null) {
+      containerRef.current.style.opacity = `${op * 100}%`;
+    }
+    return undefined;
+  });
 
   return (
-    <div className={styles.container} ref={containerRef}>
+    <div
+      className={styles.container}
+      style={{ opacity: `${opacity.get() * 100}%` }}
+      ref={containerRef}>
       <div className={styles.innerContainer}>
         <div className={styles.icon} />
         <div className={styles.text}>Must take the class first</div>
