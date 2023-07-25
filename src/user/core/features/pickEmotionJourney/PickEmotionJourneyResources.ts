@@ -120,4 +120,9 @@ export type PickEmotionJourneyResources = {
    * Should be called if the user wants to go to the favorites screen.
    */
   gotoFavorites: () => void;
+
+  /**
+   * Should be called if the user wants to go to the settings screen.
+   */
+  gotoSettings: () => void;
 };

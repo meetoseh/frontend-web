@@ -14,8 +14,6 @@ import {
 import { TestLogin } from './shared/TestLogin';
 import { LoginApp } from './user/login/LoginApp';
 import { OsehPlusUpgradePrompt } from './user/payment/OsehPlusUpgradePrompt';
-import { Settings } from './user/settings/Settings';
-import { ModalProvider } from './shared/contexts/ModalContext';
 import { SplashScreen } from './user/splash/SplashScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 import { CourseActivateScreen } from './user/courses/CourseActivateScreen';
@@ -96,18 +94,7 @@ function App() {
             </LoginProvider>
           }
         />
-        <Route
-          path="/settings"
-          element={
-            <LoginProvider>
-              <InterestsAutoProvider>
-                <ModalProvider>
-                  <Settings />
-                </ModalProvider>
-              </InterestsAutoProvider>
-            </LoginProvider>
-          }
-        />
+        <Route path="/settings" element={<UserApp />} />
         <Route path="/admin" element={<AdminApp />}>
           {AdminRoutes()}
         </Route>

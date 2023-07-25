@@ -1,17 +1,32 @@
 .container {
-  background: #191c1d;
-  min-height: 100vh; /* swapped to inner height in js */
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  position: relative;
+  background: transparent;
 }
 
-.content {
+.imageContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-width: 440px;
-  padding: 0 40px;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.background {
+  background: linear-gradient(0deg, #000000 0%, #191c1d 37%, #191c1d 100%);
 }
 
 .closeButtonContainer {
@@ -19,7 +34,7 @@
   top: 16px;
   left: 0;
   width: 100%;
-  z-index: 1;
+  z-index: 2;
 }
 
 .closeButtonInnerContainer {
@@ -31,10 +46,15 @@
 }
 
 .closeIcon {
-  composes: icon from '../../shared/icons.module.css';
-  width: 24px;
-  height: 24px;
-  background-image: url('./icons/close.svg');
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('../pickEmotionJourney/icons/close.svg');
+}
+
+.content {
+  max-width: 390px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 24px;
 }
 
 .bigLinks {
@@ -123,6 +143,10 @@
   padding: 0 24px;
 }
 
+.deleteSpinnerContainer {
+  margin-right: 8px;
+}
+
 .deleteConfirmBody {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
@@ -142,7 +166,7 @@
 }
 
 .deleteConfirmButton {
-  composes: unstyled from '../../shared/buttons.module.css';
+  composes: unstyled from '../../../../shared/buttons.module.css';
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 600;

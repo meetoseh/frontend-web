@@ -482,6 +482,9 @@ export const PickEmotionJourneyFeature: Feature<
           gotoFavorites: () => {
             allStates.get().favorites.setShow(true, true);
           },
+          gotoSettings: () => {
+            allStates.get().settings.setShow(true, true);
+          },
         };
       }
     );

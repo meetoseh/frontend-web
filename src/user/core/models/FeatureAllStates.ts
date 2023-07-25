@@ -5,6 +5,7 @@ import { PickEmotionJourneyState } from '../features/pickEmotionJourney/PickEmot
 import { RequestNameState } from '../features/requestName/RequestNameState';
 import { RequestNotificationTimeState } from '../features/requestNotificationTime/RequestNotificationTimeState';
 import { RequestPhoneState } from '../features/requestPhone/RequestPhoneState';
+import { SettingsState } from '../features/settings/SettingsState';
 import { SignupRewardState } from '../features/signupReward/SignupRewardState';
 import { VipChatRequestState } from '../features/vipChatRequest/VipChatRequestState';
 
@@ -18,4 +19,5 @@ export type FeatureAllStates = {
   goalDaysPerWeek: GoalDaysPerWeekState;
   favorites: FavoritesState;
   isaiahCourse: IsaiahCourseState;
+  settings: SettingsState;
 };

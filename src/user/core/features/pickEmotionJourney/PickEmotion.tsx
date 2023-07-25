@@ -150,6 +150,14 @@ export const PickEmotion = ({
     [resources]
   );
 
+  const onGotoSettingsClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      resources.get().gotoSettings();
+    },
+    [resources]
+  );
+
   const onGotoClassClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
@@ -353,7 +361,7 @@ export const PickEmotion = ({
       </div>
       <div className={styles.innerContainer}>
         <div className={styles.settingsLinkContainer} ref={settingsRef}>
-          <a href="/settings" className={styles.settingsLink}>
+          <button onClick={onGotoSettingsClick} className={styles.settingsLink}>
             <div className={styles.profilePictureContainer}>
               {profilePicture.state === 'available' && (
                 <OsehImageFromState {...profilePicture.image} />
@@ -365,7 +373,7 @@ export const PickEmotion = ({
               </div>
               <div className={styles.settingsLinkText}>Daily Check-in</div>
             </div>
-          </a>
+          </button>
           <div className={styles.favoritesContainer}>
             <Button type="button" variant="link-white" onClick={onGotoFavoritesClick}>
               <div className={styles.favoritesInner}>

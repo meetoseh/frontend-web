@@ -12,6 +12,7 @@ import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { FavoritesFeature } from '../features/favorites/FavoritesFeature';
 import { IsaiahCourseFeature } from '../features/isaiahCourse/IsaiahCourseFeature';
+import { SettingsFeature } from '../features/settings/SettingsFeature';
 
 const features = [
   RequestNameFeature,
@@ -21,6 +22,7 @@ const features = [
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
   IsaiahCourseFeature,
+  SettingsFeature,
   FavoritesFeature,
   PickEmotionJourneyFeature,
 ];
