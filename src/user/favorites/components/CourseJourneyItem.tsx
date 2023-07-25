@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useRef } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import styles from './CourseJourneyItem.module.css';
 import { describeError } from '../../../shared/forms/ErrorBlock';
@@ -7,7 +7,6 @@ import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { MinimalCourseJourney } from '../lib/MinimalCourseJourney';
-import { combineClasses } from '../../../shared/lib/combineClasses';
 import { OsehContentRefLoadable } from '../../../shared/content/OsehContentRef';
 import { ContentFileWebExport } from '../../../shared/content/OsehContentTarget';
 import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
@@ -21,7 +20,6 @@ import { setVWC } from '../../../shared/lib/setVWC';
 import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../shared/contexts/ModalContext';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
-import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 type HistoryItemProps = {
   /**
@@ -318,14 +316,6 @@ export const CourseJourneyItem = ({
   const ellipsedTitle = useMappedValueWithCallbacks(itemVWC, (item) =>
     textOverflowEllipses(item.journey.title, 13)
   );
-  const isNextVWC = useMappedValueWithCallbacks(itemVWC, (item) => item.isNext);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useValueWithCallbacksEffect(isNextVWC, (isNext): undefined => {
-    containerRef.current?.classList.toggle(styles.containerIsNext, isNext);
-    return undefined;
-  });
-
   const takenVWC = useMappedValueWithCallbacks(
     itemVWC,
     (item) => item.journey.lastTakenAt !== null
@@ -365,12 +355,7 @@ export const CourseJourneyItem = ({
           );
         }}
       />
-      <div
-        className={combineClasses(
-          styles.container,
-          isNextVWC.get() ? styles.containerIsNext : undefined
-        )}
-        ref={containerRef}>
+      <div className={styles.container}>
         <RenderGuardedComponent
           props={takenVWC}
           component={(taken) =>
