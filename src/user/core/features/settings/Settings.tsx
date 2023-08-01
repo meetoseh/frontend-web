@@ -758,11 +758,13 @@ const SettingsForceDelete = ({
       <div className={styles.deleteConfirmButtons}>
         {flipButtons ? (
           <>
-            {cancelButton} {confirmButton}
+            {cancelButton}
+            {confirmButton}
           </>
         ) : (
           <>
-            {confirmButton} {cancelButton}
+            {confirmButton}
+            {cancelButton}
           </>
         )}
       </div>

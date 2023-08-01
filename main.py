@@ -9,13 +9,14 @@ to run this server.
 import os
 from itgs import Itgs
 import updater
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from starlette.middleware.cors import CORSMiddleware
 from error_middleware import handle_request_error
 import routes.journey_public_links
 import routes.favorites
+import routes.authorize
 import asyncio
-
+import requests
 
 app = FastAPI(
     title="oseh frontend",
@@ -38,7 +39,34 @@ if os.environ.get("ENVIRONMENT") == "dev":
 
 app.include_router(routes.journey_public_links.router)
 app.include_router(routes.favorites.router)
+app.include_router(routes.authorize.router)
 app.router.redirect_slashes = False
+
+
+if os.environ["ENVIRONMENT"] == "dev" and "ROOT_NGINX_FRONTEND_URL" in os.environ:
+    import urllib3
+
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    nginx_url = os.environ["ROOT_NGINX_FRONTEND_URL"]
+    forwarded_headers = frozenset(("Content-Type", "ETag", "Cache-Control"))
+
+    # Avoids the need for port forwarding
+    @app.get("{full_path:path}", include_in_schema=False)
+    def catch_all(request: Request, full_path: str):
+        raw_path = request.scope["raw_path"].decode("utf-8")
+        raw_query_params = request.scope["query_string"].decode("utf-8")
+        raw_loc = f"{raw_path}?{raw_query_params}" if raw_query_params else raw_path
+        raw_response = requests.get(nginx_url + raw_loc, verify=False)
+        headers = dict(
+            (k, v) for (k, v) in raw_response.headers.items() if k in forwarded_headers
+        )
+
+        return Response(
+            content=raw_response.content,
+            status_code=raw_response.status_code,
+            headers=headers,
+        )
 
 
 background_tasks = set()

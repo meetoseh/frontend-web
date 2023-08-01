@@ -163,6 +163,11 @@
   color: white;
 }
 
+.directAccountSecretButton {
+  composes: unstyled from '../../shared/buttons.module.css';
+  cursor: auto;
+}
+
 @media screen and (max-width: 449px) {
   .primaryContainer {
     justify-content: flex-end;

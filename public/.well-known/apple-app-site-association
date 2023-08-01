@@ -12,6 +12,16 @@
             "comment": "Matches any URL with a fragment that equals no_universal_links and instructs the system not to open it as a universal link."
           },
           {
+            "/": "/authorize",
+            "exclude": true,
+            "comment": "Matches the /authorize oauth2 endpoint to generate a code"
+          },
+          {
+            "/": "/api/*",
+            "exclude": true,
+            "comment": "Matches api endpoints"
+          },
+          {
             "comment": "Matches any URL and instructs the system to open it as a universal link."
           }
         ]

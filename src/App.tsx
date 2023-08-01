@@ -22,6 +22,7 @@ import { CourseDownloadScreen } from './user/courses/CourseDownloadScreen';
 import { JourneyPublicLink } from './user/journey/JourneyPublicLink';
 import { InterestsAutoProvider } from './shared/contexts/InterestsContext';
 import { AnxietyLanding } from './user/landing/AnxietyLanding';
+import { ModalProvider } from './shared/contexts/ModalContext';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -113,7 +114,9 @@ function App() {
           element={
             <LoginProvider>
               <InterestsAutoProvider>
-                <LoginApp redirectUrl="/" />
+                <ModalProvider>
+                  <LoginApp redirectUrl="/" />
+                </ModalProvider>
               </InterestsAutoProvider>
             </LoginProvider>
           }

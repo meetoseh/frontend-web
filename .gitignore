@@ -34,3 +34,4 @@ tmp
 dev*.bat
 /*.pem
 /start.bat
+/start-dynamic.bat

@@ -9,6 +9,11 @@ import { OsehImage } from '../../shared/images/OsehImage';
 import { InterestsContext } from '../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
+import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { setVWC } from '../../shared/lib/setVWC';
+import { useErrorModal } from '../../shared/hooks/useErrorModal';
+import { ModalContext } from '../../shared/contexts/ModalContext';
+import { describeError } from '../../shared/forms/ErrorBlock';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -27,6 +32,31 @@ type LoginAppProps = {
 export type SocialUrls = { google: string; apple: string };
 
 /**
+ * Gets the url for the given social login provider.
+ */
+export const getProviderUrl = async (provider: string): Promise<string | null> => {
+  if (isDevelopment && provider !== 'Direct') {
+    return '/dev_login';
+  }
+
+  const response = await fetch(HTTP_API_URL + '/api/1/oauth/prepare', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({
+      provider: provider,
+      refresh_token_desired: true,
+    }),
+  });
+
+  if (!response.ok) {
+    throw response;
+  }
+
+  const data = await response.json();
+  return data.url;
+};
+
+/**
  * Gets the urls for each of the social login providers, in a hook-like
  * fashion. This is the primary business logic of the login app, and can
  * be used for custom login screens (like course activation) as well.
@@ -38,31 +68,13 @@ export const useProviderUrls = (load?: boolean): SocialUrls | null => {
   const [googleUrl, setGoogleUrl] = useState<string | null>(null);
   const [appleUrl, setAppleUrl] = useState<string | null>(null);
 
-  const getProviderUrl = useCallback(
+  const getProviderUrlWrapped = useCallback(
     async (provider: string): Promise<string | null> => {
       if (load === false) {
         return null;
       }
 
-      if (isDevelopment) {
-        return '/dev_login';
-      }
-
-      const response = await fetch(HTTP_API_URL + '/api/1/oauth/prepare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          provider: provider,
-          refresh_token_desired: true,
-        }),
-      });
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return data.url;
+      return getProviderUrl(provider);
     },
     [load]
   );
@@ -75,14 +87,14 @@ export const useProviderUrls = (load?: boolean): SocialUrls | null => {
     };
 
     async function getGoogleUrl() {
-      const url = await getProviderUrl('Google');
+      const url = await getProviderUrlWrapped('Google');
       if (!active) {
         return;
       }
 
       setGoogleUrl(url);
     }
-  }, [getProviderUrl]);
+  }, [getProviderUrlWrapped]);
 
   useEffect(() => {
     let active = true;
@@ -92,14 +104,14 @@ export const useProviderUrls = (load?: boolean): SocialUrls | null => {
     };
 
     async function getAppleUrl() {
-      const url = await getProviderUrl('SignInWithApple');
+      const url = await getProviderUrlWrapped('SignInWithApple');
       if (!active) {
         return;
       }
 
       setAppleUrl(url);
     }
-  }, [getProviderUrl]);
+  }, [getProviderUrlWrapped]);
 
   return useMemo(() => {
     if (googleUrl === null || appleUrl === null) {
@@ -137,6 +149,7 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
   const interests = useContext(InterestsContext);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
   const componentRef = useRef<HTMLDivElement | null>(null);
+  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   useEffect(() => {
     if (componentRef.current === null) {
       return;
@@ -159,6 +172,48 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
   const urls = useProviderUrls();
   const imageHandler = useOsehImageStateRequestHandler({});
   useRedirectUrl(redirectUrl);
+
+  const numDirectAccClicks = useWritableValueWithCallbacks<number[]>(() => []);
+  const handlingDirectAccClick = useRef(false);
+  const handleDirectAccountClick = useCallback(
+    async (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      if (handlingDirectAccClick.current) {
+        return;
+      }
+
+      handlingDirectAccClick.current = true;
+      try {
+        const clickAt = Date.now();
+        const oldArr = numDirectAccClicks.get();
+        const newArr = [...oldArr, clickAt];
+        while (newArr[0] < clickAt - 5000) {
+          newArr.shift();
+        }
+        setVWC(numDirectAccClicks, newArr);
+
+        if (newArr.length < 3) {
+          return;
+        }
+
+        const directAccountURL = await getProviderUrl('Direct');
+        if (directAccountURL === null) {
+          setVWC(error, <>Couldn't get direct account url</>);
+          return;
+        }
+
+        window.location.href = directAccountURL;
+      } catch (e) {
+        setVWC(error, await describeError(e));
+      } finally {
+        handlingDirectAccClick.current = false;
+      }
+    },
+    [numDirectAccClicks, error]
+  );
+
+  const modalContext = useContext(ModalContext);
+  useErrorModal(modalContext.modals, error, 'direct account login');
 
   if (urls === null) {
     return <SplashScreen />;
@@ -193,31 +248,33 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
               <div className={styles.logo} />
               <div className={assistiveStyles.srOnly}>Oseh</div>
             </div>
-            <div className={styles.info}>
-              {(() => {
-                const defaultCopy = <>A better day is 60 seconds away.</>;
-                if (interests.state !== 'loaded') {
-                  return defaultCopy;
-                } else if (interests.primaryInterest === 'anxiety') {
-                  return <>Sign up for instant, free access to anxiety-relieving meditations.</>;
-                } else if (interests.primaryInterest === 'mindful') {
-                  return (
-                    <>
-                      You&rsquo;re one step away from starting a life-changing mindfulness journey
-                    </>
-                  );
-                } else if (interests.primaryInterest === 'sleep') {
-                  return (
-                    <>
-                      Sign up for instant, free access to sleep-inducing meditations from the
-                      world&rsquo;s most relaxing instructors.
-                    </>
-                  );
-                } else {
-                  return defaultCopy;
-                }
-              })()}
-            </div>
+            <button className={styles.directAccountSecretButton} onClick={handleDirectAccountClick}>
+              <div className={styles.info}>
+                {(() => {
+                  const defaultCopy = <>A better day is 60 seconds away.</>;
+                  if (interests.state !== 'loaded') {
+                    return defaultCopy;
+                  } else if (interests.primaryInterest === 'anxiety') {
+                    return <>Sign up for instant, free access to anxiety-relieving meditations.</>;
+                  } else if (interests.primaryInterest === 'mindful') {
+                    return (
+                      <>
+                        You&rsquo;re one step away from starting a life-changing mindfulness journey
+                      </>
+                    );
+                  } else if (interests.primaryInterest === 'sleep') {
+                    return (
+                      <>
+                        Sign up for instant, free access to sleep-inducing meditations from the
+                        world&rsquo;s most relaxing instructors.
+                      </>
+                    );
+                  } else {
+                    return defaultCopy;
+                  }
+                })()}
+              </div>
+            </button>
           </div>
           <SocialSignins urls={urls} />
         </div>
