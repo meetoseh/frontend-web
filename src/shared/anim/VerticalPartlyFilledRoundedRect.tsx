@@ -128,7 +128,7 @@ const VPFRRRenderer: SinglePassWebGLComponentRenderer<
         bool isTopRightOfCircle = vecCircleCenterToPosition.x >= 0.0 && vecCircleCenterToPosition.y >= 0.0;
         bool isBottomLeftOfCircle = vecCircleCenterToPosition.x < 0.0 && vecCircleCenterToPosition.y < 0.0;
         bool isTopLeftOfCircle = vecCircleCenterToPosition.x < 0.0 && vecCircleCenterToPosition.y > 0.0;
-        bool isBottomRightOfCircle = vecCircleCenterToPosition.x >= 0.0 && vecCircleCenterToPosition.y <= 0.0;
+        bool isBottomRightOfCircle = vecCircleCenterToPosition.x >= 0.0 && vecCircleCenterToPosition.y < 0.0;
         float getsBackground = float(!isTopRightOfCircle) + float(isTopRightOfCircle) * (1.0 - step(u_radius, distanceFromCircleCenter));
         bool isInFill = v_position.y < u_fillHeight;
         float opacity = (
