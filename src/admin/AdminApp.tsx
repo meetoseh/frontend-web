@@ -20,6 +20,9 @@ import { VipChatRequests } from './vip_chat_requests/VipChatRequests';
 import { Users } from './users/Users';
 import { BigUser } from './users/big/BigUser';
 import { useOsehImageStateRequestHandler } from '../shared/images/useOsehImageStateRequestHandler';
+import { AdminNotifsDashboard } from './notifs_dashboard/AdminNotifsDashboard';
+import { useFonts } from '../shared/lib/useFonts';
+import { SplashScreen } from '../user/splash/SplashScreen';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -32,6 +35,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="users" element={<Users />} />
       <Route path="user" element={<BigUser />} />
       <Route path="vip_chat_requests" element={<VipChatRequests />} />
+      <Route path="notifs_dashboard" element={<AdminNotifsDashboard />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />
@@ -39,9 +43,18 @@ export const AdminRoutes = (): ReactElement => {
   );
 };
 
+const requiredFonts = [
+  '300 1em Open Sans',
+  '400 1em Open Sans',
+  'italic 400 1em Open Sans',
+  '600 1em Open Sans',
+  '700 1em Open Sans',
+];
+
 export const AdminApp = (): ReactElement => {
   const [expanded, setExpanded] = useState(window.innerWidth >= 992);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+  const fontsLoaded = useFonts(requiredFonts);
   const imageHandler = useOsehImageStateRequestHandler({});
 
   useEffect(() => {
@@ -81,6 +94,10 @@ export const AdminApp = (): ReactElement => {
       <Outlet />
     </div>
   );
+
+  if (!fontsLoaded) {
+    return <SplashScreen />;
+  }
 
   return (
     <LoginProvider>

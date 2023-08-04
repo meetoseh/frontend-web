@@ -43,6 +43,11 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/users.svg');
 }
+
+.iconNotifications {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/notifications.svg');
+}
 /* #endregion */
 
 .outerContainer {

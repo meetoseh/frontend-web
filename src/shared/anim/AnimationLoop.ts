@@ -44,6 +44,27 @@ export interface Animator<P extends object> {
   reset(): void;
 }
 
+type TrivialAnimatorOptions<K extends string, T, P extends { [key in K]: T }> = {
+  /**
+   * When copying from the received value to the target value,
+   * we will apply the clone function (defaults to the identity function).
+   * This is useful if you are updating a mutable value and don't want
+   * it to mutate the target when you do so.
+   * @param t The props to clone.
+   * @returns A clone of the props.
+   */
+  cloneFn?: (t: P[K]) => P[K];
+  /**
+   * The equality function to apply when deciding if the two values are
+   * equal. Defaults to ===.
+   *
+   * @param a The first value.
+   * @param b The second value.
+   * @returns True if the values are equal, false otherwise.
+   */
+  equalityFn?: (a: P[K], b: P[K]) => boolean;
+};
+
 /**
  * The trivial animator for a single field in the props. This animator
  * will always animate the field to the target value in a single frame.
@@ -52,17 +73,21 @@ export class TrivialAnimator<K extends string, T, P extends { [key in K]: T }>
   implements Animator<P>
 {
   private readonly key: K;
+  private readonly cloneFn: (p: P[K]) => P[K];
+  private readonly equalityFn: (a: P[K], b: P[K]) => boolean;
 
-  constructor(key: K) {
+  constructor(key: K, opts?: TrivialAnimatorOptions<K, T, P>) {
     this.key = key;
+    this.cloneFn = opts?.cloneFn ?? ((p) => p);
+    this.equalityFn = opts?.equalityFn ?? ((a, b) => a === b);
   }
 
   maybeAwaken(rendered: P, target: P): boolean {
-    return rendered[this.key] !== target[this.key];
+    return !this.equalityFn(rendered[this.key], target[this.key]);
   }
 
   apply(toRender: P, target: P, now: DOMHighResTimeStamp): 'done' | 'continue' {
-    toRender[this.key] = target[this.key];
+    toRender[this.key] = this.cloneFn(target[this.key]);
     return 'done';
   }
 

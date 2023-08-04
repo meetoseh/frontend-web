@@ -9,6 +9,13 @@ type AdminDashboardLargeChartPlaceholderProps = {
    * case it will be called if the component had ever been visible.
    */
   onVisible?: () => void;
+
+  /**
+   * If specified, used as the placeholder text. Generally should only be used
+   * during development to indicate which chart would go here, before the actual
+   * chart is implemented.
+   */
+  placeholderText?: string;
 };
 
 /**
@@ -17,6 +24,7 @@ type AdminDashboardLargeChartPlaceholderProps = {
  */
 export const AdminDashboardLargeChartPlaceholder = ({
   onVisible,
+  placeholderText,
 }: AdminDashboardLargeChartPlaceholderProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [beenVisible, setBeenVisible] = useState<boolean>(false);
@@ -58,7 +66,7 @@ export const AdminDashboardLargeChartPlaceholder = ({
   return (
     <div className={styles.container} ref={ref}>
       <div className={styles.innerContainer}>
-        <div className={styles.textContainer}>Loading data...</div>
+        <div className={styles.textContainer}>{placeholderText ?? 'Loading data...'}</div>
       </div>
     </div>
   );
