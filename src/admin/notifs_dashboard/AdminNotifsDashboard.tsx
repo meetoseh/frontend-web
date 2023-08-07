@@ -1,4 +1,4 @@
-import { PropsWithChildren, ReactElement } from 'react';
+import { PropsWithChildren, ReactElement, useCallback, useContext } from 'react';
 import styles from './AdminNotifsDashboard.module.css';
 import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
@@ -9,6 +9,15 @@ import { Button } from '../../shared/forms/Button';
 import { FlowChart, FlowChartProps } from '../../shared/components/FlowChart';
 import { combineClasses } from '../../shared/lib/combineClasses';
 import { AdminDashboardLargeChartPlaceholder } from '../dashboard/AdminDashboardLargeChartPlaceholder';
+import { LoginContext } from '../../shared/contexts/LoginContext';
+import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
+import { apiFetch } from '../../shared/ApiConstants';
+import { ErrorBlock } from '../../shared/forms/ErrorBlock';
+import {
+  AdminDashboardLargeChart,
+  AdminDashboardLargeChartProps,
+} from '../dashboard/AdminDashboardLargeChart';
+import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 24 },
@@ -21,8 +30,11 @@ const flowChartSettings: FlowChartProps = {
 };
 
 const formatNumber = (num: number): ReactElement => <>{num.toLocaleString()}</>;
+const formatNumberOrNull = (num: number | null, placeholder?: ReactElement): ReactElement => (
+  <>{num !== null ? num.toLocaleString() : placeholder ?? '?'}</>
+);
 const formatDateOrNull = (date: Date | null, placeholder?: ReactElement): ReactElement => (
-  <>{date ? date.toLocaleString() : placeholder ?? 'Loading...'}</>
+  <>{date !== null ? date.toLocaleString() : placeholder ?? '?'}</>
 );
 const formatDuration = (seconds: number, placeholder?: ReactElement): ReactElement => {
   if (seconds < 2) {
@@ -48,13 +60,163 @@ const formatDuration = (seconds: number, placeholder?: ReactElement): ReactEleme
     </>
   );
 };
+const formatErrorOrNull = (err: ReactElement | null): ReactElement => (
+  <>{err !== null && <ErrorBlock>{err}</ErrorBlock>}</>
+);
+const formatDashboardOrNull = (dashboard: AdminDashboardLargeChartProps | null): ReactElement => (
+  <>{dashboard !== null && <AdminDashboardLargeChart {...dashboard} />}</>
+);
 
 /**
  * The admin notifications dashboard, which is intended to inspecting the
  * current health our push notifications system.
  */
 export const AdminNotifsDashboard = (): ReactElement => {
-  const activePushTokensVWC = useWritableValueWithCallbacks<number>(() => 0);
+  const loginContext = useContext(LoginContext);
+
+  const activePushTokens = useNetworkResponse<number>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/total_push_tokens',
+        { method: 'GET' },
+        loginContext
+      );
+      if (!response.ok) {
+        throw response;
+      }
+      const json = await response.json();
+      return json.total_push_tokens;
+    }, [loginContext])
+  );
+
+  const pushTokenStats = useNetworkResponse<AdminDashboardLargeChartProps>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/daily_push_tokens',
+        { method: 'GET' },
+        loginContext
+      );
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data: {
+        labels: string[];
+        created: number[];
+        reassigned: number[];
+        refreshed: number[];
+        deleted_due_to_user_deletion: number[];
+        deleted_due_to_unrecognized_ticket: number[];
+        deleted_due_to_unrecognized_receipt: number[];
+        deleted_due_to_token_limit: number[];
+        total: number[];
+      } = await response.json();
+
+      return {
+        dailyCharts: [
+          {
+            identifier: 'created',
+            name: 'Created',
+            labels: data.labels,
+            values: data.created,
+          },
+          {
+            identifier: 'reassigned',
+            name: 'Reassigned',
+            labels: data.labels,
+            values: data.reassigned,
+          },
+          {
+            identifier: 'refreshed',
+            name: 'Refreshed',
+            labels: data.labels,
+            values: data.refreshed,
+          },
+          {
+            identifier: 'deleted_due_to_user_deletion',
+            name: 'Deleted due to user deletion',
+            labels: data.labels,
+            values: data.deleted_due_to_user_deletion,
+          },
+          {
+            identifier: 'deleted_due_to_unrecognized_ticket',
+            name: 'Deleted due to unrecognized ticket',
+            labels: data.labels,
+            values: data.deleted_due_to_unrecognized_ticket,
+          },
+          {
+            identifier: 'deleted_due_to_unrecognized_receipt',
+            name: 'Deleted due to unrecognized receipt',
+            labels: data.labels,
+            values: data.deleted_due_to_unrecognized_receipt,
+          },
+          {
+            identifier: 'deleted_due_to_token_limit',
+            name: 'Deleted due to token limit',
+            labels: data.labels,
+            values: data.deleted_due_to_token_limit,
+          },
+          {
+            identifier: 'deleted',
+            name: 'Deleted',
+            labels: data.labels,
+            values: data.deleted_due_to_user_deletion.map((_, i) => {
+              return (
+                data.deleted_due_to_user_deletion[i] +
+                data.deleted_due_to_unrecognized_ticket[i] +
+                data.deleted_due_to_unrecognized_receipt[i] +
+                data.deleted_due_to_token_limit[i]
+              );
+            }),
+          },
+          {
+            identifier: 'total',
+            name: 'Total EOD (may be slightly off)',
+            labels: data.labels,
+            values: data.total,
+          },
+        ],
+        monthlyCharts: [],
+      };
+    }, [loginContext])
+  );
+
+  const pushTokenTodaysStats = useNetworkResponse<{
+    created: number;
+    reassigned: number;
+    refreshed: number;
+    deleted_due_to_user_deletion: number;
+    deleted_due_to_unrecognized_ticket: number;
+    deleted_due_to_unrecognized_receipt: number;
+    deleted_due_to_token_limit: number;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/todays_push_token_stats',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      return await response.json();
+    }, [loginContext])
+  );
+
   const toSendQueueSizeVWC = useWritableValueWithCallbacks<number>(() => 0);
   const toSendOldestItemVWC = useWritableValueWithCallbacks<Date | null>(() => null);
   const purgatorySetSizeVWC = useWritableValueWithCallbacks<number>(() => 0);
@@ -155,10 +317,11 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   notification to it.
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}># Tokens</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent props={activePushTokensVWC} component={formatNumber} />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<># Tokens</>}
+                    value={activePushTokens}
+                    valueComponent={formatNumberOrNull}
+                  />
                   <div className={styles.blockStatisticInfo}>
                     How many Expo Push Tokens we have stored.
                   </div>
@@ -166,9 +329,72 @@ export const AdminNotifsDashboard = (): ReactElement => {
               </div>
             </FlowChart>
           </div>
-          <SectionGraphs>
-            <AdminDashboardLargeChartPlaceholder placeholderText="New, reassigned, refreshed, deleted, and total push tokens by day" />
-          </SectionGraphs>
+          <div className={styles.sectionGraphsAndTodaysStats}>
+            <SectionGraphs>
+              <RenderGuardedComponent props={pushTokenStats.error} component={formatErrorOrNull} />
+              <RenderGuardedComponent
+                props={pushTokenStats.result}
+                component={formatDashboardOrNull}
+              />
+            </SectionGraphs>
+            <SectionStatsToday refresh={pushTokenTodaysStats.refresh}>
+              <SectionStatsTodayItem
+                title={<>Created</>}
+                value={pushTokenTodaysStats}
+                valueComponent={(s) => formatNumberOrNull(s?.created ?? null)}
+              />
+              <SectionStatsTodayItem
+                title={<>Reassigned</>}
+                value={pushTokenTodaysStats}
+                valueComponent={(s) => formatNumberOrNull(s?.reassigned ?? null)}
+              />
+              <SectionStatsTodayItem
+                title={<>Refreshed</>}
+                value={pushTokenTodaysStats}
+                valueComponent={(s) => formatNumberOrNull(s?.refreshed ?? null)}
+              />
+              <SectionStatsTodayItem
+                title={
+                  <>
+                    Deleted <small>due to User Deletion</small>
+                  </>
+                }
+                value={pushTokenTodaysStats}
+                valueComponent={(s) => formatNumberOrNull(s?.deleted_due_to_user_deletion ?? null)}
+              />
+              <SectionStatsTodayItem
+                title={
+                  <>
+                    Deleted <small>due to Unrecognized Ticket</small>
+                  </>
+                }
+                value={pushTokenTodaysStats}
+                valueComponent={(s) =>
+                  formatNumberOrNull(s?.deleted_due_to_unrecognized_ticket ?? null)
+                }
+              />
+              <SectionStatsTodayItem
+                title={
+                  <>
+                    Deleted <small>due to Unrecognized Receipt</small>
+                  </>
+                }
+                value={pushTokenTodaysStats}
+                valueComponent={(s) =>
+                  formatNumberOrNull(s?.deleted_due_to_unrecognized_receipt ?? null)
+                }
+              />
+              <SectionStatsTodayItem
+                title={
+                  <>
+                    Deleted <small>due to Token Limit</small>
+                  </>
+                }
+                value={pushTokenTodaysStats}
+                valueComponent={(s) => formatNumberOrNull(s?.deleted_due_to_token_limit ?? null)}
+              />
+            </SectionStatsToday>
+          </div>
         </div>
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Push Tickets</div>
@@ -515,6 +741,80 @@ const SectionDescription = ({ children }: PropsWithChildren<object>): ReactEleme
   );
 };
 
+function BlockStatisticTitleRow<T>({
+  title,
+  value,
+  valueComponent,
+}: {
+  title: ReactElement;
+  value: NetworkResponse<T>;
+  valueComponent: (value: T | null) => ReactElement;
+}): ReactElement {
+  return (
+    <>
+      <div className={styles.blockStatisticTitleRow}>
+        <div className={styles.blockStatisticTitleAndValue}>
+          <div className={styles.blockStatisticTitle}>{title}</div>
+          <div className={styles.blockStatisticValue}>
+            <RenderGuardedComponent props={value.result} component={valueComponent} />
+          </div>
+        </div>
+        <div className={styles.blockStatisticControls}>
+          <IconButtonWithAutoDisable
+            icon={styles.iconRefresh}
+            srOnlyName="refresh"
+            onClick={value.refresh}
+            spinWhileDisabled
+          />
+        </div>
+      </div>
+      <RenderGuardedComponent props={value.error} component={formatErrorOrNull} />
+    </>
+  );
+}
+
 const SectionGraphs = ({ children }: PropsWithChildren<object>): ReactElement => {
   return <div className={styles.sectionGraphs}>{children}</div>;
 };
+
+const SectionStatsToday = ({
+  refresh,
+  children,
+}: PropsWithChildren<{ refresh: () => Promise<void> }>): ReactElement => {
+  return (
+    <div className={styles.sectionStatsToday}>
+      <div className={styles.sectionStatsTodayTitleAndControls}>
+        <div className={styles.sectionStatsTodayTitle}>Today So Far</div>
+        <div className={styles.sectionStatsTodayRefresh}>
+          <IconButtonWithAutoDisable
+            icon={styles.iconRefresh}
+            srOnlyName="Refresh"
+            onClick={refresh}
+            spinWhileDisabled
+          />
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+};
+
+function SectionStatsTodayItem<T>({
+  title,
+  value,
+  valueComponent,
+}: {
+  title: ReactElement;
+  value: NetworkResponse<T>;
+  valueComponent: (value: T | null) => ReactElement;
+}): ReactElement {
+  return (
+    <div className={styles.sectionStatsTodayItem}>
+      <div className={styles.sectionStatsTodayItemTitle}>{title}</div>
+      <div className={styles.sectionStatsTodayItemValue}>
+        <RenderGuardedComponent props={value.result} component={valueComponent} />
+      </div>
+      <RenderGuardedComponent props={value.error} component={formatErrorOrNull} />
+    </div>
+  );
+}

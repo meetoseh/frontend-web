@@ -1,6 +1,7 @@
 import { MouseEventHandler, ReactElement } from 'react';
 import styles from './IconButton.module.css';
 import assistiveStyles from '../assistive.module.css';
+import { combineClasses } from '../lib/combineClasses';
 
 type IconButtonProps = {
   /**
@@ -23,6 +24,12 @@ type IconButtonProps = {
    * @default false
    */
   disabled?: boolean;
+
+  /**
+   * If the button should be spinning
+   * @default false
+   */
+  spinning?: boolean;
 };
 
 export const IconButton = ({
@@ -30,18 +37,25 @@ export const IconButton = ({
   srOnlyName,
   onClick,
   disabled = false,
+  spinning = false,
 }: IconButtonProps): ReactElement => {
   if (typeof onClick === 'string') {
     return (
       <a href={onClick} className={styles.button}>
-        <div className={icon} aria-hidden="true" />
+        <div
+          className={combineClasses(icon, spinning ? styles.spinning : undefined)}
+          aria-hidden="true"
+        />
         <span className={assistiveStyles.srOnly}>{srOnlyName}</span>
       </a>
     );
   } else {
     return (
       <button type="button" onClick={onClick} className={styles.button} disabled={disabled}>
-        <div className={icon} aria-hidden="true" />
+        <div
+          className={combineClasses(icon, spinning ? styles.spinning : undefined)}
+          aria-hidden="true"
+        />
         <span className={assistiveStyles.srOnly}>{srOnlyName}</span>
       </button>
     );
