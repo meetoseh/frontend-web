@@ -245,7 +245,7 @@ const getInterestFromUTM = (utm: UTM): { primaryInterest: string; interests: str
       return { primaryInterest: 'mindful', interests: ['mindful'] };
     }
   } else if (utm.source === 'oseh.com' && utm.medium === 'referral' && utm.campaign === 'course') {
-    if (utm.content === 'affirmation-course') {
+    if (utm.content === 'affirmation-course' || utm.content === 'elevate-within') {
       return { primaryInterest: 'isaiah-course', interests: ['isaiah-course'] };
     }
   }

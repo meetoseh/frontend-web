@@ -1,4 +1,4 @@
-import { ReactElement } from 'react';
+import { ReactElement, useEffect } from 'react';
 import styles from './IsaiahCourseLoginScreen.module.css';
 import assistiveStyles from '../../../../shared/assistive.module.css';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
@@ -10,6 +10,7 @@ import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/
 import { SocialSignins, useProviderUrls } from '../../../login/LoginApp';
 import { SplashScreen } from '../../../splash/SplashScreen';
 import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { getUTMFromURL } from '../../../../shared/hooks/useVisitor';
 
 const backgroundUid = 'oseh_if_sqEZCjA1sP6vaIrzz5Lvsw';
 
@@ -36,6 +37,22 @@ export const IsaiahCourseLoginScreen = (): ReactElement => {
   const backgroundLoading = useUnwrappedValueWithCallbacks(
     useMappedValueWithCallbacks(backgroundVWC, (b) => b.loading)
   );
+
+  useEffect(() => {
+    const utm = getUTMFromURL();
+    let courseSlug: string | null = null;
+    if (utm !== null && utm.campaign === 'course') {
+      if (utm.content === 'affirmation-course') {
+        courseSlug = 'resilient-spirit-07202023';
+      } else if (utm.content === 'elevate-within') {
+        courseSlug = 'elevate-within-080882023';
+      }
+    }
+
+    if (courseSlug !== null) {
+      localStorage.setItem('lastIsaiahCourseSlug', courseSlug);
+    }
+  }, []);
 
   if (urls === null || backgroundLoading) {
     return <SplashScreen />;

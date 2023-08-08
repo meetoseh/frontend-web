@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { useInappNotificationValueWithCallbacks } from '../../../../shared/hooks/useInappNotification';
 import { Feature } from '../../models/Feature';
@@ -17,6 +17,7 @@ import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWi
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
+import { getUTMFromURL } from '../../../../shared/hooks/useVisitor';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -40,6 +41,20 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
           ? interests.primaryInterest
           : null
         : null;
+
+    const courseToAttach = useMemo(() => {
+      const utm = getUTMFromURL();
+      if (utm !== null && utm.campaign === 'course') {
+        if (utm.content === 'affirmation-course') {
+          return 'resilient-spirit-07202023';
+        } else if (utm.content === 'elevate-within') {
+          return 'elevate-within-080882023';
+        }
+      }
+
+      const lastIsaiahCourseSlug = localStorage.getItem('lastIsaiahCourseSlug');
+      return lastIsaiahCourseSlug ?? 'resilient-spirit-07202023';
+    }, []);
 
     const attachedCourse = useWritableValueWithCallbacks<boolean | null>(() => null);
     useValueWithCallbacksEffect(ian, (ian) => {
@@ -90,7 +105,7 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
                 : { Visitor: interests.visitor.uid }),
             },
             body: JSON.stringify({
-              course_slug: 'resilient-spirit-07202023',
+              course_slug: courseToAttach,
               source: 'browser',
             }),
           },
@@ -101,6 +116,7 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
         }
         if (response.ok || response.status === 409) {
           await response.text();
+          localStorage.removeItem('lastIsaiahCourseSlug');
           setVWC(attachedCourse, true);
           return;
         }

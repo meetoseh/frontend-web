@@ -156,7 +156,11 @@ const UserAppInner = (): ReactElement => {
         props={stateVWC}
         component={(state) => {
           if (state === 'login') {
-            if (utm !== null && utm.campaign === 'course' && utm.content === 'affirmation-course') {
+            if (
+              utm !== null &&
+              utm.campaign === 'course' &&
+              (utm.content === 'affirmation-course' || utm.content === 'elevate-within')
+            ) {
               return <IsaiahCourseLoginScreen />;
             }
 
