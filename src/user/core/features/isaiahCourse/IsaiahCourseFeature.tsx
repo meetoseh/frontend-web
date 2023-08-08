@@ -20,27 +20,16 @@ import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { getUTMFromURL } from '../../../../shared/hooks/useVisitor';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
+const courseToIanUid: Record<string, string> = {
+  'resilient-spirit-07202023': 'oseh_ian_1DsXw1UM0_cQ_PRglgchcg',
+  'elevate-within-080882023': 'oseh_ian_OFStGm3QKzII9onuP3CaCg',
+};
 
 export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResources> = {
   identifier: 'isaiahCourse',
   useWorldState: () => {
     const interests = useContext(InterestsContext);
     const loginContext = useContext(LoginContext);
-    const ian = useInappNotificationValueWithCallbacks({
-      type: 'react-rerender',
-      props: {
-        uid: 'oseh_ian_1DsXw1UM0_cQ_PRglgchcg',
-        suppress: interests.state !== 'loaded' || interests.primaryInterest !== 'isaiah-course',
-      },
-    });
-    const primaryInterest =
-      interests.state === 'loading'
-        ? undefined
-        : interests.state === 'loaded'
-        ? loginContext.state === 'logged-in'
-          ? interests.primaryInterest
-          : null
-        : null;
 
     const courseToAttach = useMemo(() => {
       const utm = getUTMFromURL();
@@ -55,6 +44,22 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
       const lastIsaiahCourseSlug = localStorage.getItem('lastIsaiahCourseSlug');
       return lastIsaiahCourseSlug ?? 'resilient-spirit-07202023';
     }, []);
+
+    const ian = useInappNotificationValueWithCallbacks({
+      type: 'react-rerender',
+      props: {
+        uid: courseToIanUid[courseToAttach],
+        suppress: interests.state !== 'loaded' || interests.primaryInterest !== 'isaiah-course',
+      },
+    });
+    const primaryInterest =
+      interests.state === 'loading'
+        ? undefined
+        : interests.state === 'loaded'
+        ? loginContext.state === 'logged-in'
+          ? interests.primaryInterest
+          : null
+        : null;
 
     const attachedCourse = useWritableValueWithCallbacks<boolean | null>(() => null);
     useValueWithCallbacksEffect(ian, (ian) => {
