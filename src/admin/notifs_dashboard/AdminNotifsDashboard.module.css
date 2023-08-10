@@ -142,7 +142,7 @@
 
 .blockStatisticTitleAndValue {
   display: flex;
-  flex-direction: row;
+  flex-flow: row wrap;
   align-items: center;
   justify-content: flex-start;
 }
@@ -256,4 +256,72 @@
 
 .sectionStatsTodayItemTitle::after {
   content: ':';
+}
+
+.sectionStatsTodayNote {
+  max-width: min(320px, 60ch);
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  color: rgba(0, 0, 0, 0.7);
+  font-weight: 400;
+  margin-top: 4px;
+  letter-spacing: 0.25px;
+  padding: 10px 20px;
+
+  display: flex;
+  flex-flow: row nowrap;
+}
+
+.sectionStatsTodayNote::before {
+  content: '*';
+  margin-right: 0.25em;
+}
+
+.sectionStatsMultiday {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  background: white;
+  box-shadow: 0px 15px 50px rgba(160, 163, 189, 0.1);
+  border-radius: 10px;
+}
+
+.sectionStatsMultidayTabsAndControls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 10px 20px;
+}
+
+.sectionStatsMultidayTabs {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  margin-right: 16px;
+}
+
+.sectionStatsMultidayTab:not(:first-child) {
+  margin-left: 8px;
+}
+
+.sectionStatsMultidayTab:not(.sectionStatsMultidayTabActive) {
+  opacity: 60%;
+}
+
+.sectionStatsMultidayTabActive {
+  border-bottom: 1px solid #446266;
+}
+
+.sectionStatsMultidayContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
 }

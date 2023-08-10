@@ -1,4 +1,4 @@
-import { PropsWithChildren, ReactElement, useCallback, useContext } from 'react';
+import { PropsWithChildren, ReactElement, useCallback, useContext, useMemo } from 'react';
 import styles from './AdminNotifsDashboard.module.css';
 import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
@@ -18,6 +18,7 @@ import {
   AdminDashboardLargeChartProps,
 } from '../dashboard/AdminDashboardLargeChart';
 import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
+import { CrudFetcherKeyMap, convertUsingKeymap } from '../crud/CrudFetcher';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 24 },
@@ -29,14 +30,13 @@ const flowChartSettings: FlowChartProps = {
   arrowHeadAngleDeg: { type: 'react-rerender', props: 30 },
 };
 
-const formatNumber = (num: number): ReactElement => <>{num.toLocaleString()}</>;
 const formatNumberOrNull = (num: number | null, placeholder?: ReactElement): ReactElement => (
   <>{num !== null ? num.toLocaleString() : placeholder ?? '?'}</>
 );
 const formatDateOrNull = (date: Date | null, placeholder?: ReactElement): ReactElement => (
   <>{date !== null ? date.toLocaleString() : placeholder ?? '?'}</>
 );
-const formatDuration = (seconds: number, placeholder?: ReactElement): ReactElement => {
+const formatDuration = (seconds: number): ReactElement => {
   if (seconds < 2) {
     const ms = Math.round(seconds * 1000);
     return <>{ms}ms</>;
@@ -60,12 +60,101 @@ const formatDuration = (seconds: number, placeholder?: ReactElement): ReactEleme
     </>
   );
 };
+const formatDurationOrNull = (seconds: number | null, placeholder?: ReactElement): ReactElement => (
+  <>{seconds !== null ? formatDuration(seconds) : placeholder ?? '?'}</>
+);
 const formatErrorOrNull = (err: ReactElement | null): ReactElement => (
   <>{err !== null && <ErrorBlock>{err}</ErrorBlock>}</>
 );
-const formatDashboardOrNull = (dashboard: AdminDashboardLargeChartProps | null): ReactElement => (
-  <>{dashboard !== null && <AdminDashboardLargeChart {...dashboard} />}</>
+const formatDashboardOrNull = (
+  dashboard: AdminDashboardLargeChartProps | null,
+  onVisible?: () => void
+): ReactElement => (
+  <>
+    {dashboard === null ? (
+      <AdminDashboardLargeChartPlaceholder onVisible={onVisible} />
+    ) : (
+      <AdminDashboardLargeChart {...dashboard} />
+    )}
+  </>
 );
+
+type PartialPushTicketStatsItem = {
+  queued: number;
+  succeeded: number;
+  abandoned: number;
+  failedDueToDeviceNotRegistered: number;
+  failedDueToClientErrorOther: number;
+  failedDueToInternalError: number;
+  retried: number;
+  failedDueToClientError429: number;
+  failedDueToServerError: number;
+  failedDueToNetworkError: number;
+};
+
+const partialPushTicketStatsItemKeyMap: CrudFetcherKeyMap<PartialPushTicketStatsItem> = {
+  failed_due_to_device_not_registered: 'failedDueToDeviceNotRegistered',
+  failed_due_to_client_error_other: 'failedDueToClientErrorOther',
+  failed_due_to_internal_error: 'failedDueToInternalError',
+  failed_due_to_client_error_429: 'failedDueToClientError429',
+  failed_due_to_server_error: 'failedDueToServerError',
+  failed_due_to_network_error: 'failedDueToNetworkError',
+};
+
+type PartialPushTicketStats = {
+  yesterday: PartialPushTicketStatsItem;
+  today: PartialPushTicketStatsItem;
+  checkedAt: Date;
+};
+
+const parsePartialPushTicketStats = (raw: any): PartialPushTicketStats => ({
+  yesterday: convertUsingKeymap(raw.yesterday, partialPushTicketStatsItemKeyMap),
+  today: convertUsingKeymap(raw.today, partialPushTicketStatsItemKeyMap),
+  checkedAt: new Date(raw.checked_at * 1000),
+});
+
+type PartialPushReceiptStatsItem = {
+  succeeded: number;
+  abandoned: number;
+  failedDueToDeviceNotRegistered: number;
+  failedDueToMessageTooBig: number;
+  failedDueToMessageRateExceeded: number;
+  failedDueToMismatchedSenderId: number;
+  failedDueToInvalidCredentials: number;
+  failedDueToClientErrorOther: number;
+  failedDueToInternalError: number;
+  retried: number;
+  failedDueToNotReadyYet: number;
+  failedDueToServerError: number;
+  failedDueToClientError429: number;
+  failedDueToNetworkError: number;
+};
+
+const partialPushReceiptStatsItemKeyMap: CrudFetcherKeyMap<PartialPushReceiptStatsItem> = {
+  failed_due_to_device_not_registered: 'failedDueToDeviceNotRegistered',
+  failed_due_to_message_too_big: 'failedDueToMessageTooBig',
+  failed_due_to_message_rate_exceeded: 'failedDueToMessageRateExceeded',
+  failed_due_to_mismatched_sender_id: 'failedDueToMismatchedSenderId',
+  failed_due_to_invalid_credentials: 'failedDueToInvalidCredentials',
+  failed_due_to_client_error_other: 'failedDueToClientErrorOther',
+  failed_due_to_internal_error: 'failedDueToInternalError',
+  failed_due_to_not_ready_yet: 'failedDueToNotReadyYet',
+  failed_due_to_client_error_429: 'failedDueToClientError429',
+  failed_due_to_server_error: 'failedDueToServerError',
+  failed_due_to_network_error: 'failedDueToNetworkError',
+};
+
+type PartialPushReceiptStats = {
+  yesterday: PartialPushReceiptStatsItem;
+  today: PartialPushReceiptStatsItem;
+  checkedAt: Date;
+};
+
+const parsePartialPushReceiptStats = (raw: any): PartialPushReceiptStats => ({
+  yesterday: convertUsingKeymap(raw.yesterday, partialPushReceiptStatsItemKeyMap),
+  today: convertUsingKeymap(raw.today, partialPushReceiptStatsItemKeyMap),
+  checkedAt: new Date(raw.checked_at * 1000),
+});
 
 /**
  * The admin notifications dashboard, which is intended to inspecting the
@@ -93,8 +182,10 @@ export const AdminNotifsDashboard = (): ReactElement => {
     }, [loginContext])
   );
 
+  const pushTokenStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
   const pushTokenStats = useNetworkResponse<AdminDashboardLargeChartProps>(
     useCallback(async () => {
+      console.log('loading push token stats');
       if (loginContext.state !== 'logged-in') {
         return null;
       }
@@ -186,7 +277,10 @@ export const AdminNotifsDashboard = (): ReactElement => {
         ],
         monthlyCharts: [],
       };
-    }, [loginContext])
+    }, [loginContext]),
+    {
+      loadPrevented: pushTokenStatsLoadPrevented,
+    }
   );
 
   const pushTokenTodaysStats = useNetworkResponse<{
@@ -214,25 +308,533 @@ export const AdminNotifsDashboard = (): ReactElement => {
       }
 
       return await response.json();
+    }, [loginContext]),
+    {
+      loadPrevented: pushTokenStatsLoadPrevented,
+    }
+  );
+
+  const sendQueueInfo = useNetworkResponse<{
+    length: number;
+    oldestLastQueuedAt: Date | null;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/send_queue_info',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data: {
+        length: number;
+        oldest_last_queued_at: number | null;
+      } = await response.json();
+      return {
+        length: data.length,
+        oldestLastQueuedAt:
+          data.oldest_last_queued_at !== null ? new Date(data.oldest_last_queued_at * 1000) : null,
+      };
     }, [loginContext])
   );
 
-  const toSendQueueSizeVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const toSendOldestItemVWC = useWritableValueWithCallbacks<Date | null>(() => null);
-  const purgatorySetSizeVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const sendJobLastRanAtVWC = useWritableValueWithCallbacks<Date | null>(() => null);
-  const runningTimeLastSendJobSecondsVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const pushReceiptColdSetSizeVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const pushReceiptColdSetOldestDueAtVWC = useWritableValueWithCallbacks<Date | null>(() => null);
-  const pushReceiptColdToHotLastRanAtVWC = useWritableValueWithCallbacks<Date | null>(() => null);
-  const pushReceiptColdToHotLastRuntimeVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const pushReceiptColdToHotLastNumMovedVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const pushReceiptHotSetSizeVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const pushReceiptHotSetOldestDueAtVWC = useWritableValueWithCallbacks<Date | null>(() => null);
-  const pushReceiptPurgatorySizeVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const pushReceiptCheckJobLastRanAtVWC = useWritableValueWithCallbacks<Date | null>(() => null);
-  const pushReceiptCheckJobLastRuntimeVWC = useWritableValueWithCallbacks<number>(() => 0);
-  const pushReceiptCheckJobLastNumCheckedVWC = useWritableValueWithCallbacks<number>(() => 0);
+  const lastSendJob = useNetworkResponse<
+    | {
+        startedAt: Date;
+        finishedAt: Date;
+        runningTime: number;
+        numMessagesAttempted: number;
+        numSucceeded: number;
+        numFailedPermanently: number;
+        numFailedTransiently: number;
+        numInPurgatory: number;
+      }
+    | false
+  >(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/last_send_job',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return false;
+        }
+        throw response;
+      }
+
+      const data: {
+        started_at: number;
+        finished_at: number;
+        running_time: number;
+        num_messages_attempted: number;
+        num_succeeded: number;
+        num_failed_permanently: number;
+        num_failed_transiently: number;
+        num_in_purgatory: number;
+      } = await response.json();
+      return {
+        startedAt: new Date(data.started_at * 1000),
+        finishedAt: new Date(data.finished_at * 1000),
+        runningTime: data.running_time,
+        numMessagesAttempted: data.num_messages_attempted,
+        numSucceeded: data.num_succeeded,
+        numFailedPermanently: data.num_failed_permanently,
+        numFailedTransiently: data.num_failed_transiently,
+        numInPurgatory: data.num_in_purgatory,
+      };
+    }, [loginContext])
+  );
+
+  const receiptColdSetInfo = useNetworkResponse<{
+    length: number;
+    numOverdue: number;
+    oldestLastQueuedAt: Date | null;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/receipt_cold_set_info',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data: {
+        length: number;
+        num_overdue: number;
+        oldest_last_queued_at: number | null;
+      } = await response.json();
+      return {
+        length: data.length,
+        numOverdue: data.num_overdue,
+        oldestLastQueuedAt:
+          data.oldest_last_queued_at !== null ? new Date(data.oldest_last_queued_at * 1000) : null,
+      };
+    }, [loginContext])
+  );
+
+  const pushTicketStatsLoadPrevented = useWritableValueWithCallbacks<boolean>(() => true);
+  const pushTicketStats = useNetworkResponse<AdminDashboardLargeChartProps>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/daily_push_tickets',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data: {
+        labels: string[];
+        queued: number[];
+        succeeded: number[];
+        abandoned: number[];
+        failed_due_to_device_not_registered: number[];
+        failed_due_to_client_error_other: number[];
+        failed_due_to_internal_error: number[];
+        retried: number[];
+        failed_due_client_error_429: number[];
+        failed_due_to_server_error: number[];
+        failed_due_to_network_error: number[];
+      } = await response.json();
+
+      return {
+        dailyCharts: [
+          {
+            identifier: 'queued',
+            name: 'Queued',
+            labels: data.labels,
+            values: data.queued,
+          },
+          {
+            identifier: 'succeeded',
+            name: 'Succeeded',
+            labels: data.labels,
+            values: data.succeeded,
+          },
+          {
+            identifier: 'abandoned',
+            name: 'Abandoned',
+            labels: data.labels,
+            values: data.abandoned,
+          },
+          {
+            identifier: 'failed_due_to_device_not_registered',
+            name: 'Failed due to device not registered',
+            labels: data.labels,
+            values: data.failed_due_to_device_not_registered,
+          },
+          {
+            identifier: 'failed_due_to_client_error_other',
+            name: 'Failed due to client error (other)',
+            labels: data.labels,
+            values: data.failed_due_to_client_error_other,
+          },
+          {
+            identifier: 'failed_due_to_internal_error',
+            name: 'Failed due to internal error',
+            labels: data.labels,
+            values: data.failed_due_to_internal_error,
+          },
+          {
+            identifier: 'retried',
+            name: 'Retried',
+            labels: data.labels,
+            values: data.retried,
+          },
+          {
+            identifier: 'failed_due_to_client_error_429',
+            name: 'Failed due to client error (429)',
+            labels: data.labels,
+            values: data.failed_due_client_error_429,
+          },
+          {
+            identifier: 'failed_due_to_server_error',
+            name: 'Failed due to server error',
+            labels: data.labels,
+            values: data.failed_due_to_server_error,
+          },
+          {
+            identifier: 'failed_due_to_network_error',
+            name: 'Failed due to network error',
+            labels: data.labels,
+            values: data.failed_due_to_network_error,
+          },
+        ],
+        monthlyCharts: [],
+      };
+    }, [loginContext]),
+    {
+      loadPrevented: pushTicketStatsLoadPrevented,
+    }
+  );
+  const partialPushTicketStats = useNetworkResponse<PartialPushTicketStats>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/partial_push_ticket_stats',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      return parsePartialPushTicketStats(await response.json());
+    }, [loginContext]),
+    {
+      loadPrevented: pushTicketStatsLoadPrevented,
+    }
+  );
+
+  const lastColdToHotJobInfo = useNetworkResponse<
+    | {
+        startedAt: Date;
+        finishedAt: Date;
+        runningTime: number;
+        numMoved: number;
+      }
+    | false
+  >(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/last_cold_to_hot_job',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return false;
+        }
+        throw response;
+      }
+
+      const data: {
+        started_at: number;
+        finished_at: number;
+        running_time: number;
+        num_moved: number;
+      } = await response.json();
+
+      return {
+        startedAt: new Date(data.started_at * 1000),
+        finishedAt: new Date(data.finished_at * 1000),
+        runningTime: data.running_time,
+        numMoved: data.num_moved,
+      };
+    }, [loginContext])
+  );
+
+  const lastCheckJobInfo = useNetworkResponse<
+    | {
+        startedAt: Date;
+        finishedAt: Date;
+        runningTime: number;
+        numChecked: number;
+        numSucceeded: number;
+        numFailedPermanently: number;
+        numFailedTransiently: number;
+        numInPurgatory: number;
+      }
+    | false
+  >(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/last_check_job',
+        { method: 'GET' },
+        loginContext
+      );
+      if (!response.ok) {
+        if (response.status === 404) {
+          return false;
+        }
+        throw response;
+      }
+
+      const data: {
+        started_at: number;
+        finished_at: number;
+        running_time: number;
+        num_checked: number;
+        num_succeeded: number;
+        num_failed_permanently: number;
+        num_failed_transiently: number;
+        num_in_purgatory: number;
+      } = await response.json();
+      return {
+        startedAt: new Date(data.started_at * 1000),
+        finishedAt: new Date(data.finished_at * 1000),
+        runningTime: data.running_time,
+        numChecked: data.num_checked,
+        numSucceeded: data.num_succeeded,
+        numFailedPermanently: data.num_failed_permanently,
+        numFailedTransiently: data.num_failed_transiently,
+        numInPurgatory: data.num_in_purgatory,
+      };
+    }, [loginContext])
+  );
+
+  const pushReceiptHotSetInfo = useNetworkResponse<{
+    length: number;
+    oldestLastQueuedAt: Date | null;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/receipt_hot_set_info',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data: {
+        length: number;
+        oldest_last_queued_at: number | null;
+      } = await response.json();
+      return {
+        length: data.length,
+        oldestLastQueuedAt:
+          data.oldest_last_queued_at === null ? null : new Date(data.oldest_last_queued_at * 1000),
+      };
+    }, [loginContext])
+  );
+
+  const pushReceiptStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
+  const pushReceiptStats = useNetworkResponse<AdminDashboardLargeChartProps>(
+    useCallback(async () => {
+      console.log('loading push token stats');
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/daily_push_receipts',
+        { method: 'GET' },
+        loginContext
+      );
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data: {
+        labels: string[];
+        succeeded: number[];
+        abandoned: number[];
+        failed_due_to_device_not_registered: number[];
+        failed_due_to_message_too_big: number[];
+        failed_due_to_message_rate_exceeded: number[];
+        failed_due_to_mismatched_sender_id: number[];
+        failed_due_to_invalid_credentials: number[];
+        failed_due_to_client_error_other: number[];
+        failed_due_to_internal_error: number[];
+        retried: number[];
+        failed_due_to_not_ready_yet: number[];
+        failed_due_to_server_error: number[];
+        failed_due_to_client_error_429: number[];
+        failed_due_to_network_error: number[];
+      } = await response.json();
+
+      return {
+        dailyCharts: [
+          {
+            identifier: 'succeeded',
+            name: 'Succeeded',
+            labels: data.labels,
+            values: data.succeeded,
+          },
+          {
+            identifier: 'abandoned',
+            name: 'Abandoned',
+            labels: data.labels,
+            values: data.abandoned,
+          },
+          {
+            identifier: 'failed_due_to_device_not_registered',
+            name: 'Failed due to device not registered',
+            labels: data.labels,
+            values: data.failed_due_to_device_not_registered,
+          },
+          {
+            identifier: 'failed_due_to_message_too_big',
+            name: 'Failed due to message too big',
+            labels: data.labels,
+            values: data.failed_due_to_message_too_big,
+          },
+          {
+            identifier: 'failed_due_to_message_rate_exceeded',
+            name: 'Failed due to message rate exceeded',
+            labels: data.labels,
+            values: data.failed_due_to_message_rate_exceeded,
+          },
+          {
+            identifier: 'failed_due_to_mismatched_sender_id',
+            name: 'Failed due to mismatched sender ID',
+            labels: data.labels,
+            values: data.failed_due_to_mismatched_sender_id,
+          },
+          {
+            identifier: 'failed_due_to_invalid_credentials',
+            name: 'Failed due to invalid credentials',
+            labels: data.labels,
+            values: data.failed_due_to_invalid_credentials,
+          },
+          {
+            identifier: 'failed_due_to_client_error_other',
+            name: 'Failed due to client error (other)',
+            labels: data.labels,
+            values: data.failed_due_to_client_error_other,
+          },
+          {
+            identifier: 'failed_due_to_internal_error',
+            name: 'Failed due to internal error',
+            labels: data.labels,
+            values: data.failed_due_to_internal_error,
+          },
+          {
+            identifier: 'retried',
+            name: 'Retried',
+            labels: data.labels,
+            values: data.retried,
+          },
+          {
+            identifier: 'failed_due_to_not_ready_yet',
+            name: 'Failed due to not ready yet',
+            labels: data.labels,
+            values: data.failed_due_to_not_ready_yet,
+          },
+          {
+            identifier: 'failed_due_to_server_error',
+            name: 'Failed due to server error',
+            labels: data.labels,
+            values: data.failed_due_to_server_error,
+          },
+          {
+            identifier: 'failed_due_to_client_error_429',
+            name: 'Failed due to client error (429)',
+            labels: data.labels,
+            values: data.failed_due_to_client_error_429,
+          },
+          {
+            identifier: 'failed_due_to_network_error',
+            name: 'Failed due to network error',
+            labels: data.labels,
+            values: data.failed_due_to_network_error,
+          },
+        ],
+        monthlyCharts: [],
+      };
+    }, [loginContext]),
+    {
+      loadPrevented: pushReceiptStatsLoadPrevented,
+    }
+  );
+  const partialPushReceiptStats = useNetworkResponse<PartialPushReceiptStats>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/notifs/partial_push_receipt_stats',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      return parsePartialPushReceiptStats(await response.json());
+    }, [loginContext]),
+    {
+      loadPrevented: pushReceiptStatsLoadPrevented,
+    }
+  );
 
   return (
     <div className={styles.container}>
@@ -334,7 +936,9 @@ export const AdminNotifsDashboard = (): ReactElement => {
               <RenderGuardedComponent props={pushTokenStats.error} component={formatErrorOrNull} />
               <RenderGuardedComponent
                 props={pushTokenStats.result}
-                component={formatDashboardOrNull}
+                component={(v) =>
+                  formatDashboardOrNull(v, () => setVWC(pushTokenStatsLoadPrevented, false))
+                }
               />
             </SectionGraphs>
             <SectionStatsToday refresh={pushTokenTodaysStats.refresh}>
@@ -433,18 +1037,23 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   </ul>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}># In Queue</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent props={toSendQueueSizeVWC} component={formatNumber} />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<># In Queue</>}
+                    value={sendQueueInfo}
+                    valueComponent={(i) => formatNumberOrNull(i?.length ?? null)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Oldest Item</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={toSendOldestItemVWC}
-                      component={(item) => formatDateOrNull(item, <>N/A</>)}
-                    />
+                  <BlockStatisticTitleRow
+                    title={<>Oldest Item</>}
+                    value={sendQueueInfo}
+                    valueComponent={(i) =>
+                      i === null ? <>?</> : formatDateOrNull(i.oldestLastQueuedAt, <>N/A</>)
+                    }
+                  />
+                  <div className={styles.blockStatisticInfo}>
+                    For the oldest item in the queue (left-most), how long it has been in the queue
+                    (last queued at).
                   </div>
                 </div>
               </div>
@@ -470,41 +1079,114 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   the message was delivered to the device.
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}># In Purgatory</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent props={purgatorySetSizeVWC} component={formatNumber} />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<># In Purgatory</>}
+                    value={lastSendJob}
+                    valueComponent={(j) =>
+                      j === false ? <>N/A</> : formatNumberOrNull(j?.numInPurgatory ?? null)
+                    }
+                  />
                   <div className={styles.blockStatisticInfo}>
-                    Should be empty while no Send Job is running. Requires manual intervention to
-                    recover from.
+                    Should be empty while no Send Job is running. If the Send Job crashes, the next
+                    run will send these messages.
                   </div>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Send Job Last Ran At</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={sendJobLastRanAtVWC}
-                      component={(date) => formatDateOrNull(date, <>Never</>)}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<>Started At</>}
+                    value={lastSendJob}
+                    valueComponent={(j) =>
+                      j === false ? <>N/A</> : formatDateOrNull(j?.startedAt ?? null)
+                    }
+                  />
                   <div className={styles.blockStatisticInfo}>
                     The last time the Send Job started.
                   </div>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Send Job last running time</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={runningTimeLastSendJobSecondsVWC}
-                      component={(time) => formatDuration(time, <>N/A</>)}
-                    />
+                  <BlockStatisticTitleRow
+                    title={<>Finished At</>}
+                    value={lastSendJob}
+                    valueComponent={(j) =>
+                      j === false ? <>N/A</> : formatDateOrNull(j?.finishedAt ?? null)
+                    }
+                  />
+                  <div className={styles.blockStatisticInfo}>
+                    The last time the Send Job finished normally.
                   </div>
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<>Running Time</>}
+                    value={lastSendJob}
+                    valueComponent={(j) =>
+                      j === false ? <>N/A</> : formatDurationOrNull(j?.runningTime ?? null)
+                    }
+                  />
                   <div className={styles.blockStatisticInfo}>
                     How long the Send Job took the last time it finished normally.
                   </div>
                 </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<># Attempted</>}
+                    value={lastSendJob}
+                    valueComponent={(j) =>
+                      j === false ? <>N/A</> : formatNumberOrNull(j?.numMessagesAttempted ?? null)
+                    }
+                  />
+                  <div className={styles.blockStatisticInfo}>
+                    How many messages the Send Job tried to send last time it finished normally.
+                  </div>
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<># Succeeded</>}
+                    value={lastSendJob}
+                    valueComponent={(j) =>
+                      j === false ? <>N/A</> : formatNumberOrNull(j?.numSucceeded ?? null)
+                    }
+                  />
+                  <div className={styles.blockStatisticInfo}>
+                    How many messages were accepted by the Expo Push API the last time the Send Job
+                    finished normally.
+                  </div>
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<># Failed Permanently</>}
+                    value={lastSendJob}
+                    valueComponent={(j) =>
+                      j === false ? <>N/A</> : formatNumberOrNull(j?.numFailedPermanently ?? null)
+                    }
+                  />
+                  <div className={styles.blockStatisticInfo}>
+                    How many messages were rejected by the Expo Push API the last time the Send Job
+                    finished normally.
+                  </div>
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<># Failed Transiently</>}
+                    value={lastSendJob}
+                    valueComponent={(j) =>
+                      j === false ? <>N/A</> : formatNumberOrNull(j?.numFailedTransiently ?? null)
+                    }
+                  />
+                  <div className={styles.blockStatisticInfo}>
+                    How many messages encountered a transient failure (429, network error, server
+                    error, etc) when being sent to the Expo Push API the last time the Send Job
+                    finished normally. Note that the Send Job can send multiple batches to the Expo
+                    Push API each time it is run, and transient failures apply to a full batch at a
+                    time, so this number will typically correspond to a multiple of the network
+                    batch size (potentially plus the last batch, which may be smaller than the
+                    network batch size).
+                  </div>
+                </div>
               </div>
-              <div className={combineClasses(styles.block, styles.blockServer)}>
+              <div
+                className={combineClasses(styles.block, styles.blockServer)}
+                style={{ maxWidth: '475px' }}>
                 <div className={styles.blockTag}>Server (jobs)</div>
                 <div className={styles.blockTitle}>Add to Push Receipt Cold Set</div>
                 <div className={styles.blockDescription}>
@@ -517,37 +1199,81 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   </a>{' '}
                   upon successfully receiving message attempts. We want to wait about 15 minutes and
                   then query the Expo Push API for the receipt corresponding to the ticket. To
-                  facilitate this, after receiving a push ticket, we add it to a redis list we call
-                  the Push Receipt Cold Set.
+                  facilitate this, after receiving a push ticket, we add it to a redis sorted set we
+                  call the Push Receipt Cold Set.
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}># In Cold Set</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptColdSetSizeVWC}
-                      component={formatNumber}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<># In Cold Set</>}
+                    value={receiptColdSetInfo}
+                    valueComponent={(i) => formatNumberOrNull(i?.length ?? null)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Oldest Due At</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptColdSetOldestDueAtVWC}
-                      component={(date) => formatDateOrNull(date, <>N/A</>)}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<>Oldest Queued At</>}
+                    value={receiptColdSetInfo}
+                    valueComponent={(i) =>
+                      i === null ? <>?</> : formatDateOrNull(i.oldestLastQueuedAt ?? null, <>N/A</>)
+                    }
+                  />
                   <div className={styles.blockStatisticInfo}>
                     The earliest time at which we want to query the Expo Push API for the receipt
                     for any push ticket in the cold set.
                   </div>
                 </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<>Num Overdue</>}
+                    value={receiptColdSetInfo}
+                    valueComponent={(i) => formatNumberOrNull(i?.numOverdue ?? null)}
+                  />
+                  <div className={styles.blockStatisticInfo}>
+                    How many entries in the cold set are ready to be moved to the hot set; note that
+                    it is not unusual to be non-zero as we only occasionally move entries from the
+                    cold set to the hot set.
+                  </div>
+                </div>
               </div>
             </FlowChart>
           </div>
-          <SectionGraphs>
-            <AdminDashboardLargeChartPlaceholder placeholderText="Message attempts (initial, retries, successes, failures, abandoned) by day" />
-          </SectionGraphs>
+          <div className={styles.sectionGraphsAndTodaysStats}>
+            <SectionGraphs>
+              <RenderGuardedComponent props={pushTicketStats.error} component={formatErrorOrNull} />
+              <RenderGuardedComponent
+                props={pushTicketStats.result}
+                component={(v) =>
+                  formatDashboardOrNull(v, () => setVWC(pushTicketStatsLoadPrevented, false))
+                }
+              />
+            </SectionGraphs>
+            <SectionStatsMultiday
+              refresh={partialPushTicketStats.refresh}
+              days={useMemo(
+                () => [
+                  {
+                    name: 'Yesterday',
+                    content: (
+                      <PartialPushTicketsStatsDisplay
+                        value={partialPushTicketStats}
+                        keyName="yesterday"
+                      />
+                    ),
+                  },
+                  {
+                    name: 'Today',
+                    content: (
+                      <PartialPushTicketsStatsDisplay
+                        value={partialPushTicketStats}
+                        keyName="today"
+                      />
+                    ),
+                  },
+                ],
+                [partialPushTicketStats]
+              )}
+            />
+          </div>
         </div>
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Push Receipts</div>
@@ -587,31 +1313,56 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   notifications are bursty (a common case).
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Last Run At</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptColdToHotLastRanAtVWC}
-                      component={(date) => formatDateOrNull(date, <>Never</>)}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<>Started At</>}
+                    value={lastColdToHotJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>Never</> : formatDateOrNull(i?.startedAt ?? null)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Last Runtime</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptColdToHotLastRuntimeVWC}
-                      component={formatDuration}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<>Finished At</>}
+                    value={lastColdToHotJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>Never</> : formatDateOrNull(i?.finishedAt ?? null)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Last # Moved</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptColdToHotLastNumMovedVWC}
-                      component={formatNumber}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<>Running Time</>}
+                    value={lastColdToHotJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>N/A</> : formatDurationOrNull(i?.runningTime ?? null)
+                    }
+                  />
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<># Moved</>}
+                    value={lastColdToHotJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>N/A</> : formatNumberOrNull(i?.numMoved ?? null)
+                    }
+                  />
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<># In Hot Set</>}
+                    value={pushReceiptHotSetInfo}
+                    valueComponent={(i) => formatNumberOrNull(i?.length ?? null)}
+                  />
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<>Oldest in Hot Set</>}
+                    value={pushReceiptHotSetInfo}
+                    valueComponent={(i) =>
+                      i === null ? <>?</> : formatDateOrNull(i.oldestLastQueuedAt, <>N/A</>)
+                    }
+                  />
                 </div>
               </div>
               <div
@@ -647,65 +1398,120 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   that the notification was delivered to the device.
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Last Run At</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptCheckJobLastRanAtVWC}
-                      component={(date) => formatDateOrNull(date, <>Never</>)}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<>Started At</>}
+                    value={lastCheckJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>Never</> : formatDateOrNull(i?.startedAt ?? null)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Last Runtime</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptCheckJobLastRuntimeVWC}
-                      component={formatDuration}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<>Finished At</>}
+                    value={lastCheckJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>Never</> : formatDateOrNull(i?.finishedAt ?? null)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Last # Checked</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptCheckJobLastNumCheckedVWC}
-                      component={formatNumber}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<>Running Time</>}
+                    value={lastCheckJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>N/A</> : formatDurationOrNull(i?.runningTime ?? null)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}># in Hot Set</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptHotSetSizeVWC}
-                      component={formatNumber}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<># Checked</>}
+                    value={lastCheckJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>N/A</> : formatNumberOrNull(i?.numChecked ?? null)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}>Oldest Due In Hot Set</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptHotSetOldestDueAtVWC}
-                      component={(date) => formatDateOrNull(date, <>Never</>)}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<># Succeeded</>}
+                    value={lastCheckJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>N/A</> : formatNumberOrNull(i?.numSucceeded ?? null)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <div className={styles.blockStatisticTitle}># in Push Receipt Purgatory</div>
-                  <div className={styles.blockStatisticValue}>
-                    <RenderGuardedComponent
-                      props={pushReceiptPurgatorySizeVWC}
-                      component={formatNumber}
-                    />
-                  </div>
+                  <BlockStatisticTitleRow
+                    title={<># Failed Permanently</>}
+                    value={lastCheckJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>N/A</> : formatNumberOrNull(i?.numFailedPermanently ?? null)
+                    }
+                  />
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<># Failed Transiently</>}
+                    value={lastCheckJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>N/A</> : formatNumberOrNull(i?.numFailedTransiently ?? null)
+                    }
+                  />
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<># In Purgatory</>}
+                    value={lastCheckJobInfo}
+                    valueComponent={(i) =>
+                      i === false ? <>N/A</> : formatNumberOrNull(i?.numInPurgatory ?? null)
+                    }
+                  />
                 </div>
               </div>
             </FlowChart>
           </div>
-          <SectionGraphs>
-            <AdminDashboardLargeChartPlaceholder placeholderText="Push receipts (requested, by result type, requeued, abandoned) by day" />
-          </SectionGraphs>
+          <div className={styles.sectionGraphsAndTodaysStats}>
+            <SectionGraphs>
+              <RenderGuardedComponent
+                props={pushReceiptStats.error}
+                component={formatErrorOrNull}
+              />
+              <RenderGuardedComponent
+                props={pushReceiptStats.result}
+                component={(v) =>
+                  formatDashboardOrNull(v, () => setVWC(pushReceiptStatsLoadPrevented, false))
+                }
+              />
+            </SectionGraphs>
+            <SectionStatsMultiday
+              refresh={partialPushReceiptStats.refresh}
+              days={useMemo(
+                () => [
+                  {
+                    name: 'Yesterday',
+                    content: (
+                      <PartialPushReceiptsStatsDisplay
+                        value={partialPushReceiptStats}
+                        keyName="yesterday"
+                      />
+                    ),
+                  },
+                  {
+                    name: 'Today',
+                    content: (
+                      <PartialPushReceiptsStatsDisplay
+                        value={partialPushReceiptStats}
+                        keyName="today"
+                      />
+                    ),
+                  },
+                ],
+                [partialPushReceiptStats]
+              )}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -799,6 +1605,79 @@ const SectionStatsToday = ({
   );
 };
 
+const SectionStatsMultiday = ({
+  refresh,
+  days,
+}: {
+  refresh: () => Promise<void>;
+  days: {
+    name: string;
+    content: ReactElement;
+  }[];
+}) => {
+  const activeDay = useWritableValueWithCallbacks<string>(() => days[days.length - 1].name);
+  const onClickDay = useCallback(
+    (day: string, e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      setVWC(activeDay, day);
+    },
+    [activeDay]
+  );
+  return (
+    <div className={styles.sectionStatsMultiday}>
+      <div className={styles.sectionStatsMultidayTabsAndControls}>
+        <div className={styles.sectionStatsMultidayTabs}>
+          <RenderGuardedComponent
+            props={activeDay}
+            component={(activeDay) => (
+              <>
+                {days.map((day) => (
+                  <div
+                    className={combineClasses(
+                      styles.sectionStatsMultidayTab,
+                      activeDay === day.name ? styles.sectionStatsMultidayTabActive : undefined
+                    )}
+                    key={day.name}>
+                    <Button
+                      type="button"
+                      variant="link-small"
+                      onClick={onClickDay.bind(undefined, day.name)}>
+                      {day.name}
+                    </Button>
+                  </div>
+                ))}
+              </>
+            )}
+          />
+        </div>
+        <div className={styles.sectionStatsMultidayRefresh}>
+          <IconButtonWithAutoDisable
+            icon={styles.iconRefresh}
+            srOnlyName="Refresh"
+            onClick={refresh}
+            spinWhileDisabled
+          />
+        </div>
+      </div>
+      <div className={styles.sectionStatsMultidayContent}>
+        <RenderGuardedComponent
+          props={activeDay}
+          component={(dayName) => {
+            const day = days.find((day) => day.name === dayName);
+            if (day === undefined) {
+              if (days.length > 0) {
+                setVWC(activeDay, days[days.length - 1].name);
+              }
+              return <></>;
+            }
+            return day.content;
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
 function SectionStatsTodayItem<T>({
   title,
   value,
@@ -818,3 +1697,259 @@ function SectionStatsTodayItem<T>({
     </div>
   );
 }
+
+const PartialPushTicketsStatsDisplay = ({
+  value,
+  keyName,
+}: {
+  value: NetworkResponse<PartialPushTicketStats>;
+  keyName: 'yesterday' | 'today';
+}): ReactElement => {
+  return (
+    <>
+      <SectionStatsTodayItem
+        title={<>Queued</>}
+        value={value}
+        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].queued)}
+      />
+      <SectionStatsTodayItem
+        title={<>Succeeded</>}
+        value={value}
+        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].succeeded)}
+      />
+      <SectionStatsTodayItem
+        title={<>Abandoned</>}
+        value={value}
+        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].abandoned)}
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to DeviceNotRegistered</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToDeviceNotRegistered)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to ClientErrorOther</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToClientErrorOther)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to InternalError</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToInternalError)
+        }
+      />
+      <SectionStatsTodayItem
+        title={<>Retried</>}
+        value={value}
+        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].retried)}
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed* <small>due to ClientError429</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToClientError429)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed* <small>due to ServerError</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToServerError)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed* <small>due to NetworkError</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToNetworkError)
+        }
+      />
+      <div className={styles.sectionStatsTodayNote}>
+        These failures are automatically retried a few times, and are typically resolved that way.
+        If too many retries fail, the ticket is abandoned.
+      </div>
+    </>
+  );
+};
+
+const PartialPushReceiptsStatsDisplay = ({
+  value,
+  keyName,
+}: {
+  value: NetworkResponse<PartialPushReceiptStats>;
+  keyName: 'yesterday' | 'today';
+}): ReactElement => {
+  return (
+    <>
+      <SectionStatsTodayItem
+        title={<>Succeeded</>}
+        value={value}
+        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].succeeded)}
+      />
+      <SectionStatsTodayItem
+        title={<>Abandoned</>}
+        value={value}
+        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].abandoned)}
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to DeviceNotRegistered</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToDeviceNotRegistered)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to MessageTooBig</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToMessageTooBig)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to MessageRateExceeded</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToMessageRateExceeded)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to MismatchSenderId</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToMismatchedSenderId)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to InvalidCredentials</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToInvalidCredentials)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to ClientErrorOther</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToClientErrorOther)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed <small>due to InternalError</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToInternalError)
+        }
+      />
+      <SectionStatsTodayItem
+        title={<>Retried</>}
+        value={value}
+        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].retried)}
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed* <small>due to NotReadyYet</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToNotReadyYet)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed* <small>due to ServerError</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToServerError)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed* <small>due to ClientError429</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToClientError429)
+        }
+      />
+      <SectionStatsTodayItem
+        title={
+          <>
+            Failed* <small>due to NetworkError</small>
+          </>
+        }
+        value={value}
+        valueComponent={(s) =>
+          formatNumberOrNull(s === null ? null : s[keyName].failedDueToNetworkError)
+        }
+      />
+      <div className={styles.sectionStatsTodayNote}>
+        These failures are automatically retried a few times, and are typically resolved that way.
+        If too many retries fail, the ticket is abandoned.
+      </div>
+    </>
+  );
+};

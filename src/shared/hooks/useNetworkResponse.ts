@@ -1,8 +1,9 @@
 import { ReactElement, useCallback, useMemo } from 'react';
-import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
 import { useSingletonEffect } from '../lib/useSingletonEffect';
 import { setVWC } from '../lib/setVWC';
 import { describeError } from '../forms/ErrorBlock';
+import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
 
 export type NetworkResponse<T> = {
   /**
@@ -19,27 +20,56 @@ export type NetworkResponse<T> = {
   refresh: () => Promise<void>;
 };
 
+export type UseNetworkResponseOpts = {
+  /**
+   * When refreshing content it can increase user confidence to show a loading
+   * state for at least a short time. This parameter specifies the minimum time
+   * to wait before showing the result. By default, this is 500ms.
+   */
+  minRefreshTimeMS?: number;
+
+  /**
+   * True if loading should be prevented, false to load as normal. This is
+   * useful to prevent loading the network request until the component becomes
+   * visible, for example.
+   */
+  loadPrevented?: ValueWithCallbacks<boolean>;
+};
+
 /**
  * Fetches data from the network using the given fetcher, returning both the
  * result (if successful) and the error (if unsuccessful). The fetcher must
  * be memoized, or this hook will re-fetch on every render.
  *
  * @param fetcher A memoized function that fetches data from the network.
- * @param minRefreshTimeMS When refreshing content it can increase user
- *   confidence to show a loading state for at least a short time. This
- *   parameter specifies the minimum time to wait before showing the result.
- *   By default, this is 500ms.
+ * @param opts Additional options for configuring the hook
  * @returns The current result and error
  */
 export const useNetworkResponse = <T>(
   fetcher: (active: { current: boolean }) => Promise<T | null>,
-  minRefreshTimeMS?: number
+  opts?: UseNetworkResponseOpts
 ): NetworkResponse<T> => {
   const result = useWritableValueWithCallbacks<T | null>(() => null);
   const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
 
+  const minRefreshTimeMS = opts?.minRefreshTimeMS ?? 500;
+  const rawLoadPrevented = opts?.loadPrevented;
+  const loadPrevented = useMemo(() => {
+    if (rawLoadPrevented === undefined) {
+      return {
+        get: () => false,
+        callbacks: new Callbacks<undefined>(),
+      };
+    }
+    return rawLoadPrevented;
+  }, [rawLoadPrevented]);
+
   useSingletonEffect(
     (onDone) => {
+      if (loadPrevented.get()) {
+        return;
+      }
+
       let active = { current: true };
       fetchWrapper();
       return () => {
@@ -68,14 +98,18 @@ export const useNetworkResponse = <T>(
         }
       }
     },
-    [error, result, fetcher]
+    [error, result, fetcher, loadPrevented]
   );
 
   const refresh = useCallback(async () => {
+    if (loadPrevented.get()) {
+      return;
+    }
+
     setVWC(result, null);
     setVWC(error, null);
     try {
-      const minTime = new Promise((resolve) => setTimeout(resolve, minRefreshTimeMS ?? 500));
+      const minTime = new Promise((resolve) => setTimeout(resolve, minRefreshTimeMS));
       const answer = await fetcher({ current: true });
       await minTime;
       setVWC(result, answer);
@@ -83,7 +117,17 @@ export const useNetworkResponse = <T>(
       const described = await describeError(e);
       setVWC(error, described);
     }
-  }, [result, error, fetcher, minRefreshTimeMS]);
+  }, [result, error, fetcher, minRefreshTimeMS, loadPrevented]);
+
+  useValueWithCallbacksEffect(loadPrevented, (value) => {
+    if (value) {
+      setVWC(result, null);
+      setVWC(error, null);
+    } else {
+      refresh();
+    }
+    return undefined;
+  });
 
   return useMemo(() => ({ result, error, refresh }), [result, error, refresh]);
 };
