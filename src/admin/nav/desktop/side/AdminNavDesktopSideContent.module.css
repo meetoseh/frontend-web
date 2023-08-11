@@ -48,6 +48,11 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/notifications.svg');
 }
+
+.iconSMS {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/sms.svg');
+}
 /* #endregion */
 
 .outerContainer {

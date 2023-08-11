@@ -74,6 +74,13 @@ export const AdminNavDesktopSideContent = ({
             text="Notifications"
             url="/admin/notifs_dashboard"
             active={currentPath === '/admin/notifs_dashboard'}
+            padTextTop={6}
+          />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconSMS}
+            text="SMS"
+            url="/admin/sms_dashboard"
+            active={currentPath === '/admin/sms_dashboard'}
           />
         </div>
         <div className={styles.userCardContainer}>

@@ -8,17 +8,19 @@ import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../shared/lib
 import { Button } from '../../shared/forms/Button';
 import { FlowChart, FlowChartProps } from '../../shared/components/FlowChart';
 import { combineClasses } from '../../shared/lib/combineClasses';
-import { AdminDashboardLargeChartPlaceholder } from '../dashboard/AdminDashboardLargeChartPlaceholder';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../shared/ApiConstants';
-import { ErrorBlock } from '../../shared/forms/ErrorBlock';
-import {
-  AdminDashboardLargeChart,
-  AdminDashboardLargeChartProps,
-} from '../dashboard/AdminDashboardLargeChart';
+import { AdminDashboardLargeChartProps } from '../dashboard/AdminDashboardLargeChart';
 import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../crud/CrudFetcher';
+import {
+  formatNetworkDashboard,
+  formatNetworkDate,
+  formatNetworkDuration,
+  formatNetworkError,
+  formatNetworkNumber,
+} from '../../shared/lib/networkResponseUtils';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 24 },
@@ -29,55 +31,6 @@ const flowChartSettings: FlowChartProps = {
   arrowHeadLengthPx: { type: 'react-rerender', props: 8 },
   arrowHeadAngleDeg: { type: 'react-rerender', props: 30 },
 };
-
-const formatNumberOrNull = (num: number | null, placeholder?: ReactElement): ReactElement => (
-  <>{num !== null ? num.toLocaleString() : placeholder ?? '?'}</>
-);
-const formatDateOrNull = (date: Date | null, placeholder?: ReactElement): ReactElement => (
-  <>{date !== null ? date.toLocaleString() : placeholder ?? '?'}</>
-);
-const formatDuration = (seconds: number): ReactElement => {
-  if (seconds < 2) {
-    const ms = Math.round(seconds * 1000);
-    return <>{ms}ms</>;
-  }
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 2) {
-    return <>{Math.round(seconds)}s</>;
-  }
-  const hours = Math.floor(minutes / 60);
-  if (hours < 2) {
-    const extraSeconds = Math.round(seconds - minutes * 60);
-    return (
-      <>
-        {minutes}m {extraSeconds}s
-      </>
-    );
-  }
-  return (
-    <>
-      {hours}h {Math.round(minutes - hours * 60)}m
-    </>
-  );
-};
-const formatDurationOrNull = (seconds: number | null, placeholder?: ReactElement): ReactElement => (
-  <>{seconds !== null ? formatDuration(seconds) : placeholder ?? '?'}</>
-);
-const formatErrorOrNull = (err: ReactElement | null): ReactElement => (
-  <>{err !== null && <ErrorBlock>{err}</ErrorBlock>}</>
-);
-const formatDashboardOrNull = (
-  dashboard: AdminDashboardLargeChartProps | null,
-  onVisible?: () => void
-): ReactElement => (
-  <>
-    {dashboard === null ? (
-      <AdminDashboardLargeChartPlaceholder onVisible={onVisible} />
-    ) : (
-      <AdminDashboardLargeChart {...dashboard} />
-    )}
-  </>
-);
 
 type PartialPushTicketStatsItem = {
   queued: number;
@@ -163,7 +116,7 @@ const parsePartialPushReceiptStats = (raw: any): PartialPushReceiptStats => ({
 export const AdminNotifsDashboard = (): ReactElement => {
   const loginContext = useContext(LoginContext);
 
-  const activePushTokens = useNetworkResponse<number>(
+  const activePushTokens = useNetworkResponse<{ num: number }>(
     useCallback(async () => {
       if (loginContext.state !== 'logged-in') {
         return null;
@@ -178,7 +131,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
         throw response;
       }
       const json = await response.json();
-      return json.total_push_tokens;
+      return { num: json.total_push_tokens };
     }, [loginContext])
   );
 
@@ -922,7 +875,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   <BlockStatisticTitleRow
                     title={<># Tokens</>}
                     value={activePushTokens}
-                    valueComponent={formatNumberOrNull}
+                    valueComponent={(t) => formatNetworkNumber(t?.num)}
                   />
                   <div className={styles.blockStatisticInfo}>
                     How many Expo Push Tokens we have stored.
@@ -933,11 +886,13 @@ export const AdminNotifsDashboard = (): ReactElement => {
           </div>
           <div className={styles.sectionGraphsAndTodaysStats}>
             <SectionGraphs>
-              <RenderGuardedComponent props={pushTokenStats.error} component={formatErrorOrNull} />
+              <RenderGuardedComponent props={pushTokenStats.error} component={formatNetworkError} />
               <RenderGuardedComponent
                 props={pushTokenStats.result}
                 component={(v) =>
-                  formatDashboardOrNull(v, () => setVWC(pushTokenStatsLoadPrevented, false))
+                  formatNetworkDashboard(v ?? undefined, {
+                    onVisible: () => setVWC(pushTokenStatsLoadPrevented, false),
+                  })
                 }
               />
             </SectionGraphs>
@@ -945,17 +900,17 @@ export const AdminNotifsDashboard = (): ReactElement => {
               <SectionStatsTodayItem
                 title={<>Created</>}
                 value={pushTokenTodaysStats}
-                valueComponent={(s) => formatNumberOrNull(s?.created ?? null)}
+                valueComponent={(s) => formatNetworkNumber(s?.created)}
               />
               <SectionStatsTodayItem
                 title={<>Reassigned</>}
                 value={pushTokenTodaysStats}
-                valueComponent={(s) => formatNumberOrNull(s?.reassigned ?? null)}
+                valueComponent={(s) => formatNetworkNumber(s?.reassigned)}
               />
               <SectionStatsTodayItem
                 title={<>Refreshed</>}
                 value={pushTokenTodaysStats}
-                valueComponent={(s) => formatNumberOrNull(s?.refreshed ?? null)}
+                valueComponent={(s) => formatNetworkNumber(s?.refreshed)}
               />
               <SectionStatsTodayItem
                 title={
@@ -964,7 +919,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   </>
                 }
                 value={pushTokenTodaysStats}
-                valueComponent={(s) => formatNumberOrNull(s?.deleted_due_to_user_deletion ?? null)}
+                valueComponent={(s) => formatNetworkNumber(s?.deleted_due_to_user_deletion)}
               />
               <SectionStatsTodayItem
                 title={
@@ -973,9 +928,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   </>
                 }
                 value={pushTokenTodaysStats}
-                valueComponent={(s) =>
-                  formatNumberOrNull(s?.deleted_due_to_unrecognized_ticket ?? null)
-                }
+                valueComponent={(s) => formatNetworkNumber(s?.deleted_due_to_unrecognized_ticket)}
               />
               <SectionStatsTodayItem
                 title={
@@ -984,9 +937,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   </>
                 }
                 value={pushTokenTodaysStats}
-                valueComponent={(s) =>
-                  formatNumberOrNull(s?.deleted_due_to_unrecognized_receipt ?? null)
-                }
+                valueComponent={(s) => formatNetworkNumber(s?.deleted_due_to_unrecognized_receipt)}
               />
               <SectionStatsTodayItem
                 title={
@@ -995,7 +946,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   </>
                 }
                 value={pushTokenTodaysStats}
-                valueComponent={(s) => formatNumberOrNull(s?.deleted_due_to_token_limit ?? null)}
+                valueComponent={(s) => formatNetworkNumber(s?.deleted_due_to_token_limit)}
               />
             </SectionStatsToday>
           </div>
@@ -1040,16 +991,14 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   <BlockStatisticTitleRow
                     title={<># In Queue</>}
                     value={sendQueueInfo}
-                    valueComponent={(i) => formatNumberOrNull(i?.length ?? null)}
+                    valueComponent={(i) => formatNetworkNumber(i?.length)}
                   />
                 </div>
                 <div className={styles.blockStatistic}>
                   <BlockStatisticTitleRow
                     title={<>Oldest Item</>}
                     value={sendQueueInfo}
-                    valueComponent={(i) =>
-                      i === null ? <>?</> : formatDateOrNull(i.oldestLastQueuedAt, <>N/A</>)
-                    }
+                    valueComponent={(i) => formatNetworkDate(i?.oldestLastQueuedAt)}
                   />
                   <div className={styles.blockStatisticInfo}>
                     For the oldest item in the queue (left-most), how long it has been in the queue
@@ -1083,7 +1032,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<># In Purgatory</>}
                     value={lastSendJob}
                     valueComponent={(j) =>
-                      j === false ? <>N/A</> : formatNumberOrNull(j?.numInPurgatory ?? null)
+                      formatNetworkNumber(j === false ? null : j?.numInPurgatory)
                     }
                   />
                   <div className={styles.blockStatisticInfo}>
@@ -1095,9 +1044,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   <BlockStatisticTitleRow
                     title={<>Started At</>}
                     value={lastSendJob}
-                    valueComponent={(j) =>
-                      j === false ? <>N/A</> : formatDateOrNull(j?.startedAt ?? null)
-                    }
+                    valueComponent={(j) => formatNetworkDate(j === false ? null : j?.startedAt)}
                   />
                   <div className={styles.blockStatisticInfo}>
                     The last time the Send Job started.
@@ -1107,9 +1054,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   <BlockStatisticTitleRow
                     title={<>Finished At</>}
                     value={lastSendJob}
-                    valueComponent={(j) =>
-                      j === false ? <>N/A</> : formatDateOrNull(j?.finishedAt ?? null)
-                    }
+                    valueComponent={(j) => formatNetworkDate(j === false ? null : j?.finishedAt)}
                   />
                   <div className={styles.blockStatisticInfo}>
                     The last time the Send Job finished normally.
@@ -1120,7 +1065,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<>Running Time</>}
                     value={lastSendJob}
                     valueComponent={(j) =>
-                      j === false ? <>N/A</> : formatDurationOrNull(j?.runningTime ?? null)
+                      formatNetworkDuration(j === false ? null : j?.runningTime)
                     }
                   />
                   <div className={styles.blockStatisticInfo}>
@@ -1132,7 +1077,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<># Attempted</>}
                     value={lastSendJob}
                     valueComponent={(j) =>
-                      j === false ? <>N/A</> : formatNumberOrNull(j?.numMessagesAttempted ?? null)
+                      formatNetworkNumber(j === false ? null : j?.numMessagesAttempted)
                     }
                   />
                   <div className={styles.blockStatisticInfo}>
@@ -1144,7 +1089,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<># Succeeded</>}
                     value={lastSendJob}
                     valueComponent={(j) =>
-                      j === false ? <>N/A</> : formatNumberOrNull(j?.numSucceeded ?? null)
+                      formatNetworkNumber(j === false ? null : j?.numSucceeded)
                     }
                   />
                   <div className={styles.blockStatisticInfo}>
@@ -1157,7 +1102,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<># Failed Permanently</>}
                     value={lastSendJob}
                     valueComponent={(j) =>
-                      j === false ? <>N/A</> : formatNumberOrNull(j?.numFailedPermanently ?? null)
+                      formatNetworkNumber(j === false ? null : j?.numFailedPermanently)
                     }
                   />
                   <div className={styles.blockStatisticInfo}>
@@ -1170,7 +1115,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<># Failed Transiently</>}
                     value={lastSendJob}
                     valueComponent={(j) =>
-                      j === false ? <>N/A</> : formatNumberOrNull(j?.numFailedTransiently ?? null)
+                      formatNetworkNumber(j === false ? null : j?.numFailedTransiently)
                     }
                   />
                   <div className={styles.blockStatisticInfo}>
@@ -1206,16 +1151,14 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   <BlockStatisticTitleRow
                     title={<># In Cold Set</>}
                     value={receiptColdSetInfo}
-                    valueComponent={(i) => formatNumberOrNull(i?.length ?? null)}
+                    valueComponent={(i) => formatNetworkNumber(i?.length)}
                   />
                 </div>
                 <div className={styles.blockStatistic}>
                   <BlockStatisticTitleRow
                     title={<>Oldest Queued At</>}
                     value={receiptColdSetInfo}
-                    valueComponent={(i) =>
-                      i === null ? <>?</> : formatDateOrNull(i.oldestLastQueuedAt ?? null, <>N/A</>)
-                    }
+                    valueComponent={(i) => formatNetworkDate(i?.oldestLastQueuedAt)}
                   />
                   <div className={styles.blockStatisticInfo}>
                     The earliest time at which we want to query the Expo Push API for the receipt
@@ -1224,9 +1167,9 @@ export const AdminNotifsDashboard = (): ReactElement => {
                 </div>
                 <div className={styles.blockStatistic}>
                   <BlockStatisticTitleRow
-                    title={<>Num Overdue</>}
+                    title={<># Overdue</>}
                     value={receiptColdSetInfo}
-                    valueComponent={(i) => formatNumberOrNull(i?.numOverdue ?? null)}
+                    valueComponent={(i) => formatNetworkNumber(i?.numOverdue)}
                   />
                   <div className={styles.blockStatisticInfo}>
                     How many entries in the cold set are ready to be moved to the hot set; note that
@@ -1239,11 +1182,16 @@ export const AdminNotifsDashboard = (): ReactElement => {
           </div>
           <div className={styles.sectionGraphsAndTodaysStats}>
             <SectionGraphs>
-              <RenderGuardedComponent props={pushTicketStats.error} component={formatErrorOrNull} />
+              <RenderGuardedComponent
+                props={pushTicketStats.error}
+                component={formatNetworkError}
+              />
               <RenderGuardedComponent
                 props={pushTicketStats.result}
                 component={(v) =>
-                  formatDashboardOrNull(v, () => setVWC(pushTicketStatsLoadPrevented, false))
+                  formatNetworkDashboard(v ?? undefined, {
+                    onVisible: () => setVWC(pushTicketStatsLoadPrevented, false),
+                  })
                 }
               />
             </SectionGraphs>
@@ -1316,18 +1264,14 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   <BlockStatisticTitleRow
                     title={<>Started At</>}
                     value={lastColdToHotJobInfo}
-                    valueComponent={(i) =>
-                      i === false ? <>Never</> : formatDateOrNull(i?.startedAt ?? null)
-                    }
+                    valueComponent={(i) => formatNetworkDate(i === false ? null : i?.startedAt)}
                   />
                 </div>
                 <div className={styles.blockStatistic}>
                   <BlockStatisticTitleRow
                     title={<>Finished At</>}
                     value={lastColdToHotJobInfo}
-                    valueComponent={(i) =>
-                      i === false ? <>Never</> : formatDateOrNull(i?.finishedAt ?? null)
-                    }
+                    valueComponent={(i) => formatNetworkDate(i === false ? null : i?.finishedAt)}
                   />
                 </div>
                 <div className={styles.blockStatistic}>
@@ -1335,7 +1279,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<>Running Time</>}
                     value={lastColdToHotJobInfo}
                     valueComponent={(i) =>
-                      i === false ? <>N/A</> : formatDurationOrNull(i?.runningTime ?? null)
+                      formatNetworkDuration(i === false ? null : i?.runningTime)
                     }
                   />
                 </div>
@@ -1343,25 +1287,21 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   <BlockStatisticTitleRow
                     title={<># Moved</>}
                     value={lastColdToHotJobInfo}
-                    valueComponent={(i) =>
-                      i === false ? <>N/A</> : formatNumberOrNull(i?.numMoved ?? null)
-                    }
+                    valueComponent={(i) => formatNetworkNumber(i === false ? null : i?.numMoved)}
                   />
                 </div>
                 <div className={styles.blockStatistic}>
                   <BlockStatisticTitleRow
                     title={<># In Hot Set</>}
                     value={pushReceiptHotSetInfo}
-                    valueComponent={(i) => formatNumberOrNull(i?.length ?? null)}
+                    valueComponent={(i) => formatNetworkNumber(i?.length)}
                   />
                 </div>
                 <div className={styles.blockStatistic}>
                   <BlockStatisticTitleRow
                     title={<>Oldest in Hot Set</>}
                     value={pushReceiptHotSetInfo}
-                    valueComponent={(i) =>
-                      i === null ? <>?</> : formatDateOrNull(i.oldestLastQueuedAt, <>N/A</>)
-                    }
+                    valueComponent={(i) => formatNetworkDate(i?.oldestLastQueuedAt)}
                   />
                 </div>
               </div>
@@ -1401,18 +1341,14 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   <BlockStatisticTitleRow
                     title={<>Started At</>}
                     value={lastCheckJobInfo}
-                    valueComponent={(i) =>
-                      i === false ? <>Never</> : formatDateOrNull(i?.startedAt ?? null)
-                    }
+                    valueComponent={(i) => formatNetworkDate(i === false ? null : i?.startedAt)}
                   />
                 </div>
                 <div className={styles.blockStatistic}>
                   <BlockStatisticTitleRow
                     title={<>Finished At</>}
                     value={lastCheckJobInfo}
-                    valueComponent={(i) =>
-                      i === false ? <>Never</> : formatDateOrNull(i?.finishedAt ?? null)
-                    }
+                    valueComponent={(i) => formatNetworkDate(i === false ? null : i?.finishedAt)}
                   />
                 </div>
                 <div className={styles.blockStatistic}>
@@ -1420,7 +1356,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<>Running Time</>}
                     value={lastCheckJobInfo}
                     valueComponent={(i) =>
-                      i === false ? <>N/A</> : formatDurationOrNull(i?.runningTime ?? null)
+                      formatNetworkDuration(i === false ? null : i?.runningTime)
                     }
                   />
                 </div>
@@ -1428,9 +1364,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                   <BlockStatisticTitleRow
                     title={<># Checked</>}
                     value={lastCheckJobInfo}
-                    valueComponent={(i) =>
-                      i === false ? <>N/A</> : formatNumberOrNull(i?.numChecked ?? null)
-                    }
+                    valueComponent={(i) => formatNetworkNumber(i === false ? null : i?.numChecked)}
                   />
                 </div>
                 <div className={styles.blockStatistic}>
@@ -1438,7 +1372,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<># Succeeded</>}
                     value={lastCheckJobInfo}
                     valueComponent={(i) =>
-                      i === false ? <>N/A</> : formatNumberOrNull(i?.numSucceeded ?? null)
+                      formatNetworkNumber(i === false ? null : i?.numSucceeded)
                     }
                   />
                 </div>
@@ -1447,7 +1381,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<># Failed Permanently</>}
                     value={lastCheckJobInfo}
                     valueComponent={(i) =>
-                      i === false ? <>N/A</> : formatNumberOrNull(i?.numFailedPermanently ?? null)
+                      formatNetworkNumber(i === false ? null : i?.numFailedPermanently)
                     }
                   />
                 </div>
@@ -1456,7 +1390,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<># Failed Transiently</>}
                     value={lastCheckJobInfo}
                     valueComponent={(i) =>
-                      i === false ? <>N/A</> : formatNumberOrNull(i?.numFailedTransiently ?? null)
+                      formatNetworkNumber(i === false ? null : i?.numFailedTransiently)
                     }
                   />
                 </div>
@@ -1465,7 +1399,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
                     title={<># In Purgatory</>}
                     value={lastCheckJobInfo}
                     valueComponent={(i) =>
-                      i === false ? <>N/A</> : formatNumberOrNull(i?.numInPurgatory ?? null)
+                      formatNetworkNumber(i === false ? null : i?.numInPurgatory)
                     }
                   />
                 </div>
@@ -1476,12 +1410,14 @@ export const AdminNotifsDashboard = (): ReactElement => {
             <SectionGraphs>
               <RenderGuardedComponent
                 props={pushReceiptStats.error}
-                component={formatErrorOrNull}
+                component={formatNetworkError}
               />
               <RenderGuardedComponent
                 props={pushReceiptStats.result}
                 component={(v) =>
-                  formatDashboardOrNull(v, () => setVWC(pushReceiptStatsLoadPrevented, false))
+                  formatNetworkDashboard(v ?? undefined, {
+                    onVisible: () => setVWC(pushReceiptStatsLoadPrevented, false),
+                  })
                 }
               />
             </SectionGraphs>
@@ -1518,7 +1454,10 @@ export const AdminNotifsDashboard = (): ReactElement => {
   );
 };
 
-const SectionDescription = ({ children }: PropsWithChildren<object>): ReactElement => {
+/**
+ * The description for a section, in a collapsable component.
+ */
+export const SectionDescription = ({ children }: PropsWithChildren<object>): ReactElement => {
   const expanded = useWritableValueWithCallbacks(() => false);
   return (
     <div className={styles.sectionDescription}>
@@ -1547,7 +1486,10 @@ const SectionDescription = ({ children }: PropsWithChildren<object>): ReactEleme
   );
 };
 
-function BlockStatisticTitleRow<T>({
+/**
+ * Used within a block statistic to display a title and value, with a refresh button.
+ */
+export function BlockStatisticTitleRow<T>({
   title,
   value,
   valueComponent,
@@ -1574,16 +1516,35 @@ function BlockStatisticTitleRow<T>({
           />
         </div>
       </div>
-      <RenderGuardedComponent props={value.error} component={formatErrorOrNull} />
+      <RenderGuardedComponent props={value.error} component={formatNetworkError} />
     </>
   );
 }
 
-const SectionGraphs = ({ children }: PropsWithChildren<object>): ReactElement => {
+/**
+ * Same as BlockStatisticTitleRow visually, but always shows "N/I" for the value.
+ */
+export function NotImplementedBlockStatisticTitleRow({ title }: { title: ReactElement }) {
+  return (
+    <BlockStatisticTitleRow
+      title={title}
+      value={useNetworkResponse<boolean>(async () => true)}
+      valueComponent={(v) => (v === null ? <>?</> : <>N/I</>)}
+    />
+  );
+}
+
+/**
+ * Container for section graphs in case we want to make them collapsible later
+ */
+export const SectionGraphs = ({ children }: PropsWithChildren<object>): ReactElement => {
   return <div className={styles.sectionGraphs}>{children}</div>;
 };
 
-const SectionStatsToday = ({
+/**
+ * A section next to the section graphs for displaying partial stats
+ */
+export const SectionStatsToday = ({
   refresh,
   children,
 }: PropsWithChildren<{ refresh: () => Promise<void> }>): ReactElement => {
@@ -1605,7 +1566,11 @@ const SectionStatsToday = ({
   );
 };
 
-const SectionStatsMultiday = ({
+/**
+ * A section next to the section graphs for displaying a tabbed partial stats
+ * pane, for data that takes multiple days to accumulate.
+ */
+export const SectionStatsMultiday = ({
   refresh,
   days,
 }: {
@@ -1678,7 +1643,10 @@ const SectionStatsMultiday = ({
   );
 };
 
-function SectionStatsTodayItem<T>({
+/**
+ * An item within the SectionStatsToday section
+ */
+export function SectionStatsTodayItem<T>({
   title,
   value,
   valueComponent,
@@ -1693,7 +1661,7 @@ function SectionStatsTodayItem<T>({
       <div className={styles.sectionStatsTodayItemValue}>
         <RenderGuardedComponent props={value.result} component={valueComponent} />
       </div>
-      <RenderGuardedComponent props={value.error} component={formatErrorOrNull} />
+      <RenderGuardedComponent props={value.error} component={formatNetworkError} />
     </div>
   );
 }
@@ -1710,17 +1678,17 @@ const PartialPushTicketsStatsDisplay = ({
       <SectionStatsTodayItem
         title={<>Queued</>}
         value={value}
-        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].queued)}
+        valueComponent={(s) => formatNetworkNumber(s === null ? undefined : s[keyName].queued)}
       />
       <SectionStatsTodayItem
         title={<>Succeeded</>}
         value={value}
-        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].succeeded)}
+        valueComponent={(s) => formatNetworkNumber(s === null ? undefined : s[keyName].succeeded)}
       />
       <SectionStatsTodayItem
         title={<>Abandoned</>}
         value={value}
-        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].abandoned)}
+        valueComponent={(s) => formatNetworkNumber(s === null ? undefined : s[keyName].abandoned)}
       />
       <SectionStatsTodayItem
         title={
@@ -1730,7 +1698,7 @@ const PartialPushTicketsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToDeviceNotRegistered)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToDeviceNotRegistered)
         }
       />
       <SectionStatsTodayItem
@@ -1741,7 +1709,7 @@ const PartialPushTicketsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToClientErrorOther)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToClientErrorOther)
         }
       />
       <SectionStatsTodayItem
@@ -1752,13 +1720,13 @@ const PartialPushTicketsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToInternalError)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToInternalError)
         }
       />
       <SectionStatsTodayItem
         title={<>Retried</>}
         value={value}
-        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].retried)}
+        valueComponent={(s) => formatNetworkNumber(s === null ? undefined : s[keyName].retried)}
       />
       <SectionStatsTodayItem
         title={
@@ -1768,7 +1736,7 @@ const PartialPushTicketsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToClientError429)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToClientError429)
         }
       />
       <SectionStatsTodayItem
@@ -1779,7 +1747,7 @@ const PartialPushTicketsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToServerError)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToServerError)
         }
       />
       <SectionStatsTodayItem
@@ -1790,7 +1758,7 @@ const PartialPushTicketsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToNetworkError)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToNetworkError)
         }
       />
       <div className={styles.sectionStatsTodayNote}>
@@ -1813,12 +1781,12 @@ const PartialPushReceiptsStatsDisplay = ({
       <SectionStatsTodayItem
         title={<>Succeeded</>}
         value={value}
-        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].succeeded)}
+        valueComponent={(s) => formatNetworkNumber(s === null ? undefined : s[keyName].succeeded)}
       />
       <SectionStatsTodayItem
         title={<>Abandoned</>}
         value={value}
-        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].abandoned)}
+        valueComponent={(s) => formatNetworkNumber(s === null ? undefined : s[keyName].abandoned)}
       />
       <SectionStatsTodayItem
         title={
@@ -1828,7 +1796,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToDeviceNotRegistered)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToDeviceNotRegistered)
         }
       />
       <SectionStatsTodayItem
@@ -1839,7 +1807,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToMessageTooBig)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToMessageTooBig)
         }
       />
       <SectionStatsTodayItem
@@ -1850,7 +1818,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToMessageRateExceeded)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToMessageRateExceeded)
         }
       />
       <SectionStatsTodayItem
@@ -1861,7 +1829,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToMismatchedSenderId)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToMismatchedSenderId)
         }
       />
       <SectionStatsTodayItem
@@ -1872,7 +1840,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToInvalidCredentials)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToInvalidCredentials)
         }
       />
       <SectionStatsTodayItem
@@ -1883,7 +1851,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToClientErrorOther)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToClientErrorOther)
         }
       />
       <SectionStatsTodayItem
@@ -1894,13 +1862,13 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToInternalError)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToInternalError)
         }
       />
       <SectionStatsTodayItem
         title={<>Retried</>}
         value={value}
-        valueComponent={(s) => formatNumberOrNull(s === null ? null : s[keyName].retried)}
+        valueComponent={(s) => formatNetworkNumber(s === null ? undefined : s[keyName].retried)}
       />
       <SectionStatsTodayItem
         title={
@@ -1910,7 +1878,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToNotReadyYet)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToNotReadyYet)
         }
       />
       <SectionStatsTodayItem
@@ -1921,7 +1889,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToServerError)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToServerError)
         }
       />
       <SectionStatsTodayItem
@@ -1932,7 +1900,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToClientError429)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToClientError429)
         }
       />
       <SectionStatsTodayItem
@@ -1943,7 +1911,7 @@ const PartialPushReceiptsStatsDisplay = ({
         }
         value={value}
         valueComponent={(s) =>
-          formatNumberOrNull(s === null ? null : s[keyName].failedDueToNetworkError)
+          formatNetworkNumber(s === null ? undefined : s[keyName].failedDueToNetworkError)
         }
       />
       <div className={styles.sectionStatsTodayNote}>

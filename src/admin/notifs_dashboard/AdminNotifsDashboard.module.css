@@ -179,6 +179,10 @@
   font-weight: 400;
 }
 
+.blockStatisticInfo ul {
+  padding-left: 1.25em;
+}
+
 .sectionGraphsAndTodaysStats {
   display: flex;
   flex-flow: row wrap;

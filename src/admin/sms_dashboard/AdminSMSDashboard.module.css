@@ -1,0 +1,30 @@
+.tabbedBlockStatistics {
+  margin: 10px -20px 0 -20px;
+  width: calc(100% + 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 10px 20px 0 20px;
+  border-top: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+.tabbedBlockStatisticsTabs {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow-x: auto;
+}
+
+.tabbedBlockStatisticsTab:not(:first-child) {
+  margin-left: 0.5em;
+}
+
+.tabbedBlockStatisticsTabActive {
+  border-bottom: 1px solid #446266;
+}
+
+.tabbedBlockStatisticsContent {
+  width: 100%;
+}

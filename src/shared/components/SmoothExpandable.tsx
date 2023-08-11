@@ -44,6 +44,9 @@ const renderHeight = (div: HTMLDivElement, heightPercent: number, defaultHeight:
  * reason this would fail (beyond the obvious) would be if you are using
  * custom fonts but not waiting for them to load before rendering this
  * component.
+ *
+ * If you want the smooth expandable with a basic expand/collapse button,
+ * use the `TogglableSmoothExpandable` component.
  */
 export const SmoothExpandable = ({
   expanded: expandedVariableStrategy,
