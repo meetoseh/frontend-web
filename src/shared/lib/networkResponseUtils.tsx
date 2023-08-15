@@ -69,7 +69,7 @@ export const formatNetworkNumber = (
 export const formatNetworkDate = (
   date: Date | null | undefined,
   opts?: NetworkResponseFormatOptions
-): ReactElement => formatNetworkValue(date, (d) => <>{d.toLocaleDateString()}</>);
+): ReactElement => formatNetworkValue(date, (d) => <>{d.toLocaleString()}</>);
 
 /**
  * Formats the given duration in seconds in a human readable way. Typically

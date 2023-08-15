@@ -262,6 +262,15 @@
   content: ':';
 }
 
+.sectionStatsTodayItemBreakdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  align-self: stretch;
+  padding: 5px 0 10px 20px;
+}
+
 .sectionStatsTodayNote {
   max-width: min(320px, 60ch);
   font-family: 'Open Sans', sans-serif;

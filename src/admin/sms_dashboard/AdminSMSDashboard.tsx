@@ -1,10 +1,12 @@
-import { ReactElement } from 'react';
+import { Fragment, ReactElement, useCallback, useContext, useMemo } from 'react';
 import styles from '../notifs_dashboard/AdminNotifsDashboard.module.css';
 import customStyles from './AdminSMSDashboard.module.css';
 import {
+  BlockStatisticTitleRow,
   NotImplementedBlockStatisticTitleRow,
   SectionDescription,
   SectionGraphs,
+  SectionStatsMultiday,
 } from '../notifs_dashboard/AdminNotifsDashboard';
 import { FlowChart, FlowChartProps } from '../../shared/components/FlowChart';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
@@ -14,6 +16,22 @@ import { RenderGuardedComponent } from '../../shared/components/RenderGuardedCom
 import { combineClasses } from '../../shared/lib/combineClasses';
 import { Button } from '../../shared/forms/Button';
 import { setVWC } from '../../shared/lib/setVWC';
+import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
+import {
+  AdminDashboardLargeChartItem,
+  AdminDashboardLargeChartProps,
+} from '../dashboard/AdminDashboardLargeChart';
+import { LoginContext } from '../../shared/contexts/LoginContext';
+import { apiFetch } from '../../shared/ApiConstants';
+import {
+  formatNetworkDashboard,
+  formatNetworkDate,
+  formatNetworkDuration,
+  formatNetworkError,
+  formatNetworkNumber,
+  formatNetworkValue,
+} from '../../shared/lib/networkResponseUtils';
+import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 24 },
@@ -25,11 +43,239 @@ const flowChartSettings: FlowChartProps = {
   arrowHeadAngleDeg: { type: 'react-rerender', props: 30 },
 };
 
+type PartialSMSSendStatsItem = {
+  key: string;
+  label: string;
+  data: number;
+  breakdown?: Record<string, number>;
+};
+
+const parsePartialSMSSendStatsItems = (raw: any): PartialSMSSendStatsItem[] => {
+  const result: PartialSMSSendStatsItem[] = [];
+  for (let [key, value] of Object.entries(raw)) {
+    if (key.endsWith('_breakdown')) {
+      continue;
+    }
+    result.push({
+      key,
+      label: fromSnakeToTitleCase(key),
+      data: value as number,
+      breakdown: raw[`${key}_breakdown`],
+    });
+  }
+  return result;
+};
+
+type PartialSMSSendStats = {
+  today: PartialSMSSendStatsItem[];
+  yesterday: PartialSMSSendStatsItem[];
+};
+
+const parsePartialSMSSendStats = (raw: any): PartialSMSSendStats => {
+  return {
+    today: parsePartialSMSSendStatsItems(raw.today),
+    yesterday: parsePartialSMSSendStatsItems(raw.yesterday),
+  };
+};
+
 /**
  * The admin sms dashboard, which is intended to inspecting the current health
  * our sms system.
  */
 export const AdminSMSDashboard = (): ReactElement => {
+  const loginContext = useContext(LoginContext);
+
+  const sendQueueInfo = useNetworkResponse<{
+    length: number;
+    oldestLastQueuedAt: Date | null;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+      const response = await apiFetch(
+        '/api/1/admin/sms/send_queue_info',
+        { method: 'GET' },
+        loginContext
+      );
+      if (!response.ok) {
+        throw response;
+      }
+      const data = await response.json();
+      return {
+        length: data.length,
+        oldestLastQueuedAt:
+          data.oldest_last_queued_at === null ? null : new Date(data.oldest_last_queued_at * 1000),
+      };
+    }, [loginContext])
+  );
+
+  const sendJobInfo = useNetworkResponse<{
+    startedAt: Date;
+    finishedAt: Date;
+    runningTime: number;
+    numAttempted: number;
+    numSucceeded: number;
+    numPending: number;
+    numFailedPermanently: number;
+    numFailedTransiently: number;
+    stopReason: 'list_exhausted' | 'time_exhausted' | 'signal';
+    numInPurgatory: number;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/last_send_job',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw response;
+      }
+
+      const data = await response.json();
+      return {
+        startedAt: new Date(data.started_at * 1000),
+        finishedAt: new Date(data.finished_at * 1000),
+        runningTime: data.running_time,
+        numAttempted: data.num_attempted,
+        numSucceeded: data.num_succeeded,
+        numPending: data.num_pending,
+        numFailedPermanently: data.num_failed_permanently,
+        numFailedTransiently: data.num_failed_transiently,
+        stopReason: data.stop_reason,
+        numInPurgatory: data.num_in_purgatory,
+      };
+    }, [loginContext])
+  );
+
+  const pendingSetInfo = useNetworkResponse<{
+    length: number;
+    oldestDueAt: Date | null;
+    numOverdue: number;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+      const response = await apiFetch(
+        '/api/1/admin/sms/pending_set_info',
+        { method: 'GET' },
+        loginContext
+      );
+      if (!response.ok) {
+        throw response;
+      }
+      const data = await response.json();
+      return {
+        length: data.length,
+        oldestDueAt: data.oldest_due_at === null ? null : new Date(data.oldest_due_at * 1000),
+        numOverdue: data.num_overdue,
+      };
+    }, [loginContext])
+  );
+
+  const smsSendStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
+  const smsSendStats = useNetworkResponse<AdminDashboardLargeChartProps>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/daily_sms_sends',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      const labels: string[] = data.labels;
+
+      const datasets: {
+        key: string;
+        label: string;
+        data: number[];
+        breakdown?: Record<string, number[]>;
+      }[] = [];
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'labels') {
+          continue;
+        }
+
+        if (key.endsWith('_breakdown')) {
+          continue;
+        }
+
+        datasets.push({
+          key,
+          label: fromSnakeToTitleCase(key),
+          data: value as number[],
+          breakdown: data[`${key}_breakdown`],
+        });
+      }
+
+      const dailyCharts: AdminDashboardLargeChartItem[] = [];
+      for (const dataset of datasets) {
+        dailyCharts.push({
+          identifier: dataset.key,
+          name: dataset.label,
+          labels,
+          values: dataset.data,
+        });
+
+        if (dataset.breakdown !== undefined) {
+          for (const [key, value] of Object.entries(dataset.breakdown)) {
+            dailyCharts.push({
+              identifier: `${dataset.key}-${key}`,
+              name: `${dataset.label} (${key})`,
+              labels,
+              values: value,
+            });
+          }
+        }
+      }
+
+      return {
+        dailyCharts,
+        monthlyCharts: [],
+      };
+    }, [loginContext]),
+    {
+      loadPrevented: smsSendStatsLoadPrevented,
+    }
+  );
+  const partialSMSSendStats = useNetworkResponse<PartialSMSSendStats>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/partial_sms_send_stats',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      return parsePartialSMSSendStats(data);
+    }, [loginContext])
+  );
+
   return (
     <div className={styles.container}>
       <div className={styles.titleContainer}>Oseh SMS Dashboard</div>
@@ -83,10 +329,18 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </p>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In To Send</>} />
+                  <BlockStatisticTitleRow
+                    title={<># In To Send</>}
+                    value={sendQueueInfo}
+                    valueComponent={(i) => formatNetworkNumber(i?.length)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Oldest Item</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Oldest Item</>}
+                    value={sendQueueInfo}
+                    valueComponent={(i) => formatNetworkDate(i?.oldestLastQueuedAt)}
+                  />
                 </div>
               </div>
               <div className={styles.block} style={{ maxWidth: '600px' }}>
@@ -107,7 +361,13 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </p>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In Purgatory</>} />
+                  <BlockStatisticTitleRow
+                    title={<># In Purgatory</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) =>
+                      formatNetworkNumber(i === null ? null : i?.numInPurgatory)
+                    }
+                  />
                   <TogglableSmoothExpandable>
                     <div className={styles.blockStatisticInfo}>
                       Should be 0 or 1, depending on if we're currently trying to send a message
@@ -116,19 +376,41 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </TogglableSmoothExpandable>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Started At</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Started At</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) => formatNetworkDate(i === null ? null : i?.startedAt)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Finished At</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Finished At</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) => formatNetworkDate(i === null ? null : i?.finishedAt)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Running Time</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Running Time</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) =>
+                      formatNetworkDuration(i === null ? null : i?.runningTime)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Attempted</>} />
+                  <BlockStatisticTitleRow
+                    title={<># Attempted</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.numAttempted)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Pending Success</>} />
+                  <BlockStatisticTitleRow
+                    title={<># Pending</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.numPending)}
+                  />
                   <TogglableSmoothExpandable>
                     <div className={styles.blockStatisticInfo}>
                       How many message attempts turned into message resources on Twilio's end the
@@ -139,7 +421,11 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </TogglableSmoothExpandable>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Immediate Success</>} />
+                  <BlockStatisticTitleRow
+                    title={<># Immediate Success</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.numSucceeded)}
+                  />
                   <TogglableSmoothExpandable>
                     <div className={styles.blockStatisticInfo}>
                       How many message attempts turned into message resources on Twilio's end the
@@ -150,7 +436,13 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </TogglableSmoothExpandable>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Failed Permanently</>} />
+                  <BlockStatisticTitleRow
+                    title={<># Failed Permanently</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) =>
+                      formatNetworkNumber(i === null ? null : i?.numFailedPermanently)
+                    }
+                  />
                   <TogglableSmoothExpandable>
                     <div className={styles.blockStatisticInfo}>
                       How many message attempts were rejected by Twilio's API the last time the job
@@ -176,7 +468,13 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </TogglableSmoothExpandable>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Failed Transiently</>} />
+                  <BlockStatisticTitleRow
+                    title={<># Failed Transiently</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) =>
+                      formatNetworkNumber(i === null ? null : i?.numFailedTransiently)
+                    }
+                  />
                   <TogglableSmoothExpandable>
                     <div className={styles.blockStatisticInfo}>
                       How many message attempts could not be turned into message resources on
@@ -186,10 +484,17 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </TogglableSmoothExpandable>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Stop Reason</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Stop Reason</>}
+                    value={sendJobInfo}
+                    valueComponent={(i) =>
+                      formatNetworkValue(i === null ? null : i?.stopReason, (v) => <>{v}</>)
+                    }
+                  />
                   <div className={styles.blockStatisticInfo}>
-                    Either <span className={styles.mono}>list_exhausted</span> or{' '}
-                    <span className={styles.mono}>time_exhausted</span>
+                    <span className={styles.mono}>list_exhausted</span>,{' '}
+                    <span className={styles.mono}>time_exhausted</span>, or{' '}
+                    <span className={styles.mono}>signal</span>
                   </div>
                 </div>
               </div>
@@ -198,20 +503,18 @@ export const AdminSMSDashboard = (): ReactElement => {
                 <div className={styles.blockDescription}>
                   <p>
                     Assuming that we were able to create the message resource for a particular
-                    message attempt, it's very likely that it's not in a terminal state. Twilio
-                    should send us a webhook as its status changes, but if the webhook is not
-                    recieved in a timely manner, or we're in a development environment where
-                    webhooks are disabled, we will need to eventually poll for the status of the
-                    message.
+                    message attempt, it&rsquo;s very likely not in a terminal state. Twilio should
+                    send us a webhook as its status changes, but if the webhook is not received in a
+                    timely manner, or we&rsquo;re in a development environment where webhooks are
+                    disabled, we will need to eventually poll for the status of the message.
                   </p>
                   <p>
                     To accomplish this the message is appended to the redis sorted set we call the
-                    Receipt Pending Set. The score is the last time we got information on that
-                    message (it can be easier to think of this as the last time it was added to the
-                    receipt pending set), and the value is the{' '}
-                    <span className={styles.mono}>sid</span> that Twilio assigned to the message
-                    resource we created for the message attempt. The data on that message attempt is
-                    stored atomically in a separate redis string key.
+                    Receipt Pending Set. The value is the <span className={styles.mono}>sid</span>{' '}
+                    that Twilio assigned to the message resource we created for the message attempt.
+                    The data on that message attempt is stored atomically in a separate redis string
+                    key. The score is the next time we should either poll for the status of the
+                    message or abandon the message.
                   </p>
                   <p>
                     This set can get somewhat large since Twilio is limited on how fast it can send
@@ -219,21 +522,61 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </p>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In Receipt Pending Set</>} />
+                  <BlockStatisticTitleRow
+                    title={<># In Receipt Pending Set</>}
+                    value={pendingSetInfo}
+                    valueComponent={(i) => formatNetworkNumber(i?.length)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Oldest Queued At</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Oldest Due At</>}
+                    value={pendingSetInfo}
+                    valueComponent={(i) => formatNetworkDate(i?.oldestDueAt)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Overdue</>} />
+                  <BlockStatisticTitleRow
+                    title={<># Overdue</>}
+                    value={pendingSetInfo}
+                    valueComponent={(i) => formatNetworkNumber(i?.numOverdue)}
+                  />
                 </div>
               </div>
             </FlowChart>
           </div>
           <div className={styles.sectionGraphsAndTodaysStats}>
             <SectionGraphs>
-              <AdminDashboardLargeChartPlaceholder placeholderText="Queued, attempted, pending success, immediate success, failures by type, by day" />
+              <RenderGuardedComponent props={smsSendStats.error} component={formatNetworkError} />
+              <RenderGuardedComponent
+                props={smsSendStats.result}
+                component={(v) =>
+                  formatNetworkDashboard(v ?? undefined, {
+                    onVisible: () => setVWC(smsSendStatsLoadPrevented, false),
+                  })
+                }
+              />
             </SectionGraphs>
+            <SectionStatsMultiday
+              refresh={partialSMSSendStats.refresh}
+              days={useMemo(
+                () => [
+                  {
+                    name: 'Yesterday',
+                    content: (
+                      <PartialSMSSendStatsDisplay value={partialSMSSendStats} keyName="yesterday" />
+                    ),
+                  },
+                  {
+                    name: 'Today',
+                    content: (
+                      <PartialSMSSendStatsDisplay value={partialSMSSendStats} keyName="today" />
+                    ),
+                  },
+                ],
+                [partialSMSSendStats]
+              )}
+            />
           </div>
         </div>
         <div className={styles.section}>
@@ -411,8 +754,9 @@ export const AdminSMSDashboard = (): ReactElement => {
                 <div className={styles.blockStatistic}>
                   <NotImplementedBlockStatisticTitleRow title={<>Stop Reason</>} />
                   <div className={styles.blockStatisticInfo}>
-                    Either <span className={styles.mono}>list_exhausted</span> or{' '}
-                    <span className={styles.mono}>time_exhausted</span>
+                    <span className={styles.mono}>list_exhausted</span>,{' '}
+                    <span className={styles.mono}>time_exhausted</span>, or{' '}
+                    <span className={styles.mono}>signal</span>
                   </div>
                 </div>
               </div>
@@ -463,17 +807,13 @@ export const AdminSMSDashboard = (): ReactElement => {
                 <div className={styles.blockTitle}>Receipt Stale Detection Job</div>
                 <div className={styles.blockDescription}>
                   <p>
-                    About once every 15* minutes, a recurring job (the Receipt Stale Detection Job)
-                    pulls all items which have been in the Receipt Pending Set for at least 15*
-                    minutes and adds them to the right side of the redis list we call the Recovery
-                    Queue.
-                  </p>
-                  <p>
-                    <small>
-                      * In development webhooks are disabled and hence the poll flow is the only
-                      mechanism for updating the status of messages. In this case, the job runs
-                      every minute and the stale threshold is 1 minute.
-                    </small>
+                    About once per minute, a recurring job (the Receipt Stale Detection Job) checks
+                    for items whose score in the Receipt Pending Set, interpreted as seconds since
+                    the unix epoch, is before now. For each such item, its score is increased and
+                    the failure callback is queued, which is responsible for either abandoning the
+                    message (if it does not want to poll any longer, such as because the result no
+                    longer matters or because polling has failed too many times already), or pushing
+                    the sid to the Recovery Queue.
                   </p>
                 </div>
                 <div className={styles.blockStatistic}>
@@ -486,7 +826,7 @@ export const AdminSMSDashboard = (): ReactElement => {
                   <NotImplementedBlockStatisticTitleRow title={<>Running Time</>} />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Moved</>} />
+                  <NotImplementedBlockStatisticTitleRow title={<># Callbacks Queued</>} />
                 </div>
               </div>
               <div className={styles.block} style={{ maxWidth: '600px' }}>
@@ -497,9 +837,7 @@ export const AdminSMSDashboard = (): ReactElement => {
                     from the Recovery Queue one at a time and fetches the current status of the
                     message from Twilio. For all statuses returned they are sent to the right side
                     of the Event Queue, including <span className={styles.mono}>lost</span>, if
-                    Twilio indicated the message resource no longer exists, and
-                    <span className={styles.mono}>abandoned</span> if we got a non-terminal state an
-                    excessively long time after the message resource was created.
+                    Twilio indicated the message resource no longer exists.
                   </p>
                   <p>
                     This has to weave requests with the Send Job via the Twilio Lock due to the low
@@ -537,9 +875,6 @@ export const AdminSMSDashboard = (): ReactElement => {
                 <div className={styles.blockStatistic}>
                   <NotImplementedBlockStatisticTitleRow title={<># Lost</>} />
                 </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Abandoned</>} />
-                </div>
               </div>
             </FlowChart>
           </div>
@@ -547,6 +882,65 @@ export const AdminSMSDashboard = (): ReactElement => {
         </div>
       </div>
     </div>
+  );
+};
+
+/*
+ * Convenience function to convert from snake_case to Title Case
+ */
+const fromSnakeToTitleCase = (snake: string): string => {
+  return snake
+    .split('_')
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+const PartialSMSSendStatsDisplay = ({
+  value,
+  keyName,
+}: {
+  value: NetworkResponse<PartialSMSSendStats>;
+  keyName: 'yesterday' | 'today';
+}): ReactElement => {
+  const unwrapped = useUnwrappedValueWithCallbacks(value.result);
+  if (unwrapped === null) {
+    return <div style={{ minHeight: '500px', minWidth: 'min(440px, 80vw)' }}></div>;
+  }
+  const sortedKeys = unwrapped[keyName].map((item) => item.key).sort();
+  const itemsByKey = unwrapped[keyName].reduce((acc, item) => {
+    acc[item.key] = item;
+    return acc;
+  }, {} as Record<string, PartialSMSSendStatsItem>);
+
+  return (
+    <>
+      {sortedKeys.map((key) => {
+        const item = itemsByKey[key];
+        return (
+          <Fragment key={key}>
+            <div className={styles.sectionStatsTodayItem}>
+              <div className={styles.sectionStatsTodayItemTitle}>{itemsByKey[key].label}</div>
+              <div className={styles.sectionStatsTodayItemValue}>{item.data.toLocaleString()}</div>
+              <RenderGuardedComponent props={value.error} component={formatNetworkError} />
+            </div>
+            {item.breakdown !== undefined && Object.keys(item.breakdown).length > 0 && (
+              <div className={styles.sectionStatsTodayItemBreakdown}>
+                <TogglableSmoothExpandable>
+                  {Object.entries(item.breakdown).map(([breakdownKey, breakdownValue]) => (
+                    <div key={breakdownKey} className={styles.sectionStatsTodayItem}>
+                      <div className={styles.sectionStatsTodayItemTitle}>{breakdownKey}</div>
+                      <div className={styles.sectionStatsTodayItemValue}>
+                        {breakdownValue.toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </TogglableSmoothExpandable>
+              </div>
+            )}
+          </Fragment>
+        );
+      })}
+    </>
   );
 };
 
