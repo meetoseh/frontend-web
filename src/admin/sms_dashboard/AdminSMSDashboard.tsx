@@ -3,14 +3,12 @@ import styles from '../notifs_dashboard/AdminNotifsDashboard.module.css';
 import customStyles from './AdminSMSDashboard.module.css';
 import {
   BlockStatisticTitleRow,
-  NotImplementedBlockStatisticTitleRow,
   SectionDescription,
   SectionGraphs,
   SectionStatsMultiday,
 } from '../notifs_dashboard/AdminNotifsDashboard';
 import { FlowChart, FlowChartProps } from '../../shared/components/FlowChart';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
-import { AdminDashboardLargeChartPlaceholder } from '../dashboard/AdminDashboardLargeChartPlaceholder';
 import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { combineClasses } from '../../shared/lib/combineClasses';
@@ -32,6 +30,7 @@ import {
   formatNetworkValue,
 } from '../../shared/lib/networkResponseUtils';
 import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 24 },
@@ -43,15 +42,15 @@ const flowChartSettings: FlowChartProps = {
   arrowHeadAngleDeg: { type: 'react-rerender', props: 30 },
 };
 
-type PartialSMSSendStatsItem = {
+type PartialStatsItem = {
   key: string;
   label: string;
   data: number;
   breakdown?: Record<string, number>;
 };
 
-const parsePartialSMSSendStatsItems = (raw: any): PartialSMSSendStatsItem[] => {
-  const result: PartialSMSSendStatsItem[] = [];
+const parsePartialStatsItems = (raw: any): PartialStatsItem[] => {
+  const result: PartialStatsItem[] = [];
   for (let [key, value] of Object.entries(raw)) {
     if (key.endsWith('_breakdown')) {
       continue;
@@ -66,15 +65,15 @@ const parsePartialSMSSendStatsItems = (raw: any): PartialSMSSendStatsItem[] => {
   return result;
 };
 
-type PartialSMSSendStats = {
-  today: PartialSMSSendStatsItem[];
-  yesterday: PartialSMSSendStatsItem[];
+type PartialStats = {
+  today: PartialStatsItem[];
+  yesterday: PartialStatsItem[];
 };
 
-const parsePartialSMSSendStats = (raw: any): PartialSMSSendStats => {
+const parsePartialStats = (raw: any): PartialStats => {
   return {
-    today: parsePartialSMSSendStatsItems(raw.today),
-    yesterday: parsePartialSMSSendStatsItems(raw.yesterday),
+    today: parsePartialStatsItems(raw.today),
+    yesterday: parsePartialStatsItems(raw.yesterday),
   };
 };
 
@@ -200,62 +199,13 @@ export const AdminSMSDashboard = (): ReactElement => {
       }
 
       const data = await response.json();
-      const labels: string[] = data.labels;
-
-      const datasets: {
-        key: string;
-        label: string;
-        data: number[];
-        breakdown?: Record<string, number[]>;
-      }[] = [];
-      for (const [key, value] of Object.entries(data)) {
-        if (key === 'labels') {
-          continue;
-        }
-
-        if (key.endsWith('_breakdown')) {
-          continue;
-        }
-
-        datasets.push({
-          key,
-          label: fromSnakeToTitleCase(key),
-          data: value as number[],
-          breakdown: data[`${key}_breakdown`],
-        });
-      }
-
-      const dailyCharts: AdminDashboardLargeChartItem[] = [];
-      for (const dataset of datasets) {
-        dailyCharts.push({
-          identifier: dataset.key,
-          name: dataset.label,
-          labels,
-          values: dataset.data,
-        });
-
-        if (dataset.breakdown !== undefined) {
-          for (const [key, value] of Object.entries(dataset.breakdown)) {
-            dailyCharts.push({
-              identifier: `${dataset.key}-${key}`,
-              name: `${dataset.label} (${key})`,
-              labels,
-              values: value,
-            });
-          }
-        }
-      }
-
-      return {
-        dailyCharts,
-        monthlyCharts: [],
-      };
+      return parseChart(data);
     }, [loginContext]),
     {
       loadPrevented: smsSendStatsLoadPrevented,
     }
   );
-  const partialSMSSendStats = useNetworkResponse<PartialSMSSendStats>(
+  const partialSMSSendStats = useNetworkResponse<PartialStats>(
     useCallback(async () => {
       if (loginContext.state !== 'logged-in') {
         return null;
@@ -272,8 +222,304 @@ export const AdminSMSDashboard = (): ReactElement => {
       }
 
       const data = await response.json();
-      return parsePartialSMSSendStats(data);
+      return parsePartialStats(data);
     }, [loginContext])
+  );
+
+  const webhookStats = useNetworkResponse<PartialStats>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/partial_sms_webhook_stats',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      return parsePartialStats(data);
+    }, [loginContext])
+  );
+
+  const eventQueueInfo = useNetworkResponse<{
+    length: number;
+    oldestInformationReceivedAt: Date | null;
+    oldestItemDelay: number | null;
+    newestInformationReceivedAt: Date | null;
+    newestItemDelay: number | null;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/event_queue_info',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+
+      return {
+        length: data.length,
+        oldestInformationReceivedAt:
+          data.oldest_information_received_at === null
+            ? null
+            : new Date(data.oldest_information_received_at * 1000),
+        oldestItemDelay: data.oldest_item_delay,
+        newestInformationReceivedAt:
+          data.newest_information_received_at === null
+            ? null
+            : new Date(data.newest_information_received_at * 1000),
+        newestItemDelay: data.newest_item_delay,
+      };
+    }, [loginContext])
+  );
+
+  const receiptReconciliationJobInfo = useNetworkResponse<{
+    startedAt: Date;
+    finishedAt: Date;
+    runningTime: number;
+    stopReason: 'list_exhausted' | 'time_exhausted' | 'signal';
+    attempted: number;
+    pending: number;
+    succeeded: number;
+    failed: number;
+    found: number;
+    updated: number;
+    duplicate: number;
+    outOfOrder: number;
+    removed: number;
+    purgatorySize: number;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/last_receipt_reconciliation_job',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw response;
+      }
+
+      const data = await response.json();
+      return {
+        startedAt: new Date(data.started_at * 1000),
+        finishedAt: new Date(data.finished_at * 1000),
+        runningTime: data.running_time,
+        stopReason: data.stop_reason,
+        attempted: data.attempted,
+        pending: data.pending,
+        succeeded: data.succeeded,
+        failed: data.failed,
+        found: data.found,
+        updated: data.updated,
+        duplicate: data.duplicate,
+        outOfOrder: data.out_of_order,
+        removed: data.removed,
+        purgatorySize: data.purgatory_size,
+      };
+    }, [loginContext])
+  );
+
+  const receiptStaleDetectionJobInfo = useNetworkResponse<{
+    startedAt: Date;
+    finishedAt: Date;
+    runningTime: number;
+    callbacksQueued: number;
+    stopReason: 'list_exhausted' | 'time_exhausted' | 'signal';
+    recoveryQueueSize: number;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+      const response = await apiFetch(
+        '/api/1/admin/sms/last_receipt_stale_job',
+        { method: 'GET' },
+        loginContext
+      );
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw response;
+      }
+      const data = await response.json();
+      return {
+        startedAt: new Date(data.started_at * 1000),
+        finishedAt: new Date(data.finished_at * 1000),
+        runningTime: data.running_time,
+        callbacksQueued: data.callbacks_queued,
+        stopReason: data.stop_reason,
+        recoveryQueueSize: data.recovery_queue_size,
+      };
+    }, [loginContext])
+  );
+
+  const receiptRecoveryJobInfo = useNetworkResponse<{
+    startedAt: Date;
+    finishedAt: Date;
+    runningTime: number;
+    attempted: number;
+    pending: number;
+    succeeded: number;
+    failed: number;
+    lost: number;
+    permanentError: number;
+    transientError: number;
+    stopReason: 'list_exhausted' | 'time_exhausted' | 'signal';
+    purgatorySize: number;
+  }>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/last_receipt_recovery_job',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw response;
+      }
+
+      const data = await response.json();
+      return {
+        startedAt: new Date(data.started_at * 1000),
+        finishedAt: new Date(data.finished_at * 1000),
+        runningTime: data.running_time,
+        attempted: data.attempted,
+        pending: data.pending,
+        succeeded: data.succeeded,
+        failed: data.failed,
+        lost: data.lost,
+        permanentError: data.permanent_error,
+        transientError: data.transient_error,
+        stopReason: data.stop_reason,
+        purgatorySize: data.purgatory_size,
+      };
+    }, [loginContext])
+  );
+
+  const eventStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
+  const eventStats = useNetworkResponse<AdminDashboardLargeChartProps>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/daily_sms_events',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      return parseChart(data);
+    }, [loginContext]),
+    {
+      loadPrevented: eventStatsLoadPrevented,
+    }
+  );
+  const partialEventStats = useNetworkResponse<PartialStats>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/partial_sms_event_stats',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      return parsePartialStats(data);
+    }, [loginContext]),
+    {
+      loadPrevented: eventStatsLoadPrevented,
+    }
+  );
+
+  const smsPollingStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
+  const smsPollingStats = useNetworkResponse<AdminDashboardLargeChartProps>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/daily_sms_polling',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      return parseChart(data);
+    }, [loginContext]),
+    {
+      loadPrevented: smsPollingStatsLoadPrevented,
+    }
+  );
+  const partialSMSPollingStats = useNetworkResponse<PartialStats>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/sms/partial_sms_polling_stats',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      return parsePartialStats(data);
+    }, [loginContext]),
+    {
+      loadPrevented: smsPollingStatsLoadPrevented,
+    }
   );
 
   return (
@@ -347,13 +593,13 @@ export const AdminSMSDashboard = (): ReactElement => {
                 <div className={styles.blockTitle}>Send Job</div>
                 <div className={styles.blockDescription}>
                   <p>
-                    About once per minute we pull messages one at a time off the To Send queue,
-                    moving them to the Send Purgatory, then to Twilio in an encrypted and authorized
-                    request, then (if successful) to the receipt pending set (see next block), then
-                    removing them from Send Purgatory until we've either exhausted the To Send queue
-                    or 50s have passed. The Twilio lock is held only while each message is sent to
-                    allow weaving other requests (such as the receipt recovery job) while this job
-                    is run.
+                    About four times per minute we pull messages one at a time off the To Send
+                    queue, moving them to the Send Purgatory, then to Twilio in an encrypted and
+                    authorized request, then (if successful) to the receipt pending set (see next
+                    block), then removing them from Send Purgatory until we've either exhausted the
+                    To Send queue or 50s have passed. The Twilio lock is held only while each
+                    message is sent to allow weaving other requests (such as the receipt recovery
+                    job) while this job is run.
                   </p>
                   <p>
                     This will try to reuse the same connection to avoid excessive TLS handshakes,
@@ -512,7 +758,7 @@ export const AdminSMSDashboard = (): ReactElement => {
                     To accomplish this the message is appended to the redis sorted set we call the
                     Receipt Pending Set. The value is the <span className={styles.mono}>sid</span>{' '}
                     that Twilio assigned to the message resource we created for the message attempt.
-                    The data on that message attempt is stored atomically in a separate redis string
+                    The data on that message attempt is stored atomically in a separate redis hash
                     key. The score is the next time we should either poll for the status of the
                     message or abandon the message.
                   </p>
@@ -564,14 +810,12 @@ export const AdminSMSDashboard = (): ReactElement => {
                   {
                     name: 'Yesterday',
                     content: (
-                      <PartialSMSSendStatsDisplay value={partialSMSSendStats} keyName="yesterday" />
+                      <PartialStatsDisplay value={partialSMSSendStats} keyName="yesterday" />
                     ),
                   },
                   {
                     name: 'Today',
-                    content: (
-                      <PartialSMSSendStatsDisplay value={partialSMSSendStats} keyName="today" />
-                    ),
+                    content: <PartialStatsDisplay value={partialSMSSendStats} keyName="today" />,
                   },
                 ],
                 [partialSMSSendStats]
@@ -625,7 +869,7 @@ export const AdminSMSDashboard = (): ReactElement => {
                     full history.
                   </p>
                 </div>
-                <ReceiveWebhookBlockStatistics />
+                <ReceiveWebhookBlockStatistics webhookStats={webhookStats} />
               </div>
               <div className={styles.block} style={{ maxWidth: '600px' }}>
                 <div className={styles.blockTitle}>Append to Event Queue</div>
@@ -664,31 +908,43 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </ul>
 
                   <div className={combineClasses(styles.blockNote, styles.blockNoteWarning)}>
-                    Two additional status codes are possible in the event queue compared to the
+                    An additional status code is possible in the event queue compared to the
                     available status codes on twilio:{' '}
-                    <span className={styles.mono}>
-                      <strong>abandoned</strong>
-                    </span>{' '}
-                    and{' '}
                     <span className={styles.mono}>
                       <strong>lost</strong>
                     </span>
-                    . This refers to a message resource who we failed to get a new status for for
-                    too long and message resources which no longer exist, respectively.
+                    . This refers to a message resource which no longer exists on Twilio, as
+                    evidenced by a 404 response.
                   </div>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In Event Queue</>} />
+                  <BlockStatisticTitleRow
+                    title={<># In Event Queue</>}
+                    value={eventQueueInfo}
+                    valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.length)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Oldest Item</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Oldest Item</>}
+                    value={eventQueueInfo}
+                    valueComponent={(i) =>
+                      formatNetworkDate(i === null ? null : i?.oldestInformationReceivedAt)
+                    }
+                  />
                   <div className={styles.blockStatisticInfo}>
                     The <span className={styles.mono}>information_received_at</span> value of the
                     left-most item
                   </div>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Oldest Item Delay</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Oldest Item Delay</>}
+                    value={eventQueueInfo}
+                    valueComponent={(i) =>
+                      formatNetworkDuration(i === null ? null : i?.oldestItemDelay)
+                    }
+                  />
                   <TogglableSmoothExpandable>
                     <div className={styles.blockStatisticInfo}>
                       The difference between the{' '}
@@ -701,13 +957,25 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </TogglableSmoothExpandable>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Newest Item</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Newest Item</>}
+                    value={eventQueueInfo}
+                    valueComponent={(i) =>
+                      formatNetworkDate(i === null ? null : i?.newestInformationReceivedAt)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Newest Item Delay</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Newest Item Delay</>}
+                    value={eventQueueInfo}
+                    valueComponent={(i) =>
+                      formatNetworkDuration(i === null ? null : i?.newestItemDelay)
+                    }
+                  />
                 </div>
               </div>
-              <div className={styles.block} style={{ maxWidth: '600px' }}>
+              <div className={styles.block} style={{ maxWidth: '700px' }}>
                 <div className={styles.blockTitle}>Receipt Reconciliation Job</div>
                 <div className={styles.blockDescription}>
                   <p>
@@ -724,39 +992,180 @@ export const AdminSMSDashboard = (): ReactElement => {
                     job.
                   </p>
                 </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In Purgatory</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Started At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Finished At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Running Time</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Attempted</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Still Pending</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Succeeded</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Failed</>} />
-                  <div className={styles.blockStatisticInfo}>
-                    All failures at this point are non-retryable
+                <div className={styles.twoColumnBlockStatistics}>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># In Purgatory</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) =>
+                        formatNetworkNumber(i === null ? null : i?.purgatorySize)
+                      }
+                    />
                   </div>
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Stop Reason</>} />
-                  <div className={styles.blockStatisticInfo}>
-                    <span className={styles.mono}>list_exhausted</span>,{' '}
-                    <span className={styles.mono}>time_exhausted</span>, or{' '}
-                    <span className={styles.mono}>signal</span>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<>Started At</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkDate(i === null ? null : i?.startedAt)}
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<>Finished At</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkDate(i === null ? null : i?.finishedAt)}
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Running Time</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) =>
+                        formatNetworkDuration(i === null ? null : i?.runningTime)
+                      }
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Attempted</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.attempted)}
+                    />
+                    <TogglableSmoothExpandable>
+                      <div className={styles.blockStatisticInfo}>
+                        How many message resource updates we tried to reconcile
+                      </div>
+                    </TogglableSmoothExpandable>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Still Pending</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.pending)}
+                    />
+                    <TogglableSmoothExpandable>
+                      <div className={styles.blockStatisticInfo}>
+                        How many message resources were still in a pending state. This is of all
+                        those attempted, and thus does not necessarily mean the message resource was
+                        still in the pending set, nor does it mean there was necessarily an update
+                        to it.
+                      </div>
+                    </TogglableSmoothExpandable>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Succeeded</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.succeeded)}
+                    />
+                    <TogglableSmoothExpandable>
+                      <div className={styles.blockStatisticInfo}>
+                        How many message resources were now in a successful state (
+                        <span className={styles.mono}>sent</span> or{' '}
+                        <span className={styles.mono}>delivered</span>
+                        ). This is of those attempted, and thus does not necessarily mean the
+                        message resource was still in the pending set.
+                      </div>
+                    </TogglableSmoothExpandable>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Failed</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.failed)}
+                    />
+                    <TogglableSmoothExpandable>
+                      <div className={styles.blockStatisticInfo}>
+                        How many message resources were now in a failure state (
+                        <span className={styles.mono}>canceled</span>,{' '}
+                        <span className={styles.mono}>undelivered</span>, or{' '}
+                        <span className={styles.mono}>failed</span>
+                        ). This is of those attempted, and thus does not necessarily mean the
+                        message resource was still in the pending set.
+                      </div>
+                    </TogglableSmoothExpandable>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Found</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.found)}
+                    />
+                    <TogglableSmoothExpandable>
+                      <div className={styles.blockStatisticInfo}>
+                        How many message resources were found in the receipt pending set, though not
+                        necessarily with a different state than what we just got.
+                      </div>
+                    </TogglableSmoothExpandable>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Updated</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.updated)}
+                    />
+                    <TogglableSmoothExpandable>
+                      <div className={styles.blockStatisticInfo}>
+                        How many message resources were found in the receipt pending set, and had a
+                        different status, and we chose to update (meaning the new state was also
+                        non-terminal, e.g., <span className={styles.mono}>sending</span>).
+                      </div>
+                    </TogglableSmoothExpandable>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Duplicate</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.duplicate)}
+                    />
+                    <TogglableSmoothExpandable>
+                      <div className={styles.blockStatisticInfo}>
+                        How many message resources were found in the receipt pending set with the
+                        same status as the event we just received, meaning we did not update it.
+                      </div>
+                    </TogglableSmoothExpandable>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Out Of Order</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.outOfOrder)}
+                    />
+                    <TogglableSmoothExpandable>
+                      <div className={styles.blockStatisticInfo}>
+                        How many message resources were found in the receipt pending set with newer
+                        information than the event, meaning we did not update it.
+                      </div>
+                    </TogglableSmoothExpandable>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Removed</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.removed)}
+                    />
+                    <TogglableSmoothExpandable>
+                      <div className={styles.blockStatisticInfo}>
+                        How many message resources were found in the receipt pending set and removed
+                        because they now had a terminal state. Whenever we remove from the pending
+                        set we either invoke the success callback or the failure callback as
+                        appropriate. The failure callback cannot retry at this point.
+                      </div>
+                    </TogglableSmoothExpandable>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<>Stop Reason</>}
+                      value={receiptReconciliationJobInfo}
+                      valueComponent={(i) =>
+                        formatNetworkValue(i === null ? null : i?.stopReason, (v) => <>{v}</>)
+                      }
+                    />
+                    <div className={styles.blockStatisticInfo}>
+                      <span className={styles.mono}>list_exhausted</span>,{' '}
+                      <span className={styles.mono}>time_exhausted</span>, or{' '}
+                      <span className={styles.mono}>signal</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -774,8 +1183,32 @@ export const AdminSMSDashboard = (): ReactElement => {
           </div>
           <div className={styles.sectionGraphsAndTodaysStats}>
             <SectionGraphs>
-              <AdminDashboardLargeChartPlaceholder placeholderText="Received via webhook/polling, attempted, unknown, recognized by status code, by day" />
+              <RenderGuardedComponent props={eventStats.error} component={formatNetworkError} />
+              <RenderGuardedComponent
+                props={eventStats.result}
+                component={(v) =>
+                  formatNetworkDashboard(v ?? undefined, {
+                    onVisible: () => setVWC(eventStatsLoadPrevented, false),
+                  })
+                }
+              />
             </SectionGraphs>
+            <SectionStatsMultiday
+              refresh={partialEventStats.refresh}
+              days={useMemo(
+                () => [
+                  {
+                    name: 'Yesterday',
+                    content: <PartialStatsDisplay value={partialEventStats} keyName="yesterday" />,
+                  },
+                  {
+                    name: 'Today',
+                    content: <PartialStatsDisplay value={partialEventStats} keyName="today" />,
+                  },
+                ],
+                [partialEventStats]
+              )}
+            />
           </div>
         </div>
         <div className={styles.section}>
@@ -817,19 +1250,48 @@ export const AdminSMSDashboard = (): ReactElement => {
                   </p>
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Started At</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Started At</>}
+                    value={receiptStaleDetectionJobInfo}
+                    valueComponent={(i) => formatNetworkDate(i === null ? null : i?.startedAt)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Finished At</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Finished At</>}
+                    value={receiptStaleDetectionJobInfo}
+                    valueComponent={(i) => formatNetworkDate(i === null ? null : i?.finishedAt)}
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Running Time</>} />
+                  <BlockStatisticTitleRow
+                    title={<>Running Time</>}
+                    value={receiptStaleDetectionJobInfo}
+                    valueComponent={(i) =>
+                      formatNetworkDuration(i === null ? null : i?.runningTime)
+                    }
+                  />
                 </div>
                 <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Callbacks Queued</>} />
+                  <BlockStatisticTitleRow
+                    title={<># Callbacks Queued</>}
+                    value={receiptStaleDetectionJobInfo}
+                    valueComponent={(i) =>
+                      formatNetworkNumber(i === null ? null : i?.callbacksQueued)
+                    }
+                  />
+                </div>
+                <div className={styles.blockStatistic}>
+                  <BlockStatisticTitleRow
+                    title={<># In Recovery Queue</>}
+                    value={receiptStaleDetectionJobInfo}
+                    valueComponent={(i) =>
+                      formatNetworkNumber(i === null ? null : i?.recoveryQueueSize)
+                    }
+                  />
                 </div>
               </div>
-              <div className={styles.block} style={{ maxWidth: '600px' }}>
+              <div className={styles.block} style={{ maxWidth: '700px' }}>
                 <div className={styles.blockTitle}>Receipt Recovery Job</div>
                 <div className={styles.blockDescription}>
                   <p>
@@ -848,37 +1310,156 @@ export const AdminSMSDashboard = (): ReactElement => {
                     given time.
                   </p>
                 </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In Purgatory</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Started At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Finished At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Running Time</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Attempted</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Still Pending</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Succeeded</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Failed</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Lost</>} />
+                <div className={styles.twoColumnBlockStatistics}>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># In Purgatory</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) =>
+                        formatNetworkNumber(i === null ? null : i?.purgatorySize)
+                      }
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<>Started At</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) => formatNetworkDate(i === null ? null : i?.startedAt)}
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<>Finished At</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) => formatNetworkDate(i === null ? null : i?.finishedAt)}
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<>Running Time</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) =>
+                        formatNetworkDuration(i === null ? null : i?.runningTime)
+                      }
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Attempted</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.attempted)}
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Still Pending</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.pending)}
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Succeeded</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.succeeded)}
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Failed</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.failed)}
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Lost</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) => formatNetworkNumber(i === null ? null : i?.lost)}
+                    />
+                    <div className={styles.blockStatisticInfo}>
+                      Message resources that don't exist on Twilio anymore
+                    </div>
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Permanent Error</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) =>
+                        formatNetworkNumber(i === null ? null : i?.permanentError)
+                      }
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Transient Error</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) =>
+                        formatNetworkNumber(i === null ? null : i?.transientError)
+                      }
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<># Transient Error</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) =>
+                        formatNetworkNumber(i === null ? null : i?.transientError)
+                      }
+                    />
+                  </div>
+                  <div className={styles.blockStatistic}>
+                    <BlockStatisticTitleRow
+                      title={<>Stop Reason</>}
+                      value={receiptRecoveryJobInfo}
+                      valueComponent={(i) =>
+                        formatNetworkValue(i === null ? null : i?.stopReason, (v) => <>{v}</>)
+                      }
+                    />
+                    <div className={styles.blockStatisticInfo}>
+                      <span className={styles.mono}>list_exhausted</span>,{' '}
+                      <span className={styles.mono}>time_exhausted</span>, or{' '}
+                      <span className={styles.mono}>signal</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </FlowChart>
           </div>
-          {/* graphs aren't necessary for this section */}
+          <div className={styles.sectionGraphsAndTodaysStats}>
+            <SectionGraphs>
+              <RenderGuardedComponent
+                props={smsPollingStats.error}
+                component={formatNetworkError}
+              />
+              <RenderGuardedComponent
+                props={smsPollingStats.result}
+                component={(v) =>
+                  formatNetworkDashboard(v ?? undefined, {
+                    onVisible: () => setVWC(smsPollingStatsLoadPrevented, false),
+                  })
+                }
+              />
+            </SectionGraphs>
+            <SectionStatsMultiday
+              refresh={partialSMSPollingStats.refresh}
+              days={useMemo(
+                () => [
+                  {
+                    name: 'Yesterday',
+                    content: (
+                      <PartialStatsDisplay value={partialSMSPollingStats} keyName="yesterday" />
+                    ),
+                  },
+                  {
+                    name: 'Today',
+                    content: <PartialStatsDisplay value={partialSMSPollingStats} keyName="today" />,
+                  },
+                ],
+                [partialSMSPollingStats]
+              )}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -895,11 +1476,11 @@ const fromSnakeToTitleCase = (snake: string): string => {
     .join(' ');
 };
 
-const PartialSMSSendStatsDisplay = ({
+const PartialStatsDisplay = ({
   value,
   keyName,
 }: {
-  value: NetworkResponse<PartialSMSSendStats>;
+  value: NetworkResponse<PartialStats>;
   keyName: 'yesterday' | 'today';
 }): ReactElement => {
   const unwrapped = useUnwrappedValueWithCallbacks(value.result);
@@ -910,7 +1491,7 @@ const PartialSMSSendStatsDisplay = ({
   const itemsByKey = unwrapped[keyName].reduce((acc, item) => {
     acc[item.key] = item;
     return acc;
-  }, {} as Record<string, PartialSMSSendStatsItem>);
+  }, {} as Record<string, PartialStatsItem>);
 
   return (
     <>
@@ -944,74 +1525,123 @@ const PartialSMSSendStatsDisplay = ({
   );
 };
 
-/**
- * TODO: actually pass in the data or just fetch it here
- */
-const ReceiveWebhookBlockStatistics = (): ReactElement => {
+const parseChart = (data: any): AdminDashboardLargeChartProps => {
+  const labels: string[] = data.labels;
+  const datasets: {
+    key: string;
+    label: string;
+    data: number[];
+    breakdown?: Record<string, number[]>;
+  }[] = [];
+  for (const [key, value] of Object.entries(data)) {
+    if (key === 'labels') {
+      continue;
+    }
+
+    if (key.endsWith('_breakdown')) {
+      continue;
+    }
+
+    datasets.push({
+      key,
+      label: fromSnakeToTitleCase(key),
+      data: value as number[],
+      breakdown: data[`${key}_breakdown`],
+    });
+  }
+
+  const dailyCharts: AdminDashboardLargeChartItem[] = [];
+  for (const dataset of datasets) {
+    dailyCharts.push({
+      identifier: dataset.key,
+      name: dataset.label,
+      labels,
+      values: dataset.data,
+    });
+
+    if (dataset.breakdown !== undefined) {
+      for (const [key, value] of Object.entries(dataset.breakdown)) {
+        dailyCharts.push({
+          identifier: `${dataset.key}-${key}`,
+          name: `${dataset.label} (${key})`,
+          labels,
+          values: value,
+        });
+      }
+    }
+  }
+
+  return {
+    dailyCharts,
+    monthlyCharts: [],
+  };
+};
+
+const ReceiveWebhookBlockStatistics = ({
+  webhookStats,
+}: {
+  webhookStats: NetworkResponse<PartialStats>;
+}): ReactElement => {
   const day = useWritableValueWithCallbacks<'today' | 'yesterday'>(() => 'today');
 
   return (
     <div className={customStyles.tabbedBlockStatistics}>
-      <div className={customStyles.tabbedBlockStatisticsTabs}>
-        <RenderGuardedComponent
-          props={day}
-          component={(activeDay) => (
-            <>
-              <div
-                className={combineClasses(
-                  customStyles.tabbedBlockStatisticsTab,
-                  activeDay === 'yesterday'
-                    ? customStyles.tabbedBlockStatisticsTabActive
-                    : undefined
-                )}>
-                <Button
-                  type="button"
-                  variant="link-small"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setVWC(day, 'yesterday');
-                  }}>
-                  Yesterday
-                </Button>
-              </div>
-              <div
-                className={combineClasses(
-                  customStyles.tabbedBlockStatisticsTab,
-                  activeDay === 'today' ? customStyles.tabbedBlockStatisticsTabActive : undefined
-                )}>
-                <Button
-                  type="button"
-                  variant="link-small"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setVWC(day, 'today');
-                  }}>
-                  Today
-                </Button>
-              </div>
-            </>
-          )}
-        />
+      <div className={customStyles.tabbedBlockStatisticsTabsAndControls}>
+        <div className={customStyles.tabbedBlockStatisticsTabs}>
+          <RenderGuardedComponent
+            props={day}
+            component={(activeDay) => (
+              <>
+                <div
+                  className={combineClasses(
+                    customStyles.tabbedBlockStatisticsTab,
+                    activeDay === 'yesterday'
+                      ? customStyles.tabbedBlockStatisticsTabActive
+                      : undefined
+                  )}>
+                  <Button
+                    type="button"
+                    variant="link-small"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setVWC(day, 'yesterday');
+                    }}>
+                    Yesterday
+                  </Button>
+                </div>
+                <div
+                  className={combineClasses(
+                    customStyles.tabbedBlockStatisticsTab,
+                    activeDay === 'today' ? customStyles.tabbedBlockStatisticsTabActive : undefined
+                  )}>
+                  <Button
+                    type="button"
+                    variant="link-small"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setVWC(day, 'today');
+                    }}>
+                    Today
+                  </Button>
+                </div>
+              </>
+            )}
+          />
+        </div>
+        <div className={styles.tabbedBlockStatisticsRefresh}>
+          <IconButtonWithAutoDisable
+            icon={styles.iconRefresh}
+            srOnlyName="Refresh"
+            onClick={webhookStats.refresh}
+            spinWhileDisabled
+          />
+        </div>
       </div>
       <div className={customStyles.tabbedBlockStatisticsContent}>
-        <div className={styles.blockStatistic}>
-          <NotImplementedBlockStatisticTitleRow title={<># Received</>} />
-        </div>
-        <div className={styles.blockStatistic}>
-          <NotImplementedBlockStatisticTitleRow title={<># Signature Verified</>} />
-        </div>
-        <div className={styles.blockStatistic}>
-          <NotImplementedBlockStatisticTitleRow title={<># Accepted</>} />
-        </div>
-        <div className={styles.blockStatistic}>
-          <NotImplementedBlockStatisticTitleRow title={<># Signature Missing</>} />
-        </div>
-        <div className={styles.blockStatistic}>
-          <NotImplementedBlockStatisticTitleRow title={<># Signature Invalid</>} />
-        </div>
-        <div className={styles.blockStatistic}>
-          <NotImplementedBlockStatisticTitleRow title={<># Unprocessable</>} />
-        </div>
+        <RenderGuardedComponent
+          props={day}
+          component={(day) => <PartialStatsDisplay value={webhookStats} keyName={day} />}
+        />
       </div>
     </div>
   );
