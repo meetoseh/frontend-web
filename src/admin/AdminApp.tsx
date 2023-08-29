@@ -24,6 +24,7 @@ import { AdminNotifsDashboard } from './notifs_dashboard/AdminNotifsDashboard';
 import { useFonts } from '../shared/lib/useFonts';
 import { SplashScreen } from '../user/splash/SplashScreen';
 import { AdminSMSDashboard } from './sms_dashboard/AdminSMSDashboard';
+import { AdminEmailDashboard } from './email_dashboard/AdminEmailDashboard';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -38,6 +39,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="vip_chat_requests" element={<VipChatRequests />} />
       <Route path="notifs_dashboard" element={<AdminNotifsDashboard />} />
       <Route path="sms_dashboard" element={<AdminSMSDashboard />} />
+      <Route path="email_dashboard" element={<AdminEmailDashboard />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />

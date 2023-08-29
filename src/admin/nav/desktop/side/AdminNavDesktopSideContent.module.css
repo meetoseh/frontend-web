@@ -53,6 +53,11 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/sms.svg');
 }
+
+.iconEmail {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/email.svg');
+}
 /* #endregion */
 
 .outerContainer {

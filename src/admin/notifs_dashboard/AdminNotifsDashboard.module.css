@@ -125,6 +125,11 @@
   color: black;
 }
 
+.blockNoteInfo {
+  background: rgba(30, 146, 244, 0.2);
+  color: black;
+}
+
 .twoColumnBlockStatistics {
   display: grid;
   grid-template-columns: 1fr 1fr;
