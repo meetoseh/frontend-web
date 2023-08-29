@@ -91,6 +91,7 @@ export const loadVisitorFromStore = (): StoredVisitor | null => {
 export const writeVisitorToStore = (visitor: StoredVisitor | null): void => {
   if (visitor === null) {
     localStorage.removeItem('visitor');
+    return;
   }
 
   localStorage.setItem('visitor', JSON.stringify(visitor));

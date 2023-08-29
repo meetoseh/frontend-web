@@ -17,9 +17,12 @@ export const ErrorBlock = ({ children }: PropsWithChildren<{}>): ReactElement =>
  * error message.
  */
 export const describeErrorFromResponse = async (response: Response): Promise<ReactElement> => {
-  const body = await response.json();
+  let body: any = null;
+  try {
+    body = await response.json();
+  } catch (e) {}
 
-  if (response.status === 422 && body.detail) {
+  if (response.status === 422 && body?.detail) {
     // fastapi validation error
     return (
       <div>
@@ -36,8 +39,8 @@ export const describeErrorFromResponse = async (response: Response): Promise<Rea
     );
   }
 
-  if (body.message) {
-    return <p>{body.message}</p>;
+  if (body?.message) {
+    return <p>{body?.message}</p>;
   }
 
   return (

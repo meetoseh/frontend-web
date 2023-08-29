@@ -1,21 +1,16 @@
 import { useContext, useRef } from 'react';
 import { Feature } from '../../models/Feature';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
 import { RequestPhoneResources } from './RequestPhoneResources';
 import { RequestPhoneState } from './RequestPhoneState';
 import { RequestPhone } from './RequestPhone';
 import { useInappNotificationValueWithCallbacks } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSessionValueWithCallbacks } from '../../../../shared/hooks/useInappNotificationSession';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
-import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
-
-const backgroundImageUid = 'oseh_if_hH68hcmVBYHanoivLMgstg';
 
 export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResources> = {
   identifier: 'requestPhone',
@@ -89,8 +84,6 @@ export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResourc
   },
 
   useResources: (state, required) => {
-    const images = useOsehImageStateRequestHandler({});
-    const windowSize = useWindowSizeValueWithCallbacks();
     const ianUID = useMappedValueWithCallbacks(state, (s) =>
       s.phoneNumberIAN?.showNow
         ? s.phoneNumberIAN.uid
@@ -106,27 +99,9 @@ export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResourc
     const interestsRaw = useContext(InterestsContext);
     const interestsVWC = useReactManagedValueAsValueWithCallbacks(interestsRaw);
 
-    const backgroundProps = useMappedValueWithCallbacks(windowSize, (windowSize) => ({
-      uid: required ? backgroundImageUid : null,
-      jwt: null,
-      displayWidth: windowSize.width,
-      displayHeight: windowSize.height,
-      alt: '',
-      isPublic: true,
-    }));
-    const background = useOsehImageStateValueWithCallbacks(
-      {
-        type: 'callbacks',
-        props: () => backgroundProps.get(),
-        callbacks: backgroundProps.callbacks,
-      },
-      images
-    );
-
-    return useMappedValuesWithCallbacks([session, background, interestsVWC], () => ({
+    return useMappedValuesWithCallbacks([session, interestsVWC], () => ({
       session: session.get(),
-      background: background.get(),
-      loading: background.get().loading || interestsVWC.get().state === 'loading',
+      loading: interestsVWC.get().state === 'loading',
     }));
   },
 

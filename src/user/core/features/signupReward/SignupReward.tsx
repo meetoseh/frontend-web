@@ -6,7 +6,10 @@ import { Button } from '../../../../shared/forms/Button';
 import { SignupRewardState } from './SignupRewardState';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { useWindowSize } from '../../../../shared/hooks/useWindowSize';
-import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
+import {
+  InterestsContext,
+  InterestsContextValue,
+} from '../../../../shared/contexts/InterestsContext';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 
@@ -40,28 +43,8 @@ export const SignupReward = ({
     state.get().ian?.onShown?.call(undefined);
   }, [state, resources]);
 
-  const checklistItems = useMemo((): ReactElement[] => {
-    const result = [
-      <>Classes for every mood</>,
-      <>Daily check-ins</>,
-      <>Bite-sized to fit your schedule</>,
-    ];
-
-    if (interests.state !== 'loaded') {
-      return result;
-    }
-
-    if (interests.primaryInterest === 'anxiety') {
-      result[0] = <>Variety of unique themes</>;
-    } else if (interests.primaryInterest === 'sleep') {
-      result[0] = <>Classes to induce any dream</>;
-    } else if (interests.primaryInterest === 'isaiah-course') {
-      result[0] = <>Access to Isaiah&rsquo;s Course</>;
-      result[1] = <>100s of other classes for any mood</>;
-      result[2] = <>Reminders to keep you motivated</>;
-    }
-    return result;
-  }, [interests]);
+  const checklistItems = useMemo((): ReactElement[] => getChecklistItems(interests), [interests]);
+  const title = useMemo((): ReactElement => getTitle(interests), [interests]);
 
   return (
     <div className={styles.container}>
@@ -72,27 +55,7 @@ export const SignupReward = ({
         />
       </div>
       <div className={styles.content}>
-        <div className={styles.title}>
-          {(() => {
-            const defaultCopy = (
-              <>
-                We are here to help you feel your best&#8212;<em>everyday</em>
-              </>
-            );
-
-            if (interests.state !== 'loaded') {
-              return defaultCopy;
-            } else if (interests.primaryInterest === 'sleep') {
-              return (
-                <>
-                  We are here to help you sleep&#8212;<em>everyday</em>
-                </>
-              );
-            } else {
-              return defaultCopy;
-            }
-          })()}
-        </div>
+        <div className={styles.title}>{title}</div>
         <div className={styles.horizontalRule} />
         <div className={styles.checkList}>
           {checklistItems.map((item, i) => (
@@ -116,4 +79,47 @@ export const SignupReward = ({
       </div>
     </div>
   );
+};
+
+const getTitle = (interests: InterestsContextValue): ReactElement => {
+  const defaultCopy = (
+    <>
+      We are here to help you feel your best&#8212;<em>everyday</em>
+    </>
+  );
+
+  if (interests.state !== 'loaded') {
+    return defaultCopy;
+  } else if (interests.primaryInterest === 'sleep') {
+    return (
+      <>
+        We are here to help you sleep&#8212;<em>everyday</em>
+      </>
+    );
+  } else {
+    return defaultCopy;
+  }
+};
+
+const getChecklistItems = (interests: InterestsContextValue): ReactElement[] => {
+  const result = [
+    <>Classes for every mood</>,
+    <>Daily check-ins</>,
+    <>Bite-sized to fit your schedule</>,
+  ];
+
+  if (interests.state !== 'loaded') {
+    return result;
+  }
+
+  if (interests.primaryInterest === 'anxiety') {
+    result[0] = <>Variety of unique themes</>;
+  } else if (interests.primaryInterest === 'sleep') {
+    result[0] = <>Classes to induce any dream</>;
+  } else if (interests.primaryInterest === 'isaiah-course') {
+    result[0] = <>Access to Isaiah&rsquo;s Course</>;
+    result[1] = <>100s of other classes for any mood</>;
+    result[2] = <>Reminders to keep you motivated</>;
+  }
+  return result;
 };

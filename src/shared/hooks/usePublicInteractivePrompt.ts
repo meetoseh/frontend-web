@@ -1,4 +1,4 @@
-import { ReactElement, useContext } from 'react';
+import { ReactElement, useContext, useEffect } from 'react';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import {
   InteractivePrompt,
@@ -12,7 +12,6 @@ import {
   useVariableStrategyPropsAsValueWithCallbacks,
 } from '../anim/VariableStrategyProps';
 import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
-import { useSingletonEffect } from '../lib/useSingletonEffect';
 import { useMappedValuesWithCallbacks } from './useMappedValuesWithCallbacks';
 
 export type PublicInteractivePrompt =
@@ -79,96 +78,90 @@ export const usePublicInteractivePrompt = (
   } | null>(() => null);
   const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
 
-  useSingletonEffect(
-    (onDone) => {
-      let queued = false;
-      let running = false;
-      let active = true;
+  useEffect(() => {
+    let queued = false;
+    let running = false;
+    let active = true;
 
-      propsVWC.callbacks.add(handlePropsChanged);
-      handlePropsChanged();
-      return () => {
-        active = false;
-        propsVWC.callbacks.remove(handlePropsChanged);
+    propsVWC.callbacks.add(handlePropsChanged);
+    handlePropsChanged();
+    return () => {
+      active = false;
+      propsVWC.callbacks.remove(handlePropsChanged);
+    };
 
-        if (!running) {
-          onDone();
-        }
-      };
-
-      async function handleProps(props: PublicInteractivePromptProps) {
-        if (props.load === false) {
-          if (promptVWC.get() !== null) {
-            promptVWC.set(null);
-            promptVWC.callbacks.call(undefined);
-          }
-          return;
-        }
-
-        const old = promptVWC.get();
-        if (old !== null && old.identifier === props.identifier) {
-          return;
-        }
-
+    async function handleProps(props: PublicInteractivePromptProps) {
+      if (props.load === false || loginContext.state !== 'logged-in') {
         if (promptVWC.get() !== null) {
           promptVWC.set(null);
           promptVWC.callbacks.call(undefined);
         }
+        return;
+      }
 
-        const response = await apiFetch(
-          '/api/1/interactive_prompts/start_public',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              identifier: props.identifier,
-            }),
-          },
-          loginContext
-        );
+      const old = promptVWC.get();
+      if (old !== null && old.identifier === props.identifier) {
+        return;
+      }
 
-        if (!response.ok) {
-          throw response;
-        }
-
-        const data = await response.json();
-        const parsed = convertUsingKeymap(data, interactivePromptKeyMap);
-        promptVWC.set({ identifier: props.identifier, prompt: parsed });
+      if (promptVWC.get() !== null) {
+        promptVWC.set(null);
         promptVWC.callbacks.call(undefined);
       }
 
-      async function handlePropsChanged() {
-        if (running) {
-          queued = true;
-          return;
-        }
+      const response = await apiFetch(
+        '/api/1/interactive_prompts/start_public',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            identifier: props.identifier,
+          }),
+        },
+        loginContext
+      );
 
-        running = true;
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      const parsed = convertUsingKeymap(data, interactivePromptKeyMap);
+      promptVWC.set({ identifier: props.identifier, prompt: parsed });
+      promptVWC.callbacks.call(undefined);
+    }
+
+    async function handlePropsChanged() {
+      if (!active) {
+        return;
+      }
+
+      if (running) {
         queued = true;
-        while (queued) {
-          queued = false;
-          if (errorVWC.get() !== null) {
-            errorVWC.set(null);
+        return;
+      }
+
+      running = true;
+      queued = true;
+      while (queued) {
+        queued = false;
+        if (errorVWC.get() !== null) {
+          errorVWC.set(null);
+          errorVWC.callbacks.call(undefined);
+        }
+        try {
+          await handleProps(propsVWC.get());
+        } catch (e) {
+          const described = await describeError(e);
+          if (!queued) {
+            errorVWC.set(described);
             errorVWC.callbacks.call(undefined);
           }
-          try {
-            await handleProps(propsVWC.get());
-          } catch (e) {
-            const described = await describeError(e);
-            if (!queued) {
-              errorVWC.set(described);
-              errorVWC.callbacks.call(undefined);
-            }
-          }
-        }
-        running = false;
-        if (!active) {
-          onDone();
         }
       }
-    },
-    [propsVWC, errorVWC, promptVWC]
-  );
+      running = false;
+    }
+  }, [propsVWC, errorVWC, promptVWC, loginContext]);
 
   return useMappedValuesWithCallbacks([promptVWC, errorVWC], (): PublicInteractivePrompt => {
     const prompt = promptVWC.get();

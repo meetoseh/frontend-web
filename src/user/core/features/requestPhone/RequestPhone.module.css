@@ -25,11 +25,50 @@
   overflow: hidden;
 }
 
+.background {
+  background: linear-gradient(0deg, #000000 0%, #191c1d 37%, #191c1d 100%);
+}
+
 .content {
   max-width: 480px;
   margin: 0 auto;
   width: 100%;
   padding: 0 40px;
+  overflow-y: auto;
+}
+
+.iconOuterContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 60px;
+  margin-bottom: 12px;
+}
+
+.iconInnerContainer {
+  position: relative;
+  width: 111px;
+  height: 111px;
+}
+
+.icon {
+  position: absolute;
+  composes: icon from '../../../../shared/icons.module.css';
+  width: 96px;
+  height: 96px;
+  background-image: url('./icons/iosMessages.svg');
+  top: 15px;
+  left: 0;
+}
+
+.iconDot {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 38px;
+  height: 38px;
+  background: #ff3b30;
+  border-radius: 19px;
 }
 
 @media screen and (max-width: 439px) {
@@ -71,7 +110,8 @@
 }
 
 .getNotifiedContainer {
-  margin-top: 32px;
+  /* Chosen to ensure it's still visible at 375x633 */
+  margin-top: 16px;
   width: 100%;
 
   font-family: 'Open Sans', sans-serif;
