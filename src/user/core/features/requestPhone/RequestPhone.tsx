@@ -129,7 +129,7 @@ export const RequestPhone = ({
         return;
       }
 
-      if (!phoneFormatCorrect) {
+      if (!phoneFormatCorrect.get()) {
         const focusPhoneFn = focusPhone.get();
         if (focusPhoneFn) {
           focusPhoneFn();
