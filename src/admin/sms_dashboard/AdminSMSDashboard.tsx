@@ -31,6 +31,7 @@ import {
 } from '../../shared/lib/networkResponseUtils';
 import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
+import { PartialStats, PartialStatsItem, parsePartialStats } from '../lib/PartialStats';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 24 },
@@ -40,41 +41,6 @@ const flowChartSettings: FlowChartProps = {
   arrowBlockGapPx: { type: 'react-rerender', props: { head: 4, tail: 4 } },
   arrowHeadLengthPx: { type: 'react-rerender', props: 8 },
   arrowHeadAngleDeg: { type: 'react-rerender', props: 30 },
-};
-
-type PartialStatsItem = {
-  key: string;
-  label: string;
-  data: number;
-  breakdown?: Record<string, number>;
-};
-
-const parsePartialStatsItems = (raw: any): PartialStatsItem[] => {
-  const result: PartialStatsItem[] = [];
-  for (let [key, value] of Object.entries(raw)) {
-    if (key.endsWith('_breakdown')) {
-      continue;
-    }
-    result.push({
-      key,
-      label: fromSnakeToTitleCase(key),
-      data: value as number,
-      breakdown: raw[`${key}_breakdown`],
-    });
-  }
-  return result;
-};
-
-type PartialStats = {
-  today: PartialStatsItem[];
-  yesterday: PartialStatsItem[];
-};
-
-const parsePartialStats = (raw: any): PartialStats => {
-  return {
-    today: parsePartialStatsItems(raw.today),
-    yesterday: parsePartialStatsItems(raw.yesterday),
-  };
 };
 
 /**
@@ -605,6 +571,10 @@ export const AdminSMSDashboard = (): ReactElement => {
                     This will try to reuse the same connection to avoid excessive TLS handshakes,
                     though it may not be possible when weaving requests.
                   </p>
+                  <div className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                    If the send job is due while a previous run is still in progress, it will be
+                    skipped.
+                  </div>
                 </div>
                 <div className={styles.blockStatistic}>
                   <BlockStatisticTitleRow
@@ -1577,7 +1547,12 @@ const parseChart = (data: any): AdminDashboardLargeChartProps => {
   };
 };
 
-const ReceiveWebhookBlockStatistics = ({
+/**
+ * Displays block statistics for a webhook endpoint, for which the backend
+ * stores statistics for today and yesterday. The exact keys stored are not
+ * important for this component as they are pulled dynamically.
+ */
+export const ReceiveWebhookBlockStatistics = ({
   webhookStats,
 }: {
   webhookStats: NetworkResponse<PartialStats>;

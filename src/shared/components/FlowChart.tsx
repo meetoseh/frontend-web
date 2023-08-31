@@ -274,15 +274,141 @@ export const FlowChart = ({
         );
       };
 
-      let lastRow: Box[] | null = null;
+      let lastRow: { idx: number; ele: HTMLDivElement; bb: Box }[] | null = null;
       let spaceRemainingInRow = target.containerWidth;
 
+      const finishRowUsingSpecialCases = (): boolean => {
+        if (
+          lastRow !== null &&
+          currentRow.length === 1 &&
+          currentRow[0].width <= lastRow[lastRow.length - 1].bb.width
+        ) {
+          // See if we can squish this item into the previous row in the suprisingly
+          // common case where the previous row has a tall item but the last item isn't
+          // tall. It'd be better to solve the more advanced problem of vertically
+          // stacking more generally, but this is a good enough solution for now.
+
+          const tallestItemInLastRow = lastRow.reduce(
+            (acc, cur) => Math.max(acc, cur.bb.height),
+            0
+          );
+          const heightLastItemInLastRow = lastRow[lastRow.length - 1].bb.height;
+          const heightCurrentItem = currentRow[0].height;
+          const heightUsedIfSquished = heightLastItemInLastRow + target.rowGap + heightCurrentItem;
+          if (heightUsedIfSquished <= tallestItemInLastRow) {
+            const lastRowMinY = lastRow.reduce((acc, cur) => Math.min(acc, cur.bb.y), Infinity);
+            const lastRowCenterY = lastRowMinY + tallestItemInLastRow / 2;
+            const lastRowLastColCenterX =
+              lastRow[lastRow.length - 1].bb.x + lastRow[lastRow.length - 1].bb.width / 2;
+
+            const lastRowLastItemNewY = lastRowCenterY - heightUsedIfSquished / 2;
+            const lastRowLastItemEndY = lastRowLastItemNewY + heightLastItemInLastRow;
+            const verticalArrowY = lastRowLastItemEndY + target.arrowBlockGapPx.tail;
+            const verticalArrowEndY =
+              lastRowLastItemEndY + target.rowGap - target.arrowBlockGapPx.head;
+            const newItemY = lastRowLastItemEndY + target.rowGap;
+            const newItemX = lastRowLastColCenterX - currentRow[0].width / 2;
+
+            lastRow[lastRow.length - 1].ele.style.top = `${lastRowLastItemNewY}px`;
+
+            // We're going to redo the connection from the second-to-last item in the
+            // previous row to the last item in the previous row
+            const lastRowSecondFromLastItem = lastRow[lastRow.length - 2];
+            const lastRowSecondFromLastItemEndX =
+              lastRowSecondFromLastItem.bb.x + lastRowSecondFromLastItem.bb.width;
+            const lastRowLastItemNewCenterY = lastRowLastItemNewY + heightLastItemInLastRow / 2;
+            newArrows.pop();
+            newArrows.push(
+              <div
+                key={newArrows.length}
+                className={styles.arrow}
+                style={{
+                  left: `${lastRowSecondFromLastItemEndX + target.arrowBlockGapPx.tail}px`,
+                  top: `${lastRowSecondFromLastItem.bb.y}px`,
+                  width: `${
+                    target.columnGap - target.arrowBlockGapPx.tail - target.arrowBlockGapPx.head
+                  }px`,
+                  height: `${lastRowSecondFromLastItem.bb.height}px`,
+                }}>
+                <HorizontalDisjointArrow
+                  startY={lastRowSecondFromLastItem.bb.height / 2}
+                  endY={lastRowLastItemNewCenterY - lastRowSecondFromLastItem.bb.y}
+                  width={
+                    target.columnGap - target.arrowBlockGapPx.tail - target.arrowBlockGapPx.head
+                  }
+                  height={lastRowSecondFromLastItem.bb.height}
+                  verticalLineX={
+                    (target.columnGap - target.arrowBlockGapPx.tail - target.arrowBlockGapPx.head) /
+                    2
+                  }
+                  color={target.color}
+                  thickness={target.lineThickness}
+                  headLength={target.arrowHeadLengthPx}
+                  headAngle={target.arrowHeadAngleDeg}
+                />
+              </div>
+            );
+
+            // and now we connect the new item to the previous row
+            lastRow.push({
+              idx: currentRow[0].idx,
+              ele: currentRow[0].ele,
+              bb: {
+                x: newItemX,
+                y: newItemY,
+                width: currentRow[0].width,
+                height: currentRow[0].height,
+              },
+            });
+            const newArrowSize = calculateSimpleVerticalArrowSvgSize({
+              height: verticalArrowEndY - verticalArrowY,
+              thickness: target.lineThickness,
+              headLength: target.arrowHeadLengthPx,
+              headAngle: target.arrowHeadAngleDeg,
+            });
+            newArrows.push(
+              <div
+                key={newArrows.length}
+                className={styles.arrow}
+                style={{
+                  left: `${lastRowLastColCenterX - newArrowSize.width / 2}px`,
+                  top: `${verticalArrowY}px`,
+                  width: `${newArrowSize.width}px`,
+                  height: `${newArrowSize.height}px`,
+                }}>
+                <SimpleVerticalArrow
+                  height={verticalArrowEndY - verticalArrowY}
+                  thickness={target.lineThickness}
+                  headLength={target.arrowHeadLengthPx}
+                  headAngle={target.arrowHeadAngleDeg}
+                  color={target.color}
+                />
+              </div>
+            );
+
+            currentRow[0].ele.style.left = `${newItemX}px`;
+            currentRow[0].ele.style.top = `${newItemY}px`;
+
+            currentRow = [];
+            return true;
+          }
+        }
+        return false;
+      };
+
       const finishRow = () => {
+        if (finishRowUsingSpecialCases()) {
+          return;
+        }
+
         const row = positionAndConnectHorizontallyCurrentRow();
         if (lastRow !== null) {
-          connectRowsVertically(lastRow, row);
+          connectRowsVertically(
+            lastRow.map((i) => i.bb),
+            row
+          );
         }
-        lastRow = row;
+        lastRow = currentRow.map((i, idx) => ({ idx: i.idx, ele: i.ele, bb: row[idx] }));
         y = row.reduce((acc, cur) => Math.max(acc, cur.y + cur.height), 0) + target.rowGap;
         currentRow = [];
         spaceRemainingInRow = target.containerWidth;
@@ -538,7 +664,7 @@ type SimpleHorizontalArrowProps = {
   headAngle: number;
 };
 
-const calculateSimpleArrowSvgSize = ({
+const calculateSimpleHorizontalArrowSvgSize = ({
   width,
   thickness,
   headLength,
@@ -607,7 +733,7 @@ const SimpleHorizontalArrow = ({
     x: Math.cos((Math.PI * headAngle) / 180) * headLength,
     y: Math.sin((Math.PI * headAngle) / 180) * headLength,
   };
-  const size = calculateSimpleArrowSvgSize({ width, thickness, headLength, headAngle });
+  const size = calculateSimpleHorizontalArrowSvgSize({ width, thickness, headLength, headAngle });
   const lineCenterY = size.height / 2;
 
   return (
@@ -636,6 +762,77 @@ const SimpleHorizontalArrow = ({
             lineCenterY,
             size.width - thickness / 2 - headEndOffset.x,
             lineCenterY + headEndOffset.y,
+          ])
+        }
+        strokeWidth={thickness}
+        strokeLinecap="round"
+        strokeMiterlimit={10}
+        stroke={colorToCSS(color)}
+      />
+    </svg>
+  );
+};
+
+type SimpleVerticalArrowProps = {
+  height: number;
+  color: [number, number, number, number];
+  thickness: number;
+  headLength: number;
+  headAngle: number;
+};
+
+const calculateSimpleVerticalArrowSvgSize = ({
+  height,
+  thickness,
+  headLength,
+  headAngle,
+}: Omit<SimpleVerticalArrowProps, 'color'>) => {
+  return {
+    width: (Math.sin((Math.PI * headAngle) / 180) * headLength + thickness / 2) * 2,
+    height,
+  };
+};
+
+const SimpleVerticalArrow = ({
+  height,
+  color,
+  thickness,
+  headLength,
+  headAngle,
+}: SimpleVerticalArrowProps): ReactElement => {
+  const headEndOffset = {
+    x: Math.sin((Math.PI * headAngle) / 180) * headLength,
+    y: Math.cos((Math.PI * headAngle) / 180) * headLength,
+  };
+  const size = calculateSimpleVerticalArrowSvgSize({ height, thickness, headLength, headAngle });
+  const lineCenterX = size.width / 2;
+
+  return (
+    <svg
+      width={size.width}
+      height={size.height}
+      viewBox={`0 0 ${size.width} ${size.height}`}
+      xmlns="http://www.w3.org/2000/svg">
+      <path
+        d={
+          makeSimplePath({
+            x1: lineCenterX,
+            y1: thickness / 2,
+            x2: lineCenterX,
+            y2: size.height - thickness / 2,
+          }) +
+          // Can join these two line paths to get a filled arrow head
+          makeLinePath([
+            lineCenterX - headEndOffset.x,
+            size.height - thickness / 2 - headEndOffset.y,
+            lineCenterX,
+            size.height - thickness / 2,
+          ]) +
+          makeLinePath([
+            lineCenterX,
+            size.height - thickness / 2,
+            lineCenterX + headEndOffset.x,
+            size.height - thickness / 2 - headEndOffset.y,
           ])
         }
         strokeWidth={thickness}
@@ -717,6 +914,83 @@ const VerticalDisjointArrow = ({
             y1: height - thickness / 2 - arrowEndOffset.y,
             x2: endX,
             y2: height - thickness / 2,
+          })
+        }
+        strokeWidth={thickness}
+        strokeLinecap="round"
+        strokeMiterlimit={10}
+        stroke={colorToCSS(color)}
+      />
+    </svg>
+  );
+};
+
+type HorizontalDisjointArrowProps = {
+  startY: number;
+  endY: number;
+  width: number;
+  /* in theory, calculated. in practice, may exceed the real height */
+  height: number;
+  verticalLineX: number;
+  color: [number, number, number, number];
+  thickness: number;
+  headLength: number;
+  headAngle: number;
+};
+
+const HorizontalDisjointArrow = ({
+  startY,
+  endY,
+  width,
+  height,
+  verticalLineX,
+  color,
+  thickness,
+  headLength,
+  headAngle,
+}: HorizontalDisjointArrowProps): ReactElement => {
+  const headEndOffset = {
+    x: Math.cos((Math.PI * headAngle) / 180) * headLength,
+    y: Math.sin((Math.PI * headAngle) / 180) * headLength,
+  };
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      xmlns="http://www.w3.org/2000/svg">
+      <path
+        d={
+          makeSimplePath({
+            x1: thickness / 2,
+            y1: startY,
+            x2: verticalLineX,
+            y2: startY,
+          }) +
+          makeSimplePath({
+            x1: verticalLineX,
+            y1: startY,
+            x2: verticalLineX,
+            y2: endY,
+          }) +
+          makeSimplePath({
+            x1: verticalLineX,
+            y1: endY,
+            x2: width - thickness / 2,
+            y2: endY,
+          }) +
+          makeSimplePath({
+            x1: width - thickness / 2 - headEndOffset.x,
+            y1: endY - headEndOffset.y,
+            x2: width - thickness / 2,
+            y2: endY,
+          }) +
+          makeSimplePath({
+            x1: width - thickness / 2 - headEndOffset.x,
+            y1: endY + headEndOffset.y,
+            x2: width - thickness / 2,
+            y2: endY,
           })
         }
         strokeWidth={thickness}
