@@ -49,6 +49,22 @@ export function formatNetworkValue<T>(
 }
 
 /**
+ * Formats a string received from the network as a fragment containing
+ * that string
+ *
+ * @param str The string to format
+ * @param opts Options to customize the formatting
+ * @returns The formatted string
+ * @see formatNetworkValue
+ */
+export function formatNetworkString(
+  str: string | null | undefined,
+  opts?: NetworkResponseFormatOptions
+): ReactElement {
+  return formatNetworkValue(str, (s) => <>{s}</>, opts);
+}
+
+/**
  * Formats the given number retrieved from the network. See `formatNetworkValue`
  *
  * @param num The number to format

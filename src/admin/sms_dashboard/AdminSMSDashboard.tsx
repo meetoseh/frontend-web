@@ -1,11 +1,9 @@
-import { Fragment, ReactElement, useCallback, useContext, useMemo } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import styles from '../notifs_dashboard/AdminNotifsDashboard.module.css';
 import customStyles from './AdminSMSDashboard.module.css';
 import {
   BlockStatisticTitleRow,
   SectionDescription,
-  SectionGraphs,
-  SectionStatsMultiday,
 } from '../notifs_dashboard/AdminNotifsDashboard';
 import { FlowChart, FlowChartProps } from '../../shared/components/FlowChart';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
@@ -15,23 +13,17 @@ import { combineClasses } from '../../shared/lib/combineClasses';
 import { Button } from '../../shared/forms/Button';
 import { setVWC } from '../../shared/lib/setVWC';
 import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
-import {
-  AdminDashboardLargeChartItem,
-  AdminDashboardLargeChartProps,
-} from '../dashboard/AdminDashboardLargeChart';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import {
-  formatNetworkDashboard,
   formatNetworkDate,
   formatNetworkDuration,
-  formatNetworkError,
   formatNetworkNumber,
   formatNetworkValue,
 } from '../../shared/lib/networkResponseUtils';
-import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
-import { PartialStats, PartialStatsItem, parsePartialStats } from '../lib/PartialStats';
+import { PartialStats, parsePartialStats } from '../lib/PartialStats';
+import { NetworkChart, PartialStatsDisplay } from '../lib/NetworkChart';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 24 },
@@ -144,51 +136,6 @@ export const AdminSMSDashboard = (): ReactElement => {
         oldestDueAt: data.oldest_due_at === null ? null : new Date(data.oldest_due_at * 1000),
         numOverdue: data.num_overdue,
       };
-    }, [loginContext])
-  );
-
-  const smsSendStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
-  const smsSendStats = useNetworkResponse<AdminDashboardLargeChartProps>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
-      const response = await apiFetch(
-        '/api/1/admin/sms/daily_sms_sends',
-        { method: 'GET' },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return parseChart(data);
-    }, [loginContext]),
-    {
-      loadPrevented: smsSendStatsLoadPrevented,
-    }
-  );
-  const partialSMSSendStats = useNetworkResponse<PartialStats>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
-      const response = await apiFetch(
-        '/api/1/admin/sms/partial_sms_send_stats',
-        { method: 'GET' },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return parsePartialStats(data);
     }, [loginContext])
   );
 
@@ -390,102 +337,6 @@ export const AdminSMSDashboard = (): ReactElement => {
         purgatorySize: data.purgatory_size,
       };
     }, [loginContext])
-  );
-
-  const eventStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
-  const eventStats = useNetworkResponse<AdminDashboardLargeChartProps>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
-      const response = await apiFetch(
-        '/api/1/admin/sms/daily_sms_events',
-        { method: 'GET' },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return parseChart(data);
-    }, [loginContext]),
-    {
-      loadPrevented: eventStatsLoadPrevented,
-    }
-  );
-  const partialEventStats = useNetworkResponse<PartialStats>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
-      const response = await apiFetch(
-        '/api/1/admin/sms/partial_sms_event_stats',
-        { method: 'GET' },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return parsePartialStats(data);
-    }, [loginContext]),
-    {
-      loadPrevented: eventStatsLoadPrevented,
-    }
-  );
-
-  const smsPollingStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
-  const smsPollingStats = useNetworkResponse<AdminDashboardLargeChartProps>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
-      const response = await apiFetch(
-        '/api/1/admin/sms/daily_sms_polling',
-        { method: 'GET' },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return parseChart(data);
-    }, [loginContext]),
-    {
-      loadPrevented: smsPollingStatsLoadPrevented,
-    }
-  );
-  const partialSMSPollingStats = useNetworkResponse<PartialStats>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
-      const response = await apiFetch(
-        '/api/1/admin/sms/partial_sms_polling_stats',
-        { method: 'GET' },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return parsePartialStats(data);
-    }, [loginContext]),
-    {
-      loadPrevented: smsPollingStatsLoadPrevented,
-    }
   );
 
   return (
@@ -761,37 +612,10 @@ export const AdminSMSDashboard = (): ReactElement => {
               </div>
             </FlowChart>
           </div>
-          <div className={styles.sectionGraphsAndTodaysStats}>
-            <SectionGraphs>
-              <RenderGuardedComponent props={smsSendStats.error} component={formatNetworkError} />
-              <RenderGuardedComponent
-                props={smsSendStats.result}
-                component={(v) =>
-                  formatNetworkDashboard(v ?? undefined, {
-                    onVisible: () => setVWC(smsSendStatsLoadPrevented, false),
-                  })
-                }
-              />
-            </SectionGraphs>
-            <SectionStatsMultiday
-              refresh={partialSMSSendStats.refresh}
-              days={useMemo(
-                () => [
-                  {
-                    name: 'Yesterday',
-                    content: (
-                      <PartialStatsDisplay value={partialSMSSendStats} keyName="yesterday" />
-                    ),
-                  },
-                  {
-                    name: 'Today',
-                    content: <PartialStatsDisplay value={partialSMSSendStats} keyName="today" />,
-                  },
-                ],
-                [partialSMSSendStats]
-              )}
-            />
-          </div>
+          <NetworkChart
+            partialDataPath="/api/1/admin/sms/partial_sms_send_stats"
+            historicalDataPath="/api/1/admin/sms/daily_sms_sends"
+          />
         </div>
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Receipts (Webhook Flow)</div>
@@ -1151,35 +975,10 @@ export const AdminSMSDashboard = (): ReactElement => {
               </div>
             </FlowChart>
           </div>
-          <div className={styles.sectionGraphsAndTodaysStats}>
-            <SectionGraphs>
-              <RenderGuardedComponent props={eventStats.error} component={formatNetworkError} />
-              <RenderGuardedComponent
-                props={eventStats.result}
-                component={(v) =>
-                  formatNetworkDashboard(v ?? undefined, {
-                    onVisible: () => setVWC(eventStatsLoadPrevented, false),
-                  })
-                }
-              />
-            </SectionGraphs>
-            <SectionStatsMultiday
-              refresh={partialEventStats.refresh}
-              days={useMemo(
-                () => [
-                  {
-                    name: 'Yesterday',
-                    content: <PartialStatsDisplay value={partialEventStats} keyName="yesterday" />,
-                  },
-                  {
-                    name: 'Today',
-                    content: <PartialStatsDisplay value={partialEventStats} keyName="today" />,
-                  },
-                ],
-                [partialEventStats]
-              )}
-            />
-          </div>
+          <NetworkChart
+            partialDataPath="/api/1/admin/sms/partial_sms_event_stats"
+            historicalDataPath="/api/1/admin/sms/daily_sms_events"
+          />
         </div>
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Receipts (Poll Flow)</div>
@@ -1396,155 +1195,14 @@ export const AdminSMSDashboard = (): ReactElement => {
               </div>
             </FlowChart>
           </div>
-          <div className={styles.sectionGraphsAndTodaysStats}>
-            <SectionGraphs>
-              <RenderGuardedComponent
-                props={smsPollingStats.error}
-                component={formatNetworkError}
-              />
-              <RenderGuardedComponent
-                props={smsPollingStats.result}
-                component={(v) =>
-                  formatNetworkDashboard(v ?? undefined, {
-                    onVisible: () => setVWC(smsPollingStatsLoadPrevented, false),
-                  })
-                }
-              />
-            </SectionGraphs>
-            <SectionStatsMultiday
-              refresh={partialSMSPollingStats.refresh}
-              days={useMemo(
-                () => [
-                  {
-                    name: 'Yesterday',
-                    content: (
-                      <PartialStatsDisplay value={partialSMSPollingStats} keyName="yesterday" />
-                    ),
-                  },
-                  {
-                    name: 'Today',
-                    content: <PartialStatsDisplay value={partialSMSPollingStats} keyName="today" />,
-                  },
-                ],
-                [partialSMSPollingStats]
-              )}
-            />
-          </div>
+          <NetworkChart
+            partialDataPath="/api/1/admin/sms/partial_sms_polling_stats"
+            historicalDataPath="/api/1/admin/sms/daily_sms_polling"
+          />
         </div>
       </div>
     </div>
   );
-};
-
-/*
- * Convenience function to convert from snake_case to Title Case
- */
-const fromSnakeToTitleCase = (snake: string): string => {
-  return snake
-    .split('_')
-    .map((word) => word[0].toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
-const PartialStatsDisplay = ({
-  value,
-  keyName,
-}: {
-  value: NetworkResponse<PartialStats>;
-  keyName: 'yesterday' | 'today';
-}): ReactElement => {
-  const unwrapped = useUnwrappedValueWithCallbacks(value.result);
-  if (unwrapped === null) {
-    return <div style={{ minHeight: '500px', minWidth: 'min(440px, 80vw)' }}></div>;
-  }
-  const sortedKeys = unwrapped[keyName].map((item) => item.key).sort();
-  const itemsByKey = unwrapped[keyName].reduce((acc, item) => {
-    acc[item.key] = item;
-    return acc;
-  }, {} as Record<string, PartialStatsItem>);
-
-  return (
-    <>
-      {sortedKeys.map((key) => {
-        const item = itemsByKey[key];
-        return (
-          <Fragment key={key}>
-            <div className={styles.sectionStatsTodayItem}>
-              <div className={styles.sectionStatsTodayItemTitle}>{itemsByKey[key].label}</div>
-              <div className={styles.sectionStatsTodayItemValue}>{item.data.toLocaleString()}</div>
-              <RenderGuardedComponent props={value.error} component={formatNetworkError} />
-            </div>
-            {item.breakdown !== undefined && Object.keys(item.breakdown).length > 0 && (
-              <div className={styles.sectionStatsTodayItemBreakdown}>
-                <TogglableSmoothExpandable>
-                  {Object.entries(item.breakdown).map(([breakdownKey, breakdownValue]) => (
-                    <div key={breakdownKey} className={styles.sectionStatsTodayItem}>
-                      <div className={styles.sectionStatsTodayItemTitle}>{breakdownKey}</div>
-                      <div className={styles.sectionStatsTodayItemValue}>
-                        {breakdownValue.toLocaleString()}
-                      </div>
-                    </div>
-                  ))}
-                </TogglableSmoothExpandable>
-              </div>
-            )}
-          </Fragment>
-        );
-      })}
-    </>
-  );
-};
-
-const parseChart = (data: any): AdminDashboardLargeChartProps => {
-  const labels: string[] = data.labels;
-  const datasets: {
-    key: string;
-    label: string;
-    data: number[];
-    breakdown?: Record<string, number[]>;
-  }[] = [];
-  for (const [key, value] of Object.entries(data)) {
-    if (key === 'labels') {
-      continue;
-    }
-
-    if (key.endsWith('_breakdown')) {
-      continue;
-    }
-
-    datasets.push({
-      key,
-      label: fromSnakeToTitleCase(key),
-      data: value as number[],
-      breakdown: data[`${key}_breakdown`],
-    });
-  }
-
-  const dailyCharts: AdminDashboardLargeChartItem[] = [];
-  for (const dataset of datasets) {
-    dailyCharts.push({
-      identifier: dataset.key,
-      name: dataset.label,
-      labels,
-      values: dataset.data,
-    });
-
-    if (dataset.breakdown !== undefined) {
-      for (const [key, value] of Object.entries(dataset.breakdown)) {
-        dailyCharts.push({
-          identifier: `${dataset.key}-${key}`,
-          name: `${dataset.label} (${key})`,
-          labels,
-          values: value,
-        });
-      }
-    }
-  }
-
-  return {
-    dailyCharts,
-    monthlyCharts: [],
-  };
 };
 
 /**

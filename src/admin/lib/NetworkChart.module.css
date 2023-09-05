@@ -1,0 +1,94 @@
+.sectionGraphsAndTodaysStats {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: flex-start;
+  align-self: center;
+  margin: 0 -24px -24px 0;
+}
+
+.sectionGraphsAndTodaysStats > * {
+  margin: 0 24px 24px 0;
+}
+
+.sectionStatsToday {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  background: white;
+  box-shadow: 0px 15px 50px rgba(160, 163, 189, 0.1);
+  border-radius: 10px;
+}
+
+.sectionStatsTodayTitleAndControls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 10px 20px;
+}
+
+.sectionStatsTodayTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  color: #160808;
+  font-weight: 700;
+}
+
+.sectionStatsTodayItem {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  width: 100%;
+}
+
+.sectionStatsTodayItem:not(:first-child) {
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.sectionStatsTodayItemTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 20px;
+  line-height: 26px;
+  color: rgba(22, 8, 8, 0.75);
+  margin-right: 0.25em;
+}
+
+.sectionStatsTodayItemTitle::after {
+  content: ':';
+}
+
+.sectionStatsTodayItemBreakdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  align-self: stretch;
+  padding: 5px 0 10px 20px;
+}
+
+.sectionStatsTodayNote {
+  max-width: min(320px, 60ch);
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  color: rgba(0, 0, 0, 0.7);
+  font-weight: 400;
+  margin-top: 4px;
+  letter-spacing: 0.25px;
+  padding: 10px 20px;
+
+  display: flex;
+  flex-flow: row nowrap;
+}
+
+.sectionStatsTodayNote::before {
+  content: '*';
+  margin-right: 0.25em;
+}

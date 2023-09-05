@@ -1,0 +1,57 @@
+.blockStatistic {
+  margin: 10px -20px 0 -20px;
+  width: calc(100% + 40px);
+  padding: 10px 20px 0 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.blockStatisticTitleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.blockStatisticTitleAndValue {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.blockStatisticTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 20px;
+  line-height: 26px;
+  color: rgba(22, 8, 8, 0.75);
+  margin-right: 0.25em;
+}
+
+.blockStatisticTitle::after {
+  content: ':';
+}
+
+.blockStatisticValue {
+  display: inline-block;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 16px;
+  line-height: 24px;
+  color: black;
+}
+
+.blockStatisticInfo {
+  font-size: 16px;
+  line-height: 24px;
+  color: rgba(22, 8, 8, 0.75);
+  font-weight: 400;
+}
+
+.blockStatisticInfo ul {
+  padding-left: 1.25em;
+}
+
+.iconRefresh {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/refresh.svg');
+}

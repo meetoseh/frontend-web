@@ -1,17 +1,22 @@
-import { ReactElement, useMemo } from 'react';
+import { ReactElement, useCallback, useContext, useMemo } from 'react';
 import styles from '../notifs_dashboard/AdminNotifsDashboard.module.css';
-import {
-  NotImplementedBlockStatisticTitleRow,
-  SectionDescription,
-  SectionGraphs,
-} from '../notifs_dashboard/AdminNotifsDashboard';
+import { SectionDescription } from '../notifs_dashboard/AdminNotifsDashboard';
 import { FlowChart, FlowChartProps } from '../../shared/components/FlowChart';
-import { AdminDashboardLargeChartPlaceholder } from '../dashboard/AdminDashboardLargeChartPlaceholder';
 import { combineClasses } from '../../shared/lib/combineClasses';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
 import { ReceiveWebhookBlockStatistics } from '../sms_dashboard/AdminSMSDashboard';
-import { createWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { PartialStats, parsePartialStats } from '../lib/PartialStats';
+import { NetworkChart } from '../lib/NetworkChart';
+import { NetworkBlockStats } from '../lib/NetworkBlockStats';
+import {
+  formatNetworkDate,
+  formatNetworkDuration,
+  formatNetworkNumber,
+  formatNetworkString,
+} from '../../shared/lib/networkResponseUtils';
+import { LoginContext } from '../../shared/contexts/LoginContext';
+import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
+import { apiFetch } from '../../shared/ApiConstants';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 48 },
@@ -28,41 +33,28 @@ const flowChartSettings: FlowChartProps = {
  * health our email system.
  */
 export const AdminEmailDashboard = (): ReactElement => {
-  const webhookStats = useMemo(() => {
-    const result = createWritableValueWithCallbacks<PartialStats>(
-      parsePartialStats({
-        today: {
-          received: 0,
-          verified: 0,
-          accepted: 0,
-          unprocessable: 0,
-          signature_missing: 0,
-          signature_invalid: 0,
-          body_read_error: 0,
-          body_max_size_exceeded_error: 0,
-          body_parse_error: 0,
-        },
-        yesterday: {
-          received: 1,
-          verified: 0,
-          accepted: 1,
-          unprocessable: 0,
-          signature_missing: 0,
-          signature_invalid: 0,
-          body_read_error: 0,
-          body_max_size_exceeded_error: 0,
-          body_parse_error: 0,
-        },
-      })
-    );
-    const error = createWritableValueWithCallbacks<ReactElement | null>(null);
+  const loginContext = useContext(LoginContext);
 
-    return {
-      result,
-      error,
-      refresh: () => Promise.resolve(),
-    };
-  }, []);
+  const webhookStats = useNetworkResponse<PartialStats>(
+    useCallback(async () => {
+      if (loginContext.state !== 'logged-in') {
+        return null;
+      }
+
+      const response = await apiFetch(
+        '/api/1/admin/email/partial_email_webhook_stats',
+        { method: 'GET' },
+        loginContext
+      );
+
+      if (!response.ok) {
+        throw response;
+      }
+
+      const data = await response.json();
+      return parsePartialStats(data);
+    }, [loginContext])
+  );
 
   return (
     <div className={styles.container}>
@@ -209,12 +201,20 @@ export const AdminEmailDashboard = (): ReactElement => {
                   success job, failure job, etc) and push it to the right of the redis list we refer
                   to as the "To Send" queue as a json, utf-8 encoded string.
                 </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In To Send</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Oldest Item</>} />
-                </div>
+                <NetworkBlockStats
+                  path="/api/1/admin/email/send_queue_info"
+                  items={useMemo(
+                    () => [
+                      { key: 'length', format: formatNetworkNumber },
+                      {
+                        key: 'oldest_last_queued_at',
+                        name: 'Oldest Item',
+                        format: formatNetworkDate,
+                      },
+                    ],
+                    []
+                  )}
+                />
               </div>
               <div className={styles.block} style={{ maxWidth: '600px' }}>
                 <div className={styles.blockTitle}>Send Job</div>
@@ -242,59 +242,66 @@ export const AdminEmailDashboard = (): ReactElement => {
                     skipped.
                   </div>
                 </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In Purgatory</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Started At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Finished At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Running Time</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Attempted</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Templated</>} />
-                  <TogglableSmoothExpandable>
-                    <div className={styles.blockStatisticInfo}>
-                      Of the messages attempted, how many were we able to convert into the final
-                      formats (HTML and plaintext) using the template and template parameters via
-                      the email-templates server.
-                    </div>
-                  </TogglableSmoothExpandable>
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Accepted</>} />
-                  <TogglableSmoothExpandable>
-                    <div className={styles.blockStatisticInfo}>
-                      Of the messages templated, how many did Amazon SES accept and return a
-                      MessageId that could be added to the Receipt Pending Set. This does not
-                      necessarily mean that the message delivery was or will be attempted, nor that
-                      message was delivered.
-                    </div>
-                  </TogglableSmoothExpandable>
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Failed Permanently</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Failed Transiently</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Stop Reason</>} />
-                </div>
+                <NetworkBlockStats
+                  path="/api/1/admin/email/last_send_job"
+                  items={useMemo(
+                    () => [
+                      { key: 'started_at', format: formatNetworkDate },
+                      { key: 'finished_at', format: formatNetworkDate },
+                      { key: 'running_time', format: formatNetworkDuration },
+                      { key: 'attempted', format: formatNetworkNumber },
+                      {
+                        key: 'templated',
+                        format: formatNetworkNumber,
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of the messages attempted, how many were we able to convert into the
+                              final formats (HTML and plaintext) using the template and template
+                              parameters via the email-templates server.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                      },
+                      {
+                        key: 'accepted',
+                        format: formatNetworkNumber,
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of the messages templated, how many did Amazon SES accept and return a
+                              MessageId that could be added to the Receipt Pending Set. This does
+                              not necessarily mean that the message delivery was or will be
+                              attempted, nor that message was delivered.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                      },
+                      { key: 'failed_permanently', format: formatNetworkNumber },
+                      { key: 'failed_transiently', format: formatNetworkNumber },
+                      { key: 'stop_reason', format: formatNetworkString },
+                      { key: 'in_purgatory', format: formatNetworkNumber },
+                    ],
+                    []
+                  )}
+                  specialStatusCodes={useMemo(
+                    () => ({
+                      404: () => (
+                        <div className={combineClasses(styles.blockNote, styles.blockNoteWarning)}>
+                          No send job has been run yet
+                        </div>
+                      ),
+                    }),
+                    []
+                  )}
+                />
               </div>
             </FlowChart>
           </div>
-          <div className={styles.sectionGraphsAndTodaysStats}>
-            <SectionGraphs>
-              <AdminDashboardLargeChartPlaceholder placeholderText="Queued, attempted, templated, accepted, failures by type, all by day" />
-            </SectionGraphs>
-          </div>
+          <NetworkChart
+            partialDataPath="/api/1/admin/email/partial_email_send_stats"
+            historicalDataPath="/api/1/admin/email/daily_email_send"
+          />
         </div>
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Message Receipts</div>
@@ -367,6 +374,16 @@ export const AdminEmailDashboard = (): ReactElement => {
                     only notable datapoint (how many successful webhooks were received) can be
                     understood from the reconciliation stats (the graph in this section).
                   </p>
+                  <div className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                    When Amazon SES receives a soft bounce it may attempt to re-deliver the email
+                    for some period of time. In that case, we will only receive the webhook after
+                    Amazon SES has exhausted its retry policy. This means we{' '}
+                    <a href="https://www.ietf.org/rfc/rfc2119.txt" rel="noreferrer">
+                      SHOULD NOT
+                    </a>{' '}
+                    retry the bounced email, though for soft bounces we could choose to continue
+                    trying to send that user emails in the future.
+                  </div>
                 </div>
                 <ReceiveWebhookBlockStatistics webhookStats={webhookStats} />
               </div>
@@ -374,7 +391,7 @@ export const AdminEmailDashboard = (): ReactElement => {
                 <div className={styles.blockTitle}>Append to Event Queue</div>
                 <div className={styles.blockDescription}>
                   When we receive verifiable information about an email from Amazon SES (via SNS),
-                  it&rsquo;s appending to the redis list we call the event queue prior to further
+                  it&rsquo;s appended to the redis list we call the event queue prior to further
                   processing. This is primarily to shift the processing load from web workers to the
                   job workers. The main information available is:
                   <ul>
@@ -384,12 +401,20 @@ export const AdminEmailDashboard = (): ReactElement => {
                     <li>When the event was received (primarily for logging)</li>
                   </ul>
                 </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In Event Queue</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Oldest Item</>} />
-                </div>
+                <NetworkBlockStats
+                  path="/api/1/admin/email/event_queue_info"
+                  items={useMemo(
+                    () => [
+                      { key: 'length', format: formatNetworkNumber },
+                      {
+                        key: 'oldest_last_queued_at',
+                        name: 'Oldest Item',
+                        format: formatNetworkDate,
+                      },
+                    ],
+                    []
+                  )}
+                />
               </div>
               <div className={styles.block} style={{ maxWidth: '600px' }}>
                 <div className={styles.blockTitle}>Receipt Reconciliation Job</div>
@@ -417,42 +442,124 @@ export const AdminEmailDashboard = (): ReactElement => {
                     job.
                   </p>
                 </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># In Purgatory</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Started At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Finished At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Running Time</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Attempted</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Success and Found</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Success but Abandoned</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Bounce and Found</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Bounce but Abandoned</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Complaint and Found</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Complaint and Abandoned</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Stop Reason</>} />
-                </div>
+                <NetworkBlockStats
+                  path="/api/1/admin/email/last_reconciliation_job"
+                  items={useMemo(
+                    () => [
+                      { key: 'started_at', format: formatNetworkDate },
+                      { key: 'finished_at', format: formatNetworkDate },
+                      { key: 'running_time', format: formatNetworkDuration },
+                      { key: 'attempted', format: formatNetworkNumber },
+                      {
+                        key: 'succeeded_and_found',
+                        format: formatNetworkNumber,
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of the events attempted, many were delivery receipts for emails in the
+                              receipt pending set.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                      },
+                      {
+                        key: 'succeeded_but_abandoned',
+                        format: formatNetworkNumber,
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              <p>
+                                Of the events attempted, many were delivery receipts for emails not
+                                in the receipt pending set. This is a surprising negative scenario,
+                                as it implies we ran the wrong callback (we ran the failure callback
+                                already). This may lead to incorrectly suppressed emails.
+                              </p>
+                              <p>
+                                The most likely cause of this would be a transient bounce followed
+                                by Amazon's retry strategy eventually working, but after an extreme
+                                delay. This scenario would imply our timeout is too short. The main
+                                downside to increasing our timeout is increased memory usage for
+                                missed notifications, so we have a pretty generous timeout already.
+                              </p>
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                      },
+                      {
+                        key: 'bounced_and_found',
+                        format: formatNetworkNumber,
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of the events attempted, many were bounce notifications for emails in
+                              the receipt pending set.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                      },
+                      {
+                        key: 'bounced_but_abandoned',
+                        format: formatNetworkNumber,
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of the events attempted, many were bounce notifications for emails not
+                              in the receipt pending set. This is a surprising scenario, but
+                              unlikely to cause any issues.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                      },
+                      {
+                        key: 'complaint_and_found',
+                        name: 'Complained And Found',
+                        format: formatNetworkNumber,
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of the events attempted, many were complaint notifications for emails
+                              in the receipt pending set. This is somewhat surprising but positively
+                              so; normally we would have received a delivery notification before a
+                              complaint (otherwise how would they have complained?). Most likely
+                              this is due to automated filtering, e.g., a spam filter or the user is
+                              on our account suppression list.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                      },
+                      {
+                        key: 'complaint_and_abandoned',
+                        name: 'Complained And Abandoned',
+                        format: formatNetworkNumber,
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of the events attempted, many were complaint notifications for emails
+                              not in the receipt pending set. This is an expected scenario; we ran
+                              the success callback when the delivery receipt occurred, and then the
+                              user complained arbitrarily long thereafter. We use Amazon's report of
+                              the recipient email associated to the message id for complaint emails
+                              anyway, rather than relying on the receipt pending set.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                      },
+                      { key: 'stop_reason', format: formatNetworkString },
+                      { key: 'in_purgatory', format: formatNetworkNumber },
+                    ],
+                    []
+                  )}
+                  specialStatusCodes={useMemo(
+                    () => ({
+                      404: () => (
+                        <div className={combineClasses(styles.blockNote, styles.blockNoteWarning)}>
+                          No reconciliation job has been run yet
+                        </div>
+                      ),
+                    }),
+                    []
+                  )}
+                />
               </div>
             </FlowChart>
             <FlowChart {...flowChartSettings}>
@@ -461,34 +568,41 @@ export const AdminEmailDashboard = (): ReactElement => {
                 <div className={styles.blockDescription}>
                   <p>
                     About once per minute, we pull old (&gt;24 hours) messages off the Receipt
-                    Pending Set, which is in redis, trigger their failure job, and delete them.
-                    Complaint notifications can be received after an arbitrary delay, so instead of
-                    using the failure job we use a generic handler.
+                    Pending Set, which is in redis, trigger their failure job, and delete them. This
+                    should only happen in practice if we missed a notification from Amazon SES,
+                    since this is plenty of time for an automatic retry policy on soft bounces.
                   </p>
                 </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Started At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Finished At</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Running Time</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<># Abandoned</>} />
-                </div>
-                <div className={styles.blockStatistic}>
-                  <NotImplementedBlockStatisticTitleRow title={<>Stop Reason</>} />
-                </div>
+                <NetworkBlockStats
+                  path="/api/1/admin/email/last_stale_receipt_detection_job"
+                  items={useMemo(
+                    () => [
+                      { key: 'started_at', format: formatNetworkDate },
+                      { key: 'finished_at', format: formatNetworkDate },
+                      { key: 'running_time', format: formatNetworkDuration },
+                      { key: 'abandoned', format: formatNetworkNumber },
+                      { key: 'stop_reason', format: formatNetworkString },
+                    ],
+                    []
+                  )}
+                  specialStatusCodes={useMemo(
+                    () => ({
+                      404: () => (
+                        <div className={combineClasses(styles.blockNote, styles.blockNoteWarning)}>
+                          No stale receipt detection job has been run yet
+                        </div>
+                      ),
+                    }),
+                    []
+                  )}
+                />
               </div>
             </FlowChart>
           </div>
-          <div className={styles.sectionGraphsAndTodaysStats}>
-            <SectionGraphs>
-              <AdminDashboardLargeChartPlaceholder placeholderText="Received, attempted, notifications by type & found/abandoned, all by day" />
-            </SectionGraphs>
-          </div>
+          <NetworkChart
+            partialDataPath="/api/1/admin/email/partial_email_event_stats"
+            historicalDataPath="/api/1/admin/email/daily_email_events"
+          />
         </div>
       </div>
     </div>

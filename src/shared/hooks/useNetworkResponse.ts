@@ -1,9 +1,9 @@
-import { ReactElement, useCallback, useMemo } from 'react';
+import { ReactElement, useCallback, useEffect, useMemo } from 'react';
 import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
-import { useSingletonEffect } from '../lib/useSingletonEffect';
 import { setVWC } from '../lib/setVWC';
 import { describeError } from '../forms/ErrorBlock';
 import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
+import { useSingletonEffect } from '../lib/useSingletonEffect';
 
 export type NetworkResponse<T> = {
   /**
@@ -67,6 +67,7 @@ export const useNetworkResponse = <T>(
   useSingletonEffect(
     (onDone) => {
       if (loadPrevented.get()) {
+        onDone();
         return;
       }
 
@@ -119,15 +120,21 @@ export const useNetworkResponse = <T>(
     }
   }, [result, error, fetcher, minRefreshTimeMS, loadPrevented]);
 
-  useValueWithCallbacksEffect(loadPrevented, (value) => {
-    if (value) {
-      setVWC(result, null);
-      setVWC(error, null);
-    } else {
-      refresh();
-    }
-    return undefined;
-  });
+  useValueWithCallbacksEffect(
+    loadPrevented,
+    useCallback(
+      (value) => {
+        if (value) {
+          setVWC(result, null);
+          setVWC(error, null);
+        } else {
+          refresh();
+        }
+        return undefined;
+      },
+      [result, error, refresh]
+    )
+  );
 
   return useMemo(() => ({ result, error, refresh }), [result, error, refresh]);
 };
