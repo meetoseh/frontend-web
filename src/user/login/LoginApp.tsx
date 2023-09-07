@@ -3,17 +3,25 @@ import '../../assets/fonts.css';
 import styles from './LoginApp.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { SplashScreen } from '../splash/SplashScreen';
-import { HTTP_API_URL } from '../../shared/ApiConstants';
+import { HTTP_API_URL, apiFetch } from '../../shared/ApiConstants';
 import { useWindowSizeValueWithCallbacks } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { InterestsContext } from '../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
-import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
+import {
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../shared/lib/Callbacks';
 import { setVWC } from '../../shared/lib/setVWC';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
-import { ModalContext } from '../../shared/contexts/ModalContext';
+import { ModalContext, addModalWithCallbackToRemove } from '../../shared/contexts/ModalContext';
 import { describeError } from '../../shared/forms/ErrorBlock';
+import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
+import { Button } from '../../shared/forms/Button';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { TextInput } from '../../shared/forms/TextInput';
+import { IconButton } from '../../shared/forms/IconButton';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -285,23 +293,282 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
 
 /**
  * Shows all the social signins in the standard way. Requires a dark
- * background.
+ * background, modal context, and an interests context
  */
 export const SocialSignins = ({ urls }: { urls: SocialUrls }): ReactElement => {
+  const interests = useContext(InterestsContext);
+  const modalContext = useContext(ModalContext);
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
+
+  const screen = useWritableValueWithCallbacks<'home' | 'alt-select' | 'facebook' | 'email'>(
+    () => 'home'
+  );
+  const email = useWritableValueWithCallbacks<string>(() => '');
+
+  const storeAction = useCallback(
+    (visitorUid: string, action: string, email?: string): Promise<Response> =>
+      apiFetch(
+        '/api/1/campaigns/login_test/store_action',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            Visitor: visitorUid,
+          },
+          body: JSON.stringify({
+            action,
+            email,
+          }),
+          keepalive: true,
+        },
+        null
+      ),
+    []
+  );
+
+  const tryStoreAction = useCallback(
+    (action: string, email?: string) => {
+      if (
+        interests.state === 'loading' ||
+        interests.visitor.loading ||
+        interests.visitor.uid === null
+      ) {
+        console.log('interests not ready:', interests);
+        return;
+      }
+
+      return storeAction(interests.visitor.uid, action, email).catch(() => {});
+    },
+    [interests, storeAction]
+  );
+
+  useEffect(() => {
+    tryStoreAction('home');
+  }, [tryStoreAction]);
+
+  const onContinueWithGoogleLinkClick = useCallback(() => {
+    tryStoreAction('continue_with_google');
+  }, [tryStoreAction]);
+
+  const onContinueWithAppleLinkClick = useCallback(() => {
+    tryStoreAction('continue_with_apple');
+  }, [tryStoreAction]);
+
+  const onContinueAnotherWay = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      setVWC(screen, 'alt-select');
+      tryStoreAction('continue_another_way');
+    },
+    [screen, tryStoreAction]
+  );
+
+  const onContinueWithFacebook = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      setVWC(screen, 'facebook');
+      tryStoreAction('continue_with_facebook');
+    },
+    [screen, tryStoreAction]
+  );
+
+  const onContinueWithEmail = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      setVWC(screen, 'email');
+      tryStoreAction('continue_with_email');
+    },
+    [screen, tryStoreAction]
+  );
+
+  const onBack = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      setVWC(screen, 'home');
+      tryStoreAction('home');
+    },
+    [screen, tryStoreAction]
+  );
+
+  useValueWithCallbacksEffect(screen, (curr) => {
+    if (curr !== 'email' && curr !== 'facebook') {
+      return undefined;
+    }
+
+    const saving = createWritableValueWithCallbacks(false);
+    const success = createWritableValueWithCallbacks(false);
+    const containerRef = createWritableValueWithCallbacks<HTMLDivElement | null>(null);
+    const inputProps = createWritableValueWithCallbacks<{
+      value: string;
+      saving: boolean;
+      done: boolean;
+    }>({
+      value: email.get(),
+      saving: false,
+      done: false,
+    });
+
+    email.callbacks.add(updateInputProps);
+    saving.callbacks.add(updateInputProps);
+    success.callbacks.add(updateInputProps);
+    windowSizeVWC.callbacks.add(updateContainerStyle);
+    containerRef.callbacks.add(updateContainerStyle);
+
+    const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+
+      if (success.get()) {
+        setVWC(screen, 'home');
+        tryStoreAction('home');
+        return;
+      }
+
+      setVWC(saving, true);
+      await Promise.all([
+        tryStoreAction(curr === 'email' ? 'email_capture_email' : 'email_capture_fb', email.get()),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ]);
+      setVWC(success, true);
+      setVWC(saving, false);
+    };
+
+    const modalCleanup = addModalWithCallbackToRemove(
+      modalContext.modals,
+      <div className={styles.signinModal} ref={(r) => setVWC(containerRef, r)}>
+        <div className={styles.closeButtonContainer}>
+          <div className={styles.closeButtonInnerContainer}>
+            <IconButton icon={styles.closeIcon} srOnlyName="Close" onClick={onBack} />
+          </div>
+        </div>
+        <div className={styles.signinModalInner}>
+          <div className={styles.signinModalTitle}>
+            Please leave your email and we&rsquo;ll let you know when login via{' '}
+            {curr === 'email' ? 'email' : 'Facebook'} is available
+          </div>
+
+          <form className={styles.signinModalForm} onSubmit={onSubmit}>
+            <RenderGuardedComponent
+              props={inputProps}
+              component={(props) => (
+                <TextInput
+                  label="Email Address"
+                  value={props.value}
+                  help="We will not share your email with anyone else"
+                  disabled={props.saving || props.done}
+                  inputStyle={props.done ? 'success-white' : 'white'}
+                  onChange={(value) => setVWC(email, value)}
+                  html5Validation={{ required: true }}
+                />
+              )}
+            />
+
+            <RenderGuardedComponent
+              props={saving}
+              component={(disabled) => (
+                <Button
+                  type="submit"
+                  variant="filled-white"
+                  fullWidth
+                  disabled={disabled}
+                  spinner={disabled}>
+                  <RenderGuardedComponent
+                    props={success}
+                    component={(success) => (success ? <>Back</> : <>Submit</>)}
+                  />
+                </Button>
+              )}
+            />
+          </form>
+        </div>
+      </div>
+    );
+
+    return () => {
+      email.callbacks.remove(updateInputProps);
+      windowSizeVWC.callbacks.remove(updateContainerStyle);
+      modalCleanup();
+    };
+
+    function updateInputProps() {
+      inputProps.set({ value: email.get(), saving: saving.get(), done: success.get() });
+      inputProps.callbacks.call(undefined);
+    }
+
+    function updateContainerStyle() {
+      const ele = containerRef.get();
+      if (ele === null) {
+        return;
+      }
+
+      ele.style.height = `${windowSizeVWC.get().height}px`;
+    }
+  });
+
   return (
     <div className={styles.signinsContainer}>
-      <div className={styles.signInWithGoogleContainer}>
-        <a className={styles.signInWithGoogle} href={urls.google}>
-          <span className={styles.signInWithGoogleIcon}></span>
-          <span className={styles.signInWithGoogleText}>Continue with Google</span>
-        </a>
-      </div>
-      <div className={styles.signInWithAppleContainer}>
-        <a className={styles.signInWithApple} href={urls.apple}>
-          <span className={styles.signInWithAppleIcon}></span>
-          <span className={styles.signInWithAppleText}>Continue with Apple</span>
-        </a>
-      </div>
+      <RenderGuardedComponent
+        props={useMappedValueWithCallbacks(screen, (screen) => screen === 'home')}
+        component={(isHome) =>
+          isHome ? (
+            <>
+              <Button
+                type="button"
+                variant="filled-white"
+                onClick={urls.google}
+                onLinkClick={onContinueWithGoogleLinkClick}>
+                <div className={styles.iconAndText}>
+                  <span className={styles.signInWithGoogleIcon}></span>
+                  <span>Continue with Google</span>
+                </div>
+              </Button>
+              <Button
+                type="button"
+                variant="filled-white"
+                onClick={urls.apple}
+                onLinkClick={onContinueWithAppleLinkClick}>
+                <div className={styles.iconAndText}>
+                  <span className={styles.signInWithAppleIcon}></span>
+                  <span>Continue with Apple</span>
+                </div>
+              </Button>
+              <div className={styles.signInWithOtherContainer}>
+                <Button
+                  type="button"
+                  variant="outlined-white"
+                  fullWidth
+                  onClick={onContinueAnotherWay}>
+                  Continue another way
+                </Button>
+              </div>
+            </>
+          ) : (
+            <></>
+          )
+        }
+      />
+      <RenderGuardedComponent
+        props={useMappedValueWithCallbacks(screen, (screen) => screen === 'alt-select')}
+        component={(isAltSelect) =>
+          isAltSelect ? (
+            <>
+              <Button type="button" variant="filled-white" onClick={onContinueWithFacebook}>
+                <div className={styles.iconAndText}>
+                  <span className={styles.signInWithFacebookIcon}></span>
+                  <span>Continue with Facebook</span>
+                </div>
+              </Button>
+              <Button type="button" variant="filled-white" onClick={onContinueWithEmail}>
+                Continue with Email
+              </Button>
+              <Button type="button" variant="outlined-white" onClick={onBack}>
+                Back
+              </Button>
+            </>
+          ) : (
+            <></>
+          )
+        }
+      />
     </div>
   );
 };

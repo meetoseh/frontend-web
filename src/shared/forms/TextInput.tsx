@@ -26,7 +26,7 @@ type TextInputProps = {
   /**
    * Ignored when disabled - configures the style of the input
    */
-  inputStyle: 'white' | 'normal' | 'error' | 'error-white';
+  inputStyle: 'white' | 'normal' | 'error' | 'error-white' | 'success-white';
 
   /**
    * Called when the value of the input changes

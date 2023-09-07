@@ -74,6 +74,16 @@
   border-color: white;
 }
 
+.success-white .input {
+  color: #c8e6c9;
+  border-color: #c8e6c9;
+}
+
+.success-white .label,
+.success-white .help {
+  color: #c8e6c9;
+}
+
 .error .label,
 .error .help,
 .error-white .label,
@@ -90,12 +100,12 @@
   opacity: 38%;
 }
 
-.disabled .label,
-.disabled .help {
+.disabled:not(.white):not(.error-white):not(.success-white) .label,
+.disabled:not(.white):not(.error-white):not(.success-white) .help {
   color: #3f484a;
 }
 
-.disabled .input {
+.disabled:not(.white):not(.error-white):not(.success-white) .input {
   color: #3f484a;
   border-color: #3f484a;
 }
