@@ -9,7 +9,7 @@ import { PartialStats, parsePartialStats } from '../lib/PartialStats';
 import { NetworkChart } from '../lib/NetworkChart';
 import { NetworkBlockStats } from '../lib/NetworkBlockStats';
 import {
-  formatNetworkDate,
+  formatNetworkUnixTimestamp,
   formatNetworkDuration,
   formatNetworkNumber,
   formatNetworkString,
@@ -184,6 +184,7 @@ export const AdminEmailDashboard = (): ReactElement => {
                   point, we have:
                   <ul>
                     <li>The recipient&rsquo;s email address</li>
+                    <li>The subject line</li>
                     <li>The template slug</li>
                     <li>The template parameters</li>
                   </ul>
@@ -209,7 +210,7 @@ export const AdminEmailDashboard = (): ReactElement => {
                       {
                         key: 'oldest_last_queued_at',
                         name: 'Oldest Item',
-                        format: formatNetworkDate,
+                        format: formatNetworkUnixTimestamp,
                       },
                     ],
                     []
@@ -246,8 +247,8 @@ export const AdminEmailDashboard = (): ReactElement => {
                   path="/api/1/admin/email/last_send_job"
                   items={useMemo(
                     () => [
-                      { key: 'started_at', format: formatNetworkDate },
-                      { key: 'finished_at', format: formatNetworkDate },
+                      { key: 'started_at', format: formatNetworkUnixTimestamp },
+                      { key: 'finished_at', format: formatNetworkUnixTimestamp },
                       { key: 'running_time', format: formatNetworkDuration },
                       { key: 'attempted', format: formatNetworkNumber },
                       {
@@ -409,7 +410,7 @@ export const AdminEmailDashboard = (): ReactElement => {
                       {
                         key: 'oldest_last_queued_at',
                         name: 'Oldest Item',
-                        format: formatNetworkDate,
+                        format: formatNetworkUnixTimestamp,
                       },
                     ],
                     []
@@ -433,21 +434,31 @@ export const AdminEmailDashboard = (): ReactElement => {
                       If the notification is not delivery and the message is in the Receipt Pending
                       Set, the failure job is queued
                     </li>
+                    <li>
+                      If the notification is not delivery and the message is not in the Receipt
+                      Pending Set, the generic complaint job is queued
+                    </li>
                     <li>If the message is in the Receipt Pending Set, it is removed</li>
-                    <li>If the notification is Complaint, the generic complaint job is queued</li>
                   </ul>
                   <p>
                     This uses a purgatory list for the currently processing event, though it should
                     only have 0 or 1 items in it at a time as we do not currently parallelize this
                     job.
                   </p>
+                  <div className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                    Because we do not receive the message id until after SES creates it, it&rsquo;s
+                    possible that we receive the webhook indicating an email was delivered before
+                    we&rsquo;ve had a chance to insert the message into the receipt pending set. To
+                    mitigate this, the receipt reconciliation job only considers events at least a
+                    few seconds old.
+                  </div>
                 </div>
                 <NetworkBlockStats
                   path="/api/1/admin/email/last_reconciliation_job"
                   items={useMemo(
                     () => [
-                      { key: 'started_at', format: formatNetworkDate },
-                      { key: 'finished_at', format: formatNetworkDate },
+                      { key: 'started_at', format: formatNetworkUnixTimestamp },
+                      { key: 'finished_at', format: formatNetworkUnixTimestamp },
                       { key: 'running_time', format: formatNetworkDuration },
                       { key: 'attempted', format: formatNetworkNumber },
                       {
@@ -577,8 +588,8 @@ export const AdminEmailDashboard = (): ReactElement => {
                   path="/api/1/admin/email/last_stale_receipt_detection_job"
                   items={useMemo(
                     () => [
-                      { key: 'started_at', format: formatNetworkDate },
-                      { key: 'finished_at', format: formatNetworkDate },
+                      { key: 'started_at', format: formatNetworkUnixTimestamp },
+                      { key: 'finished_at', format: formatNetworkUnixTimestamp },
                       { key: 'running_time', format: formatNetworkDuration },
                       { key: 'abandoned', format: formatNetworkNumber },
                       { key: 'stop_reason', format: formatNetworkString },

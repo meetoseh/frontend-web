@@ -75,6 +75,7 @@ export const formatNetworkNumber = (
   num: number | null | undefined,
   opts?: NetworkResponseFormatOptions
 ): ReactElement => formatNetworkValue(num, (n) => <>{n.toLocaleString()}</>);
+
 /**
  * Formats the given date retrieved from the network. See `formatNetworkValue`
  *
@@ -86,6 +87,19 @@ export const formatNetworkDate = (
   date: Date | null | undefined,
   opts?: NetworkResponseFormatOptions
 ): ReactElement => formatNetworkValue(date, (d) => <>{d.toLocaleString()}</>);
+
+/**
+ * Formats a unix timestamp retrieved from the network as a date. See
+ * `formatNetworkValue`
+ *
+ * @param timestamp The timestamp to format
+ * @param opts Options to customize the formatting
+ * @returns The formatted timestamp
+ */
+export const formatNetworkUnixTimestamp = (
+  timestamp: number | null | undefined,
+  opts?: NetworkResponseFormatOptions
+): ReactElement => formatNetworkDate(timestamp ? new Date(timestamp * 1000) : null, opts);
 
 /**
  * Formats the given duration in seconds in a human readable way. Typically
