@@ -88,6 +88,12 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/email_dashboard"
             active={currentPath === '/admin/email_dashboard'}
           />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconTouch}
+            text="Touch"
+            url="/admin/touch_dashboard"
+            active={currentPath === '/admin/touch_dashboard'}
+          />
         </div>
         <div className={styles.userCardContainer}>
           <MyProfilePicture imageHandler={imageHandler} />

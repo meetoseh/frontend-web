@@ -58,6 +58,11 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/email.svg');
 }
+
+.iconTouch {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/touch.svg');
+}
 /* #endregion */
 
 .outerContainer {

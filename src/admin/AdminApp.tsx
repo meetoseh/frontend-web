@@ -25,6 +25,7 @@ import { useFonts } from '../shared/lib/useFonts';
 import { SplashScreen } from '../user/splash/SplashScreen';
 import { AdminSMSDashboard } from './sms_dashboard/AdminSMSDashboard';
 import { AdminEmailDashboard } from './email_dashboard/AdminEmailDashboard';
+import { AdminTouchDashboard } from './touch_dashboard/AdminTouchDashboard';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -40,6 +41,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="notifs_dashboard" element={<AdminNotifsDashboard />} />
       <Route path="sms_dashboard" element={<AdminSMSDashboard />} />
       <Route path="email_dashboard" element={<AdminEmailDashboard />} />
+      <Route path="touch_dashboard" element={<AdminTouchDashboard />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />
