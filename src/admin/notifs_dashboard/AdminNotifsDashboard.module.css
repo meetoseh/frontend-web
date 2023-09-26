@@ -103,7 +103,8 @@
   margin-top: 1em;
 }
 
-.blockDescription ul {
+.blockDescription ul,
+.blockDescription ol {
   margin-left: 1.5em;
   margin-top: 0.5em;
   margin-bottom: 0.5em;
@@ -111,6 +112,14 @@
 
 .blockDescription li {
   margin-bottom: 0.25em;
+}
+
+.blockDescription li > p {
+  padding: 0.5em;
+}
+
+.blockDescription:not(:last-child) {
+  padding-bottom: 8px;
 }
 
 .blockNote {
@@ -127,6 +136,11 @@
 
 .blockNoteInfo {
   background: rgba(30, 146, 244, 0.2);
+  color: black;
+}
+
+.blockNoteRelated {
+  background: rgba(188, 158, 130, 0.2);
   color: black;
 }
 

@@ -101,6 +101,23 @@ export const formatNetworkUnixTimestamp = (
   opts?: NetworkResponseFormatOptions
 ): ReactElement => formatNetworkDate(timestamp ? new Date(timestamp * 1000) : null, opts);
 
+export const formatNetworkUnixDate = (
+  unixDate: number | null | undefined,
+  opts?: NetworkResponseFormatOptions
+): ReactElement => {
+  if (unixDate === null || unixDate === undefined) {
+    return formatNetworkValue(unixDate, () => <></>);
+  }
+
+  const midnightUTC = unixDate * 86400;
+  const dateInUTC = new Date(midnightUTC * 1000);
+  const year = dateInUTC.getUTCFullYear();
+  const month = dateInUTC.getUTCMonth();
+  const day = dateInUTC.getUTCDate();
+
+  return formatNetworkString(new Date(year, month, day).toLocaleDateString());
+};
+
 /**
  * Formats the given duration in seconds in a human readable way. Typically
  * accessed via formatNetworkDuration.

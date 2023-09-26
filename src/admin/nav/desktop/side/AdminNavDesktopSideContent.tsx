@@ -94,6 +94,12 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/touch_dashboard"
             active={currentPath === '/admin/touch_dashboard'}
           />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconReminders}
+            text="Reminders"
+            url="/admin/daily_reminders_dashboard"
+            active={currentPath === '/admin/touch_dashboard'}
+          />
         </div>
         <div className={styles.userCardContainer}>
           <MyProfilePicture imageHandler={imageHandler} />

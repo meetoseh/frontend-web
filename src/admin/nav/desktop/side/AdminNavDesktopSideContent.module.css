@@ -63,6 +63,11 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/touch.svg');
 }
+
+.iconReminders {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/reminders.svg');
+}
 /* #endregion */
 
 .outerContainer {

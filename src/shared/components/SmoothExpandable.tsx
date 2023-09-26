@@ -19,20 +19,20 @@ type SmoothExpandableProps = {
 
 const renderHeight = (div: HTMLDivElement, heightPercent: number, defaultHeight: number) => {
   if (heightPercent <= 0 || defaultHeight === 0) {
-    div.style.removeProperty('overflow-y');
+    div.style.removeProperty('overflow');
     div.style.removeProperty('height');
     div.style.display = 'none';
     return;
   }
 
   if (heightPercent >= 100) {
-    div.style.removeProperty('overflow-y');
+    div.style.removeProperty('overflow');
     div.style.removeProperty('height');
     div.style.removeProperty('display');
     return;
   }
 
-  div.style.overflowY = 'hidden';
+  div.style.overflow = 'hidden';
   div.style.height = `${defaultHeight * (heightPercent / 100.0)}px`;
   div.style.removeProperty('display');
 };
