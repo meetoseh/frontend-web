@@ -13,8 +13,14 @@ import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValu
 import { FavoritesFeature } from '../features/favorites/FavoritesFeature';
 import { IsaiahCourseFeature } from '../features/isaiahCourse/IsaiahCourseFeature';
 import { SettingsFeature } from '../features/settings/SettingsFeature';
+import { TouchLinkFeature } from '../features/touchLink/TouchLinkFeature';
+import { LoginFeature } from '../features/login/LoginFeature';
+import { FastUnsubscribeFeature } from '../features/fastUnsubscribe/FastUnsubscribeFeature';
 
 const features = [
+  TouchLinkFeature,
+  FastUnsubscribeFeature,
+  LoginFeature,
   RequestNameFeature,
   SignupRewardFeature,
   RequestPhoneFeature,

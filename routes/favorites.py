@@ -21,7 +21,7 @@ async def get_favorites():
         raw_response = await create_journey_public_link_response(
             meta={
                 "og:title": "Oseh: Favorites",
-                "description": "View your history and your favorite classes on Oseh",
+                "og:description": "View your history and your favorite classes on Oseh",
             },
             title="Oseh: Favorites",
         )

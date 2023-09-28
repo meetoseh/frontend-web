@@ -27,6 +27,11 @@
             "comment": "Matches api endpoints"
           },
           {
+            "/": "/l/*",
+            "exclude": true,
+            "comment": "Matches notification links from email/sms"
+          },
+          {
             "comment": "Matches any URL and instructs the system to open it as a universal link."
           }
         ]

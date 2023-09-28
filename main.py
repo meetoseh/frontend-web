@@ -15,6 +15,7 @@ from error_middleware import handle_request_error
 import routes.journey_public_links
 import routes.favorites
 import routes.authorize
+import routes.user_touch_links
 import asyncio
 import requests
 
@@ -40,6 +41,7 @@ if os.environ.get("ENVIRONMENT") == "dev":
 app.include_router(routes.journey_public_links.router)
 app.include_router(routes.favorites.router)
 app.include_router(routes.authorize.router)
+app.include_router(routes.user_touch_links.router)
 app.router.redirect_slashes = False
 
 

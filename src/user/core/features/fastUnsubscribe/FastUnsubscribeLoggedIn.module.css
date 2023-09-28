@@ -1,0 +1,125 @@
+.container {
+  display: grid;
+}
+
+.background {
+  grid-area: 1 / 1 / 1 / 1;
+  background: linear-gradient(0deg, #010101 0%, #273136 37%, #2d2e2e 100%);
+}
+
+.contentContainer {
+  grid-area: 1 / 1 / 1 / 1;
+}
+
+.closeButtonContainer {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.closeIcon {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('../../../../assets/close-white.svg');
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  padding: 40px 24px;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.subtitle {
+  display: flex;
+  flex-direction: column;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0.15px;
+  color: #f9f9f9;
+  margin-bottom: 8px;
+  text-align: start;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  color: #f9f9f9;
+  margin-bottom: 20px;
+  text-align: start;
+  width: 100%;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #ccc;
+}
+
+.section {
+  margin-bottom: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid #3f484a;
+}
+
+.sectionTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 32px;
+  color: #f9f9f9;
+  margin-bottom: 20px;
+  text-align: start;
+}
+
+.sectionEmpty {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  color: #f9f9f9;
+  margin-bottom: 20px;
+  text-align: start;
+}
+
+.item {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itemIdentifier {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  color: #f9f9f9;
+}
+
+.itemIdentifier small {
+  font-size: 12px;
+  letter-spacing: 0.15px;
+}
+
+.item:not(:last-child) {
+  margin-bottom: 20px;
+}
+
+.settingsHelp {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0.15px;
+  color: #f9f9f9;
+  text-align: center;
+  margin-top: 16px;
+}

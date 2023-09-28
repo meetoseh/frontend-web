@@ -98,7 +98,7 @@ export const AdminNavDesktopSideContent = ({
             iconClass={styles.iconReminders}
             text="Reminders"
             url="/admin/daily_reminders_dashboard"
-            active={currentPath === '/admin/touch_dashboard'}
+            active={currentPath === '/admin/daily_reminders_dashboard'}
           />
         </div>
         <div className={styles.userCardContainer}>

@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useRef } from 'react';
 import '../../assets/fonts.css';
 import styles from './LoginApp.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
@@ -10,6 +10,7 @@ import { InterestsContext } from '../../shared/contexts/InterestsContext';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import {
+  ValueWithCallbacks,
   createWritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../shared/lib/Callbacks';
@@ -22,6 +23,8 @@ import { Button } from '../../shared/forms/Button';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { TextInput } from '../../shared/forms/TextInput';
 import { IconButton } from '../../shared/forms/IconButton';
+import { useReactManagedValueAsValueWithCallbacks } from '../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
+import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -42,7 +45,7 @@ export type SocialUrls = { google: string; apple: string };
 /**
  * Gets the url for the given social login provider.
  */
-export const getProviderUrl = async (provider: string): Promise<string | null> => {
+export const getProviderUrl = async (provider: string): Promise<string> => {
   if (isDevelopment && provider !== 'Direct') {
     return '/dev_login';
   }
@@ -65,69 +68,89 @@ export const getProviderUrl = async (provider: string): Promise<string | null> =
 };
 
 /**
+ * Gets the urls for each of the social login providers.
+ *
+ * Always returns null if load is set to false. If load is undefined or
+ * true, it will return null until the urls are loaded.
+ *
+ * @param load True if the urls should be loaded, false if they should
+ *   not be
+ * @returns [urls, error] the urls for each of the social login providers,
+ *   or null if they are not loaded yet. The error contains a react element
+ *   that should be used to display that there was an error loading the urls
+ *   and thus we can't let them signin right now, if such an error occurred,
+ *   or null if there was no error.
+ */
+export const useProviderUrlsValueWithCallbacks = (
+  load: ValueWithCallbacks<boolean>
+): [ValueWithCallbacks<SocialUrls | null>, ValueWithCallbacks<ReactElement | null>] => {
+  const urls = useWritableValueWithCallbacks<SocialUrls | null>(() => null);
+  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+
+  useValueWithCallbacksEffect(
+    load,
+    useCallback(
+      (load) => {
+        let running = true;
+        getUrls();
+        return () => {
+          running = false;
+        };
+
+        async function getUrlsInner() {
+          if (load === false) {
+            setVWC(urls, null);
+            return;
+          }
+
+          const [google, apple] = await Promise.all([
+            getProviderUrl('Google'),
+            getProviderUrl('SignInWithApple'),
+          ]);
+
+          if (!running) {
+            return;
+          }
+
+          setVWC(urls, { google, apple });
+        }
+
+        async function getUrls() {
+          try {
+            await getUrlsInner();
+          } catch (e) {
+            const err = await describeError(e);
+            if (!running) {
+              return;
+            }
+            console.warn('error loading sign-in urls:', e);
+            setVWC(error, err);
+          }
+        }
+      },
+      [urls, error]
+    )
+  );
+
+  return [urls, error];
+};
+
+/**
  * Gets the urls for each of the social login providers, in a hook-like
  * fashion. This is the primary business logic of the login app, and can
  * be used for custom login screens (like course activation) as well.
  *
  * Always returns null if load is set to false. If load is undefined or
  * true, it will return null until the urls are loaded.
+ *
+ * @deprecated prefer useProviderUrlsValueWithCallbacks
  */
 export const useProviderUrls = (load?: boolean): SocialUrls | null => {
-  const [googleUrl, setGoogleUrl] = useState<string | null>(null);
-  const [appleUrl, setAppleUrl] = useState<string | null>(null);
-
-  const getProviderUrlWrapped = useCallback(
-    async (provider: string): Promise<string | null> => {
-      if (load === false) {
-        return null;
-      }
-
-      return getProviderUrl(provider);
-    },
-    [load]
+  const result = useProviderUrlsValueWithCallbacks(
+    useReactManagedValueAsValueWithCallbacks(load ?? true)
   );
 
-  useEffect(() => {
-    let active = true;
-    getGoogleUrl();
-    return () => {
-      active = false;
-    };
-
-    async function getGoogleUrl() {
-      const url = await getProviderUrlWrapped('Google');
-      if (!active) {
-        return;
-      }
-
-      setGoogleUrl(url);
-    }
-  }, [getProviderUrlWrapped]);
-
-  useEffect(() => {
-    let active = true;
-    getAppleUrl();
-    return () => {
-      active = false;
-    };
-
-    async function getAppleUrl() {
-      const url = await getProviderUrlWrapped('SignInWithApple');
-      if (!active) {
-        return;
-      }
-
-      setAppleUrl(url);
-    }
-  }, [getProviderUrlWrapped]);
-
-  return useMemo(() => {
-    if (googleUrl === null || appleUrl === null) {
-      return null;
-    }
-
-    return { google: googleUrl, apple: appleUrl };
-  }, [googleUrl, appleUrl]);
+  return useUnwrappedValueWithCallbacks(result[0]);
 };
 
 /**
@@ -149,9 +172,6 @@ export const useRedirectUrl = (redirectUrl: string | undefined) => {
  * This allows users to sign up or sign in via social logins. It does not
  * use the login context; it will redirect back to the home page with the
  * required tokens in the url fragment on success.
- *
- * This is an alternative to the hosted ui url which is used for more
- * styling at the cost of all non-social functionality.
  */
 export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactElement => {
   const interests = useContext(InterestsContext);
@@ -245,6 +265,7 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
               alt=""
               isPublic={true}
               handler={imageHandler}
+              placeholderColor={windowSize.width < 450 ? '#aaaaaa' : '#011419'}
             />
           )}
         />
@@ -295,7 +316,14 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
  * Shows all the social signins in the standard way. Requires a dark
  * background, modal context, and an interests context
  */
-export const SocialSignins = ({ urls }: { urls: SocialUrls }): ReactElement => {
+export const SocialSignins = ({
+  urls,
+  noTests,
+}: {
+  urls: SocialUrls;
+  /** This is not a standard login screen; login tests should not be presented */
+  noTests?: boolean;
+}): ReactElement => {
   const interests = useContext(InterestsContext);
   const modalContext = useContext(ModalContext);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
@@ -333,7 +361,6 @@ export const SocialSignins = ({ urls }: { urls: SocialUrls }): ReactElement => {
         interests.visitor.loading ||
         interests.visitor.uid === null
       ) {
-        console.log('interests not ready:', interests);
         return;
       }
 
@@ -531,15 +558,17 @@ export const SocialSignins = ({ urls }: { urls: SocialUrls }): ReactElement => {
                   <span>Continue with Apple</span>
                 </div>
               </Button>
-              <div className={styles.signInWithOtherContainer}>
-                <Button
-                  type="button"
-                  variant="outlined-white"
-                  fullWidth
-                  onClick={onContinueAnotherWay}>
-                  Continue another way
-                </Button>
-              </div>
+              {!noTests && (
+                <div className={styles.signInWithOtherContainer}>
+                  <Button
+                    type="button"
+                    variant="outlined-white"
+                    fullWidth
+                    onClick={onContinueAnotherWay}>
+                    Continue another way
+                  </Button>
+                </div>
+              )}
             </>
           ) : (
             <></>

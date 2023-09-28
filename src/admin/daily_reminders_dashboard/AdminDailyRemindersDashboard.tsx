@@ -215,7 +215,7 @@ export const AdminDailyRemindersDashboard = (): ReactElement => {
 
                                             return (
                                               <span className={styles.mono}>
-                                                {JSON.stringify(data)}
+                                                {JSON.stringify(data, null, 1)}
                                               </span>
                                             );
                                           })(info?.progressByDateAndTimezone[unixDate][timezone])}

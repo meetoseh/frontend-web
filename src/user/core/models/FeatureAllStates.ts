@@ -1,12 +1,15 @@
+import { FastUnsubscribeState } from '../features/fastUnsubscribe/FastUnsubscribeState';
 import { FavoritesState } from '../features/favorites/FavoritesState';
 import { GoalDaysPerWeekState } from '../features/goalDaysPerWeek/GoalDaysPerWeekState';
 import { IsaiahCourseState } from '../features/isaiahCourse/IsaiahCourseState';
+import { LoginState } from '../features/login/LoginState';
 import { PickEmotionJourneyState } from '../features/pickEmotionJourney/PickEmotionJourneyState';
 import { RequestNameState } from '../features/requestName/RequestNameState';
 import { RequestNotificationTimeState } from '../features/requestNotificationTime/RequestNotificationTimeState';
 import { RequestPhoneState } from '../features/requestPhone/RequestPhoneState';
 import { SettingsState } from '../features/settings/SettingsState';
 import { SignupRewardState } from '../features/signupReward/SignupRewardState';
+import { TouchLinkState } from '../features/touchLink/TouchLinkState';
 import { VipChatRequestState } from '../features/vipChatRequest/VipChatRequestState';
 
 export type FeatureAllStates = {
@@ -20,4 +23,7 @@ export type FeatureAllStates = {
   favorites: FavoritesState;
   isaiahCourse: IsaiahCourseState;
   settings: SettingsState;
+  touchLink: TouchLinkState;
+  login: LoginState;
+  fastUnsubscribe: FastUnsubscribeState;
 };

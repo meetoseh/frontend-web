@@ -1,7 +1,6 @@
-import { ReactElement, useContext, useEffect, useMemo } from 'react';
+import { ReactElement, useContext, useEffect } from 'react';
 import { LoginContext, LoginProvider } from '../shared/contexts/LoginContext';
 import { ModalProvider } from '../shared/contexts/ModalContext';
-import { LoginApp } from './login/LoginApp';
 import { SplashScreen } from './splash/SplashScreen';
 import '../assets/fonts.css';
 import styles from './UserApp.module.css';
@@ -14,8 +13,6 @@ import { RenderGuardedComponent } from '../shared/components/RenderGuardedCompon
 import { useWritableValueWithCallbacks } from '../shared/lib/Callbacks';
 import { setVWC } from '../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../shared/hooks/useMappedValuesWithCallbacks';
-import { getUTMFromURL } from '../shared/hooks/useVisitor';
-import { IsaiahCourseLoginScreen } from './core/features/isaiahCourse/IsaiahCourseLoginScreen';
 import { useValuesWithCallbacksEffect } from '../shared/hooks/useValuesWithCallbacksEffect';
 
 export default function UserApp(): ReactElement {
@@ -39,18 +36,16 @@ const requiredFonts = [
 ];
 
 /**
- * Originally, this would select what to do and pass functions around to
- * change the state. Now, this is essentially a thin wrapper around the
- * FeaturesRouter to add loading fonts, injecting a login screen, requesting
- * fullscreen, and showing a splash screen while loading
+ * Originally, this would select what to do and pass functions around to change
+ * the state. Now, this is essentially a thin wrapper around the FeaturesRouter
+ * to add loading fonts and showing a splash screen while loading
  */
 const UserAppInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const fontsLoaded = useFonts(requiredFonts);
   const features = useFeaturesState();
-  const utm = useMemo(() => getUTMFromURL(), []);
 
-  const stateVWC = useWritableValueWithCallbacks<'loading' | 'features' | 'login'>(() => 'loading');
+  const stateVWC = useWritableValueWithCallbacks<'loading' | 'features'>(() => 'loading');
   // Since on first load the user likely sees white anyway, it's better to leave
   // it white and then go straight to the content if we can do so rapidly, rather
   // than going white screen -> black screen (start of splash) -> content. Of course,
@@ -123,11 +118,6 @@ const UserAppInner = (): ReactElement => {
       return;
     }
 
-    if (loginContext.state === 'logged-out') {
-      setVWC(stateVWC, 'login');
-      return;
-    }
-
     if (features.get() === undefined) {
       setVWC(stateVWC, 'loading');
       return;
@@ -155,18 +145,6 @@ const UserAppInner = (): ReactElement => {
       <RenderGuardedComponent
         props={stateVWC}
         component={(state) => {
-          if (state === 'login') {
-            if (
-              utm !== null &&
-              utm.campaign === 'course' &&
-              (utm.content === 'affirmation-course' || utm.content === 'elevate-within')
-            ) {
-              return <IsaiahCourseLoginScreen />;
-            }
-
-            return <LoginApp />;
-          }
-
           if (state === 'features') {
             return <RenderGuardedComponent props={features} component={(f) => f ?? <></>} />;
           }

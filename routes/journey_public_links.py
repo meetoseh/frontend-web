@@ -1,6 +1,7 @@
 from typing import AsyncIterable, Dict, Optional, Union
 from fastapi import APIRouter
 from fastapi.responses import Response, StreamingResponse
+import requests
 from itgs import Itgs
 import aiofiles
 import io
@@ -9,10 +10,8 @@ import os
 
 router = APIRouter()
 
-
-base_index_html = (
-    "public/index.html" if os.environ["ENVIRONMENT"] == "dev" else "/var/www/index.html"
-)
+use_fetch_for_index_html = os.environ["ENVIRONMENT"] == "dev"
+base_index_html = "/var/www/index.html"
 
 
 @router.get("/jpl")
@@ -82,7 +81,7 @@ async def create_journey_public_link_response(
     tb = html5lib.treebuilders.getTreeBuilder("dom")
     parser = html5lib.HTMLParser(tb, strict=False, namespaceHTMLElements=False)
 
-    with open(base_index_html, "rb") as f:
+    with open_base_index_html() as f:
         dom = parser.parse(f)
 
     tokens = iter(html5lib.getTreeWalker("dom")(dom))
@@ -158,10 +157,34 @@ async def set_cached(itgs: Itgs, key: str, val: bytes) -> None:
 
 async def get_base_index_html() -> Response:
     """Returns the unmodified standard index.html"""
-    return StreamingResponse(
-        content=_yield_from_file(base_index_html),
+    if not use_fetch_for_index_html:
+        return StreamingResponse(
+            content=_yield_from_file(base_index_html),
+            status_code=200,
+            headers={
+                "Content-Type": "text/html",
+            },
+        )
+
+    raw_contents = io.BytesIO()
+    with open_base_index_html() as f:
+        while True:
+            chunk = f.read(8192)
+            if not chunk:
+                break
+            raw_contents.write(chunk)
+
+    return Response(
+        content=raw_contents.getvalue(),
         status_code=200,
-        headers={
-            "Content-Type": "text/html",
-        },
+        headers={"Content-Type": "text/html"},
     )
+
+
+def open_base_index_html() -> io.BufferedReader:
+    if not use_fetch_for_index_html:
+        return open(base_index_html, "rb")
+
+    nginx_url = os.environ["ROOT_NGINX_FRONTEND_URL"]
+    response = requests.get(nginx_url, verify=False)
+    return io.BytesIO(response.content)
