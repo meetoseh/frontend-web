@@ -1,4 +1,4 @@
-import { Fragment, ReactElement, useCallback, useContext, useMemo } from 'react';
+import { Fragment, ReactElement, useCallback, useContext } from 'react';
 import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import {
@@ -16,6 +16,7 @@ import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedV
 import styles from './NetworkChart.module.css';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
 import { fromSnakeToTitleCase } from './fromSnakeToTitleCase';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type NetworkChartProps = {
   /**
@@ -74,6 +75,32 @@ export const NetworkChart = ({ partialDataPath, historicalDataPath }: NetworkCha
     }, [loginContext, partialDataPath])
   );
 
+  const predictedDays = useWritableValueWithCallbacks<number>(() => 2);
+  useValueWithCallbacksEffect(
+    partialData.result,
+    useCallback(
+      (r) => {
+        if (r === null || r === undefined) {
+          return undefined;
+        }
+
+        if (r.twoDaysAgo !== undefined) {
+          setVWC(predictedDays, 3);
+          return undefined;
+        }
+
+        if (r.yesterday !== undefined) {
+          setVWC(predictedDays, 2);
+          return undefined;
+        }
+
+        setVWC(predictedDays, 1);
+        return undefined;
+      },
+      [predictedDays]
+    )
+  );
+
   const onVisible = useCallback(() => {
     setVWC(loadPrevented, false);
   }, [loadPrevented]);
@@ -92,20 +119,34 @@ export const NetworkChart = ({ partialDataPath, historicalDataPath }: NetworkCha
           }
         />
       </SectionGraphs>
-      <SectionStatsMultiday
-        refresh={partialData.refresh}
-        days={useMemo(
-          () => [
-            {
-              name: 'Yesterday',
-              content: <PartialStatsDisplay value={partialData} keyName="yesterday" />,
-            },
-            {
-              name: 'Today',
-              content: <PartialStatsDisplay value={partialData} keyName="today" />,
-            },
-          ],
-          [partialData]
+      <RenderGuardedComponent
+        props={predictedDays}
+        component={(ndays) => (
+          <SectionStatsMultiday
+            refresh={partialData.refresh}
+            days={[
+              ...(ndays >= 3
+                ? [
+                    {
+                      name: 'Two Days Ago',
+                      content: <PartialStatsDisplay value={partialData} keyName="twoDaysAgo" />,
+                    },
+                  ]
+                : []),
+              ...(ndays >= 2
+                ? [
+                    {
+                      name: 'Yesterday',
+                      content: <PartialStatsDisplay value={partialData} keyName="yesterday" />,
+                    },
+                  ]
+                : []),
+              {
+                name: 'Today',
+                content: <PartialStatsDisplay value={partialData} keyName="today" />,
+              },
+            ]}
+          />
         )}
       />
     </div>
@@ -172,15 +213,24 @@ export const PartialStatsDisplay = ({
   keyName,
 }: {
   value: NetworkResponse<PartialStats>;
-  keyName: 'yesterday' | 'today';
+  keyName: 'twoDaysAgo' | 'yesterday' | 'today';
 }): ReactElement => {
   const unwrapped = useUnwrappedValueWithCallbacks(value.result);
   if (unwrapped === null) {
     return <div style={{ minHeight: '500px', minWidth: 'min(440px, 80vw)' }}></div>;
   }
+  if (!unwrapped.hasOwnProperty(keyName)) {
+    return <></>;
+  }
+
+  const items = unwrapped[keyName];
+  if (items === undefined) {
+    return <></>;
+  }
+
   // Keeping the natural ordering seems to work best most of the time
-  const sortedKeys = unwrapped[keyName].map((item) => item.key);
-  const itemsByKey = unwrapped[keyName].reduce((acc, item) => {
+  const sortedKeys = items.map((item) => item.key);
+  const itemsByKey = items.reduce((acc, item) => {
     acc[item.key] = item;
     return acc;
   }, {} as Record<string, PartialStatsItem>);

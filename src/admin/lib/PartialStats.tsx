@@ -50,7 +50,11 @@ export type PartialStats = {
   /**
    * The stats for yesterday
    */
-  yesterday: PartialStatsItem[];
+  yesterday?: PartialStatsItem[];
+  /**
+   * The stats for two days ago
+   */
+  twoDaysAgo?: PartialStatsItem[];
 };
 
 /**
@@ -63,7 +67,14 @@ export type PartialStats = {
 export const parsePartialStats = (raw: any): PartialStats => {
   return {
     today: parsePartialStatsItems(raw.today),
-    yesterday: parsePartialStatsItems(raw.yesterday),
+    yesterday:
+      raw.yesterday === undefined || raw.yesterday === null
+        ? undefined
+        : parsePartialStatsItems(raw.yesterday),
+    twoDaysAgo:
+      raw.two_days_ago === undefined || raw.two_days_ago === null
+        ? undefined
+        : parsePartialStatsItems(raw.two_days_ago),
   };
 };
 
