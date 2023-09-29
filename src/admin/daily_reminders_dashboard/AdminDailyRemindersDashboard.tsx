@@ -131,14 +131,11 @@ export const AdminDailyRemindersDashboard = (): ReactElement => {
               called a user daily reminder.
             </p>
           </SectionDescription>
-          <div className={styles.sectionContent}>
-            <FlowChart {...flowChartSettings}>
-              <div className={styles.block}>
-                <div className={styles.blockTitle}>TODO</div>
-                <div className={styles.blockDescription}></div>
-              </div>
-            </FlowChart>
-          </div>
+          <div className={styles.sectionContent}></div>
+          <NetworkChart
+            partialDataPath="/api/1/admin/daily_reminders/partial_daily_reminder_registration_stats"
+            historicalDataPath="/api/1/admin/daily_reminders/daily_reminder_registrations"
+          />
         </div>
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Reminders</div>
