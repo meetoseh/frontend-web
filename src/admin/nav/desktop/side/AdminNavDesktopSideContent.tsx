@@ -100,6 +100,19 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/daily_reminders_dashboard"
             active={currentPath === '/admin/daily_reminders_dashboard'}
           />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconSignInWithOseh}
+            text="Sign in with Oseh"
+            url="/admin/sign_in_with_oseh_dashboard"
+            active={currentPath === '/admin/sign_in_with_oseh_dashboard'}
+          />
+          <AdminNavDesktopSideSectionHeader text="Misc" />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconFlowChartExamples}
+            text="Flow Chart Examples"
+            url="/admin/flow_chart_examples"
+            active={currentPath === '/admin/flow_chart_examples'}
+          />
         </div>
         <div className={styles.userCardContainer}>
           <MyProfilePicture imageHandler={imageHandler} />

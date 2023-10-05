@@ -8,7 +8,7 @@ router = APIRouter()
 
 
 @router.get("/authorize")
-async def get_authorize_html():
+async def get_authorize_html_route():
     async with Itgs() as itgs:
         html = await get_authorize_html(itgs)
     return Response(
@@ -22,7 +22,7 @@ async def get_authorize_html():
 
 
 @router.get("/authorize.js")
-async def get_authorize_js():
+async def get_authorize_js_route():
     async with Itgs() as itgs:
         raw_js = await get_authorize_js(itgs)
     insertion_index = get_csrf_insertion_index(raw_js)

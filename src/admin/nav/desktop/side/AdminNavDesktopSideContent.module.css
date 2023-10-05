@@ -68,6 +68,16 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/reminders.svg');
 }
+
+.iconSignInWithOseh {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/sign-in-with-oseh.svg');
+}
+
+.iconFlowChartExamples {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/flow-chart-examples.svg');
+}
 /* #endregion */
 
 .outerContainer {

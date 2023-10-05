@@ -50,6 +50,14 @@
 .sectionDescriptionText p:not(:first-child) {
   margin-top: 1em;
 }
+
+.sectionDescriptionText ul,
+.sectionDescriptionText ol {
+  margin-left: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
 .sectionContent {
   margin-top: 24px;
 }
