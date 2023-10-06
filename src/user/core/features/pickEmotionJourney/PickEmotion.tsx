@@ -407,16 +407,12 @@ export const PickEmotion = ({
 type Pos = { x: number; y: number };
 type Size = { width: number; height: number };
 
-const computeHorizontalPositions = (
+const computeUsingFlowLayout = (
   windowSize: Size,
-  words: Size[]
+  words: Size[],
+  xGap: number,
+  yGap: number
 ): { positions: Pos[]; size: Size } => {
-  // This is essentially a flex row with line break, aligned center,
-  // with a 10px horizontal gap and 24px vertical gap, and a 24px
-  // left/right margin.
-  const xGap = 10;
-  const yGap = 24;
-
   const centerX = windowSize.width / 2;
   const maxRowWidth = Math.min(390 - 48, windowSize.width - 48);
 
@@ -455,11 +451,11 @@ const computeHorizontalPositions = (
 
   for (let i = 0; i < words.length; i++) {
     const widthRowWithWord =
-      currentRow.length === 0 ? words[i].width : currentRowWidth + 10 + words[i].width;
+      currentRow.length === 0 ? words[i].width : currentRowWidth + xGap + words[i].width;
     if (widthRowWithWord < maxRowWidth) {
       if (i === words.length - 2 && currentRow.length >= 2) {
         // avoid widowing
-        const widthRowWithLastWord = widthRowWithWord + 10 + words[i + 1].width;
+        const widthRowWithLastWord = widthRowWithWord + xGap + words[i + 1].width;
         if (widthRowWithLastWord >= maxRowWidth) {
           breakRow();
           currentRow = [words[i]];
@@ -487,79 +483,38 @@ const computeHorizontalPositions = (
   };
 };
 
-const computeVerticalPositions = (
+const computeHorizontalPositions = (
   windowSize: Size,
   words: Size[]
 ): { positions: Pos[]; size: Size } => {
-  // two-column layout, left-aligned, with an 8px vertical gap
-  // and a 80px horizontal gap. We'll reduce the horizontal gap
-  // if there isn't enough space. We layout as if the second column
-  // is a bit wider, which essentially shifts the whole layout left
-  // by half that amount. I don't know why, but it looks more centered that
-  // way
-  const bonusWidthForSecondColumn = 24;
-  let xGap = 80;
-  const yGap = 8;
+  return computeUsingFlowLayout(windowSize, words, 10, 24);
+};
 
-  const column1Words: Size[] = [];
-  const column2Words: Size[] = [];
+const computeVerticalPositions = (
+  windowSize: Size,
+  words: Size[],
+  pressed: { index: number; votes: number | null } | null
+): { positions: Pos[]; size: Size } => {
+  // originally this was a two-column layout, but that turned out to be
+  // fairly annoying when also dealing with font sizing, so this is just
+  // the horizontal layout with more spacing after the pressed index
+  // (if any)
 
-  for (let i = 0; i < words.length; i++) {
-    if (i % 2 === 0) {
-      column1Words.push(words[i]);
-    } else {
-      column2Words.push(words[i]);
+  if (pressed === null) {
+    return computeHorizontalPositions(windowSize, words);
+  }
+
+  const resizedWords = words.map((word, idx) => {
+    if (idx === pressed.index) {
+      return {
+        width: word.width + 80,
+        height: word.height,
+      };
     }
-  }
+    return word;
+  });
 
-  const column1Positions: Pos[] = [];
-  const column2Positions: Pos[] = [];
-
-  const column1Width = column1Words.reduce((acc, cur) => Math.max(acc, cur.width), 0);
-  const column2Width =
-    column2Words.reduce((acc, cur) => Math.max(acc, cur.width), 0) + bonusWidthForSecondColumn;
-  let totalWidth = column1Width + xGap + column2Width;
-  if (totalWidth > windowSize.width - 40) {
-    xGap = windowSize.width - 40 - column1Width - column2Width;
-    totalWidth = windowSize.width - 40;
-  }
-
-  let x = (windowSize.width - totalWidth) / 2;
-  let y = 0;
-  for (let i = 0; i < column1Words.length; i++) {
-    if (i > 0) {
-      y += yGap;
-    }
-    column1Positions.push({ x, y });
-    y += column1Words[i].height;
-  }
-  const column1Height = y;
-
-  x += column1Width + xGap;
-  y = 0;
-  for (let i = 0; i < column2Words.length; i++) {
-    if (i > 0) {
-      y += yGap;
-    }
-    column2Positions.push({ x, y });
-    y += column2Words[i].height;
-  }
-  const column2Height = y;
-
-  const height = Math.max(column1Height, column2Height);
-  const positions: Pos[] = [];
-  for (let i = 0; i < words.length; i++) {
-    if (i % 2 === 0) {
-      positions.push(column1Positions[i / 2]);
-    } else {
-      positions.push(column2Positions[(i - 1) / 2]);
-    }
-  }
-
-  return {
-    positions,
-    size: { width: windowSize.width, height },
-  };
+  return computeUsingFlowLayout(windowSize, resizedWords, 8, 20);
 };
 
 const Words = ({
@@ -653,21 +608,24 @@ const Words = ({
     wordSizesVWC.callbacks.add(reposition);
     layoutVWC.callbacks.add(reposition);
     windowSizeVWC.callbacks.add(reposition);
+    pressedVWC.callbacks.add(reposition);
     reposition();
     return () => {
       wordSizesVWC.callbacks.remove(reposition);
       layoutVWC.callbacks.remove(reposition);
       windowSizeVWC.callbacks.remove(reposition);
+      pressedVWC.callbacks.remove(reposition);
     };
 
     function reposition() {
       const sizes = wordSizesVWC.get();
       const layout = layoutVWC.get();
       const windowSize = windowSizeVWC.get();
+      const pressed = pressedVWC.get();
       const target =
         layout === 'horizontal'
           ? computeHorizontalPositions(windowSize, sizes)
-          : computeVerticalPositions(windowSize, sizes);
+          : computeVerticalPositions(windowSize, sizes, pressed);
 
       wordPositionsVWC.set(target.positions);
       wordPositionsVWC.callbacks.call(undefined);
@@ -682,7 +640,7 @@ const Words = ({
         containerSizeTarget.callbacks.call(undefined);
       }
     }
-  }, [layoutVWC, windowSizeVWC, wordSizesVWC, wordPositionsVWC, containerSizeTarget]);
+  }, [layoutVWC, windowSizeVWC, wordSizesVWC, wordPositionsVWC, containerSizeTarget, pressedVWC]);
 
   return (
     <div className={styles.words} ref={containerRef}>
