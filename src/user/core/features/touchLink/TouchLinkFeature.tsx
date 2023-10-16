@@ -44,7 +44,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
       useCallback(
         (code) => {
           let running = true;
-          readStoredTouchLinkCode().promise.then((c) => {
+          readStoredTouchLinkCode().promise.then(async (c) => {
             if (!running) {
               return;
             }
@@ -64,9 +64,16 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
               link: null,
               codeSeenAt: new Date(),
             };
-            writeStoredTouchLinkCode(newActiveLinkCode);
-            setVWC(activeLinkCode, newActiveLinkCode);
-            setVWC(codeInUrl, null);
+            try {
+              await writeStoredTouchLinkCode(newActiveLinkCode).promise;
+            } finally {
+              if (!running) {
+                return;
+              }
+
+              setVWC(activeLinkCode, newActiveLinkCode);
+              setVWC(codeInUrl, null);
+            }
           });
 
           return () => {
@@ -156,8 +163,13 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
                 setUser: loginContext.state === 'logged-in',
               },
             };
-            writeStoredTouchLinkCode(newActiveLinkCode);
-            setVWC(activeLinkCode, newActiveLinkCode);
+            try {
+              await writeStoredTouchLinkCode(newActiveLinkCode).promise;
+            } finally {
+              if (running) {
+                setVWC(activeLinkCode, newActiveLinkCode);
+              }
+            }
           }
 
           async function getLinkInfo() {
@@ -208,24 +220,32 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
               setUser: true,
             },
           };
-          writeStoredTouchLinkCode(newActiveLinkCode);
-          setVWC(activeLinkCode, newActiveLinkCode);
-          apiFetch(
-            '/api/1/notifications/post_login',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                ...(interests.visitor.uid !== null ? { Visitor: interests.visitor.uid } : {}),
+          try {
+            await writeStoredTouchLinkCode(newActiveLinkCode).promise;
+          } catch (e) {}
+
+          try {
+            await apiFetch(
+              '/api/1/notifications/post_login',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                  ...(interests.visitor.uid !== null ? { Visitor: interests.visitor.uid } : {}),
+                },
+                body: JSON.stringify({
+                  code: link.code,
+                  uid: link.link.onClickUid,
+                }),
+                keepalive: true,
               },
-              body: JSON.stringify({
-                code: link.code,
-                uid: link.link.onClickUid,
-              }),
-              keepalive: true,
-            },
-            loginContext
-          );
+              loginContext
+            );
+          } finally {
+            if (running) {
+              setVWC(activeLinkCode, newActiveLinkCode);
+            }
+          }
         }
 
         async function handlePostLogin() {
