@@ -242,6 +242,48 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
       }, [activeLinkCode, loginContext, interests])
     );
 
+    useValueWithCallbacksEffect(
+      activeLinkCode,
+      useCallback(
+        (link) => {
+          // The goal of this callback is that if the link points to the home
+          // screen then we hard redirect to the homescreen to ensure the user
+          // is prompted to open the app if they have the app installed, which
+          // they wouldn't be for /l/* urls given that they sometimes point to
+          // functionality not available in the app
+
+          if (
+            link === null ||
+            link === undefined ||
+            link.link === null ||
+            link.link.link.pageIdentifier !== 'home'
+          ) {
+            return;
+          }
+
+          if (loginContext.state === 'loading') {
+            return;
+          }
+
+          if (loginContext.state === 'logged-in' && !link.link.setUser) {
+            // wait for the user to be set
+            return;
+          }
+
+          const currentPath = window.location.pathname;
+          if (!currentPath.startsWith('/l/')) {
+            return;
+          }
+
+          const url = new URL(window.location.href);
+          url.pathname = '';
+          window.location.href = url.toString();
+          return undefined;
+        },
+        [loginContext]
+      )
+    );
+
     return useMappedValuesWithCallbacks([activeLinkCode, codeInUrl], (): TouchLinkState => {
       const link = activeLinkCode.get();
 
