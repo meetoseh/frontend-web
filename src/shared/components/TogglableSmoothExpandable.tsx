@@ -18,6 +18,12 @@ type TogglableSmoothExpandableProps = {
    * to collapse the component.
    */
   collapseCTA?: string;
+
+  /**
+   * If true the animation will be disabled and this is simply a togglable
+   * expandable.
+   */
+  noAnimate?: boolean;
 };
 /**
  * A basic component which has a show/hide button to expand/collapse the
@@ -26,6 +32,7 @@ type TogglableSmoothExpandableProps = {
 export const TogglableSmoothExpandable = ({
   expandCTA = 'Show more',
   collapseCTA = 'Hide',
+  noAnimate,
   children,
 }: PropsWithChildren<TogglableSmoothExpandableProps>): ReactElement => {
   const expanded = useWritableValueWithCallbacks(() => false);
@@ -46,9 +53,16 @@ export const TogglableSmoothExpandable = ({
           component={(expanded) => (expanded ? <>{collapseCTA}</> : <>{expandCTA}</>)}
         />
       </Button>
-      <SmoothExpandable expanded={adaptValueWithCallbacksAsVariableStrategyProps(expanded)}>
-        {children}
-      </SmoothExpandable>
+      {noAnimate ? (
+        <RenderGuardedComponent
+          props={expanded}
+          component={(expanded) => (expanded ? <>{children}</> : <></>)}
+        />
+      ) : (
+        <SmoothExpandable expanded={adaptValueWithCallbacksAsVariableStrategyProps(expanded)}>
+          {children}
+        </SmoothExpandable>
+      )}
     </div>
   );
 };

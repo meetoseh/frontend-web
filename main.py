@@ -16,6 +16,7 @@ import routes.journey_public_links
 import routes.favorites
 import routes.authorize
 import routes.user_touch_links
+import routes.update_password
 import asyncio
 import requests
 
@@ -42,6 +43,7 @@ app.include_router(routes.journey_public_links.router)
 app.include_router(routes.favorites.router)
 app.include_router(routes.authorize.router)
 app.include_router(routes.user_touch_links.router)
+app.include_router(routes.update_password.router)
 app.router.redirect_slashes = False
 
 

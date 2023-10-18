@@ -2,6 +2,9 @@ import { ReactElement } from 'react';
 import styles from '../notifs_dashboard/AdminNotifsDashboard.module.css';
 import { SectionDescription } from '../notifs_dashboard/AdminNotifsDashboard';
 import { FlowChart } from '../../shared/components/flowchart/FlowChart';
+import { combineClasses } from '../../shared/lib/combineClasses';
+import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
+import { NetworkChart } from '../lib/NetworkChart';
 
 export const AdminSignInWithOsehDashboard = (): ReactElement => {
   return (
@@ -9,7 +12,7 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
       <div className={styles.titleContainer}>Sign in with Oseh Dashboard</div>
       <div className={styles.sections}>
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>Accounts</div>
+          <div className={styles.sectionTitle}>Sign in with Oseh JWT</div>
           <SectionDescription>
             <p>
               For users which do not want reuse an existing identity provider such as Google or
@@ -37,8 +40,8 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
                 associated with their user
               </li>
               <li>
-                stores the JWT in local storage, meaning it is accessible to javascript for
-                prefilling, etc
+                stores the JWT in local storage, meaning it is only sent when accessing privileged
+                resources and thus non-privileged resources are cacheable
               </li>
               <li>
                 can take classes, purchase Oseh+, and otherwise interact with the Oseh ecosystem
@@ -61,9 +64,9 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
                 receives the JWTs from Sign in with Oseh by providing an email address and password
               </li>
               <li>
-                stores the JWT within an http-only cookie, allowing for the CSRF token to be
-                injected anywhere within or across the page and subresources to make extraction
-                difficult
+                stores the JWT within an http-only cookie, so that the JWT is sent for even the
+                HTML/JS files, meaning that the server has a lot of freedom when injecting and
+                inspecting CSRF tokens (but making any caching impossible)
               </li>
               <li>can exchange JWTs from Sign in with Oseh for codes for the Oseh platform</li>
               <li>
@@ -115,7 +118,10 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
                 has mobile frontends built in React via{' '}
                 <span className={styles.mono}>react-native</span> for a great developer experience
               </li>
-              <li>does not use cross-site request forgery tokens</li>
+              <li>
+                does not use cross-site request forgery tokens, improving performance and allowing
+                for better interopability
+              </li>
               <li>
                 uses a moderate content-security-policy to improve performance and developer
                 experience while hindering basic attacks
@@ -126,10 +132,17 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
             <ul>
               <li>supports only one frontend</li>
               <li>
-                uses cross-site request forgery tokens to hinder attempts at alternative frontends
+                uses cross-site request forgery tokens for frustrating attempts to build alternative
+                frontends but costing a significant performance penalty
               </li>
-              <li>uses the strictest content-security-policy for a minimal attack surface</li>
-              <li>has a web frontend built in plain javascript for a minimal attack surface</li>
+              <li>
+                uses the strictest content-security-policy for a minimal attack surface but costing
+                a small performance penalty
+              </li>
+              <li>
+                has a web frontend built in plain javascript for a minimal attack surface but
+                costing a significant development time penalty
+              </li>
             </ul>
           </SectionDescription>
           <div className={styles.sectionContent}>
@@ -140,22 +153,17 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
                     <div className={styles.blockTitle}>Check Account</div>
                     <div className={styles.blockDescription}>
                       <p>
-                        When landing on Sign in with Oseh when not logged in, the first step is to
-                        enter your email address. The frontend will check if a corresponding account
-                        exists and direct you to the appropriate flow. The sign in with oseh
-                        frontend will have a CSRF token, redirect url, and client id for the request
-                        (along with the email address).
+                        When the user clicks "Continue with Email" on the Oseh platform, they are
+                        redirected to the Sign in with Oseh authorize page with a redirect url and
+                        client ID in the query parameters.
                       </p>
                       <p>
-                        This endpoint can be used to scan for accounts, which is mitigated using
-                        attack detection and an alternative response when an attack is detected. In
-                        particular, when ratelimiting, rather than blocking the request, which would
-                        interfere with both logging in and account creation for regular users, the
-                        endpoint will require the user provide an email verification code before the
-                        answer will be provided, thus preventing an attacker from scanning for
-                        accounts. The attacker cannot know if we decide to actually send a
-                        verification email or just silently drop the request, which allows for a
-                        more flexible response to attacks.
+                        The authorize page has a CSRF token injected server-side and asks the user
+                        to enter their email address. The authorize page will then ask the backend
+                        to exchange the redirect url, client ID, CSRF token, and email address for a
+                        Login JWT and if an identity with that email address exists in Sign in with
+                        Oseh. The Login JWT will have the email, redirect url, client ID, and
+                        existence check result embedded.
                       </p>
                     </div>
                   </div>
@@ -164,48 +172,261 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
                   {
                     element: (
                       <div className={styles.block} style={{ maxWidth: '600px' }}>
-                        <div className={styles.blockTitle}>Login to Account</div>
+                        <div className={styles.blockTitle}>Security Check</div>
                         <div className={styles.blockDescription}>
                           <p>
-                            Once the user knows a Sign in with Oseh identity exists for a particular
-                            email address they are asked for their password to exchange for a JWT.
-                            This JWT can be converted to a code to complete the standard
-                            authorization flow. The frontend will also suggest next steps, e.g., if
-                            the user has not verified their email address, it will suggest prompting
-                            them to do so before exchanging the JWT.
+                            The backend will either return the requested Login JWT and existence
+                            check <em>or</em> an Elevation JWT which can be used to request an email
+                            verification code for that email address, which means that an email
+                            verification code must be provided to check that email address.
                           </p>
+                          <p>
+                            If the backend requires an email verification code then the frontend
+                            asks the user if they want to receive the code, and assuming they affirm
+                            the request, acknowledges the security elevation on the backend to
+                            trigger the email being sent and requests the code from user. Once the
+                            code is available, the frontend redoes the check account api call with
+                            the provided code.
+                          </p>
+                          <div className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                            An email verification code is requested during the check account step in
+                            place of ratelimiting requests when unusual activity is detected, such
+                            as a much larger than average volume of requests.
+                          </div>
+                          <div className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                            We target a less than 1e-7 chance to guess a code before it expires,
+                            resulting in 7-character codes that last 30 minutes and require at least
+                            9s between attempts. When creating a code for an email, previous codes
+                            are revoked.
+                          </div>
+                          <TogglableSmoothExpandable
+                            expandCTA="Show ratelimit calculation"
+                            noAnimate>
+                            <p>
+                              Let <strong>D</strong> be the duration of the code in seconds,{' '}
+                              <strong>d</strong> be the enforced minimum time between attempts in
+                              seconds, and <strong>c</strong> be the complexity of the code in bits.
+                            </p>
+                            <p>
+                              Thus, the chance of guessing the code in the first attempt is{' '}
+                              <span className={styles.mono}>P(guess in 1) = 1/(2^c)</span>. The
+                              chance of guessing the code in <strong>n</strong> attempts is the
+                              chance that any of the <strong>n</strong> attempts were correct, i.e.,
+                              1 - the chance that all of the <strong>n</strong> attempts were wrong,
+                              i.e.,{' '}
+                              <span className={styles.mono}>
+                                P(guess in n) = 1 - (1 - 1/(2^c))^n
+                              </span>
+                            </p>
+                            <p>
+                              Note this assumes replacement, but given that the number of
+                              possibilities is much larger than the maximum number of attempts, the
+                              chance without replacement is approximately the same.
+                            </p>
+                            <p>
+                              There are <span className={styles.mono}>D/d</span> possible attempts
+                              per code, hence,{' '}
+                              <span className={styles.mono}>
+                                P(guess in D/d) = 1 - (1 - 1/(2^c))^(D/d)
+                              </span>
+                            </p>
+                            <p>
+                              Solving for <span className={styles.mono}>d</span> given the above can
+                              then be done in wolfram alpha or similar. We can select the complexity
+                              by using either more characters, more characters, or both. We choose
+                              the following case-insensitive alphabet to avoid confusing characters:{' '}
+                              <span className={styles.mono}>2345689cdefhjkmnprtvwxy</span>, giving
+                              23 options. Thus, the bits of entropy is{' '}
+                              <span className={styles.mono}>c = floor(log2(23^n))</span> where{' '}
+                              <span className={styles.mono}>n</span> is the number of characters.
+                            </p>
+                            <p>
+                              For example, for a target of 1e-12,{' '}
+                              <span className={styles.mono}>D=10*60</span>,{' '}
+                              <span className={styles.mono}>n=10</span> which gives{' '}
+                              <span className={styles.mono}>c=45</span> will solve to{' '}
+                              <span className={styles.mono}>d=17.0534</span>, which we ceil to 18s
+                              per attempt.
+                            </p>
+                          </TogglableSmoothExpandable>
                         </div>
                       </div>
                     ),
-                    children: [],
+                    children: [
+                      {
+                        element: (
+                          <div className={styles.block} style={{ maxWidth: '600px' }}>
+                            <div className={styles.blockTitle}>Login to Account</div>
+                            <div className={styles.blockDescription}>
+                              <p>
+                                A Login JWT whose email address corresponds to an existing identity
+                                and the current password of that identity can be exchanged for a
+                                Sign in with Oseh JWT.
+                              </p>
+                              <p>
+                                To guard against brute force attacks, the backend will ratelimit
+                                each Login JWT individually to a maximum rate of unique password
+                                attempts. Repeated passwords are detected by hashing the password
+                                with an OWASP approved difficulty and the Login JWT JTI as the salt
+                                and storing the result in an redis key set to expire just after the
+                                Login JWT expires. Not limiting repeated attempts reduces user
+                                frustration without hindering our protection against brute force
+                                attacks.
+                              </p>
+                              <div
+                                className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                                To <strong>exchange the Login JWT</strong> means the Login JWT is{' '}
+                                <strong>revoked</strong> as a result of the request. In this case,
+                                the Login JWT is only revoked if the request succeeds.
+                              </div>
+                            </div>
+                          </div>
+                        ),
+                        children: [],
+                      },
+                      {
+                        element: (
+                          <div className={styles.block} style={{ maxWidth: '600px' }}>
+                            <div className={styles.blockTitle}>Create Identity</div>
+                            <div className={styles.blockDescription}>
+                              <p>
+                                A Login JWT whose email address does not correspond to an existing
+                                identity and a new password can be exchanged to create a Sign in
+                                with Oseh identity and receive a Sign in with Oseh JWT for that new
+                                identity.
+                              </p>
+                              <div
+                                className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                                If the user did not complete the email verification security check
+                                when creating the Login JWT, the new Sign in with Oseh identity will
+                                have an unverified email address.
+                              </div>
+                              <div
+                                className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                                The Login JWT is always revoked by this endpoint, regardless of
+                                success.
+                              </div>
+                            </div>
+                          </div>
+                        ),
+                        children: [],
+                      },
+                      {
+                        element: (
+                          <div className={styles.block} style={{ maxWidth: '600px' }}>
+                            <div className={styles.blockTitle}>Request Reset Password Code</div>
+                            <div className={styles.blockDescription}>
+                              <p>
+                                A Login JWT whose email address corresponds to an existing identity
+                                can be exchanged to request a password reset email be sent to that
+                                account. This email will contain a link to{' '}
+                                <span className={styles.mono}>/reset-password</span> with a Reset
+                                Password Code as a query parameter.
+                              </p>
+
+                              <div
+                                className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                                It&rsquo;s a little weird to require two emails if the user had to
+                                do a security check, but it&rsquo;s a rather unlikely scenario and
+                                the security check email uses too little entropy to be used as a
+                                reset password mechanism.
+                              </div>
+
+                              <div
+                                className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                                Here we use 512 bits of entropy and limit to 1 attempt per 15s with
+                                a 30 minute expiry, for a guess chance per code of less than 1e-152
+                                (for reference, if I selected an atom in the known universe
+                                uniformly at random, your chance of guessing which one I chose on
+                                your first try is about 1e-80)
+                              </div>
+                            </div>
+                          </div>
+                        ),
+                        children: [
+                          {
+                            element: (
+                              <div className={styles.block} style={{ maxWidth: '600px' }}>
+                                <div className={styles.blockTitle}>Complete Reset Password</div>
+                                <div className={styles.blockDescription}>
+                                  <p>
+                                    A Reset Password Code, CSRF token, and a new password can be
+                                    exchanged for a Login JWT for the corresponding identity. When
+                                    this exchange occurs, the password for the corresponding
+                                    identity is updated.
+                                  </p>
+                                  <div
+                                    className={combineClasses(
+                                      styles.blockNote,
+                                      styles.blockNoteInfo
+                                    )}>
+                                    This endpoint is not guarded by a Login JWT. Hence it requires a
+                                    CSRF token and has its own global ratelimiting. It&rsquo;s less
+                                    of an issue if users are blocked from resetting their password
+                                    than for signing up or logging in, hence simple ratelimiting is
+                                    appropriate here.
+                                  </div>
+                                  <div
+                                    className={combineClasses(
+                                      styles.blockNote,
+                                      styles.blockNoteInfo
+                                    )}>
+                                    This provides a Login JWT instead of a Sign in with Oseh JWT in
+                                    order to require the user enter their password again in the
+                                    hopes that this time it will be properly stored in a password
+                                    manager.
+                                  </div>
+                                </div>
+                              </div>
+                            ),
+                            children: [],
+                          },
+                        ],
+                      },
+                    ],
                   },
+                ],
+              }}
+            />
+            <FlowChart
+              tree={{
+                element: (
+                  <div className={styles.block} style={{ maxWidth: '600px' }}>
+                    <div className={styles.blockTitle}>Queue Delayed Email Verification</div>
+                    <div className={styles.blockDescription}>
+                      <p>
+                        When Sign in with Oseh detects what is likely a real person creating many
+                        fake accounts, probably to abuse a later endpoint, security checks will
+                        trigger and to deter that person we will delay sending the email
+                        verification code. Furthermore, some of the emails we send them will contain
+                        a bogus code forcing them to repeat the process.
+                      </p>
+                      <p>
+                        To accomplish this, rather than adding the email directly to the Email To
+                        Send Queue, it is added to a similar redis list we call the Delayed Email
+                        Verification Queue which has the same data but for which queued at might be
+                        in the future.
+                      </p>
+                      <div className={combineClasses(styles.blockNote, styles.blockNoteWarning)}>
+                        TODO: size of queue, oldest due at
+                      </div>
+                    </div>
+                  </div>
+                ),
+                children: [
                   {
                     element: (
                       <div className={styles.block} style={{ maxWidth: '600px' }}>
-                        <div className={styles.blockTitle}>Create Account</div>
+                        <div className={styles.blockTitle}>Send Delayed Email Verification Job</div>
                         <div className={styles.blockDescription}>
-                          <p>
-                            Once the user knows a Sign in with Oseh identity does not exist for a
-                            particular email address they can request that an account be created by
-                            providing a password. Note that this step can also be used for scanning
-                            for accounts, and hence needs to have that same attack mitigated. For
-                            simplicity, the create account endpoint requires a secret returned by
-                            the check account endpoint and which can only be used once, for the same
-                            email address, and hence each create account request requires a matching
-                            successful check account request. Thus, it is sufficient to just protect
-                            the check account endpoint.
-                          </p>
-                          <p>
-                            This endpoint immediately creates a Sign in with Oseh identity with an
-                            unverified email address and returns a JWT which can be converted to a
-                            code to complete the process. This means that the Sign in with Oseh
-                            identity may provide unverified email addresses to the Oseh platform.
-                            Fortunately this can be indicated in the claims the Oseh platform
-                            receives when exchanging the code using Sign in with Oseh identity
-                            provider, and knows not to trust the email address. Furthermore, email
-                            addresses are not unique identifiers on the Oseh platform, so this does
-                            not block or check for an existing user on the Oseh platform.
-                          </p>
+                          About once a minute, the Send Delayed Email Verification Job will move
+                          overdue emails from the Delayed Email Verification Queue to the Email To
+                          Send Queue
+                          <div
+                            className={combineClasses(styles.blockNote, styles.blockNoteWarning)}>
+                            TODO: started at, finished at, running time, num moved, stop reason
+                            (incl backpressure)
+                          </div>
                         </div>
                       </div>
                     ),
@@ -215,43 +436,58 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
               }}
             />
           </div>
-          TODO CHARTS
+          <NetworkChart
+            partialDataPath="/api/1/admin/siwo/partial_siwo_authorize_stats"
+            historicalDataPath="/api/1/admin/siwo/siwo_authorize_stats"
+          />
         </div>
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Email Verifications</div>
           <SectionDescription>
             <p>
               This section handles how Sign in with Oseh identities get verified email addresses,
-              since they are created with unverified email addresses.
+              since they are created with unverified email addresses. The Sign in with Oseh JWTs
+              always come with if the email is verified or not so the client can decide to prompt
+              the user.
             </p>
           </SectionDescription>
           <div className={styles.sectionContent}>
             <FlowChart
               tree={{
                 element: (
-                  <div className={styles.block} style={{ maxWidth: '600px' }}>
+                  <div className={styles.block} style={{ maxWidth: '500px' }}>
                     <div className={styles.blockTitle}>Request Verification Email</div>
                     <div className={styles.blockDescription}>
                       <p>
-                        The frontend can exchange a JWT and CSRF token to request a verification
-                        email is sent to the email address of the respective identity. Since this
-                        cannot be the same CSRF token that was used on the first request, this
-                        implies a page refresh between the two requests.
+                        The frontend can use a Sign in with Oseh JWT to request a verification email
+                        is sent to the email address of the respective identity. The verification
+                        email is formatted similarly to the Security Check email from the previous
+                        section and contains a code in it that can be entered into the frontend
+                        rather than a link.
                       </p>
+                      <div className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                        Basic per-identity ratelimiting is applied to this endpoint to ensure only 1
+                        code is active at a time.
+                      </div>
                     </div>
                   </div>
                 ),
                 children: [
                   {
                     element: (
-                      <div className={styles.block} style={{ maxWidth: '600px' }}>
+                      <div className={styles.block} style={{ maxWidth: '500px' }}>
                         <div className={styles.blockTitle}>Verify Email with Code</div>
                         <p>
-                          The frontend can exchange a JWT, CSRF token, and verification code to
+                          The frontend can use a Sign in with Oseh JWT and verification code to
                           verify the email address of the respective identity. Since this cannot be
                           the same CSRF token that was used on the first request, this implies a
                           page refresh between the two requests.
                         </p>
+                        <div className={combineClasses(styles.blockNote, styles.blockNoteInfo)}>
+                          Basic per-identity ratelimiting is applied to this endpoint such that
+                          there is a less than 1e-7 chance of guessing the code before it expires
+                          when using the maximum number of attempts.
+                        </div>
                       </div>
                     ),
                     children: [],
@@ -260,6 +496,40 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
               }}
             />
           </div>
+          <NetworkChart
+            partialDataPath="/api/1/admin/siwo/partial_siwo_verify_email_stats"
+            historicalDataPath="/api/1/admin/siwo/siwo_verify_email_stats"
+          />
+        </div>
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>Codes</div>
+          <SectionDescription>
+            <p>
+              This section handles how Sign in with Oseh identities are exchanged for codes that can
+              be used to get Oseh platform JWTs.
+            </p>
+          </SectionDescription>
+          <div className={styles.sectionContent}>
+            <FlowChart
+              tree={{
+                element: (
+                  <div className={styles.block}>
+                    <div className={styles.blockTitle}>Exchange JWT for Code</div>
+                    <div className={styles.blockDescription}>
+                      In order to complete the authorization process, the frontend exchanges a Sign
+                      in with Oseh JWT for a code which can be exchanged with the Oseh platform for
+                      an Oseh JWT.
+                    </div>
+                  </div>
+                ),
+                children: [],
+              }}
+            />
+          </div>
+          <NetworkChart
+            partialDataPath="/api/1/admin/siwo/partial_siwo_exchange_stats"
+            historicalDataPath="/api/1/admin/siwo/siwo_exchange_stats"
+          />
         </div>
       </div>
     </div>

@@ -56,8 +56,9 @@ export const Settings = ({
   const logout = useCallback(() => {
     if (loginContext.state === 'logged-in') {
       loginContext.setAuthTokens(null);
+      state.get().setShow(false, true);
     }
-  }, [loginContext]);
+  }, [loginContext, state]);
 
   useErrorModal(modalContext.modals, errorVWC, 'settings');
 

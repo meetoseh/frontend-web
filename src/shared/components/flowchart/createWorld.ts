@@ -1,4 +1,4 @@
-import { scoreWorld } from './eval/scoreWorld';
+import { compareWorlds } from './eval/compareWorld';
 import { materializeWorld } from './layout/materializeWorld';
 import { createRootVariations, createStdVariations } from './layout/variations';
 import { LayoutConfig } from './types/Config';
@@ -46,7 +46,6 @@ export const createWorld = (cfg: LayoutConfig, trees: SizeTree[], width: number)
   }
 
   let bestWorld: World | null = null;
-  let bestScore = -Infinity;
 
   // undirected exhaustive search
   while (true) {
@@ -70,10 +69,8 @@ export const createWorld = (cfg: LayoutConfig, trees: SizeTree[], width: number)
         continue;
       }
 
-      const score = scoreWorld(materialized);
-      if (score > bestScore) {
+      if (bestWorld === null || compareWorlds(materialized, bestWorld) < 0) {
         bestWorld = materialized;
-        bestScore = score;
       }
       continue;
     }

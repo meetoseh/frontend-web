@@ -9,11 +9,11 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('fonts/OpenSans/OpenSans-Regular.ttf') format('truetype');
+  src: url('/static/media/OpenSans-Regular.77c09223204154ae8d43.ttf') format('truetype');
 }
 
 body {
-  background-color: #33494c;
+  background-color: #f2f2f3;
 }
 
 .outer-container {
@@ -25,23 +25,56 @@ body {
 }
 
 .inner-container {
-  margin-top: 100px;
-  max-width: 454px;
+  max-width: 390px;
   width: 100%;
-  padding: 16px 32px;
-  border-radius: 10px;
-  background-color: #f2f2f3;
+  padding: 0 24px;
 
   display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.form {
+  width: 100%;
+  display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 24px;
+}
+
+.form .contents {
+  width: 100%;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon {
+  margin-bottom: 24px;
 }
 
 .title {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 32px;
   color: #191c1d;
+  text-align: center;
+}
+
+.description {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  color: #191c1d;
+  text-align: center;
+  margin-top: 12px;
+  margin-bottom: 32px;
 }
 
 .form-group {
@@ -52,66 +85,201 @@ body {
   margin-top: 16px;
 }
 
-.form-group label {
-  font-family: 'Open Sans', sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 24px;
-  letter-spacing: 0.25px;
-  color: #191c1d;
+.form-group.form-group-code {
+  width: auto;
+}
+
+.form-group.form-group-code *[data-lastpass-icon-root='true'] {
+  display: none;
+}
+.form-group.form-group-code *[data-lastpass-infield='true'] {
+  display: none;
+}
+
+.form-group > label {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }
 
 .form-group input {
-  padding: 5px 16px;
+  padding: 14px 16px;
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-size: 16px;
-  line-height: 24px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  background-color: white;
+  color: #191c1d;
+  border: 1px solid #3f484a;
+  border-radius: 4px;
+}
+
+.form-group input::placeholder {
+  color: #9fa3a6;
+}
+
+.form-group input:disabled {
+  background-color: #f2f2f3;
+  border: solid 1px #c8cdd0;
+  color: #c8cdd0;
+}
+
+.form-group.form-group-code input {
+  width: calc(7ch + 35.5px); /* 32px padding, 2px border, 0.25px*6 letter spacing */
+  font-family: monospace;
+}
+
+.form-group.form-group-password .checkbox-group {
+  margin-top: 8px;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.checkbox-group > input {
+  margin-right: 8px;
+}
+
+.checkbox-group > label {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
   letter-spacing: 0.25px;
   color: #191c1d;
 }
 
-.form-group button {
-  margin-top: 24px;
+.form .button-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.button-group > *:not(:first-child) {
+  margin-top: 8px;
+}
+.form .button {
+  width: 100%;
+}
+
+.button {
   cursor: pointer;
   outline: none;
   appearance: none;
   text-decoration: none;
   display: block;
   text-align: center;
+  border: none;
 
-  padding: 13px 26px;
+  padding: 14px 16px;
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-size: 16px;
-  line-height: 24px;
+  line-height: 28px;
   letter-spacing: 0.25px;
   border-radius: 100px;
-  border: 3px solid #446266;
-  background: #446266;
+  background: #3f484a;
   color: white;
 }
 
-.form-group button:hover {
-  background: #708f94;
+.form .link-button {
+  background: transparent;
+  color: #3f484a;
+  border-radius: 0;
+  font-size: 14px;
+  line-height: 22px;
 }
 
-.form-group button:disabled {
+.button:hover {
+  background: #191d1e;
+}
+
+.link-button:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+.button:disabled {
   background: #c8cdd0;
 }
 
+.link-button:disabled {
+  background: transparent;
+  color: #c8cdd0;
+}
+
 .error {
-  margin-top: 4px;
+  margin: 20px 0;
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-size: 14px;
-  line-height: 24px;
+  line-height: 22px;
   letter-spacing: 0.25px;
+  text-align: center;
   color: #ba1a1a;
 }
 
+.form-check .error {
+  margin: 20px 0 0 0;
+}
+
+.form-reset-password .description {
+  margin-top: 24px;
+}
+
 @media not (prefers-reduced-motion) {
-  .form-group button {
+  .button {
     transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+@media screen and (max-height: 550px) {
+  .icon {
+    margin-bottom: 8px;
+  }
+
+  .description {
+    margin-bottom: 16px;
+  }
+
+  .form {
+    padding-bottom: 12px;
+  }
+
+  .button-group > *:not(:first-child) {
+    margin-top: 4px;
+  }
+
+  .error {
+    margin: 10px 0;
+  }
+}
+
+@media screen and (max-height: 510px) {
+  .icon {
+    margin-bottom: 4px;
+  }
+
+  .description {
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  .button-group > *:not(:first-child) {
+    margin-top: 0;
+  }
+
+  .error {
+    margin: 4px 0;
   }
 }

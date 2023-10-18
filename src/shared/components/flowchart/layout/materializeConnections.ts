@@ -611,6 +611,26 @@ const compareConnectionOptions = (
     return existingAToAny - existingBToAny;
   }
 
+  // If there were other from anchors in the same general spot it generally looks
+  // better to bunch them up
+
+  const aFromNearbyAnchorIds = ([-1, 0, 1] as const).map((dir) =>
+    getAnchorId(a.fromIndex, a.fromAnchor, dir)
+  );
+  const bFromNearbyAnchorIds = ([-1, 0, 1] as const).map((dir) =>
+    getAnchorId(b.fromIndex, b.fromAnchor, dir)
+  );
+  const aFromTotal = aFromNearbyAnchorIds
+    .map((id) => existingAnchors.get(id)?.from ?? 0)
+    .reduce((a, b) => a + b, 0);
+  const bFromTotal = bFromNearbyAnchorIds
+    .map((id) => existingAnchors.get(id)?.from ?? 0)
+    .reduce((a, b) => a + b, 0);
+
+  if (aFromTotal !== bFromTotal) {
+    return bFromTotal - aFromTotal;
+  }
+
   if (!isClose(a.area, b.area)) {
     return a.area - b.area;
   }

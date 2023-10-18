@@ -46,7 +46,7 @@ export const DefaultConfig: Config = {
   layout: {
     columnGap: 48,
     rowGap: 48,
-    undershootMidpointsBy: 4,
+    undershootMidpointsBy: 8,
   },
   render: {
     lineThickness: 2,
@@ -66,7 +66,6 @@ export const DefaultConfig: Config = {
  * Flow charts always fill the available width, but the height is computed
  */
 export const FlowChart = ({ tree, cfg = DefaultConfig }: FlowChartProps): ReactElement => {
-  // TODO: this doesn't handle the # of nodes changing
   const widthVWC = useWritableValueWithCallbacks<number>(() => 0);
   const containerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
 
@@ -121,8 +120,22 @@ export const FlowChart = ({ tree, cfg = DefaultConfig }: FlowChartProps): ReactE
     return result;
   });
 
+  useEffect(() => {
+    const newSizes: WorldSize[] = [];
+    getInitialSizesRecursively(tree, newSizes);
+    setVWC(childSizes, newSizes, (a, b) => a.length === b.length);
+  }, [tree, childSizes]);
+
   const childRefs = useWritableValueWithCallbacks<(HTMLDivElement | null)[]>(() => {
     return childSizes.get().map(() => null);
+  });
+
+  useValueWithCallbacksEffect(childSizes, (sizes) => {
+    if (childRefs.get().length !== sizes.length) {
+      const newRefs = sizes.map((_, idx) => childRefs.get()[idx] ?? null);
+      setVWC(childRefs, newRefs, () => false);
+    }
+    return undefined;
   });
 
   useEffect(() => {

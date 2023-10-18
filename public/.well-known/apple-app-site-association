@@ -22,6 +22,11 @@
             "comment": "Matches the /authorize oauth2 endpoint to generate a code"
           },
           {
+            "/": "/update-password",
+            "exclude": true,
+            "comment": "Matches the second step of the password reset flow"
+          },
+          {
             "/": "/api/*",
             "exclude": true,
             "comment": "Matches api endpoints"

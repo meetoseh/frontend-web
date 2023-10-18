@@ -30,6 +30,7 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
+import { DefaultProfilePicture } from '../../../../shared/components/MyProfilePicture';
 
 /**
  * Ensures we display at least 12 options, faking the rest if necessary.
@@ -366,6 +367,7 @@ export const PickEmotion = ({
               {profilePicture.state === 'available' && (
                 <OsehImageFromState {...profilePicture.image} />
               )}
+              {profilePicture.state === 'unavailable' && <DefaultProfilePicture />}
             </div>
             <div className={styles.settingsText}>
               <div className={styles.greeting}>

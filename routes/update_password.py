@@ -7,10 +7,10 @@ import csrf
 router = APIRouter()
 
 
-@router.get("/authorize")
-async def get_authorize_html_route():
+@router.get("/update-password")
+async def get_update_password_html_route():
     async with Itgs() as itgs:
-        html = await get_authorize_html(itgs)
+        html = await get_update_password_html(itgs)
     return Response(
         content=html,
         headers={
@@ -21,10 +21,10 @@ async def get_authorize_html_route():
     )
 
 
-@router.get("/authorize.js")
-async def get_authorize_js_route():
+@router.get("/update-password.js")
+async def get_update_password_js_route():
     async with Itgs() as itgs:
-        raw_js = await get_authorize_js(itgs)
+        raw_js = await get_update_password_js(itgs)
     insertion_index = get_csrf_insertion_index(raw_js)
     csrf_token = await csrf.create_csrf("oseh-web", 60 * 60)
 
@@ -41,42 +41,42 @@ async def get_authorize_js_route():
     )
 
 
-base_authorize_html = (
-    "public/authorize.html"
+base_update_password_html = (
+    "public/update-password.html"
     if os.environ["ENVIRONMENT"] == "dev"
-    else "/var/www/authorize.html"
+    else "/var/www/update-password.html"
 )
-base_authorize_js = (
-    "public/authorize.js"
+base_update_password_js = (
+    "public/update-password.js"
     if os.environ["ENVIRONMENT"] == "dev"
-    else "/var/www/authorize.js"
+    else "/var/www/update-password.js"
 )
 
 
-async def get_authorize_html(itgs: Itgs) -> bytes:
+async def get_update_password_html(itgs: Itgs) -> bytes:
     """
-    Returns the authorize.html page, after substitutions, with caching
+    Returns the update-password.html page, after substitutions, with caching
     """
-    cache_key = "authorize:html"
+    cache_key = "update-password:html"
     cache = await itgs.local_cache()
 
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
 
-    html = create_authorize_html()
+    html = create_update_password_html()
     if os.environ["ENVIRONMENT"] != "dev":
         # we want live reloads
         cache.set(cache_key, html, tag="no-persist")
     return html
 
 
-def create_authorize_html() -> bytes:
+def create_update_password_html() -> bytes:
     """
-    Returns the authorize.html page, after substituting %REACT_APP_PUBLIC_URL%,
+    Returns the update-password.html page, after substituting %REACT_APP_PUBLIC_URL%,
     without caching
     """
-    with open(base_authorize_html, "rb") as f:
+    with open(base_update_password_html, "rb") as f:
         html = f.read()
     return html.replace(
         b"%REACT_APP_PUBLIC_URL%",
@@ -84,23 +84,23 @@ def create_authorize_html() -> bytes:
     )
 
 
-async def get_authorize_js(itgs: Itgs) -> bytes:
-    cache_key = "authorize:js"
+async def get_update_password_js(itgs: Itgs) -> bytes:
+    cache_key = "update-password:js"
     cache = await itgs.local_cache()
 
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
 
-    js = create_authorize_js()
+    js = create_update_password_js()
     if os.environ["ENVIRONMENT"] != "dev":
         # we want live reloads
         cache.set(cache_key, js, tag="no-persist")
     return js
 
 
-def create_authorize_js() -> bytes:
-    with open(base_authorize_js, "rb") as f:
+def create_update_password_js() -> bytes:
+    with open(base_update_password_js, "rb") as f:
         result = f.read()
 
     backend_url_insertion_index = get_backend_url_insertion_index(result)
@@ -122,7 +122,7 @@ def get_csrf_insertion_index(js: bytes) -> int:
 
     insertion_index = js.find(b"var CSRF_TOKEN = '';")
     if insertion_index == -1:
-        raise ValueError("CSRF_TOKEN not found in authorize.js")
+        raise ValueError("CSRF_TOKEN not found in update-password.js")
     insertion_index += len('var CSRF_TOKEN = "')
     __cached_csrf_insertion_index = insertion_index
     return insertion_index
@@ -131,6 +131,6 @@ def get_csrf_insertion_index(js: bytes) -> int:
 def get_backend_url_insertion_index(js: bytes) -> int:
     insertion_index = js.find(b"var BACKEND_URL = '';")
     if insertion_index == -1:
-        raise ValueError("CSRF_TOKEN not found in authorize.js")
+        raise ValueError("CSRF_TOKEN not found in update-password.js")
     insertion_index += len('var BACKEND_URL = "')
     return insertion_index

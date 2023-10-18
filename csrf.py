@@ -11,8 +11,8 @@ from itgs import Itgs
 
 @dataclass
 class SuccessfulCSRF:
-    iss: Literal["oseh-web", "oseh-native"]
-    """The issuer of the token, either `oseh-web` or `oseh-native`"""
+    iss: Literal["oseh-web"]
+    """The issuer of the token, always `oseh-web`"""
     iat: int
     """The time the token was issued in seconds since the epoch"""
     exp: int
@@ -54,11 +54,15 @@ def create_bad_csrf_response(hint: str):
 
 async def check_csrf(itgs: Itgs, csrf: str) -> CheckCSRFResponse:
     """Verifies that the given cross site request forgery token is valid. This
-    token is either created by the frontend-web serverside or by the native app.
-    In both cases it's possible for third parties to get a valid token: in the
-    former case, they can parse the http. In the latter case, they can decompile
-    the app. However, both are pretty annoying to do, so it's going to stop all
-    but the most dedicated attackers from using an endpoint.
+    token is created by the frontend-web serverside.
+
+    It's possible for third parties to get a valid token by parsing the returned
+    HTML/JS, since it has to be transmitted to the client before the actual
+    request. Hence a CSRF token is not sufficient on its own to verify a request
+    is being served by a legitimate client, however, it can be used as a tool to
+    detect and block specific fraudulent requests. For example, if the attacker
+    is automatically scrapping CSRF tokens we can make their life arbitrarily
+    difficult by varying how the token is injected.
 
     Used only when we really don't want third parties to use an endpoint, e.g.
     the code endpoint for exchanging an email/password for a code.
@@ -69,8 +73,7 @@ async def check_csrf(itgs: Itgs, csrf: str) -> CheckCSRFResponse:
       (since it can be created just before the request), but an hour for
       web (where the token is created when the page is opened and requires
       a page refresh to regenerate)
-    - `iss`: either `oseh-web` or `oseh-native`; this will determine which
-      secret we should use to verify the token
+    - `iss`: `oseh-web`
     - `aud`: must be `oseh-direct-account-code`
     - `jti`: a unique identifier for the token; we will deny tokens that
        have been used before. this is primarily to make it easier to void
@@ -85,7 +88,7 @@ async def check_csrf(itgs: Itgs, csrf: str) -> CheckCSRFResponse:
     except:
         return CheckCSRFResponse(None, create_bad_csrf_response("Failed to decode."))
 
-    if unverified_claims.get("iss") not in ("oseh-web", "oseh-native"):
+    if unverified_claims.get("iss") != "oseh-web":
         return CheckCSRFResponse(
             None, create_bad_csrf_response("iss not present or invalid")
         )
@@ -133,23 +136,19 @@ async def check_csrf(itgs: Itgs, csrf: str) -> CheckCSRFResponse:
     )
 
 
-def get_secret_by_issuer(iss: Literal["oseh-web", "oseh-native"]) -> str:
+def get_secret_by_issuer(iss: Literal["oseh-web"]) -> str:
     if iss == "oseh-web":
         return os.environ["OSEH_CSRF_JWT_SECRET_WEB"]
-    elif iss == "oseh-native":
-        return os.environ["OSEH_CSRF_JWT_SECRET_NATIVE"]
     else:
         raise ValueError(f"Unknown iss: {iss}")
 
 
-def create_csrf(iss: Literal["oseh-web", "oseh-native"], duration: int) -> str:
+async def create_csrf(iss: Literal["oseh-web"], duration: int) -> str:
     """Creates a new CSRF token with the given issue with the given duration.
-    Used by the frontend-web (serverside) and the native app (clientside).
-    The native version is included for completeness but is reimplemented in
-    javascript for the react-native version.
+    Used by the frontend-web (serverside).
 
     Args:
-        iss (str): either `oseh-web` or `oseh-native`
+        iss (str): `oseh-web`
         duration (int): the duration of the token in seconds
 
     Returns:
