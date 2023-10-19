@@ -211,6 +211,7 @@ function App() {
         />
         <Route path="/favorites" element={<UserApp />} />
         <Route path="/l/*" element={<UserApp />} />
+        <Route path="/a/*" element={<UserApp />} />
       </Routes>
     </BrowserRouter>
   );

@@ -25,7 +25,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
   useWorldState: () => {
     const codeInUrl = useWritableValueWithCallbacks<string | null>(() => {
       const path = window.location.pathname;
-      if (!path.startsWith('/l/')) {
+      if (!path.startsWith('/l/') && !path.startsWith('/a/')) {
         return null;
       }
 
@@ -272,6 +272,9 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
           // they wouldn't be for /l/* urls given that they sometimes point to
           // functionality not available in the app
 
+          // We also have /a/* shortlinks which are always supported in the app
+          // and hence automatically redirect there without us needed to reload
+
           if (
             link === null ||
             link === undefined ||
@@ -318,7 +321,10 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
             ? undefined
             : link.link.link,
         handledLink: () => {
-          if (window.location.pathname.startsWith('/l/')) {
+          if (
+            window.location.pathname.startsWith('/l/') ||
+            window.location.pathname.startsWith('/a/')
+          ) {
             const url = new URL(window.location.href);
             url.pathname = '';
             window.history.pushState({}, '', url.toString());
