@@ -12,6 +12,15 @@ router = APIRouter()
 
 
 @router.get("/l/{code}")
+async def get_maybe_web_only_link_by_code(code: str):
+    return await get_link_by_code(code)
+
+
+@router.get("/a/{code}")
+async def get_app_link_by_code(code: str):
+    return await get_link_by_code(code)
+
+
 async def get_link_by_code(code: str):
     async with Itgs() as itgs:
         link = await click_link(
