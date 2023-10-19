@@ -12,6 +12,7 @@ import { useProviderUrlsValueWithCallbacks } from '../../../login/LoginApp';
 import { DailyReminders, parseDailyReminders } from './FastUnsubscribeLoggedIn';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { apiFetch } from '../../../../shared/ApiConstants';
+import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
 
 /**
  * The fast unsubscribe feature which allows a user to rapidly enable/disable
@@ -61,25 +62,25 @@ export const FastUnsubscribeFeature: Feature<FastUnsubscribeState, FastUnsubscri
       s.touchLink.handledLink();
     });
 
-    useValueWithCallbacksEffect(
-      codeVWC,
-      useCallback(
-        (code) => {
-          if (code === null || loginContext.state === 'loading') {
-            setVWC(variantVWC, undefined);
-            return;
-          }
+    useValuesWithCallbacksEffect(
+      [required, codeVWC],
+      useCallback(() => {
+        const req = required.get();
+        const code = codeVWC.get();
 
-          if (loginContext.state === 'logged-out') {
-            setVWC(variantVWC, 'logged-out');
-            return;
-          }
+        if (!req || code === null || loginContext.state === 'loading') {
+          setVWC(variantVWC, undefined);
+          return;
+        }
 
-          setVWC(variantVWC, 'logged-in');
-          return undefined;
-        },
-        [loginContext, variantVWC]
-      )
+        if (loginContext.state === 'logged-out') {
+          setVWC(variantVWC, 'logged-out');
+          return;
+        }
+
+        setVWC(variantVWC, 'logged-in');
+        return undefined;
+      }, [loginContext, variantVWC, codeVWC, required])
     );
 
     useValueWithCallbacksEffect(
