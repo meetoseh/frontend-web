@@ -25,6 +25,7 @@ import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../shared/lib
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { OsehImageFromStateValueWithCallbacks } from '../../shared/images/OsehImageFromStateValueWithCallbacks';
+import { useStaleOsehImageOnSwap } from '../../shared/images/useStaleOsehImageOnSwap';
 
 /**
  * The activation screen for a course, which should be the first screen after a
@@ -235,24 +236,26 @@ export const CourseActivateScreen = (): ReactElement => {
       }
     }
   }, [windowSizeVWC]);
-  const background = useOsehImageStateValueWithCallbacks(
-    adaptValueWithCallbacksAsVariableStrategyProps(
-      useMappedValueWithCallbacks(
-        windowSizeVWC,
-        (windowSize) => ({
-          uid: course?.backgroundImage?.uid ?? null,
-          jwt: course?.backgroundImage?.jwt ?? null,
-          displayWidth: windowSize.width,
-          displayHeight: windowSize.height,
-          alt: '',
-          placeholderColor: '#121111',
-        }),
-        {
-          inputEqualityFn: () => false,
-        }
-      )
-    ),
-    imageHandler
+  const background = useStaleOsehImageOnSwap(
+    useOsehImageStateValueWithCallbacks(
+      adaptValueWithCallbacksAsVariableStrategyProps(
+        useMappedValueWithCallbacks(
+          windowSizeVWC,
+          (windowSize) => ({
+            uid: course?.backgroundImage?.uid ?? null,
+            jwt: course?.backgroundImage?.jwt ?? null,
+            displayWidth: windowSize.width,
+            displayHeight: windowSize.height,
+            alt: '',
+            placeholderColor: '#121111',
+          }),
+          {
+            inputEqualityFn: () => false,
+          }
+        )
+      ),
+      imageHandler
+    )
   );
   const urls = useProviderUrls(loginContext.state === 'logged-out');
   const backgroundLoading = useMappedValueWithCallbacks(background, (bg) => bg.loading);

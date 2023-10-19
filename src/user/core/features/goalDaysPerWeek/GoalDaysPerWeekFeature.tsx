@@ -13,6 +13,7 @@ import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hoo
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
 import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -41,13 +42,15 @@ export const GoalDaysPerWeekFeature: Feature<GoalDaysPerWeekState, GoalDaysPerWe
         isPublic: true,
       })
     );
-    const background = useOsehImageStateValueWithCallbacks(
-      {
-        type: 'callbacks',
-        props: () => backgroundProps.get(),
-        callbacks: backgroundProps.callbacks,
-      },
-      imageHandler
+    const background = useStaleOsehImageOnSwap(
+      useOsehImageStateValueWithCallbacks(
+        {
+          type: 'callbacks',
+          props: () => backgroundProps.get(),
+          callbacks: backgroundProps.callbacks,
+        },
+        imageHandler
+      )
     );
     const ianUID = useMappedValuesWithCallbacks([requiredVWC, stateVWC], () =>
       requiredVWC.get() ? stateVWC.get().ian?.uid ?? null : null

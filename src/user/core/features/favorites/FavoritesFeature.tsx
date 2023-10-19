@@ -10,6 +10,7 @@ import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
 import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { Favorites } from './Favorites';
+import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -92,13 +93,15 @@ export const FavoritesFeature: Feature<FavoritesState, FavoritesResources> = {
         isPublic: true,
       })
     );
-    const backgroundVWC = useOsehImageStateValueWithCallbacks(
-      {
-        type: 'callbacks',
-        props: () => backgroundProps.get(),
-        callbacks: backgroundProps.callbacks,
-      },
-      imageHandler
+    const backgroundVWC = useStaleOsehImageOnSwap(
+      useOsehImageStateValueWithCallbacks(
+        {
+          type: 'callbacks',
+          props: () => backgroundProps.get(),
+          callbacks: backgroundProps.callbacks,
+        },
+        imageHandler
+      )
     );
     return useMappedValuesWithCallbacks(
       [backgroundVWC],

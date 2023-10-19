@@ -22,6 +22,7 @@ import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks'
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
 import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 
 const backgroundImageUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -178,13 +179,15 @@ export const RequestNotificationTimeFeature: Feature<
         isPublic: true,
       })
     );
-    const backgroundVWC = useOsehImageStateValueWithCallbacks(
-      {
-        type: 'callbacks',
-        props: () => backgroundPropsVWC.get(),
-        callbacks: backgroundPropsVWC.callbacks,
-      },
-      images
+    const backgroundVWC = useStaleOsehImageOnSwap(
+      useOsehImageStateValueWithCallbacks(
+        {
+          type: 'callbacks',
+          props: () => backgroundPropsVWC.get(),
+          callbacks: backgroundPropsVWC.callbacks,
+        },
+        images
+      )
     );
     const personalizedPromptVWC = useMappedValuesWithCallbacks(
       [interestsVWC, promptVWC],

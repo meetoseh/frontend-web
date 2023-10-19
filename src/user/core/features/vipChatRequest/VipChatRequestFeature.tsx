@@ -11,6 +11,7 @@ import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks'
 import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 
 /**
  * Determines when we last showed the vip chat request for the user with the
@@ -248,13 +249,15 @@ export const VipChatRequestFeature: Feature<VipChatRequestState, VipChatRequestR
       displayHeight: windowSize.get().height,
       alt: '',
     }));
-    const background = useOsehImageStateValueWithCallbacks(
-      {
-        type: 'callbacks',
-        props: () => backgroundProps.get(),
-        callbacks: backgroundProps.callbacks,
-      },
-      images
+    const background = useStaleOsehImageOnSwap(
+      useOsehImageStateValueWithCallbacks(
+        {
+          type: 'callbacks',
+          props: () => backgroundProps.get(),
+          callbacks: backgroundProps.callbacks,
+        },
+        images
+      )
     );
 
     return useMappedValuesWithCallbacks(

@@ -11,6 +11,7 @@ import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/u
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
+import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 
 const backgroundImageUid = 'oseh_if_hH68hcmVBYHanoivLMgstg';
 
@@ -48,13 +49,15 @@ export const RequestNameFeature: Feature<RequestNameState, RequestNameResources>
         isPublic: true,
       })
     );
-    const background = useOsehImageStateValueWithCallbacks(
-      {
-        type: 'callbacks',
-        props: () => backgroundProps.get(),
-        callbacks: backgroundProps.callbacks,
-      },
-      images
+    const background = useStaleOsehImageOnSwap(
+      useOsehImageStateValueWithCallbacks(
+        {
+          type: 'callbacks',
+          props: () => backgroundProps.get(),
+          callbacks: backgroundProps.callbacks,
+        },
+        images
+      )
     );
 
     return useMappedValueWithCallbacks(

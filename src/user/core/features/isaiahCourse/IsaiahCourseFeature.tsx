@@ -18,6 +18,7 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { getUTMFromURL } from '../../../../shared/hooks/useVisitor';
+import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 const courseToIanUid: Record<string, string> = {
@@ -148,21 +149,23 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
   useResources: (stateVWC, requiredVWC, allStatesVWC) => {
     const windowSizeVWC = useWindowSizeValueWithCallbacks();
     const imageHandler = useOsehImageStateRequestHandler({});
-    const background = useOsehImageStateValueWithCallbacks(
-      adaptValueWithCallbacksAsVariableStrategyProps(
-        useMappedValuesWithCallbacks(
-          [requiredVWC, windowSizeVWC],
-          (): OsehImageProps => ({
-            uid: requiredVWC.get() ? backgroundUid : null,
-            jwt: null,
-            displayWidth: windowSizeVWC.get().width,
-            displayHeight: windowSizeVWC.get().height,
-            alt: '',
-            isPublic: true,
-          })
-        )
-      ),
-      imageHandler
+    const background = useStaleOsehImageOnSwap(
+      useOsehImageStateValueWithCallbacks(
+        adaptValueWithCallbacksAsVariableStrategyProps(
+          useMappedValuesWithCallbacks(
+            [requiredVWC, windowSizeVWC],
+            (): OsehImageProps => ({
+              uid: requiredVWC.get() ? backgroundUid : null,
+              jwt: null,
+              displayWidth: windowSizeVWC.get().width,
+              displayHeight: windowSizeVWC.get().height,
+              alt: '',
+              isPublic: true,
+            })
+          )
+        ),
+        imageHandler
+      )
     );
     const ianUID = useMappedValuesWithCallbacks([requiredVWC, stateVWC], () => ({
       uid: requiredVWC.get() ? stateVWC.get().ian?.uid ?? null : null,

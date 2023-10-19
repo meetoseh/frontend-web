@@ -20,6 +20,7 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
 import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
+import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 
 type Selected = {
   word: Emotion;
@@ -138,13 +139,15 @@ export const PickEmotionJourneyFeature: Feature<
         };
       }
     );
-    const backgroundVWC = useOsehImageStateValueWithCallbacks(
-      {
-        type: 'callbacks',
-        props: () => backgroundPropsVWC.get(),
-        callbacks: backgroundPropsVWC.callbacks,
-      },
-      images
+    const backgroundVWC = useStaleOsehImageOnSwap(
+      useOsehImageStateValueWithCallbacks(
+        {
+          type: 'callbacks',
+          props: () => backgroundPropsVWC.get(),
+          callbacks: backgroundPropsVWC.callbacks,
+        },
+        images
+      )
     );
     const loginContextRaw = useContext(LoginContext);
     const loginContextVWC = useReactManagedValueAsValueWithCallbacks(loginContextRaw);
@@ -443,6 +446,8 @@ export const PickEmotionJourneyFeature: Feature<
         const onSelect = onSelectVWC.get();
         const onFinishedJourney = onFinishedJourneyVWC.get();
         const takeAnotherClass = takeAnotherClassVWC.get();
+
+        console.log(background);
 
         return {
           loading:

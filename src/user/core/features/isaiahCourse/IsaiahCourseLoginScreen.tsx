@@ -11,6 +11,7 @@ import { SocialSignins, useProviderUrls } from '../../../login/LoginApp';
 import { SplashScreen } from '../../../splash/SplashScreen';
 import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { getUTMFromURL } from '../../../../shared/hooks/useVisitor';
+import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 
 const backgroundUid = 'oseh_if_sqEZCjA1sP6vaIrzz5Lvsw';
 
@@ -20,18 +21,20 @@ const backgroundUid = 'oseh_if_sqEZCjA1sP6vaIrzz5Lvsw';
 export const IsaiahCourseLoginScreen = (): ReactElement => {
   const imageHandler = useOsehImageStateRequestHandler({});
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
-  const backgroundVWC = useOsehImageStateValueWithCallbacks(
-    adaptValueWithCallbacksAsVariableStrategyProps(
-      useMappedValueWithCallbacks(windowSizeVWC, (windowSize) => ({
-        uid: backgroundUid,
-        jwt: null,
-        displayWidth: windowSize.width,
-        displayHeight: windowSize.height,
-        isPublic: true,
-        alt: '',
-      }))
-    ),
-    imageHandler
+  const backgroundVWC = useStaleOsehImageOnSwap(
+    useOsehImageStateValueWithCallbacks(
+      adaptValueWithCallbacksAsVariableStrategyProps(
+        useMappedValueWithCallbacks(windowSizeVWC, (windowSize) => ({
+          uid: backgroundUid,
+          jwt: null,
+          displayWidth: windowSize.width,
+          displayHeight: windowSize.height,
+          isPublic: true,
+          alt: '',
+        }))
+      ),
+      imageHandler
+    )
   );
   const urls = useProviderUrls();
   const backgroundLoading = useUnwrappedValueWithCallbacks(

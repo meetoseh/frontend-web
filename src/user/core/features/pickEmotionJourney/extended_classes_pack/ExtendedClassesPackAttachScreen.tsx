@@ -5,6 +5,7 @@ import { useWindowSizeValueWithCallbacks } from '../../../../../shared/hooks/use
 import { OsehImageFromStateValueWithCallbacks } from '../../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { useOsehImageStateRequestHandler } from '../../../../../shared/images/useOsehImageStateRequestHandler';
 import { useOsehImageStateValueWithCallbacks } from '../../../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { useStaleOsehImageOnSwap } from '../../../../../shared/images/useStaleOsehImageOnSwap';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import styles from './ExtendedClassesPackAttachScreen.module.css';
 
@@ -14,19 +15,21 @@ import styles from './ExtendedClassesPackAttachScreen.module.css';
 export const ExtendedClassesPackAttachScreen = ({ session }: { session: string | null }) => {
   const images = useOsehImageStateRequestHandler({});
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
-  const background = useOsehImageStateValueWithCallbacks(
-    adaptValueWithCallbacksAsVariableStrategyProps(
-      useMappedValueWithCallbacks(windowSizeVWC, (windowSize) => ({
-        uid: 'oseh_if_0ykGW_WatP5-mh-0HRsrNw',
-        jwt: null,
-        displayWidth: windowSize.width,
-        displayHeight: windowSize.height,
-        isPublic: true,
-        alt: '',
-        placeholderColor: '#01181e',
-      }))
-    ),
-    images
+  const background = useStaleOsehImageOnSwap(
+    useOsehImageStateValueWithCallbacks(
+      adaptValueWithCallbacksAsVariableStrategyProps(
+        useMappedValueWithCallbacks(windowSizeVWC, (windowSize) => ({
+          uid: 'oseh_if_0ykGW_WatP5-mh-0HRsrNw',
+          jwt: null,
+          displayWidth: windowSize.width,
+          displayHeight: windowSize.height,
+          isPublic: true,
+          alt: '',
+          placeholderColor: '#01181e',
+        }))
+      ),
+      images
+    )
   );
   const fullHeightStyle = useFullHeightStyle({ attribute: 'minHeight', windowSizeVWC });
 

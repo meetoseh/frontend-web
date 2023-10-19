@@ -114,6 +114,7 @@ export const useFeaturesState = (
 
       if (req[i]) {
         if (loading[i]) {
+          console.log('loading', features[i].identifier);
           return undefined;
         }
 
