@@ -13,8 +13,26 @@ install_nginx() {
     yum clean metadata
     yum update -y
     yum install -y nginx
+    sleep 1
     nginx -t && nginx
-    nginx -s quit
+    sleep 1
+    if ! nginx -s quit
+    then
+        echo "Failed to quit nginx, attempting to kill by process name"
+        while [ -n "$(pgrep nginx)" ]
+        do
+            echo "Killing $(pgrep nginx | head -n 1)"
+            kill $(pgrep nginx | head -n 1)
+            sleep 1
+        done
+    fi
+
+    while [ -n "$(pgrep nginx)" ]
+    do
+        echo "Waiting for nginx to shut off"
+        sleep 1
+    done
+    echo "nginx stopped successfully"
 }
 
 install_nginx_if_necessary() {
@@ -31,7 +49,7 @@ activate_nvm() {
 
 install_nvm() {
     yum -y install build-essential libssl-dev
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | bash
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
 }
 
 install_node() {
