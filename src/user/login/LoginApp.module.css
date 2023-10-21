@@ -92,30 +92,31 @@
 .signInWithGoogleIcon {
   composes: icon from '../../shared/icons.module.css';
   width: 18px;
-  height: 18px;
+  height: 19px;
   background-image: url('./icons/google.svg');
-  margin-right: 8px;
+  margin-right: 12px;
+  padding-left: 1px;
+  padding-right: 1px;
 }
 
 .signInWithAppleIcon {
   composes: icon from '../../shared/icons.module.css';
   width: 18px;
-  height: 18px;
+  height: 19px;
   background-image: url('./icons/apple.svg');
-  margin-right: 8px;
+  margin-right: 12px;
+  padding-left: 1px;
+  padding-right: 1px;
 }
 
-.signInWithFacebookIcon {
+.signInWithEmailIcon {
   composes: icon from '../../shared/icons.module.css';
-  width: 18px;
+  width: 20px;
   height: 18px;
-  background-image: url('./icons/facebook.svg');
-  margin-right: 8px;
-}
-
-.directAccountSecretButton {
-  composes: unstyled from '../../shared/buttons.module.css';
-  cursor: auto;
+  background-image: url('./icons/email.svg');
+  margin-right: 12px;
+  padding-top: 0.5px;
+  padding-bottom: 0.5px;
 }
 
 .signinModal {
