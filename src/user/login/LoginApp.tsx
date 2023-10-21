@@ -33,7 +33,7 @@ type LoginAppProps = {
   redirectUrl?: string | undefined;
 };
 
-export type SocialUrls = { google: string; apple: string };
+export type SocialUrls = { google: string; apple: string; direct: string };
 
 /**
  * Gets the url for the given social login provider.
@@ -96,16 +96,17 @@ export const useProviderUrlsValueWithCallbacks = (
             return;
           }
 
-          const [google, apple] = await Promise.all([
+          const [google, apple, direct] = await Promise.all([
             getProviderUrl('Google'),
             getProviderUrl('SignInWithApple'),
+            getProviderUrl('Direct'),
           ]);
 
           if (!running) {
             return;
           }
 
-          setVWC(urls, { google, apple });
+          setVWC(urls, { google, apple, direct });
         }
 
         async function getUrls() {
@@ -318,7 +319,7 @@ export const SocialSignins = ({
           <div ref={appleRef}>Sign in with Apple</div>
         </div>
       </Button>
-      <Button type="button" variant="filled-white" onClick={urls.apple}>
+      <Button type="button" variant="filled-white" onClick={urls.direct}>
         <div className={styles.iconAndText}>
           <div className={styles.signInWithEmailIcon}></div>
           <div ref={emailRef}>Sign in with Email</div>
