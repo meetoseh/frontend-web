@@ -1,10 +1,17 @@
-import { ReactElement } from 'react';
+import { ReactElement, useMemo } from 'react';
 import styles from '../notifs_dashboard/AdminNotifsDashboard.module.css';
 import { SectionDescription } from '../notifs_dashboard/AdminNotifsDashboard';
 import { FlowChart } from '../../shared/components/flowchart/FlowChart';
 import { combineClasses } from '../../shared/lib/combineClasses';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
 import { NetworkChart } from '../lib/NetworkChart';
+import { NetworkBlockStats } from '../lib/NetworkBlockStats';
+import {
+  formatNetworkDuration,
+  formatNetworkNumber,
+  formatNetworkString,
+  formatNetworkUnixTimestamp,
+} from '../../shared/lib/networkResponseUtils';
 
 export const AdminSignInWithOsehDashboard = (): ReactElement => {
   return (
@@ -407,9 +414,21 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
                         Verification Queue which has the same data but for which queued at might be
                         in the future.
                       </p>
-                      <div className={combineClasses(styles.blockNote, styles.blockNoteWarning)}>
-                        TODO: size of queue, oldest due at
-                      </div>
+                      <NetworkBlockStats
+                        path="/api/1/admin/siwo/delayed_emails_set_info"
+                        items={useMemo(
+                          () => [
+                            { key: 'length', format: formatNetworkNumber },
+                            {
+                              key: 'oldest_due_at',
+                              name: 'Oldest',
+                              format: formatNetworkUnixTimestamp,
+                            },
+                            { key: 'overdue', format: formatNetworkNumber },
+                          ],
+                          []
+                        )}
+                      />
                     </div>
                   </div>
                 ),
@@ -422,12 +441,35 @@ export const AdminSignInWithOsehDashboard = (): ReactElement => {
                           About once a minute, the Send Delayed Email Verification Job will move
                           overdue emails from the Delayed Email Verification Queue to the Email To
                           Send Queue
-                          <div
-                            className={combineClasses(styles.blockNote, styles.blockNoteWarning)}>
-                            TODO: started at, finished at, running time, num moved, stop reason
-                            (incl backpressure)
-                          </div>
                         </div>
+                        <NetworkBlockStats
+                          path="/api/1/admin/siwo/last_delayed_emails_job"
+                          items={useMemo(
+                            () => [
+                              { key: 'started_at', format: formatNetworkUnixTimestamp },
+                              { key: 'finished_at', format: formatNetworkUnixTimestamp },
+                              { key: 'running_time', format: formatNetworkDuration },
+                              { key: 'stop_reason', format: formatNetworkString },
+                              { key: 'attempted', format: formatNetworkNumber },
+                              { key: 'moved', format: formatNetworkNumber },
+                            ],
+                            []
+                          )}
+                          specialStatusCodes={useMemo(
+                            () => ({
+                              404: () => (
+                                <div
+                                  className={combineClasses(
+                                    styles.blockNote,
+                                    styles.blockNoteWarning
+                                  )}>
+                                  No send job has been run yet.
+                                </div>
+                              ),
+                            }),
+                            []
+                          )}
+                        />
                       </div>
                     ),
                     children: [],
