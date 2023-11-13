@@ -1,13 +1,12 @@
 import { useContext, useEffect } from 'react';
 import { Feature } from '../../models/Feature';
-import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
+import { LoginContext, LoginContextValue } from '../../../../shared/contexts/LoginContext';
+import { Channel, RequestNotificationTimeState } from './RequestNotificationTimeState';
 import {
-  PublicInteractivePrompt,
-  usePublicInteractivePrompt,
-} from '../../../../shared/hooks/usePublicInteractivePrompt';
-import { RequestNotificationTimeState } from './RequestNotificationTimeState';
-import { RequestNotificationTimeResources } from './RequestNotificationTimeResources';
+  ChannelSettings,
+  DayOfWeek,
+  RequestNotificationTimeResources,
+} from './RequestNotificationTimeResources';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { RequestNotificationTime } from './RequestNotificationTime';
 import {
@@ -15,16 +14,12 @@ import {
   useInappNotificationValueWithCallbacks,
 } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSessionValueWithCallbacks } from '../../../../shared/hooks/useInappNotificationSession';
-import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
-import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
-import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
-import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
-import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
-
-const backgroundImageUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
+import { setVWC } from '../../../../shared/lib/setVWC';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
+import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
 
 export const RequestNotificationTimeFeature: Feature<
   RequestNotificationTimeState,
@@ -44,12 +39,12 @@ export const RequestNotificationTimeFeature: Feature<
     const ian = useInappNotificationValueWithCallbacks({
       type: 'callbacks',
       props: () => ({
-        uid: 'oseh_ian_aJs054IZzMnJE2ulbbyT6w',
+        uid: 'oseh_ian_n-1kL6iJ76lhSgxLSAPJrQ',
         suppress: missingPhone.get() ?? true,
       }),
       callbacks: missingPhone.callbacks,
     });
-    const serverWantsNotificationTime = useWritableValueWithCallbacks<boolean | undefined>(
+    const serverWantsNotificationTime = useWritableValueWithCallbacks<Channel[] | null | undefined>(
       () => undefined
     );
 
@@ -81,28 +76,13 @@ export const RequestNotificationTimeFeature: Feature<
           active = false;
         };
 
-        async function askServerInner() {
-          const response = await apiFetch(
-            '/api/1/users/me/wants_notification_time_prompt',
-            {
-              method: 'GET',
-            },
-            loginContext
-          );
-
-          if (!response.ok) {
-            throw response;
-          }
-
-          const data = await response.json();
-          return data.wants_notification_time_prompt;
-        }
-
         async function askServer() {
           try {
-            const wantsPrompt = await askServerInner();
+            const channels = await askServerInner(loginContext);
             if (active) {
-              setServerWantsNotificationTime(wantsPrompt);
+              setServerWantsNotificationTime(
+                channels.wantsNotificationTimePrompt ? channels.channels : null
+              );
             }
           } catch (e) {
             if (active) {
@@ -110,7 +90,7 @@ export const RequestNotificationTimeFeature: Feature<
                 'Server did not respond to wants_notification_time_prompt request: ',
                 e
               );
-              setServerWantsNotificationTime(false);
+              setServerWantsNotificationTime(null);
             }
             return;
           }
@@ -126,109 +106,236 @@ export const RequestNotificationTimeFeature: Feature<
         cleanup = handleIAN(ian.get()) ?? null;
       }
 
-      function setServerWantsNotificationTime(v: boolean | undefined) {
-        if (v === serverWantsNotificationTime.get()) {
-          return;
-        }
+      function setServerWantsNotificationTime(v: Channel[] | null | undefined) {
+        setVWC(serverWantsNotificationTime, v, (a, b) => {
+          if (a === b) {
+            return true;
+          }
 
-        serverWantsNotificationTime.set(v);
-        serverWantsNotificationTime.callbacks.call(undefined);
+          if (a === null || b === null || a === undefined || b === undefined) {
+            return false;
+          }
+
+          if (a.length !== b.length) {
+            return false;
+          }
+
+          const sortedA = [...a].sort();
+          const sortedB = [...b].sort();
+          for (let i = 0; i < sortedA.length; i++) {
+            if (sortedA[i] !== sortedB[i]) {
+              return false;
+            }
+          }
+
+          return true;
+        });
       }
     }, [loginContext, ian, serverWantsNotificationTime]);
 
+    const clientRequested = useWritableValueWithCallbacks(() => false);
+
     return useMappedValuesWithCallbacks(
-      [ian, missingPhone, serverWantsNotificationTime],
+      [ian, missingPhone, serverWantsNotificationTime, clientRequested],
       (): RequestNotificationTimeState => ({
         ian: ian.get(),
         missingPhone: missingPhone.get(),
         serverWantsNotificationTime: serverWantsNotificationTime.get(),
+        clientRequested: clientRequested.get(),
+        setClientRequested: (v) => {
+          setVWC(clientRequested, v);
+        },
       })
     );
   },
 
   useResources: (stateVWC, requiredVWC) => {
     const loginContext = useContext(LoginContext);
-    const givenNameRaw = loginContext.userAttributes?.givenName ?? null;
-    const givenNameVWC = useReactManagedValueAsValueWithCallbacks(givenNameRaw);
-    const images = useOsehImageStateRequestHandler({});
-    const windowSizeVWC = useWindowSizeValueWithCallbacks();
     const session = useInappNotificationSessionValueWithCallbacks({
       type: 'callbacks',
       props: () => ({ uid: stateVWC.get().ian?.uid ?? null }),
       callbacks: stateVWC.callbacks,
     });
-    const interestsRaw = useContext(InterestsContext);
-    const interestsVWC = useReactManagedValueAsValueWithCallbacks(interestsRaw);
 
-    const promptVWC = usePublicInteractivePrompt({
-      type: 'callbacks',
-      props: () => ({
-        identifier: 'notification-time',
-        load: requiredVWC.get(),
-      }),
-      callbacks: requiredVWC.callbacks,
-    });
-    const backgroundPropsVWC = useMappedValuesWithCallbacks(
-      [requiredVWC, windowSizeVWC],
-      (): OsehImageProps => ({
-        uid: requiredVWC.get() ? backgroundImageUid : null,
-        jwt: null,
-        displayWidth: windowSizeVWC.get().width,
-        displayHeight: windowSizeVWC.get().height,
-        alt: '',
-        isPublic: true,
-      })
-    );
-    const backgroundVWC = useStaleOsehImageOnSwap(
-      useOsehImageStateValueWithCallbacks(
-        {
-          type: 'callbacks',
-          props: () => backgroundPropsVWC.get(),
-          callbacks: backgroundPropsVWC.callbacks,
-        },
-        images
-      )
-    );
-    const personalizedPromptVWC = useMappedValuesWithCallbacks(
-      [interestsVWC, promptVWC],
-      (): PublicInteractivePrompt => {
-        const interests = interestsVWC.get();
-        const prompt = promptVWC.get();
-        if (interests.state !== 'loaded' || prompt.loading || prompt.prompt === null) {
-          return prompt;
-        }
+    const channelsVWC = useWritableValueWithCallbacks<Channel[] | undefined>(() => undefined);
+    const currentSettingsVWC = useWritableValueWithCallbacks<Record<
+      Channel,
+      ChannelSettings
+    > | null>(() => null);
 
-        if (interests.primaryInterest === 'sleep') {
-          // the type checker can't handle this case :/
-          return {
-            ...prompt,
-            prompt: {
-              ...prompt.prompt,
-              prompt: {
-                ...prompt.prompt.prompt,
-                text: 'Staying relaxed during the day will help you sleep at night. When do you want to be reminded to relax?',
-              },
-            },
-          } as any;
-        }
-
-        return prompt;
+    useValueWithCallbacksEffect(requiredVWC, (req) => {
+      if (!req) {
+        setVWC(currentSettingsVWC, null);
+        return undefined;
       }
-    );
 
-    return useMappedValuesWithCallbacks(
-      [session, givenNameVWC, backgroundVWC, personalizedPromptVWC, interestsVWC],
-      () => ({
+      if (loginContext.state !== 'logged-in') {
+        setVWC(currentSettingsVWC, null);
+        return undefined;
+      }
+
+      let active = true;
+      fetchSettings();
+      return () => {
+        active = false;
+      };
+
+      async function fetchSettingsInner() {
+        const response = await apiFetch(
+          '/api/1/users/me/daily_reminder_settings',
+          {
+            method: 'GET',
+          },
+          loginContext
+        );
+
+        if (!response.ok) {
+          throw response;
+        }
+
+        const data: Record<
+          Channel,
+          Omit<ChannelSettings, 'days' | 'isReal'> & { days: DayOfWeek[]; is_real: boolean }
+        > = await response.json();
+
+        const currentSettings = {} as { [k: string]: ChannelSettings };
+        for (const [k, v] of Object.entries(data)) {
+          currentSettings[k] = {
+            start: v.start,
+            end: v.end,
+            days: new Set<DayOfWeek>(v.days),
+            isReal: v.is_real ?? false,
+          };
+        }
+
+        if (active) {
+          setVWC(currentSettingsVWC, currentSettings as Record<Channel, ChannelSettings>);
+        }
+      }
+
+      async function fetchSettings() {
+        try {
+          await fetchSettingsInner();
+        } catch (e) {
+          if (active) {
+            console.log('Failed to fetch current settings, treating as empty:', e);
+            setVWC(currentSettingsVWC, {
+              email: makeDefaultSettings(),
+              push: makeDefaultSettings(),
+              sms: makeDefaultSettings(),
+            });
+          }
+        }
+      }
+
+      function makeDefaultSettings(): ChannelSettings {
+        return {
+          days: new Set<DayOfWeek>([
+            'Sunday',
+            'Monday',
+            'Tuesday',
+            'Wednesday',
+            'Thursday',
+            'Friday',
+            'Saturday',
+          ]),
+          start: 8 * 3600,
+          end: 10 * 3600,
+          isReal: false,
+        };
+      }
+    });
+
+    useValuesWithCallbacksEffect([stateVWC, requiredVWC, channelsVWC], () => {
+      if (channelsVWC.get() !== undefined) {
+        return;
+      }
+
+      if (!requiredVWC.get()) {
+        setVWC(channelsVWC, undefined);
+        return;
+      }
+
+      let active = true;
+      getLatestServerChannels();
+      return () => {
+        active = false;
+      };
+
+      async function getLatestServerChannels() {
+        try {
+          const resp = await askServerInner(loginContext);
+          if (!active) {
+            return;
+          }
+
+          if (
+            !stateVWC.get().clientRequested &&
+            resp.wantsNotificationTimePrompt &&
+            resp.channels !== null
+          ) {
+            setVWC(channelsVWC, resp.channels);
+            return;
+          }
+          setVWC(channelsVWC, resp.potentialChannels);
+        } catch (e) {
+          if (active) {
+            console.error('Could not update server channels: ', e);
+            const allChannels: Channel[] = ['email', 'sms', 'push'];
+            setVWC(channelsVWC, allChannels);
+          }
+          return;
+        }
+      }
+    });
+
+    return useMappedValuesWithCallbacks([channelsVWC, session, currentSettingsVWC], () => {
+      const channels = channelsVWC.get();
+      const currentSettings = currentSettingsVWC.get();
+      const channelsCp: Channel[] = channels !== undefined ? [...channels] : [];
+      const preferredChannelsOrder: Channel[] = ['push', 'sms', 'email'];
+      channelsCp.sort((a, b) => {
+        const aIdx = preferredChannelsOrder.indexOf(a);
+        const bIdx = preferredChannelsOrder.indexOf(b);
+
+        if (aIdx === bIdx) {
+          return 0;
+        }
+
+        if (aIdx < 0) {
+          return 1;
+        }
+
+        if (bIdx < 0) {
+          return -1;
+        }
+
+        return aIdx - bIdx;
+      });
+
+      return {
         session: session.get(),
-        givenName: givenNameVWC.get(),
-        background: backgroundVWC.get(),
-        prompt: personalizedPromptVWC.get(),
-        loading: backgroundVWC.get().loading || interestsVWC.get().state === 'loading',
-      })
-    );
+        loading:
+          loginContext.state === 'loading' || currentSettings === null || channels === undefined,
+        currentSettings,
+        setCurrentSettings:
+          currentSettings === null
+            ? () => {
+                throw new Error('not initialized');
+              }
+            : (newSettings) => {
+                setVWC(currentSettingsVWC, newSettings);
+              },
+        channels: channelsCp,
+      };
+    });
   },
 
   isRequired: (worldState, allStates) => {
+    if (worldState.clientRequested) {
+      return true;
+    }
+
     if (allStates.pickEmotionJourney.classesTakenThisSession < 1) {
       return false;
     }
@@ -251,7 +358,8 @@ export const RequestNotificationTimeFeature: Feature<
 
     return (
       worldState.ian.showNow &&
-      (worldState.serverWantsNotificationTime || allStates.requestPhone.justAddedPhoneNumber)
+      (worldState.serverWantsNotificationTime !== null ||
+        allStates.requestPhone.justAddedPhoneNumber)
     );
   },
 
@@ -259,3 +367,33 @@ export const RequestNotificationTimeFeature: Feature<
     <RequestNotificationTime state={worldState} resources={resources} />
   ),
 };
+
+async function askServerInner(loginContext: LoginContextValue): Promise<{
+  wantsNotificationTimePrompt: boolean;
+  channels: Channel[];
+  potentialChannels: Channel[];
+}> {
+  const response = await apiFetch(
+    '/api/1/users/me/wants_notification_time_prompt',
+    {
+      method: 'GET',
+    },
+    loginContext
+  );
+
+  if (!response.ok) {
+    throw response;
+  }
+
+  const data: {
+    wants_notification_time_prompt: boolean;
+    channels: Channel[];
+    potential_channels: Channel[];
+  } = await response.json();
+
+  return {
+    wantsNotificationTimePrompt: data.wants_notification_time_prompt,
+    channels: data.channels,
+    potentialChannels: data.potential_channels,
+  };
+}

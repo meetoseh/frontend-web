@@ -5,7 +5,6 @@ type User = {
   sub: string;
   givenName: string;
   familyName: string;
-  email: string;
   createdAt: Date;
 };
 

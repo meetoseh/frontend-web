@@ -24,4 +24,10 @@ export type SettingsResources = {
    * don't know yet.
    */
   havePro: boolean | undefined;
+
+  /**
+   * A function which can be called to change to the edit notification
+   * times screen.
+   */
+  gotoEditReminderTimes: () => void;
 };

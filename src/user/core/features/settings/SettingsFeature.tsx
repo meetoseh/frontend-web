@@ -10,6 +10,7 @@ import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWi
 import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { Settings } from './Settings';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * Simple link page where the user can perform some key actions, like logging out.
@@ -51,10 +52,26 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
       })
     );
   },
-  useResources: (stateVWC, requiredVWC) => {
+  useResources: (stateVWC, requiredVWC, allStatesVWC) => {
     const loginContext = useContext(LoginContext);
     const haveProVWC = useWritableValueWithCallbacks<boolean | undefined>(() => undefined);
     const loadErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+    const gotoEditTimesVWC = useMappedValueWithCallbacks(
+      allStatesVWC,
+      (allStates) => {
+        return () => {
+          allStates.requestNotificationTime.setClientRequested(true);
+        };
+      },
+      {
+        inputEqualityFn: (a, b) => {
+          return (
+            a.requestNotificationTime.setClientRequested ===
+            b.requestNotificationTime.setClientRequested
+          );
+        },
+      }
+    );
 
     useValueWithCallbacksEffect(
       requiredVWC,
@@ -125,21 +142,26 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
       )
     );
 
-    return useMappedValuesWithCallbacks([haveProVWC, loadErrorVWC], (): SettingsResources => {
-      if (loadErrorVWC.get() !== null) {
+    return useMappedValuesWithCallbacks(
+      [haveProVWC, loadErrorVWC, gotoEditTimesVWC],
+      (): SettingsResources => {
+        if (loadErrorVWC.get() !== null) {
+          return {
+            loading: false,
+            havePro: undefined,
+            loadError: loadErrorVWC.get(),
+            gotoEditReminderTimes: () => {},
+          };
+        }
+
         return {
-          loading: false,
-          havePro: undefined,
-          loadError: loadErrorVWC.get(),
+          loading: haveProVWC.get() === undefined,
+          havePro: haveProVWC.get(),
+          loadError: null,
+          gotoEditReminderTimes: gotoEditTimesVWC.get(),
         };
       }
-
-      return {
-        loading: haveProVWC.get() === undefined,
-        havePro: haveProVWC.get(),
-        loadError: null,
-      };
-    });
+    );
   },
   isRequired: (state) => state.show,
   component: (state, resources) => <Settings state={state} resources={resources} />,

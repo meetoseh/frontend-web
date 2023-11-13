@@ -37,8 +37,18 @@ export const BigUserBasicInfo = ({
         </div>
       </div>
 
-      <CrudFormElement title="Email">{user.email}</CrudFormElement>
-      <CrudFormElement title="Phone Number">{user.phoneNumber ?? 'Not Set'}</CrudFormElement>
+      {user.emails.map((email) => (
+        <CrudFormElement title="Email" key={email.address}>
+          {email.address} ({!email.verified ? 'un' : ''}verified, {!email.suppressed ? 'un' : ''}
+          suppressed, {!email.enabled ? 'dis' : 'en'}abled)
+        </CrudFormElement>
+      ))}
+      {user.phones.map((phone) => (
+        <CrudFormElement title="Phone Number" key={phone.number}>
+          {phone.number} ({!phone.verified ? 'un' : ''}verified, {!phone.suppressed ? 'un' : ''}
+          suppressed, {!phone.enabled ? 'dis' : 'en'}abled)
+        </CrudFormElement>
+      ))}
       <CrudFormElement title="Admin">{user.admin ? 'Yes' : 'No'}</CrudFormElement>
       <CrudFormElement title="Revenue Cat ID">{user.revenueCatID}</CrudFormElement>
       <CrudFormElement title="Created At">{user.createdAt.toLocaleString()}</CrudFormElement>

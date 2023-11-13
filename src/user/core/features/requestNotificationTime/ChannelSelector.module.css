@@ -1,0 +1,14 @@
+.channels {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  width: calc(100% + 21px);
+  margin-top: 100px;
+  /* compensates for icons having empty space on right for dot */
+  padding-left: 0; /*21px;*/
+  margin-right: -21px;
+}
+
+.channelButton {
+  composes: unstyled from '../../../../shared/buttons.module.css';
+}

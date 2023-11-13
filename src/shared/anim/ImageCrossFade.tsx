@@ -146,7 +146,7 @@ export const ImageCrossFade = ({
       const initialMsIntoAnimation = msIntoAnimation.current;
 
       const gfx = initGraphics();
-      render(gfx, ease.b_t(Math.min(initialMsIntoAnimation / duration, 1.0))[1]);
+      render(gfx, ease.y_x(Math.min(initialMsIntoAnimation / duration, 1.0)));
 
       if (paused) {
         cancelers.add(() => {

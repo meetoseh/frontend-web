@@ -20,6 +20,13 @@
   }
 }
 
+.style_whiteWide {
+  display: flex;
+  flex-flow: row-reverse wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .input {
   flex: 0 0 16px;
   margin: 0;
@@ -65,7 +72,17 @@
   font-size: 12px;
   line-height: 22px;
   letter-spacing: 0.15px;
-  margin-left: 12px;
+  margin: 0 0 0 12px;
+}
+
+.style_whiteWide .label {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  color: white;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.25px;
+  margin: 0 12px 0 0;
 }
 
 .enabled .label {

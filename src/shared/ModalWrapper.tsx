@@ -18,6 +18,8 @@ type ModalProps = {
 /**
  * Wraps the children in the standard modal wrapper. This is typically used
  * when injecting into the modal context.
+ *
+ * @see SlideInModal for an alternative wrapper which slides up from the bottom
  */
 export const ModalWrapper = ({
   children,

@@ -1,28 +1,34 @@
-import { ReactElement, useContext, useEffect, useState } from 'react';
+import { ReactElement, useContext, useEffect } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { AdminDashboardTopBlock } from './AdminDashboardTopBlock';
 import icons from './icons.module.css';
-import styles from './AdminDashboardNotificationSettingsBlocksLoader.module.css';
+import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
+import { setVWC } from '../../shared/lib/setVWC';
+import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 
 /**
- * Loads the information that's used in the user notification settings blocks,
- * and then renders the blocks as a fragment containing 4 blocks.
+ * Loads the information that's used in the daily reminders (formerly user
+ * notification settings) blocks, and then renders the blocks as a fragment
+ * containing 4 blocks.
  *
  * This shows:
- * - How many users have sms notifications of any kind enabled
- * - How many users have specifically selected morning
- * - How many users have specifically selected afternoon
- * - How many users have specifically selected evening
+ * - How many users have daily reminders of any kind enabled
+ * - How many users have SMS daily reminders enabled
+ * - How many users have email daily reminders enabled
+ * - How many users have push daily reminders enabled
  */
 export const AdminDashboardNotificationSettingsBlocksLoader = (): ReactElement => {
   const loginContext = useContext(LoginContext);
-  const [anyCount, setAnyCount] = useState(0);
-  const [morningCount, setMorningCount] = useState(0);
-  const [afternoonCount, setAfternoonCount] = useState(0);
-  const [eveningCount, setEveningCount] = useState(0);
+  const smsEnabled = useWritableValueWithCallbacks(() => 0);
+  const emailEnabled = useWritableValueWithCallbacks(() => 0);
+  const pushEnabled = useWritableValueWithCallbacks(() => 0);
 
-  const totalCount = anyCount + morningCount + afternoonCount + eveningCount;
+  const totalEnabled = useMappedValuesWithCallbacks(
+    [smsEnabled, emailEnabled, pushEnabled],
+    () => smsEnabled.get() + emailEnabled.get() + pushEnabled.get()
+  );
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in') {
@@ -36,63 +42,67 @@ export const AdminDashboardNotificationSettingsBlocksLoader = (): ReactElement =
     };
 
     async function fetchCounts() {
-      const response = await apiFetch(
-        '/api/1/admin/total_user_notification_settings',
-        {},
-        loginContext
-      );
+      const response = await apiFetch('/api/1/admin/daily_reminders/counts', {}, loginContext);
       if (!response.ok) {
         throw response;
       }
 
-      const body: { value: { [key: string]: number } } = await response.json();
+      const body: {
+        sms: number;
+        email: number;
+        push: number;
+      } = await response.json();
       if (!active) {
         return;
       }
 
-      setAnyCount(body.value['text-any'] ?? 0);
-      setMorningCount(body.value['text-morning'] ?? 0);
-      setAfternoonCount(body.value['text-afternoon'] ?? 0);
-      setEveningCount(body.value['text-evening'] ?? 0);
+      setVWC(smsEnabled, body.sms);
+      setVWC(emailEnabled, body.email);
+      setVWC(pushEnabled, body.push);
     }
-  }, [loginContext]);
+  }, [loginContext, smsEnabled, emailEnabled, pushEnabled]);
 
   return (
     <>
-      <AdminDashboardTopBlock
-        iconClassName={icons.anyNotificationIcon}
-        value={totalCount}
-        label={'Notifications Enabled'}
+      <RenderGuardedComponent
+        props={totalEnabled}
+        component={(totalCount) => (
+          <AdminDashboardTopBlock
+            iconClassName={icons.anyNotificationIcon}
+            value={totalCount}
+            label="Reminders Sent Daily"
+          />
+        )}
       />
-      <AdminDashboardTopBlock
-        iconClassName={icons.morningNotificationIcon}
-        value={morningCount + anyCount}
-        label={'Morning'}
-        styles={{
-          container: styles.morningNotificationContainer,
-          label: styles.morningNotificationLabel,
-          value: styles.morningNotificationValue,
-        }}
+      <RenderGuardedComponent
+        props={pushEnabled}
+        component={(pushCount) => (
+          <AdminDashboardTopBlock
+            iconClassName={icons.pushNotificationIcon}
+            value={pushCount}
+            label="Push"
+          />
+        )}
       />
-      <AdminDashboardTopBlock
-        iconClassName={icons.afternoonNotificationIcon}
-        value={afternoonCount}
-        label={'Afternoon'}
-        styles={{
-          container: styles.afternoonNotificationContainer,
-          label: styles.afternoonNotificationLabel,
-          value: styles.afternoonNotificationValue,
-        }}
+      <RenderGuardedComponent
+        props={smsEnabled}
+        component={(smsCount) => (
+          <AdminDashboardTopBlock
+            iconClassName={icons.smsNotificationIcon}
+            value={smsCount}
+            label="SMS"
+          />
+        )}
       />
-      <AdminDashboardTopBlock
-        iconClassName={icons.eveningNotificationIcon}
-        value={eveningCount}
-        label={'Evening'}
-        styles={{
-          container: styles.eveningNotificationContainer,
-          label: styles.eveningNotificationLabel,
-          value: styles.eveningNotificationValue,
-        }}
+      <RenderGuardedComponent
+        props={emailEnabled}
+        component={(emailCount) => (
+          <AdminDashboardTopBlock
+            iconClassName={icons.emailNotificationIcon}
+            value={emailCount}
+            label="Email"
+          />
+        )}
       />
     </>
   );

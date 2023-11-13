@@ -37,10 +37,31 @@
   background-image: url('./icons/checkbox-unchecked.svg');
 }
 
-.anyNotificationIcon,
-.morningNotificationIcon,
-.afternoonNotificationIcon,
-.eveningNotificationIcon {
+.anyNotificationIcon {
   composes: icon from '../../shared/icons.module.css';
-  background-image: url('./icons/total-members.svg');
+  background-image: url('./icons/reminders.svg');
+}
+
+.pushNotificationIcon {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/push.svg');
+  width: 32px;
+  height: 32px;
+  margin-left: 4px;
+  margin-bottom: 4px;
+}
+
+.smsNotificationIcon {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/sms.svg');
+  width: 32px;
+  height: 32px;
+  margin-left: 2px;
+}
+
+.emailNotificationIcon {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/email.svg');
+  width: 32px;
+  height: 32px;
 }

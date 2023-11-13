@@ -447,8 +447,6 @@ export const PickEmotionJourneyFeature: Feature<
         const onFinishedJourney = onFinishedJourneyVWC.get();
         const takeAnotherClass = takeAnotherClassVWC.get();
 
-        console.log(background);
-
         return {
           loading:
             error === null &&

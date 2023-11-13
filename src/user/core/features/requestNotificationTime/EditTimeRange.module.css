@@ -1,0 +1,68 @@
+.container {
+  width: 100%;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  max-width: 390px;
+  padding: 0 24px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.formItems {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: center;
+  width: calc(100% + 48px);
+  margin-top: -24px;
+  margin-left: -24px;
+  padding-right: 24px;
+}
+
+.formItem {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 24px;
+  padding-left: 24px;
+}
+
+.formItemTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.15px;
+  color: #f9f9f9;
+  margin-bottom: 13px;
+}
+
+.formItemInput {
+  border: none;
+  outline: none;
+
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  color: white;
+  background-color: #232323;
+  border-radius: 5px;
+  padding: 0;
+  /* the border more consistently goes around the system imposed icon */
+  border: 8px solid transparent;
+  border-left-width: 12px;
+  border-right-width: 12px;
+  margin: 0;
+  color-scheme: dark;
+}
+
+.submitContainer {
+  width: 100%;
+  margin-top: 24px;
+}

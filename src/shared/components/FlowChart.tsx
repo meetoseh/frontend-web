@@ -11,6 +11,7 @@ import { useAnimatedValueWithCallbacks } from '../anim/useAnimatedValueWithCallb
 import { BezierAnimator, BezierColorAnimator, TrivialAnimator } from '../anim/AnimationLoop';
 import { ease } from '../lib/Bezier';
 import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
+import { colorToCSS, makeLinePath, makeSimplePath } from '../anim/svgUtils';
 
 export type FlowChartProps = {
   /**
@@ -674,52 +675,6 @@ const calculateSimpleHorizontalArrowSvgSize = ({
     width: width,
     height: (Math.sin((Math.PI * headAngle) / 180) * headLength + thickness / 2) * 2,
   };
-};
-
-const colorFloatToByte = (color: number): number => {
-  return Math.max(0, Math.min(255, Math.round(color * 255)));
-};
-
-const colorToCSS = (color: [number, number, number, number]) => {
-  return `rgba(${colorFloatToByte(color[0])}, ${colorFloatToByte(color[1])}, ${colorFloatToByte(
-    color[2]
-  )}, ${color[3]})`;
-};
-
-const makeSVGNumber = (v: number): string => {
-  return `${Number(v.toFixed(3))}`;
-};
-
-const makeLinePath = (data: number[]): string => {
-  if (data.length === 0) {
-    return '';
-  }
-
-  if (data.length % 2 !== 0) {
-    throw new Error('data must have an even number of elements');
-  }
-
-  const numPoints = data.length / 2;
-
-  const parts = [`M${makeSVGNumber(data[0])} ${makeSVGNumber(data[1])}`];
-  for (let i = 1; i < numPoints; i++) {
-    parts.push(`L${makeSVGNumber(data[i * 2])} ${makeSVGNumber(data[i * 2 + 1])}`);
-  }
-  return parts.join('');
-};
-
-const makeSimplePath = ({
-  x1,
-  y1,
-  x2,
-  y2,
-}: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-}): string => {
-  return makeLinePath([x1, y1, x2, y2]);
 };
 
 const SimpleHorizontalArrow = ({

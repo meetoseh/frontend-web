@@ -140,6 +140,9 @@ type SinglePassWebGLComponentProps<
  * This component is designed that browsers will always provide a canvas whose
  * backing store is the same size as the number of physical pixels within the
  * canvas, rather than logical pixels, provided enough gpu memory is available.
+ *
+ * This renders nothing if the width or height are set to zero or webgl is not
+ * available.
  */
 export function SinglePassWebGLComponent<
   A extends string,
@@ -161,7 +164,16 @@ export function SinglePassWebGLComponent<
       return;
     }
 
+    if (width === 0 || height === 0) {
+      return;
+    }
+
     const canvas = canvasRef.current;
+    const gl = canvas.getContext('webgl');
+    if (gl === null || gl === undefined || gl.isContextLost()) {
+      return;
+    }
+
     const dpi = devicePixelRatio;
     const state = renderer.initialize(canvas);
     const rerender = () => renderer.render(state, props(), dpi);

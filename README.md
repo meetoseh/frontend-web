@@ -44,3 +44,26 @@ You don’t have to ever use `eject`. The curated feature set is suitable for sm
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
 To learn React, check out the [React documentation](https://reactjs.org/).
+
+## Debugging on native devices without console
+
+Adding this snippet to index.html can sometimes be enough:
+
+```html
+<div id="error"></div>
+<script type="text/javascript">
+  (() => {
+    var error = document.getElementById('error');
+
+    window.addEventListener('error', (e) => {
+      error.appendChild(
+        (() => {
+          var div = document.createElement('pre');
+          div.innerHTML = e.error.toString() + '\n\n' + e.error.stack.toString();
+          return div;
+        })()
+      );
+    });
+  })();
+</script>
+```

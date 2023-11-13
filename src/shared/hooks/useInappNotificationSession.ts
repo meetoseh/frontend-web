@@ -198,11 +198,20 @@ export const useInappNotificationSessionValueWithCallbacks = (
  * is a convenience hook-like function.
  */
 export const useStartSession = (
-  sessionVariableStrategy: VariableStrategyProps<InappNotificationSession | null>
+  sessionVariableStrategy: VariableStrategyProps<InappNotificationSession | null>,
+  opts?: {
+    /**
+     * Called when the session is started. Changes to this value will not
+     * cause the session to be restarted or this to be called again.
+     */
+    onStart?: () => void;
+  }
 ): void => {
   const loginContext = useContext(LoginContext);
   const started = useRef(false);
   const sessionVWC = useVariableStrategyPropsAsValueWithCallbacks(sessionVariableStrategy);
+  const onStartRef = useRef(opts?.onStart);
+  onStartRef.current = opts?.onStart;
 
   useEffect(() => {
     if (loginContext.state !== 'logged-in' || started.current) {
@@ -224,6 +233,9 @@ export const useStartSession = (
       started.current = true;
       session.start();
       sessionVWC.callbacks.remove(handleSessionChanged);
+      if (onStartRef.current) {
+        onStartRef.current();
+      }
     }
   }, [loginContext, sessionVWC]);
 };

@@ -50,7 +50,7 @@ export const calculateAnimValue = (anim: BezierAnimation, now: number): number =
   }
 
   const progress = (now - anim.startedAt) / anim.duration;
-  return anim.ease.b_t(Math.min(1.0, progress))[1] * (anim.to - anim.from) + anim.from;
+  return anim.ease.y_x(Math.min(1.0, progress)) * (anim.to - anim.from) + anim.from;
 };
 
 type UpdateAnimArgs = {

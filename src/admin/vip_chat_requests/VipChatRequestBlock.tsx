@@ -10,9 +10,10 @@ import { VipChatRequestComponent } from '../../user/core/features/vipChatRequest
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import styles from './VipChatRequestBlock.module.css';
 import { useReactManagedValueAsValueWithCallbacks } from '../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
-import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { ValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { VipChatRequestResources } from '../../user/core/features/vipChatRequest/VipChatRequestResources';
+import { IconButton } from '../../shared/forms/IconButton';
+import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 
 /**
  * Renders a single vip chat request
@@ -52,13 +53,19 @@ export const VipChatRequestBlock = ({
   const requiredVWC = useReactManagedValueAsValueWithCallbacks(true);
   const allStatesVWC = useReactManagedValueAsValueWithCallbacks({} as FeatureAllStates);
   const resourcesVWC = VipChatRequestFeature.useResources(stateVWC, requiredVWC, allStatesVWC);
-  const resources = useUnwrappedValueWithCallbacks(resourcesVWC);
 
   return (
-    <CrudItemBlock title={chatRequest.user.email} controls={null}>
-      <CrudFormElement title="User">
-        {chatRequest.user.givenName} {chatRequest.user.familyName} ({chatRequest.user.sub})
-      </CrudFormElement>
+    <CrudItemBlock
+      title={`${chatRequest.user.givenName} ${chatRequest.user.familyName}`}
+      controls={
+        <>
+          <IconButton
+            icon={styles.iconExpand}
+            onClick={`/admin/user?sub=${encodeURIComponent(chatRequest.user.sub)}`}
+            srOnlyName="Expand"
+          />
+        </>
+      }>
       <CrudFormElement title="Reason">
         {chatRequest.reason ?? <i>No reason provided</i>}
       </CrudFormElement>
@@ -79,19 +86,28 @@ export const VipChatRequestBlock = ({
           </Button>
         </div>
 
-        {showingPreview && resources !== undefined && !resources.loading ? (
-          <div
-            style={{
-              position: 'relative',
-              width: resources.windowSize.width,
-              height: resources.windowSize.height,
-              marginTop: '24px',
-            }}>
-            <VipChatRequestComponent
-              state={stateVWC}
-              resources={resourcesVWC as ValueWithCallbacks<VipChatRequestResources>}
-            />
-          </div>
+        {showingPreview ? (
+          <RenderGuardedComponent
+            props={resourcesVWC}
+            component={(resources) =>
+              !resources.loading ? (
+                <div
+                  style={{
+                    position: 'relative',
+                    width: resources.windowSize.width,
+                    height: resources.windowSize.height,
+                    marginTop: '24px',
+                  }}>
+                  <VipChatRequestComponent
+                    state={stateVWC}
+                    resources={resourcesVWC as ValueWithCallbacks<VipChatRequestResources>}
+                  />
+                </div>
+              ) : (
+                <></>
+              )
+            }
+          />
         ) : (
           <></>
         )}

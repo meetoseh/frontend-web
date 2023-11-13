@@ -21,3 +21,13 @@
   width: 24px;
   height: 24px;
 }
+
+.iconFilter {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/filter.svg');
+}
+
+.iconRefresh {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('./icons/refresh.svg');
+}

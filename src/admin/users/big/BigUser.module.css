@@ -27,6 +27,11 @@
   flex-basis: 850px;
   flex-grow: 0;
   flex-shrink: 1;
+  overflow-x: auto;
+}
+
+.wide pre {
+  overflow-x: auto;
 }
 
 .narrow {
@@ -36,4 +41,10 @@
   flex-basis: 270px;
   flex-grow: 0;
   flex-shrink: 1;
+}
+
+@media screen and (max-width: 440px) {
+  .narrow {
+    flex-basis: 850px;
+  }
 }

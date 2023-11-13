@@ -16,7 +16,6 @@ type FeedbackUser = {
   sub: string;
   givenName: string;
   familyName: string;
-  email: string;
   createdAt: Date;
 };
 
@@ -158,10 +157,16 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
       data.items.map((item) => ({
         journey: item.journey,
         table: {
-          columnHeaders: ['Name', 'Email', 'Liked'],
+          columnHeaders: ['Name', 'Liked'],
           rows: item.feedback.map((f) => [
-            `${f.user.givenName} ${f.user.familyName}`.trim(),
-            f.user.email,
+            {
+              csv: `${f.user.givenName} ${f.user.familyName}`.trim(),
+              display: (
+                <a href={`/admin/user?sub=${encodeURIComponent(f.user.sub)}`}>
+                  {f.user.givenName} {f.user.familyName}
+                </a>
+              ),
+            },
             `${f.liked ? 'Yes' : 'No'} (${f.strength})`,
           ]),
         },

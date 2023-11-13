@@ -1,0 +1,52 @@
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  color: #c8cdd0;
+}
+
+.options {
+  background: #232323;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+.options > .option {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.25px;
+  color: white;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.option {
+  composes: unstyled from '../../../../shared/buttons.module.css';
+}
+
+.option::after {
+  content: '';
+  background: no-repeat center center;
+  display: inline-block;
+  vertical-align: middle;
+  content: '';
+  width: 18px;
+  height: 18px;
+  background-size: 100% 100%;
+  background-image: url('./icons/right-caret.svg');
+}
+
+.option strong {
+  font-weight: 700;
+}
+
+.option:not(:first-child) {
+  border-top: 1px solid #383838;
+}

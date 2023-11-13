@@ -35,6 +35,14 @@ SOFTWARE.
 // Modified 04/04/2023 Timothy Moore:
 // - added easeInBack, easeOutBack, easeInOutBack
 
+// Modified 11/6/2023 Timothy Moore:
+// - added linear
+
+// Modified 11/10/2023 Timothy Moore
+// - added _fastCubicYForX for better performance on cubic bezier curves
+// - added precompute for precomputing cubic bezier curves
+// - automatically downloads standard ease precomputed curve, which is served with year long cache
+
 // General Bézier Curve, any number of dimensions or control points
 //
 // All math from http://en.wikipedia.org/wiki/B%C3%A9zier_curve#Generalization
@@ -72,19 +80,16 @@ export class Bezier {
   private cardinality: number;
 
   /**
-   * Number of refinement iterations for the approximator. Larger
-   * numbers ==> greater precision. Appropriate  values depend somewhat on
-   * how extreme the slope of your curve gets, how much precision you need
-   * and how much speed you need. Larger values slow things down
-   * significantly.
+   * If this bezier is precomputed, this gives y(x) for x in [0, 1000].
+   * For example, to get y_x(0.5), we would do _precomputed[500].
    */
-  private refinement: number;
+  public precomputed: number[] | undefined;
 
-  constructor(points: number[][], refinement = 10) {
+  constructor(points: number[][], precomputed?: number[]) {
     this.points = points;
     this.order = points.length;
     this.cardinality = points[0].length;
-    this.refinement = refinement;
+    this.precomputed = precomputed;
   }
 
   /**
@@ -146,10 +151,18 @@ export class Bezier {
    * @return the approximate coordinate
    */
   approximate(ix: number, iy: number, x0: number): number {
+    if (this.precomputed !== undefined && ix === 0 && iy === 1) {
+      const approxX0 = Math.min(Math.max(Math.round(x0 * 1000), 0), 1000);
+      return this.precomputed[approxX0];
+    }
+
+    if (this.cardinality === 2 && this.order === 4 && ix === 0 && iy === 1) {
+      return this._fastCubicYForX(x0);
+    }
     let t = x0;
     let x1, dydx;
 
-    for (let i = 0; i < this.refinement; ++i) {
+    for (let i = 0; i < 10; ++i) {
       x1 = this.b_t(t)[ix];
 
       if (x0 === x1) {
@@ -163,6 +176,48 @@ export class Bezier {
     }
 
     return this.b_t(t)[iy];
+  }
+
+  /**
+   * An alternate approximation for cubic bezier curves in two dimensions via
+   * binary search. This is on average slower, but has much less egregious
+   * worst-case behavior.
+   */
+  _fastCubicYForX(x: number, maxErr: number = 1e-3): number {
+    let low = 0;
+    let high = 1;
+
+    while (low < high) {
+      const mid = (low + high) / 2;
+      const point = this.b_t(mid);
+      const x1 = point[0];
+
+      if (Math.abs(x1 - x) < maxErr) {
+        return point[1];
+      }
+
+      if (x1 < x) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return this.b_t(low)[1];
+  }
+
+  /**
+   * Solves the precomputation for this bezier. This is pretty slow, so
+   * it's often better to just approximate on the fly. Only works with
+   * cubic beziers.
+   */
+  precompute(maxErr: number = 1e-5): void {
+    const res = new Array(1001);
+
+    for (let i = 0; i <= 1000; ++i) {
+      res[i] = this._fastCubicYForX(i / 1000, maxErr);
+    }
+
+    this.precomputed = res;
   }
 
   /**
@@ -193,6 +248,33 @@ export const ease = new Bezier([
   [0.25, 1.0],
   [1, 1],
 ]);
+
+(async () => {
+  if (ease.precomputed !== undefined) {
+    return;
+  }
+
+  const stored = localStorage.getItem('ease4');
+  if (stored !== null) {
+    ease.precompute = JSON.parse(stored);
+    return;
+  }
+
+  try {
+    const response = await fetch('/easings/ease4.json', { method: 'GET' });
+    if (!response.ok) {
+      throw response;
+    }
+    const data = await response.json();
+    ease.precomputed = data;
+  } catch (e) {
+    // If for some reason the cache isn't available, we'll calculate it locally
+    // and store it in local storage for next time.
+    ease.precompute();
+    const data = '[' + ease.precomputed!.map((v) => `${Number(v.toFixed(4))}`).join() + ']';
+    localStorage.setItem('ease4', data);
+  }
+})();
 
 /**
  * The standard ease-in bezier function in css
@@ -253,6 +335,17 @@ export const easeOut = new Bezier([
   [0.58, 1.0],
   [1, 1],
 ]);
+
+/**
+ * The linear bezier function
+ */
+export const linear = new Bezier([
+  [0, 0],
+  [0.0, 0.0],
+  [1.0, 1.0],
+  [1, 1],
+]);
+linear._fastCubicYForX = (x) => x;
 
 // sundry helpers
 function fact(n: number): number {

@@ -1,5 +1,6 @@
 import { ReactElement } from 'react';
 import styles from './Checkbox.module.css';
+import { combineClasses } from '../lib/combineClasses';
 
 type CheckboxProps = {
   /**
@@ -13,7 +14,7 @@ type CheckboxProps = {
   setValue: (value: boolean) => void;
 
   /**
-   * The label to display next to the checkbox
+   * The label to display next to the checkbox.
    */
   label: string;
 
@@ -27,7 +28,7 @@ type CheckboxProps = {
    * The style of the checkbox
    * @default 'normal'
    */
-  checkboxStyle?: 'white' | 'normal' | 'whiteSmallText';
+  checkboxStyle?: 'white' | 'normal' | 'whiteSmallText' | 'whiteWide';
 };
 
 /**
@@ -42,9 +43,11 @@ export const Checkbox = ({
 }: CheckboxProps): ReactElement => {
   return (
     <div
-      className={`${styles.container} ${disabled ? styles.disabled : styles.enabled} ${
+      className={combineClasses(
+        styles.container,
+        disabled ? styles.disabled : styles.enabled,
         styles['style_' + checkboxStyle]
-      }`}
+      )}
       onClick={(e) => {
         if (e.target instanceof HTMLInputElement) {
           return;
@@ -64,7 +67,7 @@ export const Checkbox = ({
           setValue(e.target.checked);
         }}
       />
-      <label className={styles.label}>{label}</label>
+      {label && <label className={styles.label}>{label}</label>}
     </div>
   );
 };

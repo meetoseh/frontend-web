@@ -74,7 +74,11 @@ const VPFRRRenderer: SinglePassWebGLComponentRenderer<
 
     const vert = gl.createShader(gl.VERTEX_SHADER);
     if (vert === null) {
-      throw new Error('Failed to create vertex shader');
+      throw new Error(
+        `Failed to create vertex shader on viewport ${gl.drawingBufferWidth}x${
+          gl.drawingBufferHeight
+        } with error: ${gl.getError()}`
+      );
     }
     gl.shaderSource(
       vert,

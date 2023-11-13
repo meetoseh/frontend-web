@@ -435,7 +435,8 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
     );
   }, [modalContext.modals, inspectingFeedbackScore]);
 
-  const identifier = user.givenName ?? user.email;
+  const identifier =
+    user.givenName ?? user.emails[0]?.address ?? user.phones[0]?.number ?? user.sub;
 
   return (
     <CrudItemBlock title="Content Personalization Inspect Tool" controls={null}>

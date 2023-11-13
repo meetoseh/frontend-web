@@ -15,7 +15,7 @@ type UserBlockProps = {
 export const UserBlock = ({ user, imageHandler }: UserBlockProps): ReactElement => {
   return (
     <CrudItemBlock
-      title={user.email}
+      title={user.emails[0]?.address || user.phones[0]?.number || user.sub}
       controls={
         <>
           <IconButton
@@ -39,7 +39,7 @@ export const UserBlock = ({ user, imageHandler }: UserBlockProps): ReactElement 
           </div>
         )}
         <div className={styles.name}>
-          {user.givenName} {user.familyName} (pn: {user.phoneNumber ?? 'Not Set'})
+          {user.givenName} {user.familyName} (pn: {user.phones[0]?.number ?? 'Not Set'})
         </div>
       </div>
     </CrudItemBlock>

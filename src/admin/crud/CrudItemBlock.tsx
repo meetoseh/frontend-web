@@ -1,5 +1,6 @@
 import { PropsWithChildren, ReactElement } from 'react';
 import styles from './CrudItemBlock.module.css';
+import { combineClasses } from '../../shared/lib/combineClasses';
 
 type CrudItemBlockProps = {
   /**
@@ -13,6 +14,12 @@ type CrudItemBlockProps = {
    * gapped appropriately
    */
   controls: ReactElement | null;
+
+  /**
+   * A hint that this block will contain other crud item blocks, used
+   * for styling
+   */
+  containsNested?: boolean;
 };
 
 /**
@@ -22,9 +29,14 @@ export const CrudItemBlock = ({
   title,
   controls,
   children,
+  containsNested,
 }: PropsWithChildren<CrudItemBlockProps>): ReactElement => {
   return (
-    <div className={styles.container}>
+    <div
+      className={combineClasses(
+        styles.container,
+        containsNested ? styles.nestableContainer : undefined
+      )}>
       {(controls && (
         <div className={styles.titleAndControls}>
           <div className={styles.title}>{title}</div>

@@ -44,6 +44,80 @@ export interface Animator<P extends object> {
   reset(): void;
 }
 
+type DependentAnimatorPredicate<P extends object> = (p: P) => boolean;
+
+/**
+ * A dependent animator is generally constructed to partition an object,
+ * where the current target dictates which animator should be used. For
+ * example, if a component is draggable and snaps to position, it might
+ * use a linear animator when the user is dragging it, and an ease animator
+ * when it is snapping to position.
+ *
+ * Typically, the key which is being used to determine which animator to
+ * use will have a trivial animator applied earlier in the list of animators
+ * to avoid confusion.
+ *
+ * Delegators are attempted in order, and the first one which returns true
+ * for the predicate is used. This means if you just have two delegates and
+ * one is always meant to be active, a generic () => true predicate will work
+ * for the second delegate, avoiding having to invert the condition of the first
+ * manually.
+ */
+export class DependentAnimator<P extends object> implements Animator<P> {
+  private readonly delegates: [DependentAnimatorPredicate<P>, Animator<P>][];
+  private awakeIndex: number | null;
+
+  constructor(delegates: [DependentAnimatorPredicate<P>, Animator<P>][]) {
+    this.delegates = delegates;
+    this.awakeIndex = null;
+  }
+
+  maybeAwaken(rendered: P, target: P): boolean {
+    if (this.awakeIndex !== null) {
+      throw new Error('maybeAwaken called while already awake');
+    }
+
+    for (let i = 0; i < this.delegates.length; i++) {
+      const [p, a] = this.delegates[i];
+      if (p(target) && a.maybeAwaken(rendered, target)) {
+        this.awakeIndex = i;
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  apply(toRender: P, target: P, now: DOMHighResTimeStamp): 'done' | 'continue' {
+    if (this.awakeIndex === null) {
+      throw new Error('apply called while not awake');
+    }
+
+    let [p, a] = this.delegates[this.awakeIndex];
+    if (!p(target)) {
+      a.reset();
+      this.awakeIndex = null;
+      if (!this.maybeAwaken(toRender, target)) {
+        return 'done';
+      }
+      return this.apply(toRender, target, now);
+    }
+
+    const result = a.apply(toRender, target, now);
+    if (result === 'done') {
+      this.awakeIndex = null;
+    }
+    return result;
+  }
+
+  reset(): void {
+    if (this.awakeIndex !== null) {
+      this.delegates[this.awakeIndex][1].reset();
+      this.awakeIndex = null;
+    }
+  }
+}
+
 type TrivialAnimatorOptions<K extends string, T, P extends { [key in K]: T }> = {
   /**
    * When copying from the received value to the target value,
@@ -105,7 +179,7 @@ type StdAnimatorOpts = {
    * often and smoothly, replace is appropriate. Otherwise, extend is
    * appropriate.
    *
-   * @default true
+   * @default 'extend'
    */
   onTargetChange?: 'extend' | 'replace';
 };

@@ -1,6 +1,58 @@
 import { OsehImageRef } from '../../shared/images/OsehImageRef';
 import { CrudFetcherKeyMap } from '../crud/CrudFetcher';
 
+export type UserEmail = {
+  /**
+   * The email address
+   */
+  address: string;
+
+  /**
+   * True if we are fairly sure the user owns this email address, false
+   * if we're not sure.
+   */
+  verified: boolean;
+
+  /**
+   * True if this email address should receive passive notifications,
+   * false otherwise. A passive notification is any that occurs without
+   * explicitly asking immediately prior, e.g., daily reminders. An active
+   * notification is e.g. a 2FA code.
+   */
+  enabled: boolean;
+
+  /**
+   * True if this email address cannot be contacted, false if it might
+   * be technically possible to contact it.
+   */
+  suppressed: boolean;
+};
+
+export type UserPhone = {
+  /**
+   * The phone number, formatted via E.164, e.g., +15555555555
+   */
+  number: string;
+
+  /**
+   * True if we are fairly sure the user owns this phone number, false
+   * if we're not sure.
+   */
+  verified: boolean;
+
+  /**
+   * True if this phone number should receive passive notifications,
+   * false otherwise.
+   */
+  enabled: boolean;
+
+  /**
+   * True if this phone number cannot be contacted, false if it might
+   * be technically possible to contact it.
+   */
+  suppressed: boolean;
+};
+
 /**
  * A user as returned from detailed admin endpoints. Most of the time, you'll
  * get a reference to a user via just a sub and maybe an email for showing them
@@ -14,28 +66,14 @@ export type User = {
   sub: string;
 
   /**
-   * The users primary email address, not necessarily unique
+   * Email addresses associated with the user.
    */
-  email: string;
+  emails: UserEmail[];
 
   /**
-   * True if the backend is fairly confident the user actually controls this
-   * email address, false if it's essentially just a text value the user
-   * provided
+   * Phone numbers associated with the user.
    */
-  emailVerified: boolean;
-
-  /**
-   * The users phone number, formatted via E.164, e.g., +15555555555
-   */
-  phoneNumber: string | null;
-
-  /**
-   * Null if the phone number is null. Otherwise, true if the backend is fairly
-   * confident the user actually controls this phone number, false if it's
-   * essentially just a text value the user provided
-   */
-  phoneNumberVerified: boolean | null;
+  phones: UserPhone[];
 
   /**
    * The users given name, i.e., the name given to them by their parents.
@@ -81,9 +119,6 @@ export type User = {
  * The key map that can be used to parse a user from the backend
  */
 export const userKeyMap: CrudFetcherKeyMap<User> | ((raw: any) => User) = {
-  email_verified: 'emailVerified',
-  phone_number: 'phoneNumber',
-  phone_number_verified: 'phoneNumberVerified',
   given_name: 'givenName',
   family_name: 'familyName',
   revenue_cat_id: 'revenueCatID',

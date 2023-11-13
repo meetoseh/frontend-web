@@ -8,6 +8,18 @@
   position: relative;
 }
 
+.fastContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #191c1d;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .container svg {
   /* fixes blurry image: https://stackoverflow.com/questions/72404034/chrome-shows-lottie-animation-blurry */
   transform: unset !important;

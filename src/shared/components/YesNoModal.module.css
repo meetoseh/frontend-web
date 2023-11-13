@@ -1,0 +1,101 @@
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.content {
+  position: relative;
+  width: 100%;
+  max-width: 279px;
+  padding-top: 24px;
+  background: #eff0f6;
+  border-radius: 14px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  text-align: center;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 22px;
+  color: #160808;
+  margin-bottom: 12px;
+  padding: 0 24px;
+}
+
+.body {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #666060;
+  padding: 0 24px;
+}
+
+.buttons {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.button {
+  composes: unstyled from '../buttons.module.css';
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0;
+  color: #191c1d;
+  border-top: 1px solid #dbd7d7;
+  position: relative;
+}
+
+.button:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.button:disabled,
+.disabled {
+  color: #3f484a;
+  cursor: not-allowed;
+}
+
+.executing {
+  cursor: wait;
+}
+
+.spinnerContainer {
+  position: absolute;
+  left: 24px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.emphasizeButton {
+  font-weight: 700;
+}

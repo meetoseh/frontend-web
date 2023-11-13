@@ -7,6 +7,11 @@ import { VariableStrategyProps } from './VariableStrategyProps';
  * Creates a new writable value with callbacks and uses it to push
  * changes to an animation loop powered by the given render function.
  *
+ * This is a basic wrapper around useAnimationLoop for when a render
+ * function is convenient. If it's instead better to use a bunch of
+ * smaller render functions it may be simpler to work with
+ * useAnimationTargetAndRendered instead.
+ *
  * @param initialValue The initial state to render the component with.
  * @param animators The animators to use to animate the value. If specified
  *   as a function the function is only ever called once and the returned
@@ -14,13 +19,22 @@ import { VariableStrategyProps } from './VariableStrategyProps';
  *   as an array, the value must be memoized.
  * @param render The function which can take a state value and render it,
  *   called once per frame when awake (see `useAnimationLoop`)
+ * @param current If specified, we write the currently rendered value to
+ *   this VWC. Often helpful for ensuring state is kept across react rerenders.
+ *   These values are not immutable, so be aware that you may need to copy.
  */
 export const useAnimatedValueWithCallbacks = <T extends object>(
-  initialValue: T,
+  initialValue: T | (() => T),
   animators: Animator<T>[] | (() => Animator<T>[]),
-  render: (value: T) => void
+  render: (value: T) => void,
+  current?: WritableValueWithCallbacks<T>
 ): WritableValueWithCallbacks<T> => {
-  const target = useWritableValueWithCallbacks(() => initialValue);
+  const target = useWritableValueWithCallbacks(() => {
+    if (typeof initialValue === 'function') {
+      return initialValue();
+    }
+    return initialValue;
+  });
   const targetAsVariableStrategyProps = useMemo<VariableStrategyProps<T>>(
     () => ({
       type: 'callbacks',
@@ -55,9 +69,15 @@ export const useAnimatedValueWithCallbacks = <T extends object>(
     };
 
     function doRender() {
-      renderRef.current(rendered());
+      const now = rendered();
+      renderRef.current(now);
+
+      if (current !== undefined) {
+        current.set(now);
+        current.callbacks.call(undefined);
+      }
     }
-  }, [rendered, renderedCallbacks]);
+  }, [current, rendered, renderedCallbacks]);
 
   return target;
 };

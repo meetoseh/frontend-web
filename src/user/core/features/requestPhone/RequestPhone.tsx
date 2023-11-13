@@ -300,18 +300,18 @@ export const RequestPhone = ({
         />
       </div>
       <div className={styles.content}>
-        <div className={styles.iconOuterContainer}>
-          <div className={styles.iconInnerContainer}>
-            <div className={styles.icon} />
-            <div className={styles.iconDot} />
-          </div>
-        </div>
         <RenderGuardedComponent
           props={step}
           component={(step) => (
             <>
               {step === 'number' && (
                 <>
+                  <div className={styles.iconOuterContainer}>
+                    <div className={styles.iconInnerContainer}>
+                      <div className={styles.icon} />
+                      <div className={styles.iconDot} />
+                    </div>
+                  </div>
                   <div className={styles.title}>{phoneStepTitle(interests)}</div>
                   <div className={styles.subtitle}>
                     Sign up for daily text reminders by entering your phone number below.
@@ -340,8 +340,12 @@ export const RequestPhone = ({
                       <RenderGuardedComponent
                         props={saving}
                         component={(saving) => (
-                          <Button type="submit" disabled={saving} fullWidth={true}>
-                            Continue
+                          <Button
+                            type="submit"
+                            variant="filled-white"
+                            disabled={saving}
+                            fullWidth={true}>
+                            Verify Phone
                           </Button>
                         )}
                       />
@@ -375,7 +379,14 @@ export const RequestPhone = ({
               )}
               {step === 'verify' && (
                 <>
-                  <div className={styles.title}>Verify your phone</div>
+                  <div className={styles.title}>Enter Verification Code</div>
+                  <div className={styles.subtitle}>
+                    We&rsquo;ve sent a text message with a 6-digit verification code to{' '}
+                    <RenderGuardedComponent
+                      props={phone}
+                      component={(phone) => <strong>{phone}</strong>}
+                    />
+                  </div>
                   <form className={styles.form} onSubmit={onVerifyPhone}>
                     <div className={styles.codeContainer}>
                       <RenderGuardedComponent
@@ -400,7 +411,11 @@ export const RequestPhone = ({
                       <RenderGuardedComponent
                         props={saving}
                         component={(saving) => (
-                          <Button type="submit" disabled={saving} fullWidth={true}>
+                          <Button
+                            type="submit"
+                            variant="filled-white"
+                            disabled={saving}
+                            fullWidth={true}>
                             Continue
                           </Button>
                         )}

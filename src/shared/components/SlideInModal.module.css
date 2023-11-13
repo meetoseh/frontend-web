@@ -1,0 +1,84 @@
+.outerContainer {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+.innerContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  background-color: #1c1c1e;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  position: absolute;
+  width: 100%;
+  padding-bottom: 48px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.handle {
+  margin-top: 5px;
+  margin-bottom: 7px;
+  width: 36px;
+  height: 5px;
+  border-radius: 100px;
+  background: #ebebf54d;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 22px;
+  color: white;
+}
+
+.closeContainer {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.closeButton {
+  composes: unstyled from '../buttons.module.css';
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #7474802e;
+  border-radius: 50%;
+}
+
+.closeButton:hover {
+  background: #747480cc;
+}
+
+.closeButton:active {
+  background: #747480ff;
+}
+
+.closeIcon {
+  composes: icon from '../icons.module.css';
+  background-image: url('./icons/slideInClose.svg');
+  width: 12px;
+  height: 12px;
+  opacity: 60%;
+}
+
+.content {
+  margin-top: 32px;
+  width: 100%;
+}

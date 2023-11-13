@@ -70,6 +70,14 @@ export const Settings = ({
     [state]
   );
 
+  const updateNotificationTimes = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      resources.get().gotoEditReminderTimes();
+    },
+    [resources]
+  );
+
   return (
     <RenderGuardedComponent
       props={useMappedValueWithCallbacks(resources, (r) => r.loadError)}
@@ -129,6 +137,14 @@ export const Settings = ({
                     </>
                   )}
                 /> */}
+                <div className={styles.bigLinkContainer}>
+                  <button
+                    type="button"
+                    className={styles.bigLink}
+                    onClick={updateNotificationTimes}>
+                    Edit Reminders
+                  </button>
+                </div>
                 <div className={styles.bigLinkContainer}>
                   <a href="mailto:hi@oseh.com" className={styles.bigLink}>
                     Contact Support

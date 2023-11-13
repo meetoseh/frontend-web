@@ -1,0 +1,30 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  max-width: 390px;
+  padding: 0 24px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.submitContainer {
+  width: 100%;
+  margin-top: 24px;
+}
+
+.formItems {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  border-radius: 10px;
+  background-color: #232323;
+}
+
+.formItem > * {
+  padding: 12.5px 12px;
+}
+
+.formItem:not(:last-child) {
+  border-bottom: 1px solid #383838;
+}

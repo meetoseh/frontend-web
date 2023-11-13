@@ -10,6 +10,9 @@ import { BigUserAttribution } from './BigUserAttribution';
 import { BigUserInappNotifications } from './BigUserInappNotifications';
 import { BigUserSuggestionFlow } from './BigUserSuggestionFlow';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { BigUserContactMethodLog } from './contact_method_log/BigUserContactMethodLog';
+import { BigUserDailyReminderSettingsLog } from './daily_reminder_settings_log/BigUserDailyReminderSettingsLog';
+import { BigUserDailyReminders } from './BigUserDailyReminders';
 
 /**
  * Acts as a dashboard for a specific user, aka a traditional user show page,
@@ -123,8 +126,17 @@ export const BigUser = (): ReactElement => {
         <div className={styles.wide}>
           <BigUserAttribution user={user} imageHandler={imageHandler} />
         </div>
+        <div className={styles.narrow}>
+          <BigUserDailyReminders user={user} />
+        </div>
         <div className={styles.wide}>
           <BigUserInappNotifications user={user} />
+        </div>
+        <div className={styles.wide}>
+          <BigUserContactMethodLog user={user} />
+        </div>
+        <div className={styles.wide}>
+          <BigUserDailyReminderSettingsLog user={user} />
         </div>
         <div className={styles.wide}>
           <BigUserSuggestionFlow user={user} />

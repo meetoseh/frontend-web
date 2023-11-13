@@ -1,0 +1,15 @@
+<svg width="100" height="100" viewBox="10 0 102 102" xmlns="http://www.w3.org/2000/svg">
+  <mask id="ellipseMask">
+    <rect fill="white" width="100%" height="100%" />
+    <path d="M20 90L30 50L60 60L20 90" fill="black" stroke="none" />
+  </mask>
+  <ellipse cx="60" cy="40" rx="40" ry="30" fill="none" stroke="#446266" stroke-width="4" stroke-miterlimit="10" mask="url(#ellipseMask)" />
+  <mask id="pathMask">
+    <rect fill="white" width="100%" height="100%" />
+    <ellipse cx="60" cy="40" rx="38" ry="28" fill="black" stroke="transparent" stroke-width="4" stroke-miterlimit="10" />
+  </mask>
+  <path d="M20 90L30 50L60 60L20 90L30 50" fill="none" stroke="#446266" stroke-width="4" stroke-miterlimit="10" stroke-linejoin="arcs" mask="url(#pathMask)" />
+  <circle cx="40" cy="40" r="3" fill="#446266" />
+  <circle cx="60" cy="40" r="3" fill="#446266" />
+  <circle cx="80" cy="40" r="3" fill="#446266" />
+</svg>

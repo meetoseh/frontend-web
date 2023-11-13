@@ -1,5 +1,8 @@
 import { InappNotification } from '../../../../shared/hooks/useInappNotification';
 
+/** The channels the user can update the reminder times for */
+export type Channel = 'email' | 'sms' | 'push';
+
 /**
  * The state required to determine if we should show the introspection
  * prompt
@@ -18,10 +21,26 @@ export type RequestNotificationTimeState = {
   ian: InappNotification | null;
 
   /**
-   * True if the server wants us to show the notification time screen,
-   * false if it doesn't, undefined if not logged in or it doesn't matter
-   * (i.e., we don't bother determining this if we've recently shown the
-   * screen)
+   * The channels the server wants us to update the settings for, null if the
+   * server does not want us to update any settings, undefined if not logged in
+   * or it doesn't matter (i.e., we don't bother determining this if we've
+   * recently shown the screen)
    */
-  serverWantsNotificationTime: boolean | undefined;
+  serverWantsNotificationTime: Channel[] | null | undefined;
+
+  /**
+   * True if the client explicitly asked to update their notification times
+   * via e.g. a button in settings, false otherwise
+   */
+  clientRequested: boolean;
+
+  /**
+   * Sets the clientRequested flag. Should be set to true if the user
+   * clicks a button to update their notification time, and is
+   * set to false whenever the user finishes updating their notification
+   * times
+   *
+   * @param clientRequested the new value for the clientRequested flag
+   */
+  setClientRequested: (clientRequested: boolean) => void;
 };

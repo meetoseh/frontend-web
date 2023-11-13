@@ -1,9 +1,4 @@
 .container {
-  position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -16,7 +11,7 @@
   justify-content: center;
   align-items: center;
 
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -25,22 +20,59 @@
   overflow: hidden;
 }
 
+.background {
+  background: linear-gradient(0deg, #000000 0%, #191c1d 37%, #191c1d 100%);
+}
+
+.closeButtonContainer {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.closeIcon {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('../../../../assets/close-white.svg');
+}
+
 .content {
-  max-width: 480px;
+  max-width: 390px;
   margin: 0 auto;
   width: 100%;
-  padding: 0 40px;
+  padding: 0 24px;
+}
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 32px;
+  text-align: center;
+  color: white;
+  margin-top: 24px;
 }
 
-@media screen and (max-width: 439px) {
-  .content {
-    padding: 0 24px;
-  }
+.description {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  text-align: center;
+  color: #c8cdd0;
+  margin-top: 6px;
 }
 
-@media screen and (min-height: 575px) and (max-height: 650px) {
-  .container {
-    justify-content: flex-end;
-    padding-bottom: 32px;
-  }
+.buttons {
+  margin-top: 48px;
+  width: 100%;
+  display: flex;
+  flex-flow: column no-wrap;
+}
+
+.buttons > *:not(:first-child) {
+  margin-top: 16px;
+}
+
+.form {
+  margin-top: 40px;
 }

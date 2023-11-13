@@ -11,10 +11,11 @@ import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
+import { InlineOsehSpinner } from '../../shared/components/InlineOsehSpinner';
 
 const BRANDMARK_HOLD_TIME_MS = { forward: 750, backward: 500 };
 const BRANDMARK_WIDTH = (windowSize: { width: number; height: number }): number =>
-  Math.min(0.75 * windowSize.width, 0.75 * windowSize.height, 250);
+  Math.min(0.5 * windowSize.width, 0.5 * windowSize.height, 135);
 const BRANDMARK_NATURAL_ASPECT_RATIO = 1341 / 1080;
 
 const WORDMARK_HOLD_TIME_MS = { forward: 750, backward: 500 };
@@ -30,6 +31,32 @@ type SplashScreenProps = {
 };
 
 export const SplashScreen = ({ type = undefined }: SplashScreenProps): ReactElement => {
+  const realStyle = type ?? 'brandmark';
+
+  if (realStyle === 'brandmark') {
+    return <FastInlineOsehSpinnerSplashScreen />;
+  }
+
+  return <LottieSplashScreen type={realStyle} />;
+};
+
+const FastInlineOsehSpinnerSplashScreen = (): ReactElement => {
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
+  const renderedSize = useMappedValueWithCallbacks(windowSizeVWC, (windowSize) => ({
+    width: BRANDMARK_WIDTH(windowSize),
+  }));
+
+  return (
+    <div className={styles.fastContainer}>
+      <InlineOsehSpinner
+        size={{ type: 'callbacks', props: renderedSize.get, callbacks: renderedSize.callbacks }}
+        variant="white-thin"
+      />
+    </div>
+  );
+};
+
+const LottieSplashScreen = ({ type = undefined }: SplashScreenProps): ReactElement => {
   const realStyle = type ?? 'brandmark';
   const containerRef = useRef<HTMLDivElement>(null);
   const playerVWC = useWritableValueWithCallbacks<AnimationItem | undefined>(() => undefined);
