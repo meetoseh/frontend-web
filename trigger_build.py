@@ -80,95 +80,117 @@ async def trigger_build(
         print(single_file_script)
         return
 
-    async with session.client(
-        "ec2"
-    ) as client, cleanup_functions() as cleanup, temp_file(".pem") as key_file_path:
-        print("Generating key pair...")
-        suggested_build_key_name = f"key-frontend-web-build-{secrets.token_urlsafe(6)}"
-        response = await client.create_key_pair(
-            KeyName=suggested_build_key_name,
-            KeyType="rsa",
-            TagSpecifications=[
-                {
-                    "ResourceType": "key-pair",
-                    "Tags": [{"Key": "Name", "Value": "frontend-web build"}],
-                }
-            ],
-            KeyFormat="pem",
-        )
+    with temp_file(".pem") as key_file_path:
+        async with session.client("ec2") as client, cleanup_functions() as cleanup:
+            print("Generating key pair...")
+            suggested_build_key_name = (
+                f"key-frontend-web-build-{secrets.token_urlsafe(6)}"
+            )
+            response = await client.create_key_pair(
+                KeyName=suggested_build_key_name,
+                KeyType="rsa",
+                TagSpecifications=[
+                    {
+                        "ResourceType": "key-pair",
+                        "Tags": [{"Key": "Name", "Value": "frontend-web build"}],
+                    }
+                ],
+                KeyFormat="pem",
+            )
 
-        key_material = response["KeyMaterial"]
-        with open(key_file_path, "w") as f:
-            f.write(key_material)
+            key_material = response["KeyMaterial"]
+            with open(key_file_path, "w") as f:
+                f.write(key_material)
 
-        build_key_name = response["KeyName"]
-        await slack.send_ops_message(
-            f"Frontend-Web generated build key pair: {build_key_name}"
-        )
-
-        async def _cleanup_key():
-            print("Deleting key pair...")
-            await client.delete_key_pair(KeyName=build_key_name)
+            build_key_name = response["KeyName"]
             await slack.send_ops_message(
-                f"Frontend-Web deleted build key pair: {build_key_name}"
+                f"Frontend-Web generated build key pair: {build_key_name}"
             )
 
-        cleanup.append(_cleanup_key)
+            async def _cleanup_key():
+                print("Deleting key pair...")
+                await client.delete_key_pair(KeyName=build_key_name)
+                await slack.send_ops_message(
+                    f"Frontend-Web deleted build key pair: {build_key_name}"
+                )
 
-        print("Launching instance...")
-        response = await client.run_instances(
-            ImageId=build_ami_id,
-            NetworkInterfaces=[
-                {
-                    "AssociatePublicIpAddress": False,
-                }
-            ],
-            InstanceType=INSTANCE_TYPE,
-            SubnetId=build_subnet_id,
-            KeyName=build_key_name,
-            SecurityGroupIds=[build_security_group_id],
-            IamInstanceProfile={"Name": build_iam_instance_profile_name},
-            BlockDeviceMappings=[{"Ebs": {"VolumeType": "gp3", "VolumeSize": 32}}],
-            TagSpecifications=[
-                {
-                    "ResourceType": "instance",
-                    "Tags": [{"Key": "Name", "Value": "frontend-web build"}],
-                }
-            ],
-        )
-        instance_id = response["Instances"][0]["InstanceId"]
-        instance_private_ip = response["Instances"][0]["PrivateIpAddress"]
-        status = response["Instances"][0]["State"]["Name"]
-        await slack.send_ops_message(
-            f"Frontend-Web launched build server: {instance_id} ({INSTANCE_TYPE}, {status})"
-        )
+            cleanup.append(_cleanup_key)
 
-        async def _cleanup_instance():
-            print("Terminating instance...")
-            response = await client.terminate_instances(InstanceIds=[instance_id])
-            status = (
-                response["TerminatingInstances"][0]["CurrentState"]["Name"]
-                if response["TerminatingInstances"]
-                else "non-existant"
+            print("Launching instance...")
+            response = await client.run_instances(
+                ImageId=build_ami_id,
+                NetworkInterfaces=[
+                    {
+                        "AssociatePublicIpAddress": False,
+                    }
+                ],
+                InstanceType=INSTANCE_TYPE,
+                SubnetId=build_subnet_id,
+                KeyName=build_key_name,
+                SecurityGroupIds=[build_security_group_id],
+                IamInstanceProfile={"Name": build_iam_instance_profile_name},
+                BlockDeviceMappings=[{"Ebs": {"VolumeType": "gp3", "VolumeSize": 32}}],
+                TagSpecifications=[
+                    {
+                        "ResourceType": "instance",
+                        "Tags": [{"Key": "Name", "Value": "frontend-web build"}],
+                    }
+                ],
             )
+            instance_id = response["Instances"][0]["InstanceId"]
+            instance_private_ip = response["Instances"][0]["PrivateIpAddress"]
+            status = response["Instances"][0]["State"]["Name"]
             await slack.send_ops_message(
-                f"Frontend-Web terminated build server: {instance_id} (new status: {status})"
+                f"Frontend-Web launched build server: {instance_id} ({INSTANCE_TYPE}, {status})"
             )
+
+            async def _cleanup_instance():
+                print("Terminating instance...")
+                response = await client.terminate_instances(InstanceIds=[instance_id])
+                status = (
+                    response["TerminatingInstances"][0]["CurrentState"]["Name"]
+                    if response["TerminatingInstances"]
+                    else "non-existant"
+                )
+                await slack.send_ops_message(
+                    f"Frontend-Web terminated build server: {instance_id} (new status: {status})"
+                )
+                started_waiting_at = time.time()
+                while status not in ("non-existant", "terminated"):
+                    if time.time() - started_waiting_at > 600:
+                        raise Exception("Timed out waiting for instance to terminate")
+
+                    await asyncio.sleep(5)
+                    response = await client.describe_instances(
+                        InstanceIds=[instance_id]
+                    )
+                    new_status = (
+                        response["Reservations"][0]["Instances"][0]["State"]["Name"]
+                        if (
+                            response["Reservations"]
+                            and response["Reservations"][0]["Instances"]
+                        )
+                        else "non-existant"
+                    )
+
+                    if new_status != status:
+                        status = new_status
+                        await slack.send_ops_message(
+                            f"Frontend-Web build server {instance_id} status: {status}"
+                        )
+
+            cleanup.append(_cleanup_instance)
+
             started_waiting_at = time.time()
-            while status not in ("non-existant", "terminated"):
+            while status != "running":
                 if time.time() - started_waiting_at > 600:
-                    raise Exception("Timed out waiting for instance to terminate")
+                    raise Exception("Timed out waiting for instance to start")
 
                 await asyncio.sleep(5)
                 response = await client.describe_instances(InstanceIds=[instance_id])
-                new_status = (
-                    response["Reservations"][0]["Instances"][0]["State"]["Name"]
-                    if (
-                        response["Reservations"]
-                        and response["Reservations"][0]["Instances"]
-                    )
-                    else "non-existant"
-                )
+                new_status = response["Reservations"][0]["Instances"][0]["State"][
+                    "Name"
+                ]
 
                 if new_status != status:
                     status = new_status
@@ -176,77 +198,62 @@ async def trigger_build(
                         f"Frontend-Web build server {instance_id} status: {status}"
                     )
 
-        cleanup.append(_cleanup_instance)
+            seen_build_ready = asyncio.Event()
 
-        started_waiting_at = time.time()
-        while status != "running":
-            if time.time() - started_waiting_at > 600:
-                raise Exception("Timed out waiting for instance to start")
-
-            await asyncio.sleep(5)
-            response = await client.describe_instances(InstanceIds=[instance_id])
-            new_status = response["Reservations"][0]["Instances"][0]["State"]["Name"]
-
-            if new_status != status:
-                status = new_status
-                await slack.send_ops_message(
-                    f"Frontend-Web build server {instance_id} status: {status}"
-                )
-
-        seen_build_ready = asyncio.Event()
-
-        async def _wait_for_build_ready():
-            try:
-                async with Itgs() as itgs:
-                    redis = await itgs.redis()
-                    pubsub = redis.pubsub()
-                    await pubsub.subscribe("updates:frontend-web:build_ready")
-                    while (
-                        await pubsub.get_message(
-                            ignore_subscribe_messages=True, timeout=5
+            async def _wait_for_build_ready():
+                try:
+                    async with Itgs() as itgs:
+                        redis = await itgs.redis()
+                        pubsub = redis.pubsub()
+                        await pubsub.subscribe("updates:frontend-web:build_ready")
+                        while (
+                            await pubsub.get_message(
+                                ignore_subscribe_messages=True, timeout=5
+                            )
+                        ) is None:
+                            pass
+                        await slack.send_ops_message(
+                            "Frontend-Web detected build ready"
                         )
-                    ) is None:
-                        pass
-                    await slack.send_ops_message("Frontend-Web detected build ready")
-                    seen_build_ready.set()
-            except Exception as e:
-                await handle_error(e, extra_info="in _wait_for_build_ready")
-                raise e
+                        seen_build_ready.set()
+                except Exception as e:
+                    await handle_error(e, extra_info="in _wait_for_build_ready")
+                    raise e
 
-        build_ready_task = asyncio.create_task(_wait_for_build_ready())
-        cleanup.append(build_ready_task.cancel)
+            build_ready_task = asyncio.create_task(_wait_for_build_ready())
+            cleanup.append(build_ready_task.cancel)
 
-        print("Executing script on instance...")
-        try:
-            await asyncio.wait_for(
-                anyio.to_thread.run_sync(
-                    connect_and_execute(
-                        instance_private_ip, key_file_path, single_file_script
-                    )
-                ),
-                timeout=1800,
-            )
-        except asyncio.TimeoutError:
-            await slack.send_ops_message(
-                "Frontend-Web build timed out (script did not complete within 30 minutes)"
-            )
-            raise
+            print("Executing script on instance...")
+            try:
+                await asyncio.wait_for(
+                    anyio.to_thread.run_sync(
+                        connect_and_execute(
+                            instance_private_ip, key_file_path, single_file_script
+                        )
+                    ),
+                    timeout=1800,
+                )
+            except asyncio.TimeoutError:
+                await slack.send_ops_message(
+                    "Frontend-Web build timed out (script did not complete within 30 minutes)"
+                )
+                raise
 
-        try:
-            await asyncio.wait_for(seen_build_ready.wait(), timeout=300)
-        except asyncio.TimeoutError:
-            await slack.send_ops_message(
-                "Frontend-Web build timed out (build_ready was not published within 5 minutes of script finishing)"
-            )
-            raise
+            try:
+                await asyncio.wait_for(seen_build_ready.wait(), timeout=300)
+            except asyncio.TimeoutError:
+                await slack.send_ops_message(
+                    "Frontend-Web build timed out (build_ready was not published within 5 minutes of script finishing)"
+                )
+                raise
 
-        await slack.send_ops_message("Frontend-Web cleaning up ec2 artifacts...")
+            await slack.send_ops_message("Frontend-Web cleaning up ec2 artifacts...")
 
-    await slack.send_ops_message(
-        "Frontend-Web build complete, triggering frontend-web update..."
-    )
-    redis = await itgs.redis()
-    await redis.publish("updates:frontend-web:do_update", "1")
+        await slack.send_ops_message(
+            "Frontend-Web build complete, triggering frontend-web update..."
+        )
+        redis = await itgs.redis()
+        await redis.publish("updates:frontend-web:do_update", "1")
 
 
 @asynccontextmanager
