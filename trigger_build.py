@@ -131,7 +131,12 @@ async def trigger_build(
                 KeyName=build_key_name,
                 SecurityGroupIds=[build_security_group_id],
                 IamInstanceProfile={"Name": build_iam_instance_profile_name},
-                BlockDeviceMappings=[{"Ebs": {"VolumeType": "gp3", "VolumeSize": 32}}],
+                BlockDeviceMappings=[
+                    {
+                        "DeviceName": "/dev/xvda",
+                        "Ebs": {"VolumeType": "gp3", "VolumeSize": 32},
+                    }
+                ],
                 TagSpecifications=[
                     {
                         "ResourceType": "instance",
