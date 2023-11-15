@@ -129,7 +129,6 @@ async def trigger_build(
                 InstanceType=INSTANCE_TYPE,
                 MinCount=1,
                 MaxCount=1,
-                SubnetId=build_subnet_id,
                 KeyName=build_key_name,
                 SecurityGroupIds=[build_security_group_id],
                 IamInstanceProfile={"Name": build_iam_instance_profile_name},
