@@ -125,6 +125,8 @@ async def trigger_build(
                     }
                 ],
                 InstanceType=INSTANCE_TYPE,
+                MinCount=1,
+                MaxCount=1,
                 SubnetId=build_subnet_id,
                 KeyName=build_key_name,
                 SecurityGroupIds=[build_security_group_id],
@@ -249,11 +251,11 @@ async def trigger_build(
 
             await slack.send_ops_message("Frontend-Web cleaning up ec2 artifacts...")
 
-        await slack.send_ops_message(
-            "Frontend-Web build complete, triggering frontend-web update..."
-        )
-        redis = await itgs.redis()
-        await redis.publish("updates:frontend-web:do_update", "1")
+    await slack.send_ops_message(
+        "Frontend-Web build complete, triggering frontend-web update..."
+    )
+    redis = await itgs.redis()
+    await redis.publish("updates:frontend-web:do_update", "1")
 
 
 @asynccontextmanager
