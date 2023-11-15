@@ -121,7 +121,9 @@ async def trigger_build(
                 ImageId=build_ami_id,
                 NetworkInterfaces=[
                     {
+                        "DeviceIndex": 0,
                         "AssociatePublicIpAddress": False,
+                        "SubnetId": build_subnet_id,
                     }
                 ],
                 InstanceType=INSTANCE_TYPE,
