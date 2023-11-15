@@ -2,7 +2,7 @@
 import time
 from typing import Union
 from itgs import Itgs
-from error_middleware import handle_warning
+from error_middleware import handle_error, handle_warning
 import asyncio
 import subprocess
 import platform
@@ -29,7 +29,10 @@ async def _listen_forever():
                     f"frontend-web {socket.gethostname()} handling rebuild"
                 )
 
-                await trigger_build.run_with_args(dry_run=False)
+                try:
+                    await trigger_build.run_with_args(itgs, dry_run=False)
+                except Exception as e:
+                    await handle_error(e, extra_info="trigger_build failed")
 
                 await slack.send_ops_message(
                     f"frontend-web {socket.gethostname()} restarting again"
