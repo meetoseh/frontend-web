@@ -229,39 +229,50 @@ async def trigger_build(
                     raise e
 
             build_ready_task = asyncio.create_task(_wait_for_build_ready())
-            cleanup.append(build_ready_task.cancel)
+
+            async def cancel_build_ready_task():
+                build_ready_task.cancel()
+
+            cleanup.append(cancel_build_ready_task)
 
             print("Executing script on instance...")
             try:
                 await asyncio.wait_for(
                     anyio.to_thread.run_sync(
-                        connect_and_execute(
-                            instance_private_ip, key_file_path, single_file_script
-                        )
+                        connect_and_execute,
+                        instance_private_ip,
+                        key_file_path,
+                        single_file_script,
                     ),
                     timeout=1800,
                 )
             except asyncio.TimeoutError:
+                print("Script timed out (30m)")
                 await slack.send_ops_message(
                     "Frontend-Web build timed out (script did not complete within 30 minutes)"
                 )
                 raise
 
+            print("Script finished normally, waiting for build_ready...")
+
             try:
                 await asyncio.wait_for(seen_build_ready.wait(), timeout=300)
             except asyncio.TimeoutError:
+                print("build_ready timed out (5m)")
                 await slack.send_ops_message(
                     "Frontend-Web build timed out (build_ready was not published within 5 minutes of script finishing)"
                 )
                 raise
-
+            print("build_ready detected, cleaning up...")
             await slack.send_ops_message("Frontend-Web cleaning up ec2 artifacts...")
 
+    print("Done cleaning up ec2 artifacts, triggering frontend-web update...")
     await slack.send_ops_message(
         "Frontend-Web build complete, triggering frontend-web update..."
     )
     redis = await itgs.redis()
     await redis.publish("updates:frontend-web:do_update", "1")
+    print("Done triggering frontend-web update")
 
 
 @asynccontextmanager

@@ -13,3 +13,5 @@ inform_instances() {
     pip install -r requirements.txt
     python on_build_ready.py
 }
+
+inform_instances
