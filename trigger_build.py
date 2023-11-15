@@ -25,6 +25,7 @@ from remote_executor import (
     write_echo_commands_for_folder,
     exec_simple,
 )
+from loguru import logger
 
 
 INSTANCE_TYPE = "c7g.2xlarge"
@@ -34,7 +35,11 @@ async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    async with Itgs() as itgs:
+        await run_with_args(itgs, dry_run=args.dry_run)
 
+
+async def run_with_args(itgs: Itgs, *, dry_run: bool):
     build_subnet_id = os.environ["OSEH_BUILD_SUBNET_ID"]
     build_ami_id = os.environ["OSEH_BUILD_AMI_ID"]
     build_security_group_id = os.environ["OSEH_BUILD_SECURITY_GROUP_ID"]
@@ -42,24 +47,22 @@ async def main():
         "OSEH_BUILD_IAM_INSTANCE_PROFILE_NAME"
     ]
 
-    dry_run = not not args.dry_run
-    print(f"Triggering build at {datetime.datetime.now()}:")
-    print(f"  Dry Run: {dry_run}")
-    print(f"  Instance Type: {INSTANCE_TYPE}")
-    print(f"  Subnet ID: {build_subnet_id}")
-    print(f"  AMI ID: {build_ami_id}")
-    print(f"  Security Group ID: {build_security_group_id}")
-    print(f"  IAM Instance Profile Name: {build_iam_instance_profile_name}")
+    logger.info(f"Triggering build at {datetime.datetime.now()}:")
+    logger.info(f"  Dry Run: {dry_run}")
+    logger.info(f"  Instance Type: {INSTANCE_TYPE}")
+    logger.info(f"  Subnet ID: {build_subnet_id}")
+    logger.info(f"  AMI ID: {build_ami_id}")
+    logger.info(f"  Security Group ID: {build_security_group_id}")
+    logger.info(f"  IAM Instance Profile Name: {build_iam_instance_profile_name}")
 
-    async with Itgs() as itgs:
-        await trigger_build(
-            itgs,
-            build_subnet_id=build_subnet_id,
-            build_ami_id=build_ami_id,
-            build_security_group_id=build_security_group_id,
-            build_iam_instance_profile_name=build_iam_instance_profile_name,
-            dry_run=dry_run,
-        )
+    await trigger_build(
+        itgs,
+        build_subnet_id=build_subnet_id,
+        build_ami_id=build_ami_id,
+        build_security_group_id=build_security_group_id,
+        build_iam_instance_profile_name=build_iam_instance_profile_name,
+        dry_run=dry_run,
+    )
 
 
 async def trigger_build(
@@ -76,13 +79,13 @@ async def trigger_build(
 
     single_file_script = await anyio.to_thread.run_sync(generate_single_file_script)
     if dry_run:
-        print(f"would have executed the following script:")
-        print(single_file_script)
+        logger.info(f"Would have executed the following script:")
+        logger.info(single_file_script)
         return
 
     with temp_file(".pem") as key_file_path:
         async with session.client("ec2") as client, cleanup_functions() as cleanup:
-            print("Generating key pair...")
+            logger.info("Generating key pair...")
             suggested_build_key_name = (
                 f"key-frontend-web-build-{secrets.token_urlsafe(6)}"
             )
@@ -108,7 +111,7 @@ async def trigger_build(
             )
 
             async def _cleanup_key():
-                print("Deleting key pair...")
+                logger.info("Deleting key pair...")
                 await client.delete_key_pair(KeyName=build_key_name)
                 await slack.send_ops_message(
                     f"Frontend-Web deleted build key pair: {build_key_name}"
@@ -116,7 +119,7 @@ async def trigger_build(
 
             cleanup.append(_cleanup_key)
 
-            print("Launching instance...")
+            logger.info("Launching instance...")
             response = await client.run_instances(
                 ImageId=build_ami_id,
                 NetworkInterfaces=[
@@ -153,7 +156,7 @@ async def trigger_build(
             )
 
             async def _cleanup_instance():
-                print("Terminating instance...")
+                logger.info("Terminating instance...")
                 response = await client.terminate_instances(InstanceIds=[instance_id])
                 status = (
                     response["TerminatingInstances"][0]["CurrentState"]["Name"]
@@ -235,7 +238,7 @@ async def trigger_build(
 
             cleanup.append(cancel_build_ready_task)
 
-            print("Executing script on instance...")
+            logger.info("Executing script on instance...")
             try:
                 await asyncio.wait_for(
                     anyio.to_thread.run_sync(
@@ -247,32 +250,32 @@ async def trigger_build(
                     timeout=1800,
                 )
             except asyncio.TimeoutError:
-                print("Script timed out (30m)")
+                logger.warning("Script timed out (30m)")
                 await slack.send_ops_message(
                     "Frontend-Web build timed out (script did not complete within 30 minutes)"
                 )
                 raise
 
-            print("Script finished normally, waiting for build_ready...")
+            logger.info("Script finished normally, waiting for build_ready...")
 
             try:
                 await asyncio.wait_for(seen_build_ready.wait(), timeout=300)
             except asyncio.TimeoutError:
-                print("build_ready timed out (5m)")
+                logger.warning("build_ready timed out (5m)")
                 await slack.send_ops_message(
                     "Frontend-Web build timed out (build_ready was not published within 5 minutes of script finishing)"
                 )
                 raise
-            print("build_ready detected, cleaning up...")
+            logger.info("build_ready detected, cleaning up...")
             await slack.send_ops_message("Frontend-Web cleaning up ec2 artifacts...")
 
-    print("Done cleaning up ec2 artifacts, triggering frontend-web update...")
+    logger.info("Done cleaning up ec2 artifacts, triggering frontend-web update...")
     await slack.send_ops_message(
         "Frontend-Web build complete, triggering frontend-web update..."
     )
     redis = await itgs.redis()
     await redis.publish("updates:frontend-web:do_update", "1")
-    print("Done triggering frontend-web update")
+    logger.info("Done triggering frontend-web update")
 
 
 @asynccontextmanager
@@ -327,20 +330,24 @@ def connect_and_execute(ip: str, key_file_path: str, script: str) -> None:
             sftp.chmod("/home/ec2-user/initial_script.sh", 0o755)
             sftp.close()
         except Exception:
-            print(f"Failed to connect to {ip} on attempt {attempt}")
+            msg = f"Failed to connect to {ip} on attempt {attempt}"
+            if attempt == 0:
+                logger.trace(msg)
+            else:
+                logger.warning(msg)
             if attempt == 149:
                 raise
             time.sleep(2)
             continue
         break
 
-    print(f"Successfully connected to {ip}, executing script...")
+    logger.info(f"Successfully connected to {ip}, executing script...")
     stdout, stderr = exec_simple(client, "sudo bash /home/ec2-user/initial_script.sh")
     client.close()
 
-    print(f"stdout: {stdout}")
-    print(f"stderr: {stderr}")
-    print(f"Done executing script on {ip}")
+    logger.trace(f"stdout: {stdout}")
+    logger.trace(f"stderr: {stderr}")
+    logger.info(f"Done executing script on {ip}")
 
 
 if __name__ == "__main__":

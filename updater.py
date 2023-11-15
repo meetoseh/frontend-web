@@ -1,5 +1,6 @@
 """Handles updating when the repository is updated"""
 import time
+from typing import Union
 from itgs import Itgs
 from error_middleware import handle_warning
 import asyncio
@@ -9,6 +10,8 @@ import secrets
 import socket
 import os
 import loguru
+import anyio
+import trigger_build
 
 
 async def _listen_forever():
@@ -18,10 +21,25 @@ async def _listen_forever():
 
     loguru.logger.info("Starting up, releasing lock...")
     async with Itgs() as itgs:
+        slack = await itgs.slack()
+
+        if os.environ.get("ENVIRONMENT") != "dev":
+            if await check_if_rebuild_required(itgs):
+                await slack.send_ops_message(
+                    f"frontend-web {socket.gethostname()} handling rebuild"
+                )
+
+                await trigger_build.run_with_args(dry_run=False)
+
+                await slack.send_ops_message(
+                    f"frontend-web {socket.gethostname()} restarting again"
+                )
+                do_update()
+                return
+
         await release_update_lock_if_held(itgs)
 
         if os.environ.get("ENVIRONMENT") != "dev":
-            slack = await itgs.slack()
             await slack.send_ops_message(f"frontend-web {socket.gethostname()} ready")
 
     while True:
@@ -57,9 +75,9 @@ async def acquire_update_lock(itgs: Itgs):
     redis = await itgs.redis()
     started_at = time.time()
     while True:
-        local_cache.set(b"updater-lock-key", our_identifier, expire=310)
+        local_cache.set(b"updater-lock-key", our_identifier, expire=610)
         success = await redis.set(
-            b"updates:frontend-web:lock", our_identifier, nx=True, ex=300
+            b"updates:frontend-web:lock", our_identifier, nx=True, ex=600
         )
         if success:
             loguru.logger.info(f"Lock acquired: {our_identifier}")
@@ -95,6 +113,25 @@ async def release_update_lock_if_held(itgs: Itgs):
         DELETE_IF_MATCH_SCRIPT, 1, b"updates:frontend-web:lock", our_identifier
     )
     local_cache.delete(b"updater-lock-key")
+
+
+async def check_if_rebuild_required(itgs: Itgs):
+    # Get the current git commit hash
+    git_hash = subprocess.check_output(
+        "git rev-parse HEAD", shell=True, universal_newlines=True
+    ).strip()
+
+    # Set the current version in redis, getting the old value.
+    redis = await itgs.redis()
+    old_git_hash: Union[bytes, str, None] = await redis.set(
+        b"builds:frontend-web:hash", git_hash.encode("utf-8"), get=True
+    )
+    if isinstance(old_git_hash, bytes):
+        old_git_hash = old_git_hash.decode("utf-8")
+    if old_git_hash is None or old_git_hash != git_hash:
+        loguru.logger.info(f"Rebuild required: {old_git_hash} != {git_hash}")
+        return True
+    return False
 
 
 def do_update():
@@ -135,7 +172,7 @@ def listen_forever_sync():
     """Subscribes to the redis channel updates:frontend-web and upon
     recieving a message, calls /home/ec2-user/update_webapp.sh
     """
-    asyncio.run(listen_forever())
+    anyio.run(listen_forever())
 
 
 if __name__ == "__main__":
