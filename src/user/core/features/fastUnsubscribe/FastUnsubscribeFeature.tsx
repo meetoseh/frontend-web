@@ -127,7 +127,15 @@ export const FastUnsubscribeFeature: Feature<FastUnsubscribeState, FastUnsubscri
     );
 
     return useMappedValuesWithCallbacks(
-      [variantVWC, signinUrlsVWC, signinUrlsErrorVWC, codeVWC],
+      [
+        variantVWC,
+        signinUrlsVWC,
+        signinUrlsErrorVWC,
+        codeVWC,
+        onDismissVWC,
+        dailyRemindersVWC,
+        dismissAndGotoSettingsVWC,
+      ],
       (): FastUnsubscribeResources => {
         const variant = variantVWC.get();
         const code = codeVWC.get();
