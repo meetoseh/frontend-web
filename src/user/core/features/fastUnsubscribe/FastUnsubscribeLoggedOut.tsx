@@ -160,8 +160,9 @@ export const FastUnsubscribeLoggedOut = ({
                                 label="Email Address"
                                 value={value}
                                 inputStyle="white"
+                                type="email"
                                 onChange={setEmail}
-                                html5Validation={{ required: true }}
+                                html5Validation={{ required: true, autoComplete: 'email' }}
                                 help={null}
                                 disabled={disabled}
                               />
