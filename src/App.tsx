@@ -23,6 +23,7 @@ import { JourneyPublicLink } from './user/journey/JourneyPublicLink';
 import { InterestsAutoProvider } from './shared/contexts/InterestsContext';
 import { AnxietyLanding } from './user/landing/AnxietyLanding';
 import { ModalProvider } from './shared/contexts/ModalContext';
+import { ClearCache } from './user/connectivity/ClearCache';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -212,6 +213,7 @@ function App() {
         <Route path="/favorites" element={<UserApp />} />
         <Route path="/l/*" element={<UserApp />} />
         <Route path="/a/*" element={<UserApp />} />
+        <Route path="/clear" element={<ClearCache />} />
       </Routes>
     </BrowserRouter>
   );
