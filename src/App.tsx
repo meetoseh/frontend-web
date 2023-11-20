@@ -24,6 +24,7 @@ import { InterestsAutoProvider } from './shared/contexts/InterestsContext';
 import { AnxietyLanding } from './user/landing/AnxietyLanding';
 import { ModalProvider } from './shared/contexts/ModalContext';
 import { ClearCache } from './user/connectivity/ClearCache';
+import { DebugFeatures } from './dbg/features/DebugFeatures';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -214,6 +215,7 @@ function App() {
         <Route path="/l/*" element={<UserApp />} />
         <Route path="/a/*" element={<UserApp />} />
         <Route path="/clear" element={<ClearCache />} />
+        <Route path="/debug-features" element={<DebugFeatures />} />
       </Routes>
     </BrowserRouter>
   );
