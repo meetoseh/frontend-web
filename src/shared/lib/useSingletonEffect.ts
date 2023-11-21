@@ -23,6 +23,7 @@ import { createCancelablePromiseFromCallbacks } from './createCancelablePromiseF
  *
  * @param effect The effect-like handler, which is passed an onDone handler
  * @param deps The dependencies for the effect
+ * @deprecated This doesn't work very well
  */
 export const useSingletonEffect = (
   effect: (onDone: () => void) => void | (() => void),

@@ -23,11 +23,6 @@ export const DebugFeatures = (): ReactElement => {
   );
 };
 
-type LogMessage = {
-  level: 'trace' | 'debug' | 'info' | 'warn' | 'critical';
-  msg: string;
-};
-
 const DebugFeaturesInner = (): ReactElement => {
   const loginContext = useContext(LoginContext);
   const states = useWritableValueWithCallbacks<any[]>(() => []);
@@ -82,7 +77,7 @@ const DebugFeaturesInner = (): ReactElement => {
       <div className={styles.content}>
         <div className={styles.title}>Debug Features</div>
         <div className={styles.subtitle}>
-          This page is intended to be used to identity issues that cause the app to malfunction. If
+          This page is intended to be used to identify issues that cause the app to malfunction. If
           you got here and you didn't expect to, go back to the <a href="/">home page</a>.
         </div>
         <div className={styles.features}>
