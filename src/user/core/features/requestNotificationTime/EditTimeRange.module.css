@@ -42,7 +42,6 @@
 }
 
 .formItemInput {
-  border: none;
   outline: none;
 
   font-family: 'Open Sans', sans-serif;
@@ -52,12 +51,14 @@
   letter-spacing: 0.25px;
   color: white;
   background-color: #232323;
-  border-radius: 5px;
   padding: 0;
   /* the border more consistently goes around the system imposed icon */
-  border: 8px solid transparent;
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent;
   border-left-width: 12px;
   border-right-width: 12px;
+  border-radius: 5px;
   margin: 0;
   color-scheme: dark;
 }
