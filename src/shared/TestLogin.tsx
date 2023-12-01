@@ -1,7 +1,16 @@
 import './TestLogin.css';
-import { ChangeEvent, FormEvent, ReactElement, useCallback, useContext, useState } from 'react';
+import {
+  ChangeEvent,
+  FormEvent,
+  ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import { apiFetch } from './ApiConstants';
 import { InterestsContext } from './contexts/InterestsContext';
+import { LoginContext } from './contexts/LoginContext';
 
 /**
  * Shows a development page where you can login just be specifying your user
@@ -11,9 +20,32 @@ import { InterestsContext } from './contexts/InterestsContext';
  * login flow.
  */
 export const TestLogin = (): ReactElement => {
+  const loginContext = useContext(LoginContext);
   const [loggingIn, setLoggingIn] = useState(false);
   const [userSub, setUserSub] = useState('timothy');
   const interests = useContext(InterestsContext);
+  const [isMerge, setIsMerge] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (isMerge !== null) {
+      return;
+    }
+
+    const queryParams = window.location.search;
+    if (queryParams === '') {
+      setIsMerge(false);
+      return;
+    }
+    let args: URLSearchParams;
+    try {
+      args = new URLSearchParams(queryParams.substring(1));
+    } catch {
+      setIsMerge(false);
+      return;
+    }
+
+    setIsMerge(args.get('merge') === '1');
+  }, [isMerge]);
 
   const login = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -55,10 +87,46 @@ export const TestLogin = (): ReactElement => {
     [userSub]
   );
 
+  const merge = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      setLoggingIn(true);
+      try {
+        const response = await apiFetch(
+          '/api/1/dev/merge',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({
+              sub: userSub,
+            }),
+          },
+          loginContext
+        );
+
+        if (!response.ok) {
+          throw response;
+        }
+
+        const data: { merge_token: string } = await response.json();
+        window.location.href =
+          '/#' +
+          new URLSearchParams({
+            merge_token: data.merge_token,
+          }).toString();
+      } catch (e) {
+        console.error(e);
+        setLoggingIn(false);
+      }
+    },
+    [loginContext, userSub]
+  );
+
   return (
     <div className="TestLogin">
-      <h1>Login</h1>
-      <form onSubmit={login}>
+      <h1>{isMerge ? 'Merge' : 'Login'}</h1>
+      <form onSubmit={isMerge ? merge : login}>
         <label htmlFor="userSub">User Sub</label>
         <input
           type="text"

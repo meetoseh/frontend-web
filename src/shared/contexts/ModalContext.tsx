@@ -1,4 +1,4 @@
-import { createContext, PropsWithChildren, ReactElement } from 'react';
+import { createContext, PropsWithChildren, ReactElement, useMemo } from 'react';
 import {
   Callbacks,
   useWritableValueWithCallbacks,
@@ -43,8 +43,9 @@ export const ModalContext = createContext<ModalContextValue>({
  */
 export const ModalProvider = ({ children }: PropsWithChildren<object>): ReactElement => {
   const modals = useWritableValueWithCallbacks<Modals>(() => []);
+  const memodWrappedModals = useMemo(() => ({ modals }), [modals]);
   return (
-    <ModalContext.Provider value={{ modals }}>
+    <ModalContext.Provider value={memodWrappedModals}>
       {children}
       <RenderGuardedComponent
         props={modals}

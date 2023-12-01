@@ -1,8 +1,10 @@
+import { ConfirmMergeAccountState } from '../features/confirmMergeAccount/ConfirmMergeAccountState';
 import { FastUnsubscribeState } from '../features/fastUnsubscribe/FastUnsubscribeState';
 import { FavoritesState } from '../features/favorites/FavoritesState';
 import { GoalDaysPerWeekState } from '../features/goalDaysPerWeek/GoalDaysPerWeekState';
 import { IsaiahCourseState } from '../features/isaiahCourse/IsaiahCourseState';
 import { LoginState } from '../features/login/LoginState';
+import { MergeAccountState } from '../features/mergeAccount/MergeAccountState';
 import { PickEmotionJourneyState } from '../features/pickEmotionJourney/PickEmotionJourneyState';
 import { RequestNameState } from '../features/requestName/RequestNameState';
 import { RequestNotificationTimeState } from '../features/requestNotificationTime/RequestNotificationTimeState';
@@ -26,4 +28,6 @@ export type FeatureAllStates = {
   touchLink: TouchLinkState;
   login: LoginState;
   fastUnsubscribe: FastUnsubscribeState;
+  mergeAccount: MergeAccountState;
+  confirmMergeAccount: ConfirmMergeAccountState;
 };

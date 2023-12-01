@@ -145,9 +145,9 @@
 }
 
 .filled-white:disabled {
-  background: #3f484a;
-  color: #c8cdd0;
-  border: 3px solid #3f484a;
+  background: #8b8e90;
+  color: #383838;
+  border: 3px solid #8b8e90;
 }
 
 .outlined-white:disabled {

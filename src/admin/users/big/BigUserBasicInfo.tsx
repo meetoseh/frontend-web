@@ -50,7 +50,11 @@ export const BigUserBasicInfo = ({
         </CrudFormElement>
       ))}
       <CrudFormElement title="Admin">{user.admin ? 'Yes' : 'No'}</CrudFormElement>
-      <CrudFormElement title="Revenue Cat ID">{user.revenueCatID}</CrudFormElement>
+      {user.revenueCatIDs.map((rcid) => (
+        <CrudFormElement key={rcid} title="Revenue Cat ID">
+          {rcid}
+        </CrudFormElement>
+      ))}
       <CrudFormElement title="Created At">{user.createdAt.toLocaleString()}</CrudFormElement>
       <CrudFormElement title="Last Seen At">{user.lastSeenAt.toLocaleString()}</CrudFormElement>
     </CrudItemBlock>

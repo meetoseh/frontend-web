@@ -18,12 +18,16 @@ import { LoginFeature } from '../features/login/LoginFeature';
 import { FastUnsubscribeFeature } from '../features/fastUnsubscribe/FastUnsubscribeFeature';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
+import { MergeAccountFeature } from '../features/mergeAccount/MergeAccountFeature';
+import { ConfirmMergeAccountFeature } from '../features/confirmMergeAccount/ConfirmMergeAccountFeature';
 
 export const features = [
   TouchLinkFeature,
   FastUnsubscribeFeature,
   LoginFeature,
   RequestNameFeature,
+  ConfirmMergeAccountFeature,
+  MergeAccountFeature,
   SignupRewardFeature,
   RequestPhoneFeature,
   RequestNotificationTimeFeature,

@@ -1,0 +1,125 @@
+.container {
+  display: grid;
+}
+
+.background {
+  grid-area: 1 / 1 / 1 / 1;
+  background: linear-gradient(0deg, #010101 0%, #273136 37%, #2d2e2e 100%);
+}
+
+.contentContainer {
+  grid-area: 1 / 1 / 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButtonContainer {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.closeIcon {
+  composes: icon from '../../../../../shared/icons.module.css';
+  background-image: url('../../../../../assets/close-white.svg');
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  max-width: 390px;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 32px;
+  text-align: center;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.description {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  text-align: center;
+  color: #f9f9f9;
+}
+
+.buttonContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 60px;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.buttonContainer > *:not(:last-child) {
+  margin-bottom: 16px;
+}
+
+.resolveConflict {
+  margin-top: 16px;
+}
+
+.resolveConflictTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  color: #f9f9f9;
+  margin-bottom: 10px;
+}
+
+.resolveConflictOptions {
+  background: #232323;
+  border-radius: 10px;
+}
+
+.resolveConflictOption {
+  padding: 12.5px 12px;
+}
+
+.resolveConflictOption:not(:last-child) {
+  border-bottom: 1px solid #383838;
+}
+
+.resolveConflictError {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  color: #d0382f;
+  margin-top: 6px;
+}
+
+@media screen and (max-height: 700px) {
+  .content {
+    position: relative;
+    padding-bottom: 132px;
+  }
+
+  .buttonContainer {
+    position: absolute;
+    bottom: 24px;
+    margin-top: 0;
+    left: 0;
+    right: 0;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}

@@ -50,17 +50,29 @@ export const FastUnsubscribeFeature: Feature<FastUnsubscribeState, FastUnsubscri
     const variantVWC = useWritableValueWithCallbacks<FastUnsubscribeVariant | null | undefined>(
       () => undefined
     );
-    const codeVWC = useMappedValueWithCallbacks(allStates, (s) => s.touchLink.code);
+    const codeVWC = useMappedValueWithCallbacks(allStates, (s) => s.touchLink.code, {
+      inputEqualityFn: (a, b) => a.touchLink.code === b.touchLink.code,
+    });
     const [signinUrlsVWC, signinUrlsErrorVWC] = useProviderUrlsValueWithCallbacks(required);
-    const onDismissVWC = useMappedValueWithCallbacks(allStates, (s) => s.touchLink.handledLink);
+    const onDismissVWC = useMappedValueWithCallbacks(allStates, (s) => s.touchLink.handledLink, {
+      inputEqualityFn: (a, b) => Object.is(a.touchLink.handledLink, b.touchLink.handledLink),
+    });
     const dailyRemindersVWC = useWritableValueWithCallbacks<DailyReminders | undefined>(
       () => undefined
     );
 
-    const dismissAndGotoSettingsVWC = useMappedValueWithCallbacks(allStates, (s) => () => {
-      s.settings.setShow(true, true);
-      s.touchLink.handledLink();
-    });
+    const dismissAndGotoSettingsVWC = useMappedValueWithCallbacks(
+      allStates,
+      (s) => () => {
+        s.settings.setShow(true, true);
+        s.touchLink.handledLink();
+      },
+      {
+        inputEqualityFn: (a, b) =>
+          Object.is(a.touchLink.handledLink, b.touchLink.handledLink) &&
+          Object.is(a.settings.setShow, b.settings.setShow),
+      }
+    );
 
     useValuesWithCallbacksEffect(
       [required, codeVWC],

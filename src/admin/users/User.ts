@@ -93,9 +93,9 @@ export type User = {
   admin: boolean;
 
   /**
-   * The users id on revenue cat, which can be used to track their purchases
+   * The users ids on revenue cat, which can be used to track their purchases
    */
-  revenueCatID: string | null;
+  revenueCatIDs: string[];
 
   /**
    * The users profile picture, if they have one.
@@ -121,7 +121,7 @@ export type User = {
 export const userKeyMap: CrudFetcherKeyMap<User> | ((raw: any) => User) = {
   given_name: 'givenName',
   family_name: 'familyName',
-  revenue_cat_id: 'revenueCatID',
+  revenue_cat_ids: 'revenueCatIDs',
   profile_picture: 'profilePicture',
   created_at: (_, v) => ({ key: 'createdAt', value: new Date(v * 1000) }),
   last_seen_at: (_, v) => ({ key: 'lastSeenAt', value: new Date(v * 1000) }),
