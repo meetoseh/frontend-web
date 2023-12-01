@@ -1,6 +1,7 @@
 import { createContext, PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 import { Buffer } from 'buffer';
 import { apiFetch } from '../ApiConstants';
+import { getCurrentServerTimeMS } from '../lib/getCurrentServerTimeMS';
 
 /**
  * The user attributes that are available when a user is logged in. When
@@ -273,9 +274,9 @@ const retrieveUserAttributes = async (): Promise<UserAttributes | null> => {
  * expire.
  *
  * @param token The token to check
+ * @param nowMs The current server time in milliseconds since the unix epoch
  */
-const isTokenFresh = (token: TokenResponseConfig): boolean => {
-  const nowMs = Date.now();
+const isTokenFresh = (token: TokenResponseConfig, nowMs: number): boolean => {
   const minExpTime = nowMs + 1000 * 60 * 5;
 
   const claimsBase64 = token.idToken.split('.')[1];
@@ -288,14 +289,14 @@ const isTokenFresh = (token: TokenResponseConfig): boolean => {
  * Determines if it's possible to refresh the id token in the given response
  *
  * @param token The token to check
+ * @param nowMs The current server time in milliseconds since the unix epoch
  * @returns True if the token is refreshable, false otherwise
  */
-const isRefreshable = (token: TokenResponseConfig): boolean => {
+const isRefreshable = (token: TokenResponseConfig, nowMs: number): boolean => {
   if (token.refreshToken === null) {
     return false;
   }
 
-  const nowMs = Date.now();
   const maxIat = nowMs - 1000 * 60 * 10;
   const minExpTime = nowMs + 1000 * 60 * 5;
   const minOgExpTime = nowMs - 1000 * 60 * 60 * 24 * 60 + 1000 * 60 * 5;
@@ -528,14 +529,16 @@ export const LoginProvider = ({
         return rawAttributes;
       })();
 
-      if (isTokenFresh(tokens)) {
+      const nowMS = await getCurrentServerTimeMS();
+
+      if (isTokenFresh(tokens, nowMS)) {
         setAuthTokens(tokens);
         setUserAttributes(attributes);
         setState('logged-in');
         return;
       }
 
-      if (isRefreshable(tokens)) {
+      if (isRefreshable(tokens, nowMS)) {
         let newTokens: TokenResponseConfig | null = null;
         try {
           newTokens = await refreshTokens(tokens);
@@ -599,9 +602,8 @@ export const LoginProvider = ({
       const idenClaimsJson = Buffer.from(idenClaimsB64, 'base64').toString('utf8');
       const idenClaims = JSON.parse(idenClaimsJson);
       const expMs = idenClaims.exp * 1000;
-      const nowMs = Date.now();
 
-      timeout = setTimeout(onExpired, expMs - nowMs);
+      queueTimeout(expMs);
     }
 
     let active = true;
@@ -619,6 +621,13 @@ export const LoginProvider = ({
         removeForegroundChangedListener(visibilityHandler);
       }
     };
+
+    async function queueTimeout(expMs: number) {
+      const nowMs = await getCurrentServerTimeMS();
+      if (active) {
+        timeout = setTimeout(onExpired, expMs - nowMs);
+      }
+    }
 
     async function onExpired() {
       if (!active) {
@@ -660,7 +669,7 @@ export const LoginProvider = ({
         return;
       }
 
-      if (authTokens !== null && isRefreshable(authTokens)) {
+      if (authTokens !== null && isRefreshable(authTokens, await getCurrentServerTimeMS())) {
         try {
           const refreshed = await refreshTokens(authTokens);
           wrappedSetAuthTokens(refreshed);
@@ -669,7 +678,7 @@ export const LoginProvider = ({
           // waiting a few seconds and checking if the local storage got updated
           await new Promise((resolve) => setTimeout(resolve, 3000));
           const storedTokens = await retrieveAuthTokens();
-          if (storedTokens !== null && isTokenFresh(storedTokens)) {
+          if (storedTokens !== null && isTokenFresh(storedTokens, await getCurrentServerTimeMS())) {
             console.log('recovered from refresh tokens race');
             wrappedSetAuthTokens(storedTokens);
           } else {

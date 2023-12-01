@@ -24,9 +24,10 @@ export const getJwtExpiration = (jwt: string): number => {
 
 /**
  * @param jwt The JWT to check
+ * @param now The current time in milliseconds since the epoch
  * @returns True if the JWT is expired, false otherwise
  */
-export const isJWTExpired = (jwt: string): boolean => {
+export const isJWTExpired = (jwt: string, now: number): boolean => {
   const expiration = getJwtExpiration(jwt);
-  return Date.now() >= expiration;
+  return now >= expiration;
 };

@@ -9,6 +9,7 @@ import { JourneyPostScreen } from './screens/JourneyPostScreen';
 import { JourneyShareScreen } from './screens/JourneyShareScreen';
 import { JourneyStartScreen } from './screens/JourneyStartScreen';
 import { JourneyFeedbackScreen } from './screens/JourneyFeedbackScreen';
+import { getCurrentServerTimeMS } from '../../shared/lib/getCurrentServerTimeMS';
 
 type JourneyRouterProps = {
   /**
@@ -68,18 +69,33 @@ export const JourneyRouter = ({
   }, [journey, sharedState, onFinished, isOnboarding]);
 
   useEffect(() => {
-    const expireTime = getJwtExpiration(journey.jwt);
-    if (expireTime <= Date.now()) {
-      onFinished();
-      return;
-    }
-
+    let timeout: NodeJS.Timeout | null = null;
     let active = true;
-    const timeout = setTimeout(handleExpiration, expireTime - Date.now());
+
+    queueTimeout();
+
     return () => {
       active = false;
-      clearTimeout(timeout);
+      if (timeout !== null) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
     };
+
+    async function queueTimeout() {
+      const now = await getCurrentServerTimeMS();
+      if (!active) {
+        return;
+      }
+
+      const expireTime = getJwtExpiration(journey.jwt);
+      if (expireTime <= now) {
+        onFinished();
+        return;
+      }
+
+      timeout = setTimeout(handleExpiration, expireTime - now);
+    }
 
     function handleExpiration() {
       if (!active) {

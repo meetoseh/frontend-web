@@ -7,6 +7,7 @@ import {
   useVariableStrategyPropsAsValueWithCallbacks,
 } from '../anim/VariableStrategyProps';
 import { useUnwrappedValueWithCallbacks } from './useUnwrappedValueWithCallbacks';
+import { getCurrentServerTimeMS } from '../lib/getCurrentServerTimeMS';
 
 const MAX_EXPIRATION_TIME_SECONDS = 60 * 60 * 24 * 7;
 
@@ -117,7 +118,9 @@ export const useInappNotificationValueWithCallbacks = (
       return;
     }
     cleanedUp.current = true;
-    pruneExpiredState(loginContext?.userAttributes?.sub ?? null);
+    getCurrentServerTimeMS().then((now) =>
+      pruneExpiredState(loginContext?.userAttributes?.sub ?? null, now)
+    );
   }, [loginContext]);
 
   useEffect(() => {
@@ -153,26 +156,30 @@ export const useInappNotificationValueWithCallbacks = (
       }
       const userSub = loginContext.userAttributes.sub;
 
-      const stored = fetchStoredUid(uid);
-      if (stored !== null) {
-        const now = Date.now() / 1000;
-        if (stored.nextShowAt === null || stored.nextShowAt > now) {
-          const newNotif = {
-            uid,
-            showNow: false,
-            nextShowAt: stored.nextShowAt,
-            onShown: () => newNotif,
-          };
-          setNotification(newNotif);
-          return;
-        }
-      }
-
       let active = true;
-      fetchFromNetwork();
+      fetchFromStoredOrNetwork();
       return () => {
         active = false;
       };
+
+      async function fetchFromStoredOrNetwork() {
+        const stored = fetchStoredUid(uid);
+        if (stored !== null) {
+          const now = (await getCurrentServerTimeMS()) / 1000;
+          if (stored.nextShowAt === null || stored.nextShowAt > now) {
+            const newNotif = {
+              uid,
+              showNow: false,
+              nextShowAt: stored.nextShowAt,
+              onShown: () => newNotif,
+            };
+            setNotification(newNotif);
+            return;
+          }
+        }
+
+        fetchFromNetwork();
+      }
 
       async function fetchFromNetworkInner() {
         const response = await apiFetch(
@@ -193,7 +200,7 @@ export const useInappNotificationValueWithCallbacks = (
 
         const data: { show_now: boolean; next_show_at: number | null } = await response.json();
 
-        const now = Date.now() / 1000;
+        const now = (await getCurrentServerTimeMS()) / 1000;
         const dataToStore: StoredInappNotification = {
           uid,
           userSub,
@@ -355,11 +362,10 @@ const storeUid = (uid: string, data: StoredInappNotification) => {
   storeUids(uids);
 };
 
-const pruneExpiredState = (userSub: string | null) => {
+const pruneExpiredState = (userSub: string | null, now: number) => {
   const uids = fetchStoredUids();
   const newUids: string[] = [];
   const removedUids: string[] = [];
-  const now = Date.now() / 1000;
 
   for (const uid of uids) {
     const stored = fetchStoredUid(uid);
