@@ -338,6 +338,12 @@ export type ConfirmMergeAccountState = {
   error: ReactElement | null;
 
   /**
+   * True if we have merged accounts this session, false otherwise. Intended
+   * for other features as it does not impact this feature.
+   */
+  mergedThisSession: boolean;
+
+  /**
    * May be called when mergeToken is null to set it to undefined.
    * Used by the app and kept here for consistency.
    */
@@ -361,6 +367,9 @@ export type ConfirmMergeAccountState = {
    * error should be set to a ReactElement describing the error and
    * the merge token will be set to null.
    *
+   * If the result is not false and not confirmationRequired, this will set
+   * mergedThisSession to true.
+   *
    * @param result
    * @param error
    * @returns
@@ -377,6 +386,8 @@ export type ConfirmMergeAccountState = {
    * If confirmResult is undefined, this can be called to set confirmResult to
    * true or false and set an error if result is false. Regardless of result,
    * the merge token will be set to null.
+   *
+   * If result is true, this will set mergedThisSession to true.
    */
   onResolveConflict: (result: boolean, error: ReactElement | null) => void;
 

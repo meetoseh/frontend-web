@@ -76,7 +76,11 @@ export const SignupRewardFeature: Feature<SignupRewardState, SignupRewardResourc
     }));
   },
 
-  isRequired: (worldState) => {
+  isRequired: (worldState, allStates) => {
+    if (allStates.confirmMergeAccount.mergedThisSession) {
+      return false;
+    }
+
     if (worldState.ian === null) {
       return undefined;
     }

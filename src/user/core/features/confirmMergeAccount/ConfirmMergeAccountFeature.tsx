@@ -26,10 +26,10 @@ export const ConfirmMergeAccountFeature: Feature<
     const confirmResultVWC = useWritableValueWithCallbacks<boolean | null | undefined>(() => null);
     const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
     const promptingReviewReminderSettingsVWC = useWritableValueWithCallbacks(() => false);
+    const mergedThisSessionVWC = useWritableValueWithCallbacks(() => false);
 
     useEffect(() => {
       if (loginContext.state === 'logged-out') {
-        console.log('logged out, clearing merge token');
         setVWC(mergeTokenVWC, null);
       }
     }, [loginContext.state, mergeTokenVWC]);
@@ -69,13 +69,11 @@ export const ConfirmMergeAccountFeature: Feature<
     }, [mergeTokenVWC]);
 
     const onShowingSecureLogin = useCallback(() => {
-      console.log('showing secure login, setting merge token to undefined');
       setVWC(mergeTokenVWC, undefined);
     }, [mergeTokenVWC]);
 
     const onSecureLoginCompleted = useCallback(
       (mergeToken: string | null) => {
-        console.log('secure login completed, setting merge token');
         setVWC(mergeTokenVWC, mergeToken);
       },
       [mergeTokenVWC]
@@ -89,8 +87,12 @@ export const ConfirmMergeAccountFeature: Feature<
       (result: OauthMergeResult | false, error: ReactElement | null) => {
         setVWC(resultVWC, result);
         setVWC(errorVWC, error);
+
+        if (result !== false && result.result !== 'confirmationRequired') {
+          setVWC(mergedThisSessionVWC, true);
+        }
       },
-      [resultVWC, errorVWC]
+      [resultVWC, errorVWC, mergedThisSessionVWC]
     );
 
     const onResolvingConflict = useCallback(() => {
@@ -101,8 +103,11 @@ export const ConfirmMergeAccountFeature: Feature<
       (result: boolean, error: ReactElement | null) => {
         setVWC(confirmResultVWC, result);
         setVWC(errorVWC, error);
+        if (result) {
+          setVWC(mergedThisSessionVWC, true);
+        }
       },
-      [confirmResultVWC, errorVWC]
+      [confirmResultVWC, errorVWC, mergedThisSessionVWC]
     );
 
     const onDismissed = useCallback(() => {
@@ -120,7 +125,6 @@ export const ConfirmMergeAccountFeature: Feature<
         (result.result === 'trivialMerge' ||
           (result.result === 'confirmationRequired' && confirmResult === true));
 
-      console.log('dismissed, setting merge token to null');
       setVWC(mergeTokenVWC, null);
       setVWC(promptingReviewReminderSettingsVWC, justMerged);
     }, [mergeTokenVWC, promptingReviewReminderSettingsVWC, confirmResultVWC, resultVWC]);
@@ -130,7 +134,14 @@ export const ConfirmMergeAccountFeature: Feature<
     }, [promptingReviewReminderSettingsVWC]);
 
     return useMappedValuesWithCallbacks(
-      [mergeTokenVWC, resultVWC, confirmResultVWC, errorVWC, promptingReviewReminderSettingsVWC],
+      [
+        mergeTokenVWC,
+        resultVWC,
+        confirmResultVWC,
+        errorVWC,
+        promptingReviewReminderSettingsVWC,
+        mergedThisSessionVWC,
+      ],
       useCallback(
         (): ConfirmMergeAccountState => ({
           mergeToken: mergeTokenVWC.get(),
@@ -138,6 +149,7 @@ export const ConfirmMergeAccountFeature: Feature<
           result: resultVWC.get(),
           confirmResult: confirmResultVWC.get(),
           error: errorVWC.get(),
+          mergedThisSession: mergedThisSessionVWC.get(),
           onShowingSecureLogin,
           onSecureLoginCompleted,
           onFetchingInitialMergeResult,
@@ -153,6 +165,7 @@ export const ConfirmMergeAccountFeature: Feature<
           promptingReviewReminderSettingsVWC,
           confirmResultVWC,
           errorVWC,
+          mergedThisSessionVWC,
           onShowingSecureLogin,
           onSecureLoginCompleted,
           onFetchingInitialMergeResult,

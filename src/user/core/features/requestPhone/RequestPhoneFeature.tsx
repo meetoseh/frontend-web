@@ -106,6 +106,10 @@ export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResourc
   },
 
   isRequired: (worldState, allStates) => {
+    if (allStates.confirmMergeAccount.mergedThisSession) {
+      return false;
+    }
+
     if (worldState.hasPhoneNumber === undefined) {
       return undefined;
     }
