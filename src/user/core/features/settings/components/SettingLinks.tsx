@@ -19,6 +19,12 @@ export type SettingLink = {
   text: string;
 
   /**
+   * If specified, displayed below the text in a smaller font, with
+   * a newline between each entry
+   */
+  details?: string[];
+
+  /**
    * The key for the link for rerendering purposes.
    *
    * TODO: Currently ignored for simplicity of implementation with the
@@ -32,6 +38,14 @@ export type SettingLink = {
    * text
    */
   style?: 'normal';
+
+  /**
+   * Which icon to display on the right side of the link, if any,
+   * when the spinner is not displayed.
+   *
+   * Defaults to 'arrow'
+   */
+  action?: 'arrow' | 'none';
 
   /**
    * If clicking the link should redirect the user to a new page,
@@ -133,9 +147,24 @@ const SettingLinkComponent = ({ link }: { link: SettingLink }): ReactElement => 
         href={link.onClick}
         className={combineClasses(styles.item, styles.itemLink, styles[`item-${linkStyle}`])}
         ref={linkRef}>
-        <div className={combineClasses(styles.text, styles[`text-${linkStyle}`])}>{link.text}</div>
+        <div className={styles.content}>
+          <div className={combineClasses(styles.text, styles[`text-${linkStyle}`])}>
+            {link.text}
+          </div>
+          {link.details !== undefined && (
+            <div className={styles.details}>
+              {link.details.map((detail, index) => (
+                <div key={index} className={styles.detail}>
+                  {detail}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <div className={styles.actionContainer}>
-          <div className={styles.arrow} />
+          {(link.action === 'arrow' || link.action === undefined) && (
+            <div className={styles.arrow} />
+          )}
         </div>
       </a>
     );
@@ -175,8 +204,19 @@ const SettingLinkComponent = ({ link }: { link: SettingLink }): ReactElement => 
               }
             }}
             disabled={isDisabled}>
-            <div className={combineClasses(styles.text, styles[`text-${linkStyle}`])}>
-              {link.text}
+            <div className={styles.content}>
+              <div className={combineClasses(styles.text, styles[`text-${linkStyle}`])}>
+                {link.text}
+              </div>
+              {link.details !== undefined && (
+                <div className={styles.details}>
+                  {link.details.map((detail, index) => (
+                    <div key={index} className={styles.detail}>
+                      {detail}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className={styles.actionContainer}>
               {isSpinner && (
@@ -189,7 +229,9 @@ const SettingLinkComponent = ({ link }: { link: SettingLink }): ReactElement => 
                   }}
                 />
               )}
-              {!isSpinner && <div className={styles.arrow} />}
+              {!isSpinner && (link.action === undefined || link.action === 'arrow') && (
+                <div className={styles.arrow} />
+              )}
             </div>
           </button>
         );

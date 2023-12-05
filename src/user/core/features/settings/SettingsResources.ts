@@ -1,4 +1,5 @@
 import { ReactElement } from 'react';
+import { IdentitiesState } from './hooks/useIdentities';
 
 /**
  * The resources required to display the settings screen
@@ -24,6 +25,12 @@ export type SettingsResources = {
    * don't know yet.
    */
   havePro: boolean | undefined;
+
+  /**
+   * The users identities. May be in an errored state, but won't be loading
+   * unless loading is true.
+   */
+  identities: IdentitiesState;
 
   /**
    * A function which can be called to change to the edit notification

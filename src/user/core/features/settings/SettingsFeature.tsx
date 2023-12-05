@@ -11,6 +11,7 @@ import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { Settings } from './Settings';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { useIdentities } from './hooks/useIdentities';
 
 /**
  * Simple link page where the user can perform some key actions, like logging out.
@@ -88,6 +89,7 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
         },
       }
     );
+    const identitiesVWC = useIdentities(useMappedValueWithCallbacks(requiredVWC, (req) => !req));
 
     useValueWithCallbacksEffect(
       requiredVWC,
@@ -159,12 +161,13 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
     );
 
     return useMappedValuesWithCallbacks(
-      [haveProVWC, loadErrorVWC, gotoEditTimesVWC],
+      [haveProVWC, loadErrorVWC, gotoEditTimesVWC, identitiesVWC, gotoMyLibraryVWC],
       (): SettingsResources => {
         if (loadErrorVWC.get() !== null) {
           return {
             loading: false,
             havePro: undefined,
+            identities: { type: 'loading' },
             loadError: loadErrorVWC.get(),
             gotoEditReminderTimes: () => {},
             gotoMyLibrary: () => {},
@@ -172,9 +175,10 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
         }
 
         return {
-          loading: haveProVWC.get() === undefined,
+          loading: haveProVWC.get() === undefined || identitiesVWC.get().type === 'loading',
           havePro: haveProVWC.get(),
           loadError: null,
+          identities: identitiesVWC.get(),
           gotoEditReminderTimes: gotoEditTimesVWC.get(),
           gotoMyLibrary: gotoMyLibraryVWC.get(),
         };

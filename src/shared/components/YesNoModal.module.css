@@ -71,6 +71,7 @@
   padding: 11px 16px;
   color: #007aff;
   position: relative;
+  text-decoration: none;
 }
 
 .button:first-child {

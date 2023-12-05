@@ -30,6 +30,22 @@
   border-bottom: 1px solid #383838;
 }
 
+.content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.detail {
+  margin-top: 3px;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.25px;
+  color: #c8cdd0;
+}
+
 .text {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;

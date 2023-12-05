@@ -21,8 +21,16 @@ export type YesNoModalProps = {
   cta1: string;
   cta2?: string;
   emphasize: 1 | 2 | null;
-  onClickOne: () => Promise<void>;
-  onClickTwo?: () => Promise<void>;
+  /**
+   * Strings are treated as URLs to navigate to, functions are
+   * treated as async callbacks to execute
+   */
+  onClickOne: string | (() => Promise<void>);
+  /**
+   * Strings are treated as URLs to navigate to, functions are
+   * treated as async callbacks to execute
+   */
+  onClickTwo?: string | (() => Promise<void>);
   /**
    * Called after the modal has been dismissed and all animations
    * have been played, so the modal can be removed from the DOM
@@ -87,7 +95,12 @@ export const YesNoModal = ({
   );
 
   const handleClickOne = useCallback((): void => {
-    if (executingOne.get() || executingTwo.get() || clickthroughPrevention.get()) {
+    if (
+      executingOne.get() ||
+      executingTwo.get() ||
+      clickthroughPrevention.get() ||
+      typeof onClickOne !== 'function'
+    ) {
       return;
     }
 
@@ -102,7 +115,8 @@ export const YesNoModal = ({
       executingOne.get() ||
       executingTwo.get() ||
       clickthroughPrevention.get() ||
-      onClickTwo === undefined
+      onClickTwo === undefined ||
+      typeof onClickTwo !== 'function'
     ) {
       return;
     }
@@ -120,8 +134,8 @@ export const YesNoModal = ({
       cta1={cta1}
       cta2={cta2}
       emphasize={emphasize}
-      onClickOne={handleClickOne}
-      onClickTwo={handleClickTwo}
+      onClickOne={typeof onClickOne === 'string' ? onClickOne : handleClickOne}
+      onClickTwo={typeof onClickTwo === 'string' ? onClickTwo : handleClickTwo}
       onDismiss={startDismiss}
       fadingOut={fadingOut}
       executingOne={executingOne}
@@ -136,8 +150,8 @@ type InnerProps = {
   cta1: string;
   cta2?: string;
   emphasize: 1 | 2 | null;
-  onClickOne: () => void;
-  onClickTwo?: () => void;
+  onClickOne: string | (() => void);
+  onClickTwo?: string | (() => void);
   onDismiss: () => void;
   fadingOut: ValueWithCallbacks<boolean>;
   executingOne: ValueWithCallbacks<boolean>;
@@ -176,7 +190,9 @@ const Inner = ({
   const handleClickOne = useCallback(
     (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
       e.preventDefault();
-      onClickOne();
+      if (typeof onClickOne === 'function') {
+        onClickOne();
+      }
     },
     [onClickOne]
   );
@@ -184,7 +200,9 @@ const Inner = ({
   const handleClickTwo = useCallback(
     (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
       e.preventDefault();
-      onClickTwo?.();
+      if (typeof onClickTwo === 'function') {
+        onClickTwo();
+      }
     },
     [onClickTwo]
   );
@@ -238,6 +256,20 @@ const Inner = ({
     return undefined;
   });
 
+  const className1 = combineClasses(
+    styles.button,
+    emphasize === 1 ? styles.emphasizeButton : undefined,
+    executingOne.get() ? styles.executing : undefined,
+    executingTwo.get() ? styles.disabled : undefined
+  );
+
+  const className2 = combineClasses(
+    styles.button,
+    emphasize === 2 ? styles.emphasizeButton : undefined,
+    executingTwo.get() ? styles.executing : undefined,
+    executingOne.get() ? styles.disabled : undefined
+  );
+
   return (
     <div
       className={styles.container}
@@ -263,62 +295,57 @@ const Inner = ({
         <div className={styles.title}>{title}</div>
         <div className={styles.body}>{body}</div>
         <div className={styles.buttons}>
-          <button
-            type="button"
-            className={combineClasses(
-              styles.button,
-              emphasize === 1 ? styles.emphasizeButton : undefined,
-              executingOne.get() ? styles.executing : undefined,
-              executingTwo.get() ? styles.disabled : undefined
-            )}
-            onClick={handleClickOne}>
-            <RenderGuardedComponent
-              props={executingOne}
-              component={(v) => (
-                <>
-                  {v && (
-                    <div className={styles.spinnerContainer}>
-                      <InlineOsehSpinner
-                        size={{ type: 'react-rerender', props: { height: 16 } }}
-                        variant="black"
-                      />
-                    </div>
-                  )}
-                  {v && <>Working...</>}
-                  {!v && cta1}
-                </>
-              )}
-            />
-          </button>
-          {cta2 && (
-            <button
-              type="button"
-              className={combineClasses(
-                styles.button,
-                emphasize === 2 ? styles.emphasizeButton : undefined,
-                executingTwo.get() ? styles.executing : undefined,
-                executingOne.get() ? styles.disabled : undefined
-              )}
-              onClick={handleClickTwo}>
+          {typeof onClickOne === 'function' ? (
+            <button type="button" className={className1} onClick={handleClickOne}>
               <RenderGuardedComponent
-                props={executingTwo}
+                props={executingOne}
                 component={(v) => (
                   <>
                     {v && (
                       <div className={styles.spinnerContainer}>
                         <InlineOsehSpinner
-                          size={{ type: 'react-rerender', props: { height: 14 } }}
+                          size={{ type: 'react-rerender', props: { height: 16 } }}
                           variant="black"
                         />
                       </div>
                     )}
                     {v && <>Working...</>}
-                    {!v && cta2}
+                    {!v && cta1}
                   </>
                 )}
               />
             </button>
+          ) : (
+            <a href={onClickOne} className={className1}>
+              {cta1}
+            </a>
           )}
+          {cta2 &&
+            (typeof onClickTwo === 'function' ? (
+              <button type="button" className={className2} onClick={handleClickTwo}>
+                <RenderGuardedComponent
+                  props={executingTwo}
+                  component={(v) => (
+                    <>
+                      {v && (
+                        <div className={styles.spinnerContainer}>
+                          <InlineOsehSpinner
+                            size={{ type: 'react-rerender', props: { height: 14 } }}
+                            variant="black"
+                          />
+                        </div>
+                      )}
+                      {v && <>Working...</>}
+                      {!v && cta2}
+                    </>
+                  )}
+                />
+              </button>
+            ) : (
+              <a href={onClickTwo} className={className2}>
+                {cta2}
+              </a>
+            ))}
         </div>
       </div>
     </div>
