@@ -25,7 +25,7 @@ export const CreatedAndAttached = ({
       resources={resources}
       closeDisabled={closeDisabled}
       onDismiss={onDismiss}>
-      <div className={styles.title}>All set{givenName && <>, {givenName},</>}</div>
+      <div className={styles.title}>All set{givenName && <>, {givenName}</>}</div>
       <div className={styles.description}>
         Your <ListLoginOptions state={state} resources={resources} onlyMerging nullText="new" />{' '}
         identity is now connected with Oseh.

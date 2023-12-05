@@ -1,48 +1,24 @@
 .container {
-  position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: transparent;
-}
-
-.imageContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  overflow: hidden;
+  display: grid;
 }
 
 .background {
-  background: linear-gradient(0deg, #000000 0%, #191c1d 37%, #191c1d 100%);
+  grid-area: 1 / 1 / 1 / 1;
+  background: linear-gradient(0deg, #010101 0%, #273136 37%, #2d2e2e 100%);
+}
+
+.contentContainer {
+  grid-area: 1 / 1 / 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .closeButtonContainer {
   position: absolute;
   top: 16px;
-  left: 0;
-  width: 100%;
-  z-index: 2;
-}
-
-.closeButtonInnerContainer {
-  width: 100%;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: row-reverse;
-  padding-right: 16px;
+  right: 16px;
 }
 
 .closeIcon {
@@ -51,150 +27,40 @@
 }
 
 .content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 40px 24px 24px 24px;
   max-width: 390px;
-  margin: 0 auto;
-  width: 100%;
-  padding: 0 24px;
 }
 
-.bigLinks {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  margin-bottom: 64px;
-  margin-left: 16px;
-}
-
-.bigLinkContainer:not(:first-child) {
-  margin-top: 32px;
-}
-
-.bigLink {
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  outline: none;
-  appearance: none;
-  text-decoration: none;
-
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 400;
-  font-size: 32px;
-  line-height: 48px;
-  color: white;
-}
-
-.smallLinks {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  margin-left: 16px;
-}
-
-.smallLinkContainer:not(:first-child) {
-  margin-top: 16px;
-}
-
-.smallLink {
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  outline: none;
-  appearance: none;
-  text-decoration: none;
-
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 600;
-  font-size: 12px;
-  line-height: 22px;
-  letter-spacing: 0.15px;
-  color: white;
-}
-
-.deleteConfirm {
-  width: 100%;
-  max-width: 279px;
-  padding-top: 24px;
-  margin: 0 auto;
-  background: #eff0f6;
-  border-radius: 14px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: stretch;
-  text-align: center;
-}
-
-.deleteConfirmTitle {
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 600;
-  font-size: 16px;
-  line-height: 22px;
-  color: #160808;
-  margin-bottom: 12px;
-  padding: 0 24px;
-}
-
-.deleteSpinnerContainer {
-  margin-right: 8px;
-}
-
-.deleteConfirmBody {
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
-  color: #666060;
-  padding: 0 24px;
-}
-
-.deleteConfirmButtons {
+.sections > *:not(:first-child) {
   margin-top: 24px;
+}
+
+.footer {
+  margin-top: 40px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: stretch;
-}
-
-.deleteConfirmButton {
-  composes: unstyled from '../../../../shared/buttons.module.css';
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 600;
-  font-size: 12px;
-  line-height: 22px;
-  display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 12px 0;
-  color: #191c1d;
-  border-top: 1px solid #dbd7d7;
+  justify-content: center;
 }
 
-.deleteConfirmButton:hover {
-  background: rgba(0, 0, 0, 0.25);
+.wordmark {
+  composes: icon from '../../../../shared/icons.module.css';
+  width: 98px;
+  height: 24px;
+  background-image: url('../../../../assets/Oseh_Wordmark_White.svg');
 }
 
-.deleteConfirmButton:disabled {
-  color: #3f484a;
-  cursor: not-allowed;
-}
-
-@media not (prefers-reduced-motion) {
-  .deleteConfirmButton:hover {
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-}
-
-.deleteConfirmDeleteButton {
-  font-weight: 700;
+.version {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 19px;
+  color: #c8cdd0;
+  margin-top: 16px;
 }

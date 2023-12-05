@@ -30,4 +30,9 @@ export type SettingsResources = {
    * times screen.
    */
   gotoEditReminderTimes: () => void;
+
+  /**
+   * A function which can be called to change to the history screen
+   */
+  gotoMyLibrary: () => void;
 };

@@ -34,8 +34,8 @@ export const features = [
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
   IsaiahCourseFeature,
-  SettingsFeature,
   FavoritesFeature,
+  SettingsFeature,
   PickEmotionJourneyFeature,
 ];
 

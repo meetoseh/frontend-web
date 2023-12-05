@@ -1,0 +1,26 @@
+.container {
+  width: 100%;
+  display: flex;
+  flex-flow: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 32px;
+  color: #f9f9f9;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 19px;
+  letter-spacing: 0.25px;
+  color: #c8cdd0;
+  margin-bottom: 8px;
+}

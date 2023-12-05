@@ -34,6 +34,7 @@ update_website_code() {
     cd /usr/local/src/webapp
     nvm use node
     npm install
+    export REACT_APP_VERSION=$(git rev-parse HEAD)
     npm run build
 }
 

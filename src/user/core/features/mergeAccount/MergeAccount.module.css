@@ -60,3 +60,7 @@
   color: #f9f9f9;
   margin-bottom: 60px;
 }
+
+.providers:not(:first-child) {
+  margin-top: 16px;
+}

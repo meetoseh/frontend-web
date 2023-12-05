@@ -9,15 +9,15 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .content {
   position: relative;
   width: 100%;
-  max-width: 279px;
-  padding-top: 24px;
-  background: #eff0f6;
+  max-width: 309px;
+  padding-top: 16px;
+  background: #c4c4c4;
   border-radius: 14px;
 
   display: flex;
@@ -33,27 +33,29 @@
   font-weight: 600;
   font-size: 16px;
   line-height: 22px;
-  color: #160808;
-  margin-bottom: 12px;
-  padding: 0 24px;
+  color: black;
+  margin-bottom: 2px;
+  padding: 0 16px;
 }
 
 .body {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
-  color: #666060;
-  padding: 0 24px;
+  font-size: 13px;
+  line-height: 18px;
+  color: black;
+  padding: 0 16px;
 }
 
 .buttons {
-  margin-top: 24px;
+  margin-top: 16px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: center;
   align-items: stretch;
+  width: 100%;
+  border-top: 1px solid #949496;
 }
 
 .button {
@@ -61,15 +63,23 @@
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 17px;
   line-height: 22px;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 12px 0;
-  color: #191c1d;
-  border-top: 1px solid #dbd7d7;
+  padding: 11px 16px;
+  color: #007aff;
   position: relative;
+}
+
+.button:first-child {
+  border-right: 0.5px solid #949496;
+  flex-grow: 1;
+}
+
+.button:last-child {
+  flex-grow: 2;
 }
 
 .button:hover {
@@ -78,7 +88,7 @@
 
 .button:disabled,
 .disabled {
-  color: #3f484a;
+  color: #b3b3b3;
   cursor: not-allowed;
 }
 
@@ -88,7 +98,7 @@
 
 .spinnerContainer {
   position: absolute;
-  left: 24px;
+  left: 8px;
   top: 0;
   bottom: 0;
   display: flex;

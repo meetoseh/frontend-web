@@ -72,6 +72,22 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
         },
       }
     );
+    const gotoMyLibraryVWC = useMappedValueWithCallbacks(
+      allStatesVWC,
+      (allStates) => {
+        return () => {
+          allStates.favorites.setTab('courses', false);
+          allStates.favorites.setShow(true, true);
+        };
+      },
+      {
+        inputEqualityFn: (a, b) => {
+          return (
+            a.favorites.setTab === b.favorites.setTab && a.favorites.setShow === b.favorites.setShow
+          );
+        },
+      }
+    );
 
     useValueWithCallbacksEffect(
       requiredVWC,
@@ -151,6 +167,7 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
             havePro: undefined,
             loadError: loadErrorVWC.get(),
             gotoEditReminderTimes: () => {},
+            gotoMyLibrary: () => {},
           };
         }
 
@@ -159,6 +176,7 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
           havePro: haveProVWC.get(),
           loadError: null,
           gotoEditReminderTimes: gotoEditTimesVWC.get(),
+          gotoMyLibrary: gotoMyLibraryVWC.get(),
         };
       }
     );
