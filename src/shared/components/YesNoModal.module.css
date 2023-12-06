@@ -16,8 +16,8 @@
   position: relative;
   width: 100%;
   max-width: 309px;
-  padding-top: 16px;
-  background: #c4c4c4;
+  padding-top: 20px;
+  background: #eaeaeb;
   border-radius: 14px;
 
   display: flex;
@@ -31,65 +31,65 @@
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 600;
-  font-size: 16px;
-  line-height: 22px;
-  color: black;
-  margin-bottom: 2px;
-  padding: 0 16px;
+  font-size: 17px;
+  line-height: 21px;
+  color: #191c1d;
+  padding: 0 20px;
 }
 
 .body {
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 13px;
-  line-height: 18px;
-  color: black;
+  font-size: 14px;
+  line-height: 17px;
+  color: #191c1d;
   padding: 0 16px;
+  margin-top: 11px;
 }
 
 .buttons {
-  margin-top: 16px;
+  margin-top: 24px;
   display: flex;
-  flex-direction: row;
+  flex-flow: row wrap;
   justify-content: center;
   align-items: stretch;
   width: 100%;
-  border-top: 1px solid #949496;
+  padding: 0 20px 20px 20px;
+  gap: 12px;
 }
 
 .button {
   composes: unstyled from '../buttons.module.css';
   font-family: 'Open Sans', sans-serif;
   font-style: normal;
-  font-weight: 600;
-  font-size: 17px;
-  line-height: 22px;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 11px 16px;
-  color: #007aff;
   position: relative;
   text-decoration: none;
-}
-
-.button:first-child {
-  border-right: 0.5px solid #949496;
+  border: 1px solid #191c1d;
+  color: #191c1d;
+  border-radius: 100px;
+  padding: 6px 12px;
   flex-grow: 1;
-}
-
-.button:last-child {
-  flex-grow: 2;
 }
 
 .button:hover {
   background: rgba(0, 0, 0, 0.25);
 }
 
+.emphasizeButton:active {
+  background: #3f484a;
+}
+
 .button:disabled,
 .disabled {
-  color: #b3b3b3;
+  color: #c8cdd0;
   cursor: not-allowed;
 }
 
@@ -108,5 +108,7 @@
 }
 
 .emphasizeButton {
-  font-weight: 700;
+  border: 1px solid #191c1d;
+  background: #191c1d;
+  color: #eaeaeb;
 }

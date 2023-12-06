@@ -55,6 +55,48 @@ export const MergeAccount = ({
     [resources, state]
   );
 
+  const bodyText = useMappedValueWithCallbacks(resources, (r) => {
+    const parts = [
+      'It looks like you have created an account with us before. Please try logging in again with ',
+    ];
+    const providers = new Set(
+      Object.keys(r.providerUrls ?? {}).filter(
+        (k) => !!(r.providerUrls as Record<string, string | null> | null)?.[k]
+      )
+    );
+    const arr = Array.from(providers)
+      .sort()
+      .map(
+        (p) =>
+          ({
+            Google: 'Google',
+            SignInWithApple: 'Apple',
+            Direct: 'email',
+            Dev: 'dev',
+          }[p])
+      )
+      .filter((p) => p !== undefined) as string[];
+
+    if (arr.length === 0) {
+      parts.push('any of the following:');
+    } else if (arr.length === 1) {
+      parts.push(arr[0]);
+    } else if (arr.length === 2) {
+      parts.push(arr[0], ' or ', arr[1]);
+    } else {
+      for (let i = 0; i < arr.length; i++) {
+        if (i === arr.length - 1) {
+          parts.push(', or ', arr[i]);
+        } else if (i === 0) {
+          parts.push(arr[i]);
+        } else {
+          parts.push(', ', arr[i]);
+        }
+      }
+    }
+    return parts.join('');
+  });
+
   return (
     <div className={styles.container} ref={containerRef}>
       <div className={styles.background} />
@@ -76,42 +118,10 @@ export const MergeAccount = ({
             />
             <div className={styles.headerLine}>Welcome back.</div>
           </div>
-          <div className={styles.body}>
-            It looks like you have created an account with us before. Please try logging in again
-            with{' '}
-            <RenderGuardedComponent
-              props={useMappedValueWithCallbacks(
-                resources,
-                (r) =>
-                  new Set(
-                    Object.keys(r.providerUrls ?? {}).filter(
-                      (k) => !!(r.providerUrls as Record<string, string | null> | null)?.[k]
-                    )
-                  ),
-                {
-                  outputEqualityFn: (a, b) =>
-                    a.size === b.size && Array.from(a).every((v) => b.has(v)),
-                }
-              )}
-              component={(providers) => (
-                <>
-                  {Array.from(providers)
-                    .sort()
-                    .map(
-                      (p) =>
-                        ({
-                          Google: 'Google',
-                          SignInWithApple: 'Apple',
-                          Direct: 'email',
-                          Dev: 'dev',
-                        }[p])
-                    )
-                    .filter((p) => p !== undefined)
-                    .join(' or ')}
-                </>
-              )}
-            />
-          </div>
+          <RenderGuardedComponent
+            props={bodyText}
+            component={(txt) => <div className={styles.body}>{txt}</div>}
+          />
           <div className={styles.providers}>
             <RenderGuardedComponent
               props={useMappedValueWithCallbacks(resources, (r) => r.providerUrls)}

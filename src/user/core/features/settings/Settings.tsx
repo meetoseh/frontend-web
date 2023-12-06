@@ -141,7 +141,7 @@ export const Settings = ({
       const key = `connect-via-${provider}`;
       if (r.identities.type !== 'success') {
         return {
-          text: `Connect via ${name}`,
+          text: `Connect ${name}`,
           details: r.identities.type === 'error' ? ['An error occurred'] : undefined,
           key,
           onClick: () => manageConnectWithProvider(provider, name),
@@ -152,14 +152,14 @@ export const Settings = ({
 
       if (providerIdentities.length === 0) {
         return {
-          text: `Connect via ${name}`,
+          text: `Connect ${name}`,
           key,
           onClick: () => manageConnectWithProvider(provider, name),
         };
       }
 
       return {
-        text: `Connected via ${provider}`,
+        text: `Connected with ${provider}`,
         key,
         details: providerIdentities.map((i) => i.email ?? 'unknown'),
         onClick: () => manageConnectWithProvider(provider, name),
@@ -234,7 +234,7 @@ export const Settings = ({
                   <SettingSection title="Account">
                     <SettingsLinks links={accountLinks} />
                   </SettingSection>
-                  <SettingSection subtitle="Identities">
+                  <SettingSection title="Logins">
                     <SettingsLinks links={identityLinks} />
                   </SettingSection>
                   <SettingSection title="Settings">

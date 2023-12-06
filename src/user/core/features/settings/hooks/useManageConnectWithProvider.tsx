@@ -51,7 +51,7 @@ export const useManageConnectWithProvider = ({
         <YesNoModal
           title={`Connect with ${name}`}
           body={
-            `You will be redirected to connect a new identity. ` +
+            `You will be redirected to connect a new login identity. ` +
             (isFirstForProvider
               ? `Doing so will allow you to login using ${name} in the future.`
               : `If you select a different ${name} account than the one${
