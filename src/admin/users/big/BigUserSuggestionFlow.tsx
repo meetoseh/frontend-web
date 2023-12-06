@@ -78,7 +78,7 @@ type FeedbackResponse = {
   computation_time: number;
 };
 
-type AdjustedScoreItem = Combination & { times_seen_today: number; score: number };
+type AdjustedScoreItem = Combination & { times_seen_recently: number; score: number };
 
 type AdjustedScoreResponse = {
   rows: AdjustedScoreItem[];
@@ -303,19 +303,26 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
     [analyzeResponse]
   );
 
-  const instructorCategoryTimesSeenToday = useMemo<DashboardTableProps>(
+  const instructorTimesSeenToday = useMemo<DashboardTableProps>(
     () => ({
-      columnHeaders: ['Instructor', 'Category', 'Times Seen Today'],
+      columnHeaders: ['Instructor', 'Times Seen Recently'],
       rows:
         analyzeResponse === null
           ? []
-          : analyzeResponse.find_adjusted_scores.rows.map(
-              ({ instructor, category, times_seen_today }) => [
-                instructor.name,
-                category.internal_name,
-                times_seen_today.toLocaleString(),
-              ]
-            ),
+          : (() => {
+              const seen = new Set<string>();
+              const result: [string, string][] = [];
+              const rows = analyzeResponse.find_adjusted_scores.rows;
+              for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                if (seen.has(row.instructor.uid)) {
+                  continue;
+                }
+                seen.add(row.instructor.uid);
+                result.push([row.instructor.name, row.times_seen_recently.toLocaleString()]);
+              }
+              return result;
+            })(),
     }),
     [analyzeResponse]
   );
@@ -552,18 +559,18 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
           s
         </div>
         The fourth step is intended to ensure the user sees an adequate amount of variety within the
-        content that they like. The general idea is that the user is biased away from combinations
-        they've seen today, but not enough to flip a score from positive to negative. First, we
-        determine how many times the user has seen each instructor/category combination today. For{' '}
-        {identifier}, this gives:
+        content that they like. The general idea is that the user is biased away from instructors
+        they've seen in the last two weeks, or in the last 10 journeys (whichever is shorter), but
+        not enough to flip a score from positive to negative. First, we determine how many times the
+        user has seen each instructor within the relevant window. For {identifier}, this gives:
       </div>
       <div className={styles.instructorCategoryCounts}>
-        <DashboardTable {...instructorCategoryTimesSeenToday} />
+        <DashboardTable {...instructorTimesSeenToday} />
       </div>
       <div className={styles.explanation}>
         Then the scores are adjusting according to the following calculation, where <code>s</code>{' '}
         is the score before adjustment, <code>v</code> is the number of times the user has seen the
-        instructor/category combination today, and <code>s</code>
+        instructor recently, and <code>s</code>
         <sub>
           <code>a</code>
         </sub>{' '}
