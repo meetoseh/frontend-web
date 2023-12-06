@@ -159,7 +159,7 @@ export const Settings = ({
       }
 
       return {
-        text: `Connected with ${provider}`,
+        text: `Connected with ${name}`,
         key,
         details: providerIdentities.map((i) => i.email ?? 'unknown'),
         onClick: () => manageConnectWithProvider(provider, name),
