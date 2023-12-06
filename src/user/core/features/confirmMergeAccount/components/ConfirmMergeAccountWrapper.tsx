@@ -20,11 +20,13 @@ export const ConfirmMergeAccountWrapper = ({
   resources,
   closeDisabled,
   onDismiss,
+  keepSessionOpen,
   children,
 }: PropsWithChildren<{
   state: ValueWithCallbacks<ConfirmMergeAccountState>;
   resources: ValueWithCallbacks<ConfirmMergeAccountResources>;
   closeDisabled?: WritableValueWithCallbacks<boolean>;
+  keepSessionOpen?: boolean;
   onDismiss?: WritableValueWithCallbacks<() => void>;
 }>): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,9 +88,11 @@ export const ConfirmMergeAccountWrapper = ({
     }
 
     resources.get().session?.storeAction('dismiss', null);
-    resources.get().session?.reset();
+    if (!keepSessionOpen) {
+      resources.get().session?.reset();
+    }
     state.get().onDismissed();
-  }, [resources, state, realCloseDisabled]);
+  }, [resources, state, realCloseDisabled, keepSessionOpen]);
   if (onDismiss !== undefined) {
     setVWC(onDismiss, onCloseClick);
   }

@@ -1,4 +1,4 @@
-import { ReactElement } from 'react';
+import { Fragment, ReactElement } from 'react';
 import { ConfirmMergeAccountResources } from '../ConfirmMergeAccountResources';
 import { ConfirmMergeAccountState, OauthMergeLoginOption } from '../ConfirmMergeAccountState';
 import { RenderGuardedComponent } from '../../../../../shared/components/RenderGuardedComponent';
@@ -62,7 +62,7 @@ export const ListLoginOptions = ({
         return (
           <>
             {p.options.map((opt, i) => (
-              <>
+              <Fragment key={i}>
                 {i > 0 && (i > 1 || i < p.options.length - 1) && <>, </>}
                 {i === 1 && p.options.length === 2 && <> or </>}
                 {i > 1 && i === p.options.length - 1 && <>or </>}
@@ -80,7 +80,7 @@ export const ListLoginOptions = ({
                     (<>{opt.email}</>)
                   </>
                 )}
-              </>
+              </Fragment>
             ))}
           </>
         );

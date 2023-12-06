@@ -25,7 +25,8 @@ export const TrivialMerge = ({
       state={state}
       resources={resources}
       closeDisabled={closeDisabled}
-      onDismiss={onDismiss}>
+      onDismiss={onDismiss}
+      keepSessionOpen>
       <div className={styles.title}>All set{givenName && <>, {givenName}</>}</div>
       <div className={styles.description}>
         You have successfully merged your two accounts. You can now login with{' '}

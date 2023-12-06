@@ -8,9 +8,12 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { apiFetch } from './ApiConstants';
+import { HTTP_API_URL, apiFetch } from './ApiConstants';
 import { InterestsContext } from './contexts/InterestsContext';
 import { LoginContext } from './contexts/LoginContext';
+import { useWritableValueWithCallbacks } from './lib/Callbacks';
+import { setVWC } from './lib/setVWC';
+import { RenderGuardedComponent } from './components/RenderGuardedComponent';
 
 /**
  * Shows a development page where you can login just be specifying your user
@@ -25,6 +28,11 @@ export const TestLogin = (): ReactElement => {
   const [userSub, setUserSub] = useState('timothy');
   const interests = useContext(InterestsContext);
   const [isMerge, setIsMerge] = useState<boolean | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState<string>(
+    process.env.REACT_APP_ROOT_FRONTEND_URL || window.location.origin
+  );
+  const [overrideIdToken, setOverrideIdToken] = useState<string | null>(null);
+  const log = useWritableValueWithCallbacks<string>(() => '');
 
   useEffect(() => {
     if (isMerge !== null) {
@@ -45,6 +53,17 @@ export const TestLogin = (): ReactElement => {
     }
 
     setIsMerge(args.get('merge') === '1');
+
+    if (args.has('redirect_url')) {
+      const requestedUrl = args.get('redirect_url') || '';
+      if (requestedUrl === 'oseh://login_callback') {
+        setRedirectUrl(requestedUrl);
+      }
+    }
+
+    if (args.has('id_token')) {
+      setOverrideIdToken(args.get('id_token') || null);
+    }
   }, [isMerge]);
 
   const login = useCallback(
@@ -90,37 +109,43 @@ export const TestLogin = (): ReactElement => {
   const merge = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      setVWC(log, log.get() + 'merge called\n');
 
       setLoggingIn(true);
+      const idToken = overrideIdToken !== null ? overrideIdToken : loginContext.authTokens?.idToken;
       try {
-        const response = await apiFetch(
-          '/api/1/dev/merge',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              sub: userSub,
-            }),
+        const response = await fetch(HTTP_API_URL + '/api/1/dev/merge', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            Authorization: `bearer ${idToken}`,
           },
-          loginContext
-        );
+          body: JSON.stringify({
+            sub: userSub,
+          }),
+        });
 
         if (!response.ok) {
+          setVWC(log, log.get() + `merge failed with response: ${response.status}\n`);
           throw response;
         }
 
         const data: { merge_token: string } = await response.json();
-        window.location.href =
+        setVWC(log, log.get() + `merge succeeded\n`);
+        const redirectUri =
+          redirectUrl +
           '/#' +
           new URLSearchParams({
             merge_token: data.merge_token,
           }).toString();
+        setVWC(log, log.get() + `redirecting to ${redirectUri}\n`);
+        document.location.assign(redirectUri);
       } catch (e) {
         console.error(e);
         setLoggingIn(false);
       }
     },
-    [loginContext, userSub]
+    [loginContext, userSub, redirectUrl, log, overrideIdToken]
   );
 
   return (
@@ -151,6 +176,7 @@ export const TestLogin = (): ReactElement => {
           Login
         </button>
       </form>
+      <p>redirect url: {redirectUrl}</p>
       {interests.state === 'loading' && <p>Interests: Loading</p>}
       {interests.state === 'unavailable' && <p>Interests: Unavailable</p>}
       {interests.state === 'loaded' && (
@@ -163,6 +189,8 @@ export const TestLogin = (): ReactElement => {
           </ul>
         </>
       )}
+      <p>Log:</p>
+      <RenderGuardedComponent props={log} component={(lg) => <pre>{lg}</pre>} />
     </div>
   );
 };
