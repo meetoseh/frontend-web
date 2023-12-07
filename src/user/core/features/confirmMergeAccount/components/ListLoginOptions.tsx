@@ -3,8 +3,8 @@ import { ConfirmMergeAccountResources } from '../ConfirmMergeAccountResources';
 import { ConfirmMergeAccountState, OauthMergeLoginOption } from '../ConfirmMergeAccountState';
 import { RenderGuardedComponent } from '../../../../../shared/components/RenderGuardedComponent';
 import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
-import { MergeProvider } from '../../mergeAccount/MergeAccountState';
 import { ValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
+import { OauthProvider } from '../../../../login/lib/OauthProvider';
 
 type _LoginOptions = {
   options: OauthMergeLoginOption[];
@@ -27,7 +27,7 @@ export const ListLoginOptions = ({
       return null;
     }
 
-    const seenProviders = new Set<MergeProvider>();
+    const seenProviders = new Set<OauthProvider>();
     const options: OauthMergeLoginOption[] = [];
     let showEmails = false;
 

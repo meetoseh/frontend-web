@@ -1,13 +1,12 @@
 import { InappNotification } from '../../../../shared/hooks/useInappNotification';
-
-export type MergeProvider = 'SignInWithApple' | 'Google' | 'Direct' | 'Dev';
+import { OauthProvider } from '../../../login/lib/OauthProvider';
 
 export type MergeSuggestion = {
   /**
    * The provider that, if the user logs in with, they may be able
    * to authenticate a merge with their existing account.
    */
-  provider: MergeProvider;
+  provider: OauthProvider;
 };
 
 /**

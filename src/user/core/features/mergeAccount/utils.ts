@@ -1,6 +1,6 @@
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContextValue } from '../../../../shared/contexts/LoginContext';
-import { MergeProvider } from './MergeAccountState';
+import { OauthProvider } from '../../../login/lib/OauthProvider';
 
 const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'dev';
 
@@ -13,7 +13,7 @@ const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'dev';
  */
 export const getMergeProviderUrl = async (
   loginContext: LoginContextValue,
-  provider: MergeProvider
+  provider: OauthProvider
 ): Promise<string> => {
   if (isDevelopment && provider !== 'Direct') {
     return '/dev_login?merge=1';

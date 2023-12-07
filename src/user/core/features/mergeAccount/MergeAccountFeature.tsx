@@ -3,7 +3,7 @@ import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks'
 import { Feature } from '../../models/Feature';
 import { MergeAccount } from './MergeAccount';
 import { MergeAccountResources } from './MergeAccountResources';
-import { MergeAccountState, MergeProvider } from './MergeAccountState';
+import { MergeAccountState } from './MergeAccountState';
 import {
   MergeAccountStoredState,
   getMergeAccountStoredState,
@@ -17,6 +17,7 @@ import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { useInappNotificationSessionValueWithCallbacks } from '../../../../shared/hooks/useInappNotificationSession';
 import { getMergeProviderUrl } from './utils';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { OauthProvider } from '../../../login/lib/OauthProvider';
 
 const recheckMergeSuggestionsIntervalSeconds = 60 * 60 * 12;
 const ianUid = 'oseh_ian_ez6eLf92Lbz1Odr6OKIw6A';
@@ -89,7 +90,7 @@ export const MergeAccountFeature: Feature<MergeAccountState, MergeAccountResourc
           };
         }
 
-        const body: { channels: MergeProvider[] } = await response.json();
+        const body: { channels: OauthProvider[] } = await response.json();
         return {
           mergeSuggestions: body.channels.map((provider) => ({ provider })),
           checkedAt: new Date(),

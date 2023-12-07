@@ -1,6 +1,6 @@
 import { ReactElement, useCallback, useEffect, useRef } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
-import { MergeAccountState, MergeProvider } from './MergeAccountState';
+import { MergeAccountState } from './MergeAccountState';
 import { MergeAccountResources } from './MergeAccountResources';
 import styles from './MergeAccount.module.css';
 import loginStyles from '../../../login/LoginApp.module.css';
@@ -11,6 +11,7 @@ import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWin
 import { useFullHeight } from '../../../../shared/hooks/useFullHeight';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { OauthProvider } from '../../../login/lib/OauthProvider';
 
 export const MergeAccount = ({
   resources,
@@ -45,7 +46,7 @@ export const MergeAccount = ({
   }, [resources, state]);
 
   const onLeavingWith = useCallback(
-    (provider: MergeProvider) => {
+    (provider: OauthProvider) => {
       resources.get().session?.storeAction('continue_with_provider', { provider });
 
       const s = state.get();
@@ -135,7 +136,7 @@ export const MergeAccount = ({
 };
 
 const ProviderUrls = (
-  onLeavingWith: (provider: MergeProvider) => void,
+  onLeavingWith: (provider: OauthProvider) => void,
   urls: MergeAccountResources['providerUrls']
 ): ReactElement => {
   const googleRef = useRef<HTMLDivElement>(null);

@@ -18,8 +18,8 @@ import { FullHeightDiv } from '../../../../shared/components/FullHeightDiv';
 import { useHandleDeleteAccount } from './hooks/useHandleDeleteAccount';
 import { SettingLink, SettingsLinks } from './components/SettingLinks';
 import { SettingSection } from './components/SettingSection';
-import { MergeProvider } from '../mergeAccount/MergeAccountState';
 import { useManageConnectWithProvider } from './hooks/useManageConnectWithProvider';
+import { OauthProvider } from '../../../login/lib/OauthProvider';
 
 /**
  * Shows a basic settings screen for the user. Requires a login context and a modal
@@ -133,7 +133,7 @@ export const Settings = ({
   });
 
   const getLinkForProvider = useCallback(
-    (r: SettingsResources, provider: MergeProvider, name: string): SettingLink | null => {
+    (r: SettingsResources, provider: OauthProvider, name: string): SettingLink | null => {
       if (provider === 'Dev' && process.env.REACT_APP_ENVIRONMENT !== 'dev') {
         return null;
       }

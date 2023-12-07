@@ -6,13 +6,13 @@ import {
   createWritableValueWithCallbacks,
 } from '../../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../../shared/lib/setVWC';
-import { MergeProvider } from '../../mergeAccount/MergeAccountState';
 import { Modals, addModalWithCallbackToRemove } from '../../../../../shared/contexts/ModalContext';
 import { SettingsResources } from '../SettingsResources';
 import { getMergeProviderUrl } from '../../mergeAccount/utils';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
 import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { YesNoModal } from '../../../../../shared/components/YesNoModal';
+import { OauthProvider } from '../../../../login/lib/OauthProvider';
 
 export const useManageConnectWithProvider = ({
   resources,
@@ -22,11 +22,11 @@ export const useManageConnectWithProvider = ({
   resources: ValueWithCallbacks<SettingsResources>;
   mergeError: WritableValueWithCallbacks<ReactElement | null>;
   modals: WritableValueWithCallbacks<Modals>;
-}): ((provider: MergeProvider, name: string) => Promise<void>) => {
+}): ((provider: OauthProvider, name: string) => Promise<void>) => {
   const loginContext = useContext(LoginContext);
 
   const manageConnectWithProvider = useCallback(
-    async (provider: MergeProvider, name: string): Promise<void> => {
+    async (provider: OauthProvider, name: string): Promise<void> => {
       const identities = resources.get().identities;
       const providerIdentities =
         identities.type === 'success'

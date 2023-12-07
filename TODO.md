@@ -13,9 +13,6 @@ Goals:
 Subgoals:
 
 - Move window fragment handling from App to LoginProvider
-- Rename `MergeProvider` to `OauthProvider`, move to
-  `features/login/lib/OauthProvider.ts`, use everywhere we are referring
-  to oauth providers
 - Port over `features/login/components/ProvidersList.tsx` from app,
   move instead put in `shared/components/ButtonsWithIconsColumn.tsx`
   and rename to match

@@ -1,6 +1,6 @@
 import { ReactElement } from 'react';
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../../../../admin/crud/CrudFetcher';
-import { MergeProvider } from '../mergeAccount/MergeAccountState';
+import { OauthProvider } from '../../../login/lib/OauthProvider';
 
 export type EmailForConflict = {
   /** The email address, e.g., anonymous@example.com */
@@ -229,7 +229,7 @@ export type OauthMergeLoginOption = {
   /**
    * The provider for this identity
    */
-  provider: MergeProvider;
+  provider: OauthProvider;
   /**
    * The email address on the identity
    */

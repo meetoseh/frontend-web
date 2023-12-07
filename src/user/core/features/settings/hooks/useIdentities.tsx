@@ -4,11 +4,11 @@ import {
   ValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../../../shared/lib/Callbacks';
-import { MergeProvider } from '../../mergeAccount/MergeAccountState';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { useValueWithCallbacksEffect } from '../../../../../shared/hooks/useValueWithCallbacksEffect';
+import { OauthProvider } from '../../../../login/lib/OauthProvider';
 
 export type Identity = {
   /**
@@ -20,7 +20,7 @@ export type Identity = {
   /**
    * The provider this identity is connected through
    */
-  provider: MergeProvider;
+  provider: OauthProvider;
 
   /**
    * The email address associated with the identity, if there is one
