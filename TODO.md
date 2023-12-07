@@ -13,7 +13,6 @@ Goals:
 Subgoals:
 
 - Move window fragment handling from App to LoginProvider
-- Remove icons from LoginApp folder
 - Refactor LoginApp to avoid react rerender via removing all direct useState's
   - Ideally, LoginApp is extremely short, mostly referencing components from the
     login feature
