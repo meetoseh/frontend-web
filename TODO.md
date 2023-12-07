@@ -13,5 +13,4 @@ Goals:
 
 Subgoals:
 
-- Move window fragment handling from App to LoginProvider
 - Refactor ProviderUrls from `MergeAccount.tsx` to use `ProvidersList`
