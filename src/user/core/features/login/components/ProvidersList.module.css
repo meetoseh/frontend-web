@@ -1,18 +1,18 @@
 .iconGoogle {
-  composes: icon from '../../shared/icons.module.css';
+  composes: icon from '../../../../../shared/icons.module.css';
   width: 18px;
   height: 19px;
-  background-image: url('./icons/google.svg');
+  background-image: url('../icons/google.svg');
   margin-right: 12px;
   padding-left: 1px;
   padding-right: 1px;
 }
 
 .iconSignInWithApple {
-  composes: icon from '../../shared/icons.module.css';
+  composes: icon from '../../../../../shared/icons.module.css';
   width: 18px;
   height: 19px;
-  background-image: url('./icons/apple.svg');
+  background-image: url('../icons/apple.svg');
   margin-right: 12px;
   padding-left: 1px;
   padding-right: 1px;
@@ -20,10 +20,10 @@
 
 .iconDirect,
 .iconDev {
-  composes: icon from '../../shared/icons.module.css';
+  composes: icon from '../../../../../shared/icons.module.css';
   width: 20px;
   height: 18px;
-  background-image: url('./icons/email.svg');
+  background-image: url('../icons/email.svg');
   margin-right: 12px;
   padding-top: 0.5px;
   padding-bottom: 0.5px;

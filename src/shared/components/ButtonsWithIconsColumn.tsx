@@ -163,6 +163,7 @@ export const ButtonsWithIconsColumn = ({
         const onClick = item.onClick;
         return (
           <Button
+            key={item.key}
             type="button"
             variant={variant}
             onClick={

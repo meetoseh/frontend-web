@@ -14,10 +14,11 @@ import { setVWC } from '../../shared/lib/setVWC';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../shared/contexts/ModalContext';
 import { describeError } from '../../shared/forms/ErrorBlock';
-import { Button } from '../../shared/forms/Button';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { useReactManagedValueAsValueWithCallbacks } from '../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
+import { ProvidersList } from '../core/features/login/components/ProvidersList';
+import { useFullHeight } from '../../shared/hooks/useFullHeight';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -169,31 +170,13 @@ export const useRedirectUrl = (redirectUrl: string | undefined) => {
  */
 export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactElement => {
   const interests = useContext(InterestsContext);
-  const windowSizeVWC = useWindowSizeValueWithCallbacks();
   const componentRef = useRef<HTMLDivElement | null>(null);
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
   const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useEffect(() => {
-    if (componentRef.current === null) {
-      return;
-    }
-    const ele = componentRef.current;
-    windowSizeVWC.callbacks.add(updateComponentStyle);
-    updateComponentStyle();
-    return () => {
-      windowSizeVWC.callbacks.remove(updateComponentStyle);
-    };
-
-    function updateComponentStyle() {
-      if (windowSizeVWC.get().height < 450) {
-        ele.removeAttribute('style');
-      } else {
-        ele.style.height = `${windowSizeVWC.get().height}px`;
-      }
-    }
-  }, [windowSizeVWC]);
   const urls = useProviderUrls();
   const imageHandler = useOsehImageStateRequestHandler({});
   useRedirectUrl(redirectUrl);
+  useFullHeight({ element: componentRef, attribute: 'minHeight', windowSizeVWC });
 
   const modalContext = useContext(ModalContext);
   useErrorModal(modalContext.modals, error, 'direct account login');
@@ -225,8 +208,8 @@ export const LoginApp = ({ redirectUrl = undefined }: LoginAppProps): ReactEleme
           )}
         />
       </div>
-      <div className={styles.innerContainer}>
-        <div className={styles.primaryContainer} ref={componentRef}>
+      <div className={styles.innerContainer} ref={componentRef}>
+        <div className={styles.primaryContainer}>
           <div className={styles.logoAndInfoContainer}>
             <div className={styles.logoContainer}>
               <div className={styles.logo} />
@@ -277,54 +260,22 @@ export const SocialSignins = ({
   /** This is not a standard login screen; login tests should not be presented */
   noTests?: boolean;
 }): ReactElement => {
-  const googleRef = useRef<HTMLDivElement>(null);
-  const appleRef = useRef<HTMLDivElement>(null);
-  const emailRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const google = googleRef.current;
-    const apple = appleRef.current;
-    const email = emailRef.current;
-
-    if (google === null || apple === null || email === null) {
-      return;
-    }
-
-    google.removeAttribute('style');
-    apple.removeAttribute('style');
-    email.removeAttribute('style');
-
-    const googleWidth = google.offsetWidth;
-    const appleWidth = apple.offsetWidth;
-    const emailWidth = email.offsetWidth;
-
-    const maxWidth = Math.max(googleWidth, appleWidth, emailWidth);
-
-    google.style.paddingRight = `${maxWidth - googleWidth}px`;
-    apple.style.paddingRight = `${maxWidth - appleWidth}px`;
-    email.style.paddingRight = `${maxWidth - emailWidth}px`;
-  }, []);
-
   return (
-    <div className={styles.signinsContainer}>
-      <Button type="button" variant="filled-white" onClick={urls.google}>
-        <div className={styles.iconAndText}>
-          <div className={styles.signInWithGoogleIcon}></div>
-          <div ref={googleRef}>Sign in with Google</div>
-        </div>
-      </Button>
-      <Button type="button" variant="filled-white" onClick={urls.apple}>
-        <div className={styles.iconAndText}>
-          <div className={styles.signInWithAppleIcon}></div>
-          <div ref={appleRef}>Sign in with Apple</div>
-        </div>
-      </Button>
-      <Button type="button" variant="filled-white" onClick={urls.direct}>
-        <div className={styles.iconAndText}>
-          <div className={styles.signInWithEmailIcon}></div>
-          <div ref={emailRef}>Sign in with Email</div>
-        </div>
-      </Button>
-    </div>
+    <ProvidersList
+      items={[
+        {
+          provider: 'Google',
+          onClick: urls.google,
+        },
+        {
+          provider: 'SignInWithApple',
+          onClick: urls.apple,
+        },
+        {
+          provider: 'Direct',
+          onClick: urls.direct,
+        },
+      ]}
+    />
   );
 };
