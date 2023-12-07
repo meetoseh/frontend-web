@@ -7,7 +7,6 @@ import styles from './FastUnsubscribeLoggedOut.module.css';
 import { useFullHeight } from '../../../../shared/hooks/useFullHeight';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import { SocialSignins } from '../../../login/LoginApp';
 import { TextInput } from '../../../../shared/forms/TextInput';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../shared/lib/setVWC';
@@ -17,6 +16,7 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { IconButton } from '../../../../shared/forms/IconButton';
+import { ProvidersList } from '../login/components/ProvidersList';
 
 /**
  * The component used for the logged out variant of the fast unsubscribe
@@ -139,7 +139,7 @@ export const FastUnsubscribeLoggedOut = ({
                           <div className={styles.loginSectionTitle}>
                             Login for notification preferences
                           </div>
-                          <SocialSignins urls={socialUrls} noTests />
+                          <ProvidersList items={socialUrls} />
                         </div>
                       );
                     }}

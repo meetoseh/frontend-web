@@ -1,12 +1,14 @@
 import { ReactElement } from 'react';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import styles from './HeadshotScreen.module.css';
-import { useProviderUrls } from '../../login/LoginApp';
 import { SplashScreen } from '../../splash/SplashScreen';
-import { SocialSignins } from '../../login/LoginApp';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { useOsehImageState } from '../../../shared/images/useOsehImageState';
 import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { useOauthProviderUrlsValueWithCallbacks } from '../../login/hooks/useOauthProviderUrlsValueWithCallbacks';
+import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { ProvidersList } from '../../core/features/login/components/ProvidersList';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 
 type HeadshotScreenProps = {
   /**
@@ -49,7 +51,9 @@ export const HeadshotScreen = ({
   );
   const name = nameRaw ?? <>Jane Smith</>;
   const valueProp = valuePropRaw ?? <>Free access to anxiety-relieving 1 minute exercises</>;
-  const urls = useProviderUrls();
+  const urls = useOauthProviderUrlsValueWithCallbacks(
+    useWritableValueWithCallbacks(() => ['Google', 'SignInWithApple', 'Direct'])
+  );
 
   const windowSize = useWindowSize();
   const imageHandler = useOsehImageStateRequestHandler({});
@@ -97,7 +101,10 @@ export const HeadshotScreen = ({
         </div>
         <div className={styles.valueProp}>{valueProp}</div>
         <div className={styles.buttonsContainer}>
-          <SocialSignins urls={urls} />
+          <RenderGuardedComponent
+            props={urls[0]}
+            component={(items) => <ProvidersList items={items} />}
+          />
         </div>
       </div>
     </div>

@@ -7,11 +7,15 @@ import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWin
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
-import { SocialSignins, useProviderUrls } from '../../../login/LoginApp';
 import { SplashScreen } from '../../../splash/SplashScreen';
 import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { getUTMFromURL } from '../../../../shared/hooks/useVisitor';
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
+import { useOauthProviderUrlsValueWithCallbacks } from '../../../login/hooks/useOauthProviderUrlsValueWithCallbacks';
+import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { OauthProvider } from '../../../login/lib/OauthProvider';
+import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
+import { ProvidersList } from '../login/components/ProvidersList';
 
 const backgroundUid = 'oseh_if_sqEZCjA1sP6vaIrzz5Lvsw';
 
@@ -36,7 +40,9 @@ export const IsaiahCourseLoginScreen = (): ReactElement => {
       imageHandler
     )
   );
-  const urls = useProviderUrls();
+  const urls = useOauthProviderUrlsValueWithCallbacks(
+    useWritableValueWithCallbacks<OauthProvider[]>(() => ['Google', 'SignInWithApple', 'Direct'])
+  );
   const backgroundLoading = useUnwrappedValueWithCallbacks(
     useMappedValueWithCallbacks(backgroundVWC, (b) => b.loading)
   );
@@ -78,7 +84,10 @@ export const IsaiahCourseLoginScreen = (): ReactElement => {
             High-five on your new Isaiah Quinn course. Login below to get started.
           </div>
         </div>
-        <SocialSignins urls={urls} />
+        <RenderGuardedComponent
+          props={urls[0]}
+          component={(items) => <ProvidersList items={items} />}
+        />
       </div>
     </div>
   );

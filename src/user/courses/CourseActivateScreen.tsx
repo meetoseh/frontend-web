@@ -15,7 +15,6 @@ import styles from './CourseActivateScreen.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { SplashScreen } from '../splash/SplashScreen';
 import { useWindowSizeValueWithCallbacks } from '../../shared/hooks/useWindowSize';
-import { SocialSignins, useProviderUrls, useRedirectUrl } from '../login/LoginApp';
 import { Button } from '../../shared/forms/Button';
 import { CourseAttachScreen } from './CourseAttachScreen';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
@@ -26,6 +25,13 @@ import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWi
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { OsehImageFromStateValueWithCallbacks } from '../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { useStaleOsehImageOnSwap } from '../../shared/images/useStaleOsehImageOnSwap';
+import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { OauthProvider } from '../login/lib/OauthProvider';
+import { setVWC } from '../../shared/lib/setVWC';
+import { useOauthProviderUrlsValueWithCallbacks } from '../login/hooks/useOauthProviderUrlsValueWithCallbacks';
+import { ProvidersList } from '../core/features/login/components/ProvidersList';
+import { ModalContext } from '../../shared/contexts/ModalContext';
+import { useErrorModal } from '../../shared/hooks/useErrorModal';
 
 /**
  * The activation screen for a course, which should be the first screen after a
@@ -38,6 +44,7 @@ import { useStaleOsehImageOnSwap } from '../../shared/images/useStaleOsehImageOn
  */
 export const CourseActivateScreen = (): ReactElement => {
   const loginContext = useContext(LoginContext);
+  const modalContext = useContext(ModalContext);
   const [visitor, setVisitor] = useState<StoredVisitor | null>(() => loadVisitorFromStore());
   const imageHandler = useOsehImageStateRequestHandler({});
   const timezone = useTimezone();
@@ -55,9 +62,10 @@ export const CourseActivateScreen = (): ReactElement => {
   const [course, setCourse] = useState<Course | null>(null);
 
   const associatedUTMWithVisitorUID = useRef<string | null>(null);
-  useRedirectUrl('/courses/attach');
+
   useEffect(() => {
     if (slug !== null && session !== null) {
+      localStorage.setItem('login-redirect', '/courses/attach');
       localStorage.setItem('activated-course', JSON.stringify({ slug, session }));
     }
   }, [slug, session]);
@@ -257,7 +265,16 @@ export const CourseActivateScreen = (): ReactElement => {
       imageHandler
     )
   );
-  const urls = useProviderUrls(loginContext.state === 'logged-out');
+  const providers = useWritableValueWithCallbacks<OauthProvider[]>(() =>
+    loginContext.state === 'logged-out' ? ['Google', 'SignInWithApple', 'Direct'] : []
+  );
+  useEffect(() => {
+    const newProviders: OauthProvider[] =
+      loginContext.state === 'logged-out' ? ['Google', 'SignInWithApple', 'Direct'] : [];
+    setVWC(providers, newProviders, (a, b) => a.length === b.length);
+  }, [loginContext.state, providers]);
+  const [urls, urlsError] = useOauthProviderUrlsValueWithCallbacks(providers);
+  useErrorModal(modalContext.modals, urlsError, 'oauth provider urls');
   const backgroundLoading = useMappedValueWithCallbacks(background, (bg) => bg.loading);
 
   if (slug === null || session === null) {
@@ -334,7 +351,10 @@ export const CourseActivateScreen = (): ReactElement => {
               </div>
             </div>
             <div className={styles.socialSigninsContainer}>
-              <SocialSignins urls={urls} />
+              <RenderGuardedComponent
+                props={urls}
+                component={(items) => <ProvidersList items={items} />}
+              />
             </div>
           </div>
         </div>

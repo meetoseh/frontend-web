@@ -21,10 +21,6 @@ export const LoginButton = (): React.ReactElement => {
 
   useEffect(() => {
     localStorage.setItem('login-redirect', window.location.pathname);
-
-    return () => {
-      localStorage.removeItem('login-redirect');
-    };
   }, []);
 
   return loginContext.state === 'logged-in' ? (

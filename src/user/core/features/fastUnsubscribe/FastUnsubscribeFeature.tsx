@@ -8,11 +8,11 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { FastUnsubscribe } from './FastUnsubscribe';
-import { useProviderUrlsValueWithCallbacks } from '../../../login/LoginApp';
 import { DailyReminders, parseDailyReminders } from './FastUnsubscribeLoggedIn';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
+import { useOauthProviderUrlsValueWithCallbacks } from '../../../login/hooks/useOauthProviderUrlsValueWithCallbacks';
 
 /**
  * The fast unsubscribe feature which allows a user to rapidly enable/disable
@@ -53,7 +53,11 @@ export const FastUnsubscribeFeature: Feature<FastUnsubscribeState, FastUnsubscri
     const codeVWC = useMappedValueWithCallbacks(allStates, (s) => s.touchLink.code, {
       inputEqualityFn: (a, b) => a.touchLink.code === b.touchLink.code,
     });
-    const [signinUrlsVWC, signinUrlsErrorVWC] = useProviderUrlsValueWithCallbacks(required);
+    const [signinUrlsVWC, signinUrlsErrorVWC] = useOauthProviderUrlsValueWithCallbacks(
+      useMappedValueWithCallbacks(required, (r) =>
+        r ? ['Google', 'SignInWithApple', 'Direct'] : []
+      )
+    );
     const onDismissVWC = useMappedValueWithCallbacks(allStates, (s) => s.touchLink.handledLink, {
       inputEqualityFn: (a, b) => Object.is(a.touchLink.handledLink, b.touchLink.handledLink),
     });

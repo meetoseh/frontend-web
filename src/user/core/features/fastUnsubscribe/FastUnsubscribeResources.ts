@@ -1,6 +1,6 @@
 import { ReactElement } from 'react';
-import { SocialUrls } from '../../../login/LoginApp';
 import { DailyReminders } from './FastUnsubscribeLoggedIn';
+import { ProvidersListItem } from '../login/components/ProvidersList';
 
 export type FastUnsubscribeVariant = 'logged-in' | 'logged-out';
 
@@ -18,7 +18,7 @@ export type FastUnsubscribeResources = {
    * The urls to use for signing in. Null if not showing sign in buttons,
    * undefined if still loading
    */
-  socialUrls: SocialUrls | null | undefined;
+  socialUrls: ProvidersListItem[] | null | undefined;
 
   /**
    * If an error occurred loading the social urls, the error that occurred,

@@ -3,7 +3,7 @@ import './shared/buttons.module.css';
 import UserApp from './user/UserApp';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AdminApp, AdminRoutes } from './admin/AdminApp';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   extractUserAttributes,
   LoginProvider,
@@ -28,10 +28,16 @@ import { DebugFeatures } from './dbg/features/DebugFeatures';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
+  let alreadyHandlingLogin = useRef(false);
 
   useEffect(() => {
+    if (alreadyHandlingLogin.current) {
+      return;
+    }
+    alreadyHandlingLogin.current = true;
+
     const fragment = window.location.hash;
-    if (fragment === '') {
+    if (fragment.length < 2) {
       setHandlingLogin(false);
       return;
     }
@@ -40,6 +46,7 @@ function App() {
     try {
       args = new URLSearchParams(fragment.substring(1));
     } catch {
+      setHandlingLogin(false);
       return;
     }
 
@@ -71,11 +78,19 @@ function App() {
       const redirectLoc = localStorage.getItem('login-redirect');
       if (redirectLoc) {
         localStorage.removeItem('login-redirect');
-        window.location.href = redirectLoc;
-        return;
+        window.location.assign(redirectLoc);
+      } else {
+        const urlWithoutHash = new URL(window.location.href);
+        urlWithoutHash.hash = '';
+        const urlWithoutHashStr = urlWithoutHash.toString();
+        if (urlWithoutHashStr !== window.location.href) {
+          window.location.assign(urlWithoutHashStr);
+        }
       }
 
-      window.location.hash = '';
+      setTimeout(() => {
+        setHandlingLogin(false);
+      }, 250);
     })();
   }, []);
 
@@ -117,7 +132,7 @@ function App() {
             <LoginProvider>
               <InterestsAutoProvider>
                 <ModalProvider>
-                  <LoginApp redirectUrl="/" />
+                  <LoginApp />
                 </ModalProvider>
               </InterestsAutoProvider>
             </LoginProvider>
@@ -169,7 +184,9 @@ function App() {
           path="/courses/activate"
           element={
             <LoginProvider>
-              <CourseActivateScreen />
+              <ModalProvider>
+                <CourseActivateScreen />
+              </ModalProvider>
             </LoginProvider>
           }
         />
