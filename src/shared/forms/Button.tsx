@@ -3,7 +3,7 @@ import styles from './Button.module.css';
 import { combineClasses } from '../lib/combineClasses';
 import { InlineOsehSpinner } from '../components/InlineOsehSpinner';
 
-type ButtonProps = {
+export type ButtonProps = {
   /**
    * The type of button
    */

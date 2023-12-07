@@ -13,12 +13,10 @@ Goals:
 Subgoals:
 
 - Move window fragment handling from App to LoginProvider
-- Port over `features/login/components/ProvidersList.tsx` from app,
-  move instead put in `shared/components/ButtonsWithIconsColumn.tsx`
-  and rename to match
-- Add `features/login/components/ProvidersList.tsx` which is a convenience
-  wrapper around `ButtonsWithIconsColumn.tsx` that uses `OauthProvider` as
-  the key and fills in the icon
+- Remove icons from LoginApp folder
+- Refactor LoginApp to avoid react rerender via removing all direct useState's
+  - Ideally, LoginApp is extremely short, mostly referencing components from the
+    login feature
 - Refactor ProviderUrls from `MergeAccount.tsx` to use `ProvidersList`
 - Move `getProviderUrl` from `LoginApp.tsx` to
   `features/login/lib/getOauthProviderUrl.ts`, update app to use the same name
