@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AdminDashboardLargeChart,
   AdminDashboardLargeChartItem,
@@ -13,6 +13,7 @@ import { ModalWrapper } from '../../shared/ModalWrapper';
 import { AdminDashboardLargeChartPlaceholder } from './AdminDashboardLargeChartPlaceholder';
 import { ChartDetails } from './subComponents/ChartDetails';
 import { DashboardTableProps } from './subComponents/DashboardTable';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 const DAILY_CHARTS_ORDER = [
   'dau',
@@ -26,7 +27,7 @@ const DAILY_CHARTS_ORDER = [
 const MONTHLY_CHARTS_ORDER = ['mau'];
 
 export const AdminDashboardLargeChartLoader = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [remainingToLoad, setRemainingToLoad] = useState(
     DAILY_CHARTS_ORDER.length + MONTHLY_CHARTS_ORDER.length
@@ -38,164 +39,179 @@ export const AdminDashboardLargeChartLoader = (): ReactElement => {
     null
   );
   // dau
-  useEffect(() => {
-    let active = true;
-    fetchDAU();
-    return () => {
-      active = false;
-    };
-
-    async function fetchDAU() {
-      if (loginContext.state !== 'logged-in') {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
+      if (loginContextUnch.state !== 'logged-in') {
         return;
       }
-      const response = await apiFetch('/api/1/admin/daily_active_users', {}, loginContext);
+      const loginContext = loginContextUnch;
 
-      if (!active) {
-        return;
-      }
+      let active = true;
+      fetchDAU();
+      return () => {
+        active = false;
+      };
 
-      if (!response.ok) {
-        const text = await response.text();
+      async function fetchDAU() {
+        const response = await apiFetch('/api/1/admin/daily_active_users', {}, loginContext);
+
         if (!active) {
           return;
         }
 
-        console.error('Failed to fetch daily active users', text);
+        if (!response.ok) {
+          const text = await response.text();
+          if (!active) {
+            return;
+          }
+
+          console.error('Failed to fetch daily active users', text);
+          setRemainingToLoad((l) => l - 1);
+          return;
+        }
+
+        const data: { labels: string[]; values: number[] } = await response.json();
+        if (!active) {
+          return;
+        }
+
+        dailyChartsRef.current.dau = {
+          identifier: 'dau',
+          name: 'Daily Active Users',
+          labels: data.labels,
+          values: data.values,
+        };
         setRemainingToLoad((l) => l - 1);
-        return;
       }
-
-      const data: { labels: string[]; values: number[] } = await response.json();
-      if (!active) {
-        return;
-      }
-
-      dailyChartsRef.current.dau = {
-        identifier: 'dau',
-        name: 'Daily Active Users',
-        labels: data.labels,
-        values: data.values,
-      };
-      setRemainingToLoad((l) => l - 1);
-    }
-  }, [loginContext]);
+    }, [])
+  );
 
   // mau
-  useEffect(() => {
-    let active = true;
-    fetchMAU();
-    return () => {
-      active = false;
-    };
-
-    async function fetchMAU() {
-      if (loginContext.state !== 'logged-in') {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
+      if (loginContextUnch.state !== 'logged-in') {
         return;
       }
-      const responses = await Promise.all([
-        apiFetch('/api/1/admin/monthly_active_users/month', {}, loginContext),
-        apiFetch('/api/1/admin/monthly_active_users/day', {}, loginContext),
-      ]);
+      const loginContext = loginContextUnch;
 
-      if (!active) {
-        return;
-      }
+      let active = true;
+      fetchMAU();
+      return () => {
+        active = false;
+      };
 
-      const failedResponses = responses.filter((r) => !r.ok);
-      if (failedResponses.length > 0) {
-        const failedTexts = await Promise.all(failedResponses.map((r) => r.text()));
+      async function fetchMAU() {
+        const responses = await Promise.all([
+          apiFetch('/api/1/admin/monthly_active_users/month', {}, loginContext),
+          apiFetch('/api/1/admin/monthly_active_users/day', {}, loginContext),
+        ]);
+
         if (!active) {
           return;
         }
 
-        console.error('Failed to fetch monthly active users', failedResponses, failedTexts);
-        setRemainingToLoad((l) => l - 1);
-        return;
-      }
+        const failedResponses = responses.filter((r) => !r.ok);
+        if (failedResponses.length > 0) {
+          const failedTexts = await Promise.all(failedResponses.map((r) => r.text()));
+          if (!active) {
+            return;
+          }
 
-      const datas = await Promise.all(responses.map((r) => r.json()));
-      if (!active) {
-        return;
-      }
+          console.error('Failed to fetch monthly active users', failedResponses, failedTexts);
+          setRemainingToLoad((l) => l - 1);
+          return;
+        }
 
-      monthlyChartsRef.current.mau = {
-        identifier: 'mau',
-        name: 'Monthly Active Users',
-        labels: datas[0].labels,
-        values: datas[0].values,
-        dailyVariant: {
-          identifier: 'mau-daily',
+        const datas = await Promise.all(responses.map((r) => r.json()));
+        if (!active) {
+          return;
+        }
+
+        monthlyChartsRef.current.mau = {
+          identifier: 'mau',
           name: 'Monthly Active Users',
-          labels: datas[1].labels,
-          values: datas[1].values,
-        },
-      };
-      setRemainingToLoad((l) => l - 1);
-    }
-  }, [loginContext]);
+          labels: datas[0].labels,
+          values: datas[0].values,
+          dailyVariant: {
+            identifier: 'mau-daily',
+            name: 'Monthly Active Users',
+            labels: datas[1].labels,
+            values: datas[1].values,
+          },
+        };
+        setRemainingToLoad((l) => l - 1);
+      }
+    }, [])
+  );
 
   // retention
-  useEffect(() => {
-    let active = true;
-    [0, 1, 7, 30, 90].forEach((day) => {
-      fetchRetention(day);
-    });
-    return () => {
-      active = false;
-    };
-
-    async function fetchRetention(day: number) {
-      if (loginContext.state !== 'logged-in') {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
+      if (loginContextUnch.state !== 'logged-in') {
         return;
       }
-      const response = await apiFetch(`/api/1/admin/retention_stats/${day}day`, {}, loginContext);
+      const loginContext = loginContextUnch;
 
-      if (!active) {
-        return;
-      }
+      let active = true;
+      [0, 1, 7, 30, 90].forEach((day) => {
+        fetchRetention(day);
+      });
+      return () => {
+        active = false;
+      };
 
-      if (!response.ok) {
-        const text = await response.text();
+      async function fetchRetention(day: number) {
+        const response = await apiFetch(`/api/1/admin/retention_stats/${day}day`, {}, loginContext);
+
         if (!active) {
           return;
         }
 
-        console.error(`Failed to fetch ${day}-day retention`, text);
+        if (!response.ok) {
+          const text = await response.text();
+          if (!active) {
+            return;
+          }
+
+          console.error(`Failed to fetch ${day}-day retention`, text);
+          setRemainingToLoad((l) => l - 1);
+          return;
+        }
+
+        const data: {
+          period: string;
+          period_label: string;
+          labels: string[];
+          retained: number[];
+          unretained: number[];
+          retention_rate: number[];
+        } = await response.json();
+        if (!active) {
+          return;
+        }
+
+        dailyChartsRef.current[`retention-${day}day`] = {
+          identifier: `retention-${day}day`,
+          name: `${day} Day Retention`,
+          labels: data.labels,
+          values: data.retention_rate,
+          help: () => {
+            setShowRetentionDetails({
+              day,
+              labels: data.labels,
+              retained: data.retained,
+              unretained: data.unretained,
+              retentionRate: data.retention_rate,
+            });
+          },
+        };
         setRemainingToLoad((l) => l - 1);
-        return;
       }
-
-      const data: {
-        period: string;
-        period_label: string;
-        labels: string[];
-        retained: number[];
-        unretained: number[];
-        retention_rate: number[];
-      } = await response.json();
-      if (!active) {
-        return;
-      }
-
-      dailyChartsRef.current[`retention-${day}day`] = {
-        identifier: `retention-${day}day`,
-        name: `${day} Day Retention`,
-        labels: data.labels,
-        values: data.retention_rate,
-        help: () => {
-          setShowRetentionDetails({
-            day,
-            labels: data.labels,
-            retained: data.retained,
-            unretained: data.unretained,
-            retentionRate: data.retention_rate,
-          });
-        },
-      };
-      setRemainingToLoad((l) => l - 1);
-    }
-  }, [loginContext]);
+    }, [])
+  );
 
   // retention modal
   useEffect(() => {

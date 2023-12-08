@@ -21,7 +21,7 @@ export const ExtendedClassesPack = ({
   state: ValueWithCallbacks<ECPState>;
   resources: ValueWithCallbacks<ECPResources>;
 }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const windowSize = useWindowSize();
   const [step, setStep] = useState<
     'offerSample' | 'start' | 'journey' | 'offerPack' | 'redirecting'
@@ -35,6 +35,13 @@ export const ExtendedClassesPack = ({
   const onNext = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        resources.get().session?.reset();
+        state.get().ian?.onShown();
+        return;
+      }
+      const loginContext = loginContextUnch;
       const journey = state.get().journey;
       resources.get().session?.storeAction('try_class', {
         emotion: state.get().emotion?.word ?? null,
@@ -63,7 +70,7 @@ export const ExtendedClassesPack = ({
         setStep('start');
       }
     },
-    [resources, state, loginContext]
+    [resources, state, loginContextRaw]
   );
 
   const onNoThanks = useCallback(

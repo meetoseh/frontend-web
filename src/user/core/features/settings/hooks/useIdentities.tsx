@@ -7,8 +7,8 @@ import {
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { describeError } from '../../../../../shared/forms/ErrorBlock';
-import { useValueWithCallbacksEffect } from '../../../../../shared/hooks/useValueWithCallbacksEffect';
 import { OauthProvider } from '../../../../login/lib/OauthProvider';
+import { useValuesWithCallbacksEffect } from '../../../../../shared/hooks/useValuesWithCallbacksEffect';
 
 export type Identity = {
   /**
@@ -78,83 +78,73 @@ const areIdentityStatesEqual = (a: IdentitiesState, b: IdentitiesState): boolean
 export const useIdentities = (
   suppressedVWC: ValueWithCallbacks<boolean>
 ): ValueWithCallbacks<IdentitiesState> => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const result = useWritableValueWithCallbacks<IdentitiesState>(() => ({ type: 'loading' }));
 
-  useValueWithCallbacksEffect(
-    suppressedVWC,
-    useCallback(
-      (suppressed) => {
-        if (suppressed) {
-          setVWC(result, { type: 'loading' }, areIdentityStatesEqual);
-          return;
-        }
+  useValuesWithCallbacksEffect(
+    [suppressedVWC, loginContextRaw.value],
+    useCallback(() => {
+      const suppressed = suppressedVWC.get();
+      const loginContextUnch = loginContextRaw.value.get();
+      if (suppressed || loginContextUnch.state === 'loading') {
+        setVWC(result, { type: 'loading' }, areIdentityStatesEqual);
+        return;
+      }
+      if (loginContextUnch.state === 'logged-out') {
+        setVWC(result, { type: 'unavailable', reason: 'not-logged-in' }, areIdentityStatesEqual);
+        return;
+      }
+      const loginContext = loginContextUnch;
 
-        let running = true;
-        loadIdentities();
-        return () => {
-          running = false;
-        };
+      let running = true;
+      loadIdentities();
+      return () => {
+        running = false;
+      };
 
-        async function loadIdentitiesInner() {
-          const response = await apiFetch(
-            '/api/1/users/me/search_identities',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-              },
-              body: JSON.stringify({
-                limit: 1000,
-              }),
+      async function loadIdentitiesInner() {
+        const response = await apiFetch(
+          '/api/1/users/me/search_identities',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
             },
-            loginContext
+            body: JSON.stringify({
+              limit: 1000,
+            }),
+          },
+          loginContext
+        );
+
+        if (!response.ok) {
+          throw response;
+        }
+
+        const raw: { items: Identity[] } = await response.json();
+        if (running) {
+          setVWC(
+            result,
+            {
+              type: 'success',
+              identities: raw.items,
+            },
+            () => false
           );
+        }
+      }
 
-          if (!response.ok) {
-            throw response;
-          }
-
-          const raw: { items: Identity[] } = await response.json();
+      async function loadIdentities() {
+        try {
+          await loadIdentitiesInner();
+        } catch (e) {
+          const err = await describeError(e);
           if (running) {
-            setVWC(
-              result,
-              {
-                type: 'success',
-                identities: raw.items,
-              },
-              () => false
-            );
+            setVWC(result, { type: 'error', error: err }, () => false);
           }
         }
-
-        async function loadIdentities() {
-          if (loginContext.state === 'loading') {
-            setVWC(result, { type: 'loading' }, areIdentityStatesEqual);
-            return;
-          }
-
-          if (loginContext.state === 'logged-out') {
-            setVWC(
-              result,
-              { type: 'unavailable', reason: 'not-logged-in' },
-              areIdentityStatesEqual
-            );
-            return;
-          }
-
-          try {
-            await loadIdentitiesInner();
-          } catch (e) {
-            const err = await describeError(e);
-            if (running) {
-              setVWC(result, { type: 'error', error: err }, () => false);
-            }
-          }
-        }
-      },
-      [loginContext, result]
-    )
+      }
+    }, [loginContextRaw, result, suppressedVWC])
   );
 
   return result;

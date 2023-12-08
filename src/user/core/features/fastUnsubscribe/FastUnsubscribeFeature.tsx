@@ -9,7 +9,6 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { FastUnsubscribe } from './FastUnsubscribe';
 import { DailyReminders, parseDailyReminders } from './FastUnsubscribeLoggedIn';
-import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
 import { useOauthProviderUrlsValueWithCallbacks } from '../../../login/hooks/useOauthProviderUrlsValueWithCallbacks';
@@ -46,7 +45,7 @@ export const FastUnsubscribeFeature: Feature<FastUnsubscribeState, FastUnsubscri
     return allStates.touchLink.linkInfo.pageIdentifier === 'unsubscribe';
   },
   useResources: (state, required, allStates) => {
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
     const variantVWC = useWritableValueWithCallbacks<FastUnsubscribeVariant | null | undefined>(
       () => undefined
     );
@@ -79,10 +78,11 @@ export const FastUnsubscribeFeature: Feature<FastUnsubscribeState, FastUnsubscri
     );
 
     useValuesWithCallbacksEffect(
-      [required, codeVWC],
+      [required, codeVWC, loginContextRaw.value],
       useCallback(() => {
         const req = required.get();
         const code = codeVWC.get();
+        const loginContext = loginContextRaw.value.get();
 
         if (!req || code === null || loginContext.state === 'loading') {
           setVWC(variantVWC, undefined);
@@ -96,50 +96,50 @@ export const FastUnsubscribeFeature: Feature<FastUnsubscribeState, FastUnsubscri
 
         setVWC(variantVWC, 'logged-in');
         return undefined;
-      }, [loginContext, variantVWC, codeVWC, required])
+      }, [loginContextRaw, variantVWC, codeVWC, required])
     );
 
-    useValueWithCallbacksEffect(
-      variantVWC,
-      useCallback(
-        (variant) => {
-          if (variant !== 'logged-in') {
-            setVWC(dailyRemindersVWC, undefined);
-            return undefined;
-          }
+    useValuesWithCallbacksEffect(
+      [loginContextRaw.value, variantVWC],
+      useCallback(() => {
+        const variant = variantVWC.get();
+        const loginContextUnch = loginContextRaw.value.get();
+        if (variant !== 'logged-in' || loginContextUnch.state !== 'logged-in') {
+          setVWC(dailyRemindersVWC, undefined);
+          return undefined;
+        }
+        const loginContext = loginContextUnch;
 
-          let running = true;
-          fetchDailyReminders();
-          return () => {
-            running = false;
-          };
+        let running = true;
+        fetchDailyReminders();
+        return () => {
+          running = false;
+        };
 
-          async function fetchDailyRemindersInner() {
-            const response = await apiFetch(
-              '/api/1/users/me/daily_reminders',
-              { method: 'GET' },
-              loginContext
-            );
-            if (!response.ok) {
-              throw response;
-            }
-            const raw = await response.json();
-            const parsed = parseDailyReminders(raw);
-            if (running) {
-              setVWC(dailyRemindersVWC, parsed);
-            }
+        async function fetchDailyRemindersInner() {
+          const response = await apiFetch(
+            '/api/1/users/me/daily_reminders',
+            { method: 'GET' },
+            loginContext
+          );
+          if (!response.ok) {
+            throw response;
           }
+          const raw = await response.json();
+          const parsed = parseDailyReminders(raw);
+          if (running) {
+            setVWC(dailyRemindersVWC, parsed);
+          }
+        }
 
-          async function fetchDailyReminders() {
-            try {
-              await fetchDailyRemindersInner();
-            } catch (e) {
-              console.error('failed to fetch daily reminders:', e);
-            }
+        async function fetchDailyReminders() {
+          try {
+            await fetchDailyRemindersInner();
+          } catch (e) {
+            console.error('failed to fetch daily reminders:', e);
           }
-        },
-        [dailyRemindersVWC, loginContext]
-      )
+        }
+      }, [dailyRemindersVWC, loginContextRaw, variantVWC])
     );
 
     return useMappedValuesWithCallbacks(

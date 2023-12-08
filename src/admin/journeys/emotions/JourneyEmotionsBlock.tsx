@@ -10,6 +10,7 @@ import { CrudFormElement } from '../../crud/CrudFormElement';
 import { Button } from '../../../shared/forms/Button';
 import { Emotion } from '../../emotions/Emotion';
 import { EmotionDropdown } from '../../emotions/EmotionDropdown';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 type JourneyEmotionsBlockProps = {
   /**
@@ -27,62 +28,69 @@ type JourneyEmotionsBlockProps = {
  * to delete it.
  */
 export const JourneyEmotionsBlock = ({ journeyUid }: JourneyEmotionsBlockProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [emotions, setEmotions] = useState<Emotion[]>([]);
   const [viewingEmotion, setViewingEmotion] = useState<Emotion | null>(null);
   const [addingEmotion, setAddingEmotion] = useState<boolean>(false);
   const [error, setError] = useState<ReactElement | null>(null);
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-
-    let active = true;
-    fetchEmotions();
-    return () => {
-      active = false;
-    };
-
-    async function fetchEmotionsInner() {
-      const response = await apiFetch(
-        '/api/1/emotions/search',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            filters: {
-              journey_uid: {
-                operator: 'eq',
-                value: journeyUid,
-              },
-            },
-            limit: 100,
-          }),
-        },
-        loginContext
-      );
-      if (!response.ok) {
-        throw response;
-      }
-      const data: { items: Emotion[] } = await response.json();
-      if (active) {
-        setEmotions(data.items);
-      }
-    }
-
-    async function fetchEmotions() {
-      try {
-        await fetchEmotionsInner();
-      } catch (e) {
-        const err = await describeError(e);
-        if (active) {
-          setError(err);
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
         }
-      }
-    }
-  }, [journeyUid, loginContext]);
+        const loginContext = loginContextUnch;
+
+        let active = true;
+        fetchEmotions();
+        return () => {
+          active = false;
+        };
+
+        async function fetchEmotionsInner() {
+          const response = await apiFetch(
+            '/api/1/emotions/search',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                filters: {
+                  journey_uid: {
+                    operator: 'eq',
+                    value: journeyUid,
+                  },
+                },
+                limit: 100,
+              }),
+            },
+            loginContext
+          );
+          if (!response.ok) {
+            throw response;
+          }
+          const data: { items: Emotion[] } = await response.json();
+          if (active) {
+            setEmotions(data.items);
+          }
+        }
+
+        async function fetchEmotions() {
+          try {
+            await fetchEmotionsInner();
+          } catch (e) {
+            const err = await describeError(e);
+            if (active) {
+              setError(err);
+            }
+          }
+        }
+      },
+      [journeyUid]
+    )
+  );
 
   useEffect(() => {
     if (viewingEmotion === null) {
@@ -159,56 +167,63 @@ const JourneyEmotionDetails = ({
   emotion: Emotion;
   onDeleted: () => void;
 }) => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [info, setInfo] = useState<JourneyEmotion | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteDisabled, setDeleteDisabled] = useState<boolean>(true);
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-
-    let active = true;
-    fetchInfo();
-    return () => {
-      active = false;
-    };
-
-    async function fetchInfoInner() {
-      const response = await apiFetch(
-        `/api/1/journeys/emotions/?journey_uid=${journeyUid}&emotion=${encodeURIComponent(
-          emotion.word
-        )}`,
-        {
-          method: 'GET',
-        },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const raw: any = await response.json();
-      const data = parseJourneyEmotion(raw);
-      if (active) {
-        setInfo(data);
-      }
-    }
-
-    async function fetchInfo() {
-      try {
-        await fetchInfoInner();
-      } catch (e) {
-        const err = await describeError(e);
-        if (active) {
-          setError(err);
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
         }
-      }
-    }
-  }, [journeyUid, emotion, loginContext]);
+        const loginContext = loginContextUnch;
+
+        let active = true;
+        fetchInfo();
+        return () => {
+          active = false;
+        };
+
+        async function fetchInfoInner() {
+          const response = await apiFetch(
+            `/api/1/journeys/emotions/?journey_uid=${journeyUid}&emotion=${encodeURIComponent(
+              emotion.word
+            )}`,
+            {
+              method: 'GET',
+            },
+            loginContext
+          );
+
+          if (!response.ok) {
+            throw response;
+          }
+
+          const raw: any = await response.json();
+          const data = parseJourneyEmotion(raw);
+          if (active) {
+            setInfo(data);
+          }
+        }
+
+        async function fetchInfo() {
+          try {
+            await fetchInfoInner();
+          } catch (e) {
+            const err = await describeError(e);
+            if (active) {
+              setError(err);
+            }
+          }
+        }
+      },
+      [journeyUid, emotion]
+    )
+  );
 
   useEffect(() => {
     if (info === null || deleting) {
@@ -233,10 +248,12 @@ const JourneyEmotionDetails = ({
   }, [info, deleting]);
 
   const onDeletePressed = useCallback(async () => {
-    if (loginContext.state !== 'logged-in') {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
       setError(<>You must be logged in to do that</>);
       return;
     }
+    const loginContext = loginContextUnch;
 
     setDeleting(true);
     try {
@@ -262,7 +279,7 @@ const JourneyEmotionDetails = ({
     } finally {
       setDeleting(false);
     }
-  }, [journeyUid, emotion, loginContext, onDeleted]);
+  }, [journeyUid, emotion, loginContextRaw.value, onDeleted]);
 
   return (
     <div className={styles.emotionDetailsContainer}>
@@ -307,7 +324,7 @@ const JourneyAddEmotion = ({
   onAdded: (item: JourneyEmotion) => void;
   existingEmotions: Emotion[];
 }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [error, setError] = useState<ReactElement | null>(null);
   const [emotion, setEmotion] = useState<Emotion | null>(null);
 
@@ -319,10 +336,12 @@ const JourneyAddEmotion = ({
   );
 
   const onAddPressed = useCallback(async () => {
-    if (loginContext.state !== 'logged-in') {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
       setError(<>You must be logged in to do that</>);
       return;
     }
+    const loginContext = loginContextUnch;
 
     if (emotion === null) {
       setError(<>You must select an emotion to add</>);
@@ -355,7 +374,7 @@ const JourneyAddEmotion = ({
       const err = await describeError(e);
       setError(err);
     }
-  }, [loginContext, emotion, onAdded, journeyUid]);
+  }, [loginContextRaw.value, emotion, onAdded, journeyUid]);
 
   return (
     <div className={styles.addContainer}>

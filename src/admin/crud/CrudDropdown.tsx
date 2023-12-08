@@ -18,6 +18,7 @@ import {
 } from './CrudFetcher';
 import styles from './CrudDropdown.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type CrudDropdownProps<T extends { uid: string }> = {
   /**
@@ -117,7 +118,7 @@ export function CrudDropdown<T extends { uid: string }>({
   apiFilter = undefined,
   localFilter = undefined,
 }: CrudDropdownProps<T>): ReactElement {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const selectRef = useRef<HTMLSelectElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [focused, setFocused] = useState(false);
@@ -175,122 +176,118 @@ export function CrudDropdown<T extends { uid: string }>({
     }
   }, [loadOn, wantLoad]);
 
-  useEffect(() => {
-    if (fetchedItems || !wantLoad || loginContext.state !== 'logged-in') {
-      return;
-    }
-    let active = true;
-    fetchItems();
-    return () => {
-      active = false;
-    };
-
-    async function fetchItems() {
-      setError(null);
-      try {
-        let nextSort = sort;
-        const newItems = [];
-        while (true) {
-          const response = await apiFetch(
-            path,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-              },
-              body: JSON.stringify({
-                filters: apiFilter ?? {},
-                sort: nextSort,
-                limit,
-              }),
-            },
-            loginContext
-          );
-          if (!active) {
-            return;
-          }
-
-          if (!response.ok) {
-            throw response;
-          }
-
-          const data: { items: any[]; next_page_sort: CrudFetcherSort | null } =
-            await response.json();
-          if (!active) {
-            return;
-          }
-
-          if (typeof keyMap === 'function') {
-            for (const item of data.items) {
-              newItems.push(keyMap(item));
-            }
-          } else {
-            for (const item of data.items) {
-              newItems.push(convertUsingKeymap(item, keyMap));
-            }
-          }
-
-          if (
-            data.next_page_sort === null ||
-            data.next_page_sort === undefined ||
-            data.next_page_sort.length === 0 ||
-            data.next_page_sort.every((s) => s.after === null || s.after === undefined)
-          ) {
-            break;
-          }
-          nextSort = data.next_page_sort;
-        }
-        if (!active) {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (fetchedItems || !wantLoad || loginContextUnch.state !== 'logged-in') {
           return;
         }
-        if (localFilter) {
-          const indicesToDiscard: number[] = [];
-          for (let i = 0; i < newItems.length; i++) {
-            if (!localFilter(newItems[i])) {
-              indicesToDiscard.push(i);
-            }
-          }
+        const loginContext = loginContextUnch;
+        let active = true;
+        fetchItems();
+        return () => {
+          active = false;
+        };
 
-          if (indicesToDiscard.length < 3) {
-            for (let i = indicesToDiscard.length - 1; i >= 0; i--) {
-              newItems.splice(indicesToDiscard[i], 1);
+        async function fetchItems() {
+          setError(null);
+          try {
+            let nextSort = sort;
+            const newItems = [];
+            while (true) {
+              const response = await apiFetch(
+                path,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                  },
+                  body: JSON.stringify({
+                    filters: apiFilter ?? {},
+                    sort: nextSort,
+                    limit,
+                  }),
+                },
+                loginContext
+              );
+              if (!active) {
+                return;
+              }
+
+              if (!response.ok) {
+                throw response;
+              }
+
+              const data: { items: any[]; next_page_sort: CrudFetcherSort | null } =
+                await response.json();
+              if (!active) {
+                return;
+              }
+
+              if (typeof keyMap === 'function') {
+                for (const item of data.items) {
+                  newItems.push(keyMap(item));
+                }
+              } else {
+                for (const item of data.items) {
+                  newItems.push(convertUsingKeymap(item, keyMap));
+                }
+              }
+
+              if (
+                data.next_page_sort === null ||
+                data.next_page_sort === undefined ||
+                data.next_page_sort.length === 0 ||
+                data.next_page_sort.every((s) => s.after === null || s.after === undefined)
+              ) {
+                break;
+              }
+              nextSort = data.next_page_sort;
             }
-          } else {
-            const cp = [...newItems];
-            newItems.splice(0, newItems.length);
-            for (let i = 0; i < cp.length; i++) {
-              if (!indicesToDiscard.includes(i)) {
-                newItems.push(cp[i]);
+            if (!active) {
+              return;
+            }
+            if (localFilter) {
+              const indicesToDiscard: number[] = [];
+              for (let i = 0; i < newItems.length; i++) {
+                if (!localFilter(newItems[i])) {
+                  indicesToDiscard.push(i);
+                }
+              }
+
+              if (indicesToDiscard.length < 3) {
+                for (let i = indicesToDiscard.length - 1; i >= 0; i--) {
+                  newItems.splice(indicesToDiscard[i], 1);
+                }
+              } else {
+                const cp = [...newItems];
+                newItems.splice(0, newItems.length);
+                for (let i = 0; i < cp.length; i++) {
+                  if (!indicesToDiscard.includes(i)) {
+                    newItems.push(cp[i]);
+                  }
+                }
               }
             }
+            setItems(newItems);
+            setChoice(null);
+            setFetchedItems(true);
+          } catch (e) {
+            if (!active) {
+              return;
+            }
+            const err = await describeError(e);
+            if (!active) {
+              return;
+            }
+            setError(err);
           }
         }
-        setItems(newItems);
-        setChoice(null);
-        setFetchedItems(true);
-      } catch (e) {
-        if (!active) {
-          return;
-        }
-        const err = await describeError(e);
-        if (!active) {
-          return;
-        }
-        setError(err);
-      }
-    }
-  }, [
-    focused,
-    fetchedItems,
-    wantLoad,
-    path,
-    sort,
-    limit,
-    loginContext,
-    keyMap,
-    apiFilter,
-    localFilter,
-  ]);
+      },
+      [fetchedItems, wantLoad, path, sort, limit, keyMap, apiFilter, localFilter]
+    )
+  );
 
   useEffect(() => {
     if (doFocus === null || selectRef.current === null) {

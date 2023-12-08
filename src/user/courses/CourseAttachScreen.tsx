@@ -1,15 +1,15 @@
-import { ReactElement, useContext, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useRef, useState } from 'react';
 import styles from './CourseAttachScreen.module.css';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { Button } from '../../shared/forms/Button';
 import { SplashScreen } from '../splash/SplashScreen';
-import { useSingletonEffect } from '../../shared/lib/useSingletonEffect';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { ExtendedClassesPackAttachScreen } from '../core/features/pickEmotionJourney/extended_classes_pack/ExtendedClassesPackAttachScreen';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 /**
  * The screen for associating a checkout, previously made by a guest, to a user.
@@ -18,7 +18,7 @@ import { ExtendedClassesPackAttachScreen } from '../core/features/pickEmotionJou
  * even if they land on the checkout success page already logged in.
  */
 export const CourseAttachScreen = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const windowSize = useWindowSize();
   const imageHandler = useOsehImageStateRequestHandler({});
   const [loading, setLoading] = useState(true);
@@ -27,23 +27,22 @@ export const CourseAttachScreen = (): ReactElement => {
   const [session, setSession] = useState<string | null>(null);
 
   const handled = useRef(false);
-  useSingletonEffect(
-    (onDone) => {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
       if (handled.current) {
-        onDone();
         return;
       }
 
-      if (loginContext.state === 'loading') {
-        onDone();
+      if (loginContextUnch.state === 'loading') {
         return;
       }
 
-      if (loginContext.state === 'logged-out') {
-        onDone();
-        window.location.href = '/';
+      if (loginContextUnch.state === 'logged-out') {
+        window.location.assign(window.location.origin);
         return;
       }
+      const loginContext = loginContextUnch;
 
       let active = true;
       attachCourse();
@@ -102,11 +101,9 @@ export const CourseAttachScreen = (): ReactElement => {
           if (active) {
             setLoading(false);
           }
-          onDone();
         }
       }
-    },
-    [loginContext]
+    }, [])
   );
 
   if (loading) {

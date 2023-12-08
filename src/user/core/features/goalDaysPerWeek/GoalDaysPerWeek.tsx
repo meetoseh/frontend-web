@@ -34,7 +34,7 @@ export const GoalDaysPerWeek = ({
     props: () => resources.get().session,
     callbacks: resources.callbacks,
   });
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const interests = useContext(InterestsContext);
   const modalContext = useContext(ModalContext);
   const goal = useWritableValueWithCallbacks<number>(() => 3);
@@ -53,6 +53,14 @@ export const GoalDaysPerWeek = ({
   }, [goal]);
 
   const onFinish = useCallback(async () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      setVWC(error, <>You need to login again to do that.</>);
+      return;
+    }
+
+    const loginContext = loginContextUnch;
+
     const selected = goal.get();
     resources.get().session?.storeAction?.call(undefined, 'set_goal', { days_per_week: selected });
     state.get().ian?.onShown?.call(undefined, true);
@@ -80,7 +88,7 @@ export const GoalDaysPerWeek = ({
       setVWC(error, err);
       throw new Error('Failed to store goal');
     }
-  }, [state, resources, error, goal, loginContext]);
+  }, [state, resources, error, goal, loginContextRaw]);
 
   const title = useMemo(() => getTitle(interests), [interests]);
   useErrorModal(modalContext.modals, error, 'Set Goal');

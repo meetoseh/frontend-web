@@ -29,7 +29,7 @@ export const JourneySubcategoryBlock = ({
   journeySubcategory,
   setJourneySubcategory,
 }: JourneySubcategoryBlockProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ReactElement | null>(null);
@@ -41,6 +41,12 @@ export const JourneySubcategoryBlock = ({
   });
 
   const save = useCallback(async () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+
     if (
       newInternalName === journeySubcategory.internalName &&
       newExternalName === journeySubcategory.externalName &&
@@ -98,7 +104,7 @@ export const JourneySubcategoryBlock = ({
     newExternalName,
     newBias,
     journeySubcategory,
-    loginContext,
+    loginContextRaw,
     setJourneySubcategory,
   ]);
 

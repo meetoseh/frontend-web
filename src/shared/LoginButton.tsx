@@ -1,5 +1,8 @@
 import { useCallback, useContext, useEffect } from 'react';
 import { LoginContext } from './contexts/LoginContext';
+import { useMappedValueWithCallbacks } from './hooks/useMappedValueWithCallbacks';
+import { RenderGuardedComponent } from './components/RenderGuardedComponent';
+import { setLoginRedirect } from '../user/login/lib/LoginRedirectStore';
 
 const LOGIN_URL = '/login';
 
@@ -10,22 +13,36 @@ const LOGIN_URL = '/login';
  * @returns The login/logout button
  */
 export const LoginButton = (): React.ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   const logout = useCallback(
     async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-      loginContext.setAuthTokens.apply(undefined, [null]);
+      loginContextRaw.setAuthTokens.apply(undefined, [null]);
     },
-    [loginContext.setAuthTokens]
+    [loginContextRaw.setAuthTokens]
   );
 
   useEffect(() => {
-    localStorage.setItem('login-redirect', window.location.pathname);
+    const cleanedUrl = new URL(window.location.href);
+    cleanedUrl.search = '';
+    cleanedUrl.hash = '';
+    setLoginRedirect({
+      url: cleanedUrl.toString(),
+      expiresAtMS: Date.now() + 1000 * 60 * 30,
+    });
   }, []);
 
-  return loginContext.state === 'logged-in' ? (
-    <button onClick={logout}>Logout</button>
-  ) : (
-    <a href={LOGIN_URL}>Login</a>
+  const isLoggedIn = useMappedValueWithCallbacks(
+    loginContextRaw.value,
+    (c) => c.state === 'logged-in'
+  );
+
+  return (
+    <RenderGuardedComponent
+      props={isLoggedIn}
+      component={(loggedIn) =>
+        loggedIn ? <button onClick={logout}>Logout</button> : <a href={LOGIN_URL}>Login</a>
+      }
+    />
   );
 };

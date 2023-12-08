@@ -11,6 +11,7 @@ import styles from './AdminDashboardJourneyFeedback.module.css';
 import { AdminDashboardLargeChartPlaceholder } from './AdminDashboardLargeChartPlaceholder';
 import { DashboardTable, DashboardTableProps } from './subComponents/DashboardTable';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type FeedbackUser = {
   sub: string;
@@ -69,7 +70,7 @@ const responseKeyMap: CrudFetcherKeyMap<Response> = {
  * Shows feedback that users have given about journeys.
  */
 export const AdminDashboardJourneyFeedback = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [showingPlaceholder, setShowingPlaceholder] = useState(true);
   const [error, setError] = useState<ReactElement | null>(null);
   const [date, setDate] = useState(
@@ -95,58 +96,65 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
     }
   }, []);
 
-  useEffect(() => {
-    // req date is in local time, but retrievedFor is in naive time
-    const reqDateIso = date.toISOString().split('T')[0];
-    const curDateIso = data === null ? null : data.retrievedFor.toISOString().split('T')[0];
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        // req date is in local time, but retrievedFor is in naive time
+        const reqDateIso = date.toISOString().split('T')[0];
+        const curDateIso = data === null ? null : data.retrievedFor.toISOString().split('T')[0];
 
-    if (reqDateIso === curDateIso) {
-      return;
-    }
-
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-
-    let active = true;
-    fetchData();
-    return () => {
-      active = false;
-    };
-
-    async function fetchDataInner() {
-      const response = await apiFetch(
-        '/api/1/admin/journey_feedback?' + new URLSearchParams({ date: reqDateIso }),
-        {
-          method: 'GET',
-        },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const dataRaw = await response.json();
-      const parsed = convertUsingKeymap(dataRaw, responseKeyMap);
-      if (active) {
-        setData(parsed);
-      }
-    }
-
-    async function fetchData() {
-      setError(null);
-      try {
-        await fetchDataInner();
-      } catch (e) {
-        console.error(e);
-        const err = await describeError(e);
-        if (active) {
-          setError(err);
+        if (reqDateIso === curDateIso) {
+          return;
         }
-      }
-    }
-  }, [data, date, loginContext]);
+
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
+        }
+        const loginContext = loginContextUnch;
+
+        let active = true;
+        fetchData();
+        return () => {
+          active = false;
+        };
+
+        async function fetchDataInner() {
+          const response = await apiFetch(
+            '/api/1/admin/journey_feedback?' + new URLSearchParams({ date: reqDateIso }),
+            {
+              method: 'GET',
+            },
+            loginContext
+          );
+
+          if (!response.ok) {
+            throw response;
+          }
+
+          const dataRaw = await response.json();
+          const parsed = convertUsingKeymap(dataRaw, responseKeyMap);
+          if (active) {
+            setData(parsed);
+          }
+        }
+
+        async function fetchData() {
+          setError(null);
+          try {
+            await fetchDataInner();
+          } catch (e) {
+            console.error(e);
+            const err = await describeError(e);
+            if (active) {
+              setError(err);
+            }
+          }
+        }
+      },
+      [data, date]
+    )
+  );
 
   useEffect(() => {
     if (data === null) {

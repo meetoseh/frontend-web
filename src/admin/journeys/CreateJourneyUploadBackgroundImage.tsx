@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { computeFileSha512 } from '../../shared/computeFileSha512';
 import {
@@ -6,7 +6,7 @@ import {
   describeErrorFromResponse,
   ErrorBlock,
 } from '../../shared/forms/ErrorBlock';
-import { LoginContext, LoginContextValue } from '../../shared/contexts/LoginContext';
+import { LoginContext, LoginContextValueLoggedIn } from '../../shared/contexts/LoginContext';
 import {
   FileUploadHandler,
   parseUploadInfoFromResponse,
@@ -16,6 +16,7 @@ import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { JourneyBackgroundImage } from './background_images/JourneyBackgroundImage';
 import { keyMap as journeyBackgroundImageKeyMap } from './background_images/JourneyBackgroundImages';
 import styles from './CreateJourneyUploadAudioContent.module.css';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type CreateJourneyUploadBackgroundImageProps = {
   /**
@@ -30,7 +31,7 @@ const minHeight = 2745;
 export const CreateJourneyUploadBackgroundImage = ({
   onUploaded,
 }: CreateJourneyUploadBackgroundImageProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [file, setFile] = useState<File | null>(null);
   const [fileSize, setFileSize] = useState<{ width: number; height: number } | null>(null);
   const [fileLargeEnough, setFileLargeEnough] = useState<boolean | null>(null);
@@ -40,211 +41,221 @@ export const CreateJourneyUploadBackgroundImage = ({
   const [uploadHandler, setUploadHandler] = useState<ReactElement | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    uploadFile();
-    return () => {
-      active = false;
-    };
-
-    async function uploadFile() {
-      if (file === null || !fileLargeEnough) {
-        return;
-      }
-
-      setError(null);
-      setUploadState('preparing');
-
-      let fileSha512: string;
-      const startedHashingAt = performance.now();
-      try {
-        fileSha512 = await computeFileSha512(file);
-      } catch (e) {
-        if (!active) {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
           return;
         }
-        console.error(e);
-        setError(<>Unable to read file. Verify its on a local drive.</>);
-        setUploadState('picking-file');
-        return;
-      }
-      const hashingTime = performance.now() - startedHashingAt;
-      console.log(
-        `Hashed ${file.size.toLocaleString()} byte file in ~${hashingTime.toLocaleString(
-          undefined,
-          { maximumFractionDigits: 0 }
-        )}ms.`
-      );
-      console.log('fileSha512', fileSha512);
+        const loginContext = loginContextUnch;
+        let active = true;
+        uploadFile();
+        return () => {
+          active = false;
+        };
 
-      try {
-        const existing = await findBySha512(loginContext, fileSha512);
-        if (existing !== null) {
-          if (!active) {
-            return;
-          }
-          console.log('Found matching existing image file', existing);
-          setUploadState('picking-file');
-          onUploaded(existing);
-          return;
-        }
-      } catch (e) {
-        if (!active) {
-          return;
-        }
-
-        console.error(e);
-        const err = await describeError(e);
-        if (!active) {
-          return;
-        }
-        setError(err);
-        setUploadState('picking-file');
-        return;
-      }
-
-      let response: Response;
-      try {
-        response = await apiFetch(
-          '/api/1/journeys/background_images/',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({ file_size: file.size }),
-          },
-          loginContext
-        );
-      } catch (e) {
-        if (!active) {
-          return;
-        }
-        console.error(e);
-        setError(<>Unable to connect to server. Check your internet connection.</>);
-        setUploadState('picking-file');
-        return;
-      }
-
-      if (!active) {
-        return;
-      }
-
-      if (!response.ok) {
-        const err = await describeErrorFromResponse(response);
-        if (!active) {
-          return;
-        }
-
-        setError(err);
-        setUploadState('picking-file');
-        return;
-      }
-
-      let refData: any;
-      try {
-        refData = await response.json();
-      } catch (e) {
-        console.error(e);
-        setError(
-          <>
-            Unable to download server response, or server did not provide json. Check your internet
-            connection.
-          </>
-        );
-        setUploadState('picking-file');
-        return;
-      }
-      if (!active) {
-        return;
-      }
-
-      let uploadInfo: UploadInfo;
-      try {
-        uploadInfo = parseUploadInfoFromResponse(refData);
-      } catch (e) {
-        console.error(e);
-        setError(<>Unable to parse server response.</>);
-        setUploadState('picking-file');
-        return;
-      }
-
-      const uploaded = new Promise<void>((resolve, reject) => {
-        setUploadHandler(
-          <FileUploadHandler
-            file={file}
-            uploadInfo={uploadInfo}
-            onComplete={resolve}
-            onError={reject}
-          />
-        );
-      });
-      setUploadState('uploading');
-
-      try {
-        await uploaded;
-      } catch (e) {
-        if (!active) {
-          return;
-        }
-        console.error(e);
-        const err = await describeError(e);
-        if (!active) {
-          return;
-        }
-        setError(err);
-        setUploadState('picking-file');
-        return;
-      }
-
-      if (!active) {
-        return;
-      }
-
-      setUploadState('processing');
-      for (let i = 0; i < 600; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        if (!active) {
-          return;
-        }
-
-        try {
-          const found = await findBySha512(loginContext, fileSha512);
-          if (!active) {
+        async function uploadFile() {
+          if (file === null || !fileLargeEnough) {
             return;
           }
 
-          if (found !== null) {
-            console.log('Found matching image file content', found);
+          setError(null);
+          setUploadState('preparing');
+
+          let fileSha512: string;
+          const startedHashingAt = performance.now();
+          try {
+            fileSha512 = await computeFileSha512(file);
+          } catch (e) {
+            if (!active) {
+              return;
+            }
+            console.error(e);
+            setError(<>Unable to read file. Verify its on a local drive.</>);
             setUploadState('picking-file');
-            onUploaded(found);
             return;
           }
-        } catch (e) {
-          console.error(e);
+          const hashingTime = performance.now() - startedHashingAt;
+          console.log(
+            `Hashed ${file.size.toLocaleString()} byte file in ~${hashingTime.toLocaleString(
+              undefined,
+              { maximumFractionDigits: 0 }
+            )}ms.`
+          );
+          console.log('fileSha512', fileSha512);
 
-          if (e instanceof Response && [502, 504].indexOf(e.status) >= 0) {
-            await new Promise((resolve) => setTimeout(resolve, 5000));
-            continue;
+          try {
+            const existing = await findBySha512(loginContext, fileSha512);
+            if (existing !== null) {
+              if (!active) {
+                return;
+              }
+              console.log('Found matching existing image file', existing);
+              setUploadState('picking-file');
+              onUploaded(existing);
+              return;
+            }
+          } catch (e) {
+            if (!active) {
+              return;
+            }
+
+            console.error(e);
+            const err = await describeError(e);
+            if (!active) {
+              return;
+            }
+            setError(err);
+            setUploadState('picking-file');
+            return;
           }
 
-          setError(
-            <>
-              The upload completed, but an error occurred waiting for the server to finish
-              processing. It should show up in Choose within a few minutes.
-            </>
-          );
+          let response: Response;
+          try {
+            response = await apiFetch(
+              '/api/1/journeys/background_images/',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({ file_size: file.size }),
+              },
+              loginContext
+            );
+          } catch (e) {
+            if (!active) {
+              return;
+            }
+            console.error(e);
+            setError(<>Unable to connect to server. Check your internet connection.</>);
+            setUploadState('picking-file');
+            return;
+          }
+
+          if (!active) {
+            return;
+          }
+
+          if (!response.ok) {
+            const err = await describeErrorFromResponse(response);
+            if (!active) {
+              return;
+            }
+
+            setError(err);
+            setUploadState('picking-file');
+            return;
+          }
+
+          let refData: any;
+          try {
+            refData = await response.json();
+          } catch (e) {
+            console.error(e);
+            setError(
+              <>
+                Unable to download server response, or server did not provide json. Check your
+                internet connection.
+              </>
+            );
+            setUploadState('picking-file');
+            return;
+          }
+          if (!active) {
+            return;
+          }
+
+          let uploadInfo: UploadInfo;
+          try {
+            uploadInfo = parseUploadInfoFromResponse(refData);
+          } catch (e) {
+            console.error(e);
+            setError(<>Unable to parse server response.</>);
+            setUploadState('picking-file');
+            return;
+          }
+
+          const uploaded = new Promise<void>((resolve, reject) => {
+            setUploadHandler(
+              <FileUploadHandler
+                file={file}
+                uploadInfo={uploadInfo}
+                onComplete={resolve}
+                onError={reject}
+              />
+            );
+          });
+          setUploadState('uploading');
+
+          try {
+            await uploaded;
+          } catch (e) {
+            if (!active) {
+              return;
+            }
+            console.error(e);
+            const err = await describeError(e);
+            if (!active) {
+              return;
+            }
+            setError(err);
+            setUploadState('picking-file');
+            return;
+          }
+
+          if (!active) {
+            return;
+          }
+
+          setUploadState('processing');
+          for (let i = 0; i < 600; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            if (!active) {
+              return;
+            }
+
+            try {
+              const found = await findBySha512(loginContext, fileSha512);
+              if (!active) {
+                return;
+              }
+
+              if (found !== null) {
+                console.log('Found matching image file content', found);
+                setUploadState('picking-file');
+                onUploaded(found);
+                return;
+              }
+            } catch (e) {
+              console.error(e);
+
+              if (e instanceof Response && [502, 504].indexOf(e.status) >= 0) {
+                await new Promise((resolve) => setTimeout(resolve, 5000));
+                continue;
+              }
+
+              setError(
+                <>
+                  The upload completed, but an error occurred waiting for the server to finish
+                  processing. It should show up in Choose within a few minutes.
+                </>
+              );
+              setUploadState('picking-file');
+              return;
+            }
+          }
+
+          if (!active) {
+            return;
+          }
+
+          setError(<>Timed out waiting for processing to complete. Contact support.</>);
           setUploadState('picking-file');
-          return;
         }
-      }
-
-      if (!active) {
-        return;
-      }
-
-      setError(<>Timed out waiting for processing to complete. Contact support.</>);
-      setUploadState('picking-file');
-    }
-  }, [file, fileLargeEnough, loginContext, onUploaded]);
+      },
+      [file, fileLargeEnough, onUploaded]
+    )
+  );
 
   useEffect(() => {
     let active = true;
@@ -361,7 +372,7 @@ export const CreateJourneyUploadBackgroundImage = ({
 };
 
 async function findBySha512(
-  loginContext: LoginContextValue,
+  loginContext: LoginContextValueLoggedIn,
   fileSha512: string
 ): Promise<JourneyBackgroundImage | null> {
   const response = await apiFetch(

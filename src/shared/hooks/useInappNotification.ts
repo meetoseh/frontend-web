@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef } from 'react';
+import { useCallback, useContext, useRef } from 'react';
 import { LoginContext } from '../contexts/LoginContext';
 import { apiFetch } from '../ApiConstants';
 import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
@@ -8,6 +8,7 @@ import {
 } from '../anim/VariableStrategyProps';
 import { useUnwrappedValueWithCallbacks } from './useUnwrappedValueWithCallbacks';
 import { getCurrentServerTimeMS } from '../lib/getCurrentServerTimeMS';
+import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
 
 const MAX_EXPIRATION_TIME_SECONDS = 60 * 60 * 24 * 7;
 
@@ -108,192 +109,205 @@ export const useInappNotification = (uid: string, suppress: boolean): InappNotif
 export const useInappNotificationValueWithCallbacks = (
   propsVariableStrategy: VariableStrategyProps<{ uid: string; suppress: boolean }>
 ): ValueWithCallbacks<InappNotification | null> => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const notificationVWC = useWritableValueWithCallbacks<InappNotification | null>(() => null);
   const propsVWC = useVariableStrategyPropsAsValueWithCallbacks(propsVariableStrategy);
 
   let cleanedUp = useRef<boolean>(false);
-  useEffect(() => {
-    if (cleanedUp.current || loginContext.state === 'loading') {
-      return;
-    }
-    cleanedUp.current = true;
-    getCurrentServerTimeMS().then((now) =>
-      pruneExpiredState(loginContext?.userAttributes?.sub ?? null, now)
-    );
-  }, [loginContext]);
-
-  useEffect(() => {
-    let unmountCurrent: (() => void) | null = null;
-    propsVWC.callbacks.add(handlePropsChanged);
-    handlePropsChanged();
-    return () => {
-      if (unmountCurrent !== null) {
-        unmountCurrent();
-        unmountCurrent = null;
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
+      if (cleanedUp.current || loginContextUnch.state === 'loading') {
+        return undefined;
       }
-      propsVWC.callbacks.remove(handlePropsChanged);
-    };
+      cleanedUp.current = true;
+      getCurrentServerTimeMS().then((now) =>
+        pruneExpiredState(
+          loginContextUnch.state === 'logged-in' ? loginContextUnch.userAttributes.sub : null,
+          now
+        )
+      );
+      return undefined;
+    }, [])
+  );
 
-    function handlePropsChanged() {
-      if (unmountCurrent !== null) {
-        unmountCurrent();
-        unmountCurrent = null;
-      }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          setNotification(null);
+          return;
+        }
+        const loginContext = loginContextUnch;
 
-      unmountCurrent = handleProps(propsVWC.get().uid, propsVWC.get().suppress) ?? null;
-    }
+        let unmountCurrent: (() => void) | null = null;
+        propsVWC.callbacks.add(handlePropsChanged);
+        handlePropsChanged();
+        return () => {
+          if (unmountCurrent !== null) {
+            unmountCurrent();
+            unmountCurrent = null;
+          }
+          propsVWC.callbacks.remove(handlePropsChanged);
+        };
 
-    function handleProps(uid: string, suppress: boolean): (() => void) | undefined {
-      if (suppress) {
-        setNotification(null);
-        return;
-      }
+        function handlePropsChanged() {
+          if (unmountCurrent !== null) {
+            unmountCurrent();
+            unmountCurrent = null;
+          }
 
-      if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
-        setNotification(null);
-        return;
-      }
-      const userSub = loginContext.userAttributes.sub;
+          unmountCurrent = handleProps(propsVWC.get().uid, propsVWC.get().suppress) ?? null;
+        }
 
-      let active = true;
-      fetchFromStoredOrNetwork();
-      return () => {
-        active = false;
-      };
-
-      async function fetchFromStoredOrNetwork() {
-        const stored = fetchStoredUid(uid);
-        if (stored !== null) {
-          const now = (await getCurrentServerTimeMS()) / 1000;
-          if (stored.nextShowAt === null || stored.nextShowAt > now) {
-            const newNotif = {
-              uid,
-              showNow: false,
-              nextShowAt: stored.nextShowAt,
-              onShown: () => newNotif,
-            };
-            setNotification(newNotif);
+        function handleProps(uid: string, suppress: boolean): (() => void) | undefined {
+          if (suppress) {
+            setNotification(null);
             return;
           }
-        }
 
-        fetchFromNetwork();
-      }
+          let active = true;
+          fetchFromStoredOrNetwork();
+          return () => {
+            active = false;
+          };
 
-      async function fetchFromNetworkInner() {
-        const response = await apiFetch(
-          '/api/1/notifications/inapp/should_show',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              inapp_notification_uid: uid,
-            }),
-          },
-          loginContext
-        );
-
-        if (!response.ok) {
-          throw response;
-        }
-
-        const data: { show_now: boolean; next_show_at: number | null } = await response.json();
-
-        const now = (await getCurrentServerTimeMS()) / 1000;
-        const dataToStore: StoredInappNotification = {
-          uid,
-          userSub,
-          checkedAt: now,
-          expireAt: Math.min(
-            now + MAX_EXPIRATION_TIME_SECONDS,
-            data.next_show_at ?? now + MAX_EXPIRATION_TIME_SECONDS
-          ),
-          nextShowAt: data.next_show_at,
-        };
-
-        if (!data.show_now) {
-          storeUid(uid, dataToStore);
-        }
-
-        const interpretedData: InappNotification = {
-          uid,
-          showNow: data.show_now,
-          nextShowAt: data.next_show_at,
-          onShown: (tentative) => {
-            if (tentative === true) {
-              return {
-                ...interpretedData,
-                showNow: false,
-              };
+          async function fetchFromStoredOrNetwork() {
+            const stored = fetchStoredUid(uid);
+            if (stored !== null) {
+              const now = (await getCurrentServerTimeMS()) / 1000;
+              if (stored.nextShowAt === null || stored.nextShowAt > now) {
+                const newNotif = {
+                  uid,
+                  showNow: false,
+                  nextShowAt: stored.nextShowAt,
+                  onShown: () => newNotif,
+                };
+                setNotification(newNotif);
+                return;
+              }
             }
 
-            setNotification((oldNotif) => {
-              if (oldNotif === null) {
-                return null;
-              }
+            fetchFromNetwork();
+          }
 
-              if (!oldNotif.showNow) {
-                return oldNotif;
-              }
+          async function fetchFromNetworkInner() {
+            const response = await apiFetch(
+              '/api/1/notifications/inapp/should_show',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                  inapp_notification_uid: uid,
+                }),
+              },
+              loginContext
+            );
 
-              storeUid(uid, dataToStore);
+            if (!response.ok) {
+              throw response;
+            }
 
-              const res = {
-                ...oldNotif,
-                showNow: false,
-                onShown: () => res,
-              };
-              return res;
-            });
-            const newNotif = {
+            const data: { show_now: boolean; next_show_at: number | null } = await response.json();
+
+            const now = (await getCurrentServerTimeMS()) / 1000;
+            const dataToStore: StoredInappNotification = {
               uid,
-              showNow: false,
+              userSub: loginContext.userAttributes.sub,
+              checkedAt: now,
+              expireAt: Math.min(
+                now + MAX_EXPIRATION_TIME_SECONDS,
+                data.next_show_at ?? now + MAX_EXPIRATION_TIME_SECONDS
+              ),
               nextShowAt: data.next_show_at,
-              onShown: () => newNotif,
             };
-            return newNotif;
-          },
-        };
-        setNotification(interpretedData);
-      }
 
-      async function fetchFromNetwork() {
-        try {
-          await fetchFromNetworkInner();
-        } catch (e) {
-          if (active) {
-            console.error('Error while fetching in-app notification from network: ', e);
-            const res = {
+            if (!data.show_now) {
+              storeUid(uid, dataToStore);
+            }
+
+            const interpretedData: InappNotification = {
               uid,
-              showNow: false,
-              nextShowAt: null,
-              onShown: () => res,
+              showNow: data.show_now,
+              nextShowAt: data.next_show_at,
+              onShown: (tentative) => {
+                if (tentative === true) {
+                  return {
+                    ...interpretedData,
+                    showNow: false,
+                  };
+                }
+
+                setNotification((oldNotif) => {
+                  if (oldNotif === null) {
+                    return null;
+                  }
+
+                  if (!oldNotif.showNow) {
+                    return oldNotif;
+                  }
+
+                  storeUid(uid, dataToStore);
+
+                  const res = {
+                    ...oldNotif,
+                    showNow: false,
+                    onShown: () => res,
+                  };
+                  return res;
+                });
+                const newNotif = {
+                  uid,
+                  showNow: false,
+                  nextShowAt: data.next_show_at,
+                  onShown: () => newNotif,
+                };
+                return newNotif;
+              },
             };
-            setNotification(res);
+            setNotification(interpretedData);
+          }
+
+          async function fetchFromNetwork() {
+            try {
+              await fetchFromNetworkInner();
+            } catch (e) {
+              if (active) {
+                console.error('Error while fetching in-app notification from network: ', e);
+                const res = {
+                  uid,
+                  showNow: false,
+                  nextShowAt: null,
+                  onShown: () => res,
+                };
+                setNotification(res);
+              }
+            }
           }
         }
-      }
-    }
 
-    function setNotification(
-      notification:
-        | InappNotification
-        | null
-        | ((oldNotif: InappNotification | null) => InappNotification | null)
-    ) {
-      if (typeof notification === 'function') {
-        notification = notification(notificationVWC.get());
-      }
+        function setNotification(
+          notification:
+            | InappNotification
+            | null
+            | ((oldNotif: InappNotification | null) => InappNotification | null)
+        ) {
+          if (typeof notification === 'function') {
+            notification = notification(notificationVWC.get());
+          }
 
-      if (notificationVWC.get() === notification) {
-        return;
-      }
+          if (notificationVWC.get() === notification) {
+            return;
+          }
 
-      notificationVWC.set(notification);
-      notificationVWC.callbacks.call(undefined);
-    }
-  }, [propsVWC, notificationVWC, loginContext]);
+          notificationVWC.set(notification);
+          notificationVWC.callbacks.call(undefined);
+        }
+      },
+      [propsVWC, notificationVWC]
+    )
+  );
 
   return notificationVWC;
 };

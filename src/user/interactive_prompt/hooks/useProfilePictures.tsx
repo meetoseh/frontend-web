@@ -81,7 +81,7 @@ export const useProfilePictures = ({
       additionalUsers: 0,
     })
   );
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const imagesHandler = useOsehImageStateRequestHandler({
     playlistCacheSize: 128,
     imageCacheSize: 128,
@@ -138,54 +138,78 @@ export const useProfilePictures = ({
           continue;
         }
 
+        const loginContextUnch = loginContextRaw.value.get();
+        if (loginContextUnch.state !== 'logged-in') {
+          const loggedInPromiseCancelable = waitForValueWithCallbacksConditionCancelable(
+            loginContextRaw.value,
+            (v) => v.state === 'logged-in'
+          );
+          const cancelPromise = createCancelablePromiseFromCallbacks(cancelers);
+          await Promise.race([
+            loggedInPromiseCancelable.promise.catch(() => {}),
+            cancelPromise.promise.catch(() => {}),
+          ]);
+          loggedInPromiseCancelable.cancel();
+          cancelPromise.cancel();
+          continue;
+        }
+        const loginContext = loginContextUnch;
+
         const bin = nextBinToLoad;
-        try {
-          const response = await apiFetch(
-            '/api/1/interactive_prompts/profile_pictures',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json; charset=utf-8' },
-              body: JSON.stringify({
-                uid: promptVWC.get().uid,
-                jwt: promptVWC.get().jwt,
-                prompt_time: bin * 2,
-                limit: 5,
-              }),
-            },
-            loginContext
-          );
-
-          if (!response.ok) {
-            throw response;
-          }
-
-          const data: { items: { picture: OsehImageRef }[] } = await response.json();
-          const imageRefs = data.items.map((item) => item.picture);
-          const imageRequests = imageRefs.map((ref) =>
-            imagesHandler.request({
-              uid: ref.uid,
-              jwt: ref.jwt,
-              displayWidth,
-              displayHeight,
-              alt: '',
-            })
-          );
-          imageRequestsByPromptTime.set(bin, imageRequests);
-        } catch (e) {
-          console.error(
-            'failed to fetch profile pictures for prompt ',
-            promptVWC.get().uid,
-            ' at time ',
-            bin * 2,
-            ': ',
-            e
-          );
+        if (bin < currentBin - 1) {
+          // skip over missed bins one at a time to keep the loop
+          // logic simpler
           imageRequestsByPromptTime.set(bin, []);
+        } else {
+          try {
+            const response = await apiFetch(
+              '/api/1/interactive_prompts/profile_pictures',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                  uid: promptVWC.get().uid,
+                  jwt: promptVWC.get().jwt,
+                  prompt_time: bin * 2,
+                  limit: 5,
+                }),
+              },
+              loginContext
+            );
+
+            if (!response.ok) {
+              throw response;
+            }
+
+            const data: { items: { picture: OsehImageRef }[] } = await response.json();
+            const imageRefs = data.items.map((item) => item.picture);
+            const imageRequests = imageRefs.map((ref) =>
+              imagesHandler.request({
+                uid: ref.uid,
+                jwt: ref.jwt,
+                displayWidth,
+                displayHeight,
+                alt: '',
+              })
+            );
+            imageRequestsByPromptTime.set(bin, imageRequests);
+          } catch (e) {
+            console.error(
+              'failed to fetch profile pictures for prompt ',
+              promptVWC.get().uid,
+              ' at time ',
+              bin * 2,
+              ': ',
+              e
+            );
+            imageRequestsByPromptTime.set(bin, []);
+          }
         }
 
-        const deletedBin = imageRequestsByPromptTime.get(currentBin - 1);
+        const deletedBinNumber = bin - 2;
+        const deletedBin = imageRequestsByPromptTime.get(bin - 2);
         if (deletedBin !== undefined) {
-          imageRequestsByPromptTime.delete(currentBin - 1);
+          imageRequestsByPromptTime.delete(deletedBinNumber);
           for (const req of deletedBin) {
             req.release();
           }
@@ -272,7 +296,7 @@ export const useProfilePictures = ({
       statsChangedPromise?.cancel();
       unmount();
     }
-  }, [promptVWC, promptTimeVWC, statsVWC, loginContext, imagesHandler, result]);
+  }, [promptVWC, promptTimeVWC, statsVWC, loginContextRaw, imagesHandler, result]);
 
   return result;
 };

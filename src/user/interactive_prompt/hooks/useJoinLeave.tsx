@@ -286,8 +286,9 @@ async function sendEvent(
   name: 'join' | 'leave',
   eventPromptTime: number,
   prompt: InteractivePrompt,
-  loginContext: LoginContextValue
+  loginContextRaw: LoginContextValue
 ) {
+  const loginContextUnch = loginContextRaw.value.get();
   const response = await apiFetch(
     `/api/1/interactive_prompts/events/${name}`,
     {
@@ -302,7 +303,7 @@ async function sendEvent(
       }),
       keepalive: true,
     },
-    loginContext
+    loginContextUnch.state === 'logged-in' ? loginContextUnch : null
   );
 
   if (!response.ok) {

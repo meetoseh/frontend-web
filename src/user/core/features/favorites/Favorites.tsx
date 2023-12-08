@@ -29,7 +29,7 @@ export const Favorites = ({
   state: stateVWC,
   resources: resourcesVWC,
 }: FeatureComponentProps<FavoritesState, FavoritesResources>): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
   const imageHandler = useOsehImageStateRequestHandler({});
   const journeyVWC = useWritableValueWithCallbacks<JourneyRef | null>(() => null);
@@ -108,7 +108,17 @@ export const Favorites = ({
                 <div className={styles.profilePictureContainer}>
                   <MyProfilePicture imageHandler={imageHandler} />
                 </div>
-                <div className={styles.profileName}>{loginContext.userAttributes?.name}</div>
+                <div className={styles.profileName}>
+                  <RenderGuardedComponent
+                    props={loginContextRaw.value}
+                    component={(loginContextUnch) => (
+                      <>
+                        {loginContextUnch.state === 'logged-in' &&
+                          loginContextUnch.userAttributes?.name}
+                      </>
+                    )}
+                  />
+                </div>
               </div>
               <RenderGuardedComponent
                 props={tabVWC}

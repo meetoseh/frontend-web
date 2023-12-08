@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { User } from '../User';
 import { CrudItemBlock } from '../../crud/CrudItemBlock';
 import styles from './BigUserSuggestionFlow.module.css';
@@ -10,6 +10,7 @@ import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
 import { ModalWrapper } from '../../../shared/ModalWrapper';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 type Instructor = {
   uid: string;
@@ -118,7 +119,7 @@ type AnalyzeResponse = {
  * the given sub.
  */
 export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [error, setError] = useState<ReactElement | null>(null);
   const [emotions, setEmotions] = useState<string[]>(() => ['calm']);
@@ -128,101 +129,112 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
     null
   );
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
+      if (loginContextUnch.state !== 'logged-in') {
+        return;
+      }
+      const loginContext = loginContextUnch;
 
-    let active = true;
-    fetchEmotions();
-    return () => {
-      active = false;
-    };
+      let active = true;
+      fetchEmotions();
+      return () => {
+        active = false;
+      };
 
-    async function fetchEmotionsInner() {
-      const response = await apiFetch(
-        '/api/1/emotions/search',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
+      async function fetchEmotionsInner() {
+        const response = await apiFetch(
+          '/api/1/emotions/search',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              sort: [
+                {
+                  key: 'word',
+                  dir: 'asc',
+                  before: null,
+                  after: null,
+                },
+              ],
+              limit: 1000,
+            }),
           },
-          body: JSON.stringify({
-            sort: [
-              {
-                key: 'word',
-                dir: 'asc',
-                before: null,
-                after: null,
-              },
-            ],
-            limit: 1000,
-          }),
-        },
-        loginContext
-      );
+          loginContext
+        );
 
-      if (!response.ok) {
-        throw response;
-      }
+        if (!response.ok) {
+          throw response;
+        }
 
-      const data: { items: { word: string }[] } = await response.json();
-      if (active) {
-        setEmotions(data.items.map((item) => item.word));
-      }
-    }
-
-    async function fetchEmotions() {
-      try {
-        await fetchEmotionsInner();
-      } catch (e) {
-        console.log('failed to fetch emotions: ', e);
-      }
-    }
-  }, [loginContext]);
-
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-
-    let active = true;
-    analyze();
-    return () => {
-      active = false;
-    };
-
-    async function analyzeInner() {
-      const response = await apiFetch(
-        `/api/1/personalization/analyze?emotion=${encodeURIComponent(
-          emotion
-        )}&user_sub=${encodeURIComponent(user.sub)}`,
-        { method: 'GET' },
-        loginContext
-      );
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data: AnalyzeResponse = await response.json();
-      if (active) {
-        setAnalyzeResponse(data);
-      }
-    }
-
-    async function analyze() {
-      setError(null);
-      try {
-        await analyzeInner();
-      } catch (e) {
-        const err = await describeError(e);
+        const data: { items: { word: string }[] } = await response.json();
         if (active) {
-          setError(err);
-          setAnalyzeResponse(null);
+          setEmotions(data.items.map((item) => item.word));
         }
       }
-    }
-  }, [loginContext, user.sub, emotion]);
+
+      async function fetchEmotions() {
+        try {
+          await fetchEmotionsInner();
+        } catch (e) {
+          console.log('failed to fetch emotions: ', e);
+        }
+      }
+    }, [])
+  );
+
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
+        }
+        const loginContext = loginContextUnch;
+
+        let active = true;
+        analyze();
+        return () => {
+          active = false;
+        };
+
+        async function analyzeInner() {
+          const response = await apiFetch(
+            `/api/1/personalization/analyze?emotion=${encodeURIComponent(
+              emotion
+            )}&user_sub=${encodeURIComponent(user.sub)}`,
+            { method: 'GET' },
+            loginContext
+          );
+          if (!response.ok) {
+            throw response;
+          }
+
+          const data: AnalyzeResponse = await response.json();
+          if (active) {
+            setAnalyzeResponse(data);
+          }
+        }
+
+        async function analyze() {
+          setError(null);
+          try {
+            await analyzeInner();
+          } catch (e) {
+            const err = await describeError(e);
+            if (active) {
+              setError(err);
+              setAnalyzeResponse(null);
+            }
+          }
+        }
+      },
+      [user.sub, emotion]
+    )
+  );
 
   const instructorCategories = useMemo<DashboardTableProps>(
     () => ({

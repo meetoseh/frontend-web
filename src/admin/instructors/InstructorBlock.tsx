@@ -30,7 +30,7 @@ export const InstructorBlock = ({
   setInstructor,
   imageHandler,
 }: InstructorBlockProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState(instructor.name);
   const [newBias, setNewBias] = useState<{ str: string; parsed: number | undefined }>({
@@ -54,6 +54,11 @@ export const InstructorBlock = ({
       setEditing(false);
       return;
     }
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
 
     if (newBias.parsed === undefined) {
       setError(<>Bias must be a number</>);
@@ -219,7 +224,7 @@ export const InstructorBlock = ({
       setUploadHandler(null);
       setSaving(false);
     }
-  }, [newName, instructor, loginContext, setInstructor, newPicture, newDeleted, newBias]);
+  }, [newName, instructor, loginContextRaw, setInstructor, newPicture, newDeleted, newBias]);
 
   useEffect(() => {
     if (saving) {

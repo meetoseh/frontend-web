@@ -43,10 +43,10 @@ export const HistoryList = ({
   listHeight,
   imageHandler,
 }: HistoryListProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   const infiniteListing = useHistoryList(
-    { type: 'react-rerender', props: loginContext },
+    loginContextRaw,
     adaptValueWithCallbacksAsVariableStrategyProps(listHeight)
   );
 
@@ -56,9 +56,11 @@ export const HistoryList = ({
       if (loading.current) {
         return;
       }
-      if (loginContext.state !== 'logged-in') {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
         return;
       }
+      const loginContext = loginContextUnch;
 
       loading.current = true;
       try {
@@ -90,7 +92,7 @@ export const HistoryList = ({
         loading.current = false;
       }
     },
-    [loginContext, showJourney]
+    [loginContextRaw, showJourney]
   );
 
   const boundComponent = useMemo<

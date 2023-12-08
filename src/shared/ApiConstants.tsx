@@ -1,4 +1,4 @@
-import type { LoginContextValue } from './contexts/LoginContext';
+import type { LoginContextValueLoggedIn } from './contexts/LoginContext';
 
 /**
  * The base url for simple http requests to the backend
@@ -16,17 +16,17 @@ export const HTTP_WEBSOCKET_URL = process.env.REACT_APP_ROOT_WEBSOCKET_URL;
  *
  * @param path The path to append to the base url
  * @param init The init object to pass to fetch
- * @param user The user to use for authentication
+ * @param user The user to use for authentication, or null for no authentication
  * @returns The response from the backend
  */
 export const apiFetch = async (
   path: string,
   init: RequestInit | null,
-  user: LoginContextValue | null
+  user: LoginContextValueLoggedIn | null
 ): Promise<Response> => {
   const url = HTTP_API_URL + path;
   const headers = new Headers(init ? init.headers : undefined);
-  if (user?.authTokens?.idToken) {
+  if (user !== null) {
     headers.set('authorization', 'bearer ' + user.authTokens.idToken);
   }
 

@@ -34,7 +34,7 @@ export const FastUnsubscribeLoggedOut = ({
   const formError = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const finished = useWritableValueWithCallbacks<boolean>(() => false);
   const interests = useContext(InterestsContext);
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   const setEmail = useCallback(
     (value: string) => {
@@ -46,6 +46,8 @@ export const FastUnsubscribeLoggedOut = ({
   const onFormSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+      const loginContextUnch = loginContextRaw.value.get();
+
       setVWC(saving, true);
       setVWC(formError, null);
       try {
@@ -66,7 +68,7 @@ export const FastUnsubscribeLoggedOut = ({
               code: resources.get().code,
             }),
           },
-          loginContext
+          loginContextUnch.state === 'logged-in' ? loginContextUnch : null
         );
 
         if (!response.ok) {
@@ -90,7 +92,7 @@ export const FastUnsubscribeLoggedOut = ({
         setVWC(saving, false);
       }
     },
-    [saving, formError, loginContext, interests, email, finished, resources]
+    [saving, formError, loginContextRaw, interests, email, finished, resources]
   );
 
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSizeVWC: windowSize });

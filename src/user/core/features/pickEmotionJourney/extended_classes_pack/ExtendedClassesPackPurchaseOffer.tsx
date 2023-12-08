@@ -20,7 +20,7 @@ export const ExtendedClassesPackPurchaseOffer = ({
   onRedirecting: () => Promise<void>;
   onSkip: () => void;
 }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const buyURLPromise =
     useRef<Promise<string> | null>() as MutableRefObject<Promise<string> | null>;
   if (buyURLPromise.current === undefined) {
@@ -51,9 +51,11 @@ export const ExtendedClassesPackPurchaseOffer = ({
   );
 
   const loadBuyURL = useCallback<() => Promise<string>>(async () => {
-    if (loginContext.state !== 'logged-in') {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
       throw new Error('User must be logged in to purchase');
     }
+    const loginContext = loginContextUnch;
 
     const response = await apiFetch(
       '/api/1/campaigns/extended_classes_pack/purchase',
@@ -74,7 +76,7 @@ export const ExtendedClassesPackPurchaseOffer = ({
 
     const json: { url: string } = await response.json();
     return json.url;
-  }, [loginContext]);
+  }, [loginContextRaw]);
 
   const handleBuyNowClick = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {

@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
-import { LoginContextValue } from '../../shared/contexts/LoginContext';
+import { LoginContextValueLoggedIn } from '../../shared/contexts/LoginContext';
 
 type MappedKey<T> = {
   key: string & keyof T;
@@ -76,7 +76,7 @@ function getNextPageSort(
  * and to provide the onMore handler for a CrudListing component
  *
  * ```ts
- * const loginContext = useContext(LoginContext);
+ * const loginContextRaw = useContext(LoginContext);
  * const [items, setItems] = useState<MyItem[]>([]);
  * const [filters, setFilters] = useState<MyFilters>(defaultFilters)
  * const [sort, setSort] = useState<MySort>(defaultSort)
@@ -87,12 +87,15 @@ function getNextPageSort(
  *   return new CrudFetcher<MyItem>(path, keyMap, setItems, setLoading, setHaveMore);
  * }, [path, keyMap]); // often empty since these are constants
  *
- * useEffect(() => {
- *   if (loginContext.state !== 'logged-in') { return; }
- *   return fetcher.resetAndLoadWithCancelCallback(filters, sort, limit, loginContext, (e) => {
- *     console.error(e);
- *   });
- * }, [fetcher, filters, sort, limit, loginContext]);
+ * useValueWithCallbacksEffect(
+ *   loginContextRaw,
+ *   useCallback((loginContext) => {
+ *     if (loginContext.state !== 'logged-in') { return; }
+ *     return fetcher.resetAndLoadWithCancelCallback(filters, sort, limit, loginContext, (e) => {
+ *       console.error(e);
+ *     });
+ *   }, [fetcher, filters, sort, limit])
+ * );
  *
  * const onMore = useCallback(() => {
  *  fetcher.loadMore(filters, limit, loginContext);
@@ -216,7 +219,7 @@ export class CrudFetcher<T> {
     filters: CrudFetcherFilter,
     sort: CrudFetcherSort,
     limit: number,
-    loginContext: LoginContextValue,
+    loginContext: LoginContextValueLoggedIn,
     id: number,
     signal: AbortSignal | null
   ): Promise<{ items: T[]; nextOrPrevPageSort: CrudFetcherSort | null }> {
@@ -333,7 +336,7 @@ export class CrudFetcher<T> {
   async loadMore(
     filters: CrudFetcherFilter,
     limit: number,
-    loginContext: LoginContextValue,
+    loginContext: LoginContextValueLoggedIn,
     kwargs: { replace?: boolean } | undefined = undefined
   ): Promise<void> {
     kwargs = Object.assign(
@@ -398,7 +401,7 @@ export class CrudFetcher<T> {
     filters: CrudFetcherFilter,
     sort: CrudFetcherSort,
     limit: number,
-    loginContext: LoginContextValue,
+    loginContext: LoginContextValueLoggedIn,
     onError: (e: any) => void
   ): () => void {
     const { id, signal } = this.initRequest();

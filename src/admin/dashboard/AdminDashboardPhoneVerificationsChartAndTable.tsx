@@ -1,12 +1,4 @@
-import {
-  ChangeEvent,
-  ReactElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { ChangeEvent, ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import {
   dateToLocaleISODateString,
   isoDateStringToLocaleDate,
@@ -23,6 +15,7 @@ import { DashboardTable, DashboardTableProps } from './subComponents/DashboardTa
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { combineClasses } from '../../shared/lib/combineClasses';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type Data = {
   /**
@@ -54,7 +47,7 @@ type Data = {
  * in a table.
  */
 export const AdminDashboardPhoneVerificationsChartAndTable = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [endDate, setEndDate] = useState<Date>(() => new Date());
   const [startDate, setStartDate] = useState<Date>(
     () => new Date(Date.now() - 1000 * 60 * 60 * 24 * 30)
@@ -63,57 +56,64 @@ export const AdminDashboardPhoneVerificationsChartAndTable = (): ReactElement =>
   const [error, setError] = useState<ReactElement | null>(null);
   const [display, setDisplay] = useState<'chart' | 'table'>('chart');
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-
-    const startISO = dateToLocaleISODateString(startDate);
-    const endISO = dateToLocaleISODateString(endDate);
-
-    if (data !== null && data.from === startISO && data.to === endISO) {
-      return;
-    }
-
-    let active = true;
-    fetchData();
-    return () => {
-      active = false;
-    };
-
-    async function fetchDataInner(): Promise<Data> {
-      const response = await apiFetch(
-        '/api/1/admin/daily_phone_verifications?' +
-          new URLSearchParams({
-            from_date: startISO,
-            to_date: endISO,
-          }),
-        { method: 'GET' },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      return await response.json();
-    }
-
-    async function fetchData() {
-      setError(null);
-      try {
-        const data = await fetchDataInner();
-        if (active) {
-          setData({ from: startISO, to: endISO, data });
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
         }
-      } catch (e) {
-        const error = await describeError(e);
-        if (active) {
-          setError(error);
+        const loginContext = loginContextUnch;
+
+        const startISO = dateToLocaleISODateString(startDate);
+        const endISO = dateToLocaleISODateString(endDate);
+
+        if (data !== null && data.from === startISO && data.to === endISO) {
+          return;
         }
-      }
-    }
-  }, [data, startDate, endDate, loginContext]);
+
+        let active = true;
+        fetchData();
+        return () => {
+          active = false;
+        };
+
+        async function fetchDataInner(): Promise<Data> {
+          const response = await apiFetch(
+            '/api/1/admin/daily_phone_verifications?' +
+              new URLSearchParams({
+                from_date: startISO,
+                to_date: endISO,
+              }),
+            { method: 'GET' },
+            loginContext
+          );
+
+          if (!response.ok) {
+            throw response;
+          }
+
+          return await response.json();
+        }
+
+        async function fetchData() {
+          setError(null);
+          try {
+            const data = await fetchDataInner();
+            if (active) {
+              setData({ from: startISO, to: endISO, data });
+            }
+          } catch (e) {
+            const error = await describeError(e);
+            if (active) {
+              setError(error);
+            }
+          }
+        }
+      },
+      [data, startDate, endDate]
+    )
+  );
 
   const onStartDateChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.valueAsDate) {

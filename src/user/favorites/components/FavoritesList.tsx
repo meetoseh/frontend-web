@@ -41,9 +41,7 @@ export const FavoritesList = ({
   listHeight,
   imageHandler,
 }: FavoritesListProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
-  const loginContextRef = useRef(loginContext);
-  loginContextRef.current = loginContext;
+  const loginContextRaw = useContext(LoginContext);
 
   const infiniteListing = useMemo<InfiniteListing<MinimalJourney>>(() => {
     const numVisible = Math.ceil(listHeight.get() / 85) * 25;
@@ -89,11 +87,11 @@ export const FavoritesList = ({
         ];
       },
       minimalJourneyKeyMap,
-      () => loginContextRef.current
+      loginContextRaw
     );
     result.reset();
     return result;
-  }, [listHeight]);
+  }, [listHeight, loginContextRaw]);
 
   const loading = useRef<boolean>(false);
   const gotoJourneyByUID = useCallback(
@@ -101,9 +99,11 @@ export const FavoritesList = ({
       if (loading.current) {
         return;
       }
-      if (loginContext.state !== 'logged-in') {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
         return;
       }
+      const loginContext = loginContextUnch;
 
       loading.current = true;
       try {
@@ -135,7 +135,7 @@ export const FavoritesList = ({
         loading.current = false;
       }
     },
-    [loginContext, showJourney]
+    [loginContextRaw, showJourney]
   );
 
   const boundComponent = useMemo<

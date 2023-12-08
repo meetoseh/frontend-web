@@ -43,9 +43,15 @@ const Like = ({
   journeyTime,
 }: ActionsBlockProps): ReactElement => {
   const [saving, setSaving] = useState(false);
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   const doLike = useCallback(async () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+
     setSaving(true);
     try {
       const response = await apiFetch(
@@ -71,7 +77,7 @@ const Like = ({
     } finally {
       setSaving(false);
     }
-  }, [journeyRef, sessionUID, journeyTime, loginContext]);
+  }, [journeyRef, sessionUID, journeyTime, loginContextRaw]);
 
   return (
     <>
@@ -98,7 +104,7 @@ const NumericPrompt = ({
 }: ActionsBlockProps): ReactElement => {
   const [value, setValue] = useState<number | null>(null);
   const [savingValue, setSavingValue] = useState(false);
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   useEffect(() => {
     if (!running || sessionUID === null) {
@@ -109,6 +115,12 @@ const NumericPrompt = ({
 
   const updateValue = useCallback(
     async (newValue: number) => {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        return;
+      }
+      const loginContext = loginContextUnch;
+
       setSavingValue(true);
       try {
         const response = await apiFetch(
@@ -138,7 +150,7 @@ const NumericPrompt = ({
         setSavingValue(false);
       }
     },
-    [journeyRef, journeyTime, sessionUID, loginContext]
+    [journeyRef, journeyTime, sessionUID, loginContextRaw]
   );
 
   const options = [];

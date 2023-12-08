@@ -34,7 +34,7 @@ export const CreateIntroductoryJourney = ({
   onCreated,
   imageHandler,
 }: CreateIntroductoryJourneyProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [valid, setValid] = useState(false);
   const [error, setError] = useState<ReactElement | null>(null);
   const [saving, setSaving] = useState(false);
@@ -47,10 +47,11 @@ export const CreateIntroductoryJourney = ({
 
   const trySave = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
-      if (loginContext.state !== 'logged-in') {
-        console.warn('Not logged in, not saving');
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
         return;
       }
+      const loginContext = loginContextUnch;
 
       if (journey === null) {
         console.warn('Saved without journey, ignoring');
@@ -88,7 +89,7 @@ export const CreateIntroductoryJourney = ({
         setSaving(false);
       }
     },
-    [journey, loginContext, onCreated]
+    [journey, loginContextRaw.value, onCreated]
   );
 
   const clearJourney = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {

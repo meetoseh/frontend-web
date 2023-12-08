@@ -16,7 +16,7 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 export const RequestName = ({
   resources,
 }: FeatureComponentProps<RequestNameState, RequestNameResources>): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState<ReactElement | null>(null);
@@ -25,6 +25,13 @@ export const RequestName = ({
   const onSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
+
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        setError(<>You need to login again.</>);
+        return;
+      }
+      const loginContext = loginContextUnch;
 
       setSaving(true);
       try {
@@ -48,9 +55,10 @@ export const RequestName = ({
         }
 
         const data: { given_name: string; family_name: string } = await response.json();
-        if (loginContext.userAttributes !== null) {
-          loginContext.setUserAttributes({
-            ...loginContext.userAttributes,
+        const latestContext = loginContextRaw.value.get();
+        if (latestContext.state === 'logged-in') {
+          loginContextRaw.setUserAttributes({
+            ...latestContext.userAttributes,
             name: data.given_name + ' ' + data.family_name,
             givenName: data.given_name,
             familyName: data.family_name,
@@ -65,7 +73,7 @@ export const RequestName = ({
         setSaving(false);
       }
     },
-    [loginContext, firstName, lastName]
+    [loginContextRaw, firstName, lastName]
   );
 
   return (

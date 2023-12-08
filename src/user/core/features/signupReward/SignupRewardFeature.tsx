@@ -28,14 +28,18 @@ export const SignupRewardFeature: Feature<SignupRewardState, SignupRewardResourc
     }));
   },
   useResources: (state, required) => {
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
     const session = useInappNotificationSessionValueWithCallbacks({
       type: 'callbacks',
       props: () => ({ uid: state.get().ian?.uid ?? null }),
       callbacks: state.callbacks,
     });
-    const givenNameRaw = loginContext.userAttributes?.givenName ?? null;
-    const givenNameVWC = useReactManagedValueAsValueWithCallbacks(givenNameRaw);
+    const givenNameVWC = useMappedValueWithCallbacks(loginContextRaw.value, (v) => {
+      if (v.state !== 'logged-in') {
+        return null;
+      }
+      return v.userAttributes.givenName;
+    });
     const images = useOsehImageStateRequestHandler({});
     const interestsRaw = useContext(InterestsContext);
     const interestsVWC = useReactManagedValueAsValueWithCallbacks(interestsRaw);

@@ -1,11 +1,10 @@
-import { Fragment, ReactElement, useCallback, useContext } from 'react';
+import { Fragment, ReactElement, useCallback } from 'react';
 import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import {
   AdminDashboardLargeChartItem,
   AdminDashboardLargeChartProps,
 } from '../dashboard/AdminDashboardLargeChart';
-import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { PartialStats, PartialStatsItem, parsePartialStats } from './PartialStats';
 import { SectionGraphs, SectionStatsMultiday } from '../notifs_dashboard/AdminNotifsDashboard';
@@ -37,42 +36,39 @@ type NetworkChartProps = {
  * partial (incomplete) data.
  */
 export const NetworkChart = ({ partialDataPath, historicalDataPath }: NetworkChartProps) => {
-  const loginContext = useContext(LoginContext);
   const loadPrevented = useWritableValueWithCallbacks(() => true);
   const historicalData = useNetworkResponse<AdminDashboardLargeChartProps>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
+    useCallback(
+      async (active, loginContext) => {
+        const response = await apiFetch(historicalDataPath, { method: 'GET' }, loginContext);
 
-      const response = await apiFetch(historicalDataPath, { method: 'GET' }, loginContext);
+        if (!response.ok) {
+          throw response;
+        }
 
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return parseChart(data);
-    }, [loginContext, historicalDataPath]),
+        const data = await response.json();
+        return parseChart(data);
+      },
+      [historicalDataPath]
+    ),
     {
       loadPrevented: loadPrevented,
     }
   );
   const partialData = useNetworkResponse<PartialStats>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
+    useCallback(
+      async (active, loginContext) => {
+        const response = await apiFetch(partialDataPath, { method: 'GET' }, loginContext);
 
-      const response = await apiFetch(partialDataPath, { method: 'GET' }, loginContext);
+        if (!response.ok) {
+          throw response;
+        }
 
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return parsePartialStats(data);
-    }, [loginContext, partialDataPath])
+        const data = await response.json();
+        return parsePartialStats(data);
+      },
+      [partialDataPath]
+    )
   );
 
   const predictedDays = useWritableValueWithCallbacks<number>(() => 2);

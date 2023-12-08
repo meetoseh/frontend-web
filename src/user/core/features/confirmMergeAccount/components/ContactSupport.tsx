@@ -12,14 +12,17 @@ import { ModalContext } from '../../../../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../../../../shared/hooks/useErrorModal';
 import { useValueWithCallbacksEffect } from '../../../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../../../shared/lib/setVWC';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 
 export const ContactSupport = ({
   resources,
   state,
 }: FeatureComponentProps<ConfirmMergeAccountState, ConfirmMergeAccountResources>): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
-  const givenName = loginContext.userAttributes?.givenName;
+  const givenNameVWC = useMappedValueWithCallbacks(loginContextRaw.value, (v) =>
+    v.state !== 'logged-in' ? undefined : v.userAttributes.givenName
+  );
   const closeDisabled = useWritableValueWithCallbacks(() => false);
   const onDismiss = useWritableValueWithCallbacks(() => () => {});
 
@@ -37,7 +40,12 @@ export const ContactSupport = ({
       resources={resources}
       closeDisabled={closeDisabled}
       onDismiss={onDismiss}>
-      <div className={styles.title}>{givenName ? <>{givenName},</> : <>Contact support</>}</div>
+      <div className={styles.title}>
+        <RenderGuardedComponent
+          props={givenNameVWC}
+          component={(givenName) => <>{givenName ? <>{givenName},</> : <>Contact support</>}</>}
+        />
+      </div>
       <div className={styles.description}>
         Sorry, something went wrong when trying to merge your accounts. Please contact hi@oseh.com
         for assistance.

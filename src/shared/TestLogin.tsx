@@ -23,7 +23,7 @@ import { RenderGuardedComponent } from './components/RenderGuardedComponent';
  * login flow.
  */
 export const TestLogin = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [loggingIn, setLoggingIn] = useState(false);
   const [userSub, setUserSub] = useState('timothy');
   const interests = useContext(InterestsContext);
@@ -112,7 +112,15 @@ export const TestLogin = (): ReactElement => {
       setVWC(log, log.get() + 'merge called\n');
 
       setLoggingIn(true);
-      const idToken = overrideIdToken !== null ? overrideIdToken : loginContext.authTokens?.idToken;
+      const idToken =
+        overrideIdToken !== null
+          ? overrideIdToken
+          : ((c) => {
+              if (c.state !== 'logged-in') {
+                return undefined;
+              }
+              return c.authTokens.idToken;
+            })(loginContextRaw.value.get());
       try {
         const response = await fetch(HTTP_API_URL + '/api/1/dev/merge', {
           method: 'POST',
@@ -145,7 +153,7 @@ export const TestLogin = (): ReactElement => {
         setLoggingIn(false);
       }
     },
-    [loginContext, userSub, redirectUrl, log, overrideIdToken]
+    [loginContextRaw, userSub, redirectUrl, log, overrideIdToken]
   );
 
   return (

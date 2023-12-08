@@ -33,9 +33,9 @@ export const MyProfilePicture = ({
   displayHeight = 45,
   imageHandler,
 }: MyProfilePictureProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const profileImage = useMyProfilePictureState({
-    loginContext,
+    loginContext: loginContextRaw,
     displayWidth,
     displayHeight,
     handler: imageHandler,

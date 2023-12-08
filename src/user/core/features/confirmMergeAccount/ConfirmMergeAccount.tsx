@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useRef } from 'react';
+import { ReactElement, useCallback, useContext, useRef } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
 import { ConfirmMergeAccountResources } from './ConfirmMergeAccountResources';
 import { ConfirmMergeAccountState, oauthMergeResultKeyMap } from './ConfirmMergeAccountState';
@@ -24,7 +24,7 @@ export const ConfirmMergeAccount = ({
   resources,
   state,
 }: FeatureComponentProps<ConfirmMergeAccountState, ConfirmMergeAccountResources>): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   useStartSession(
     {
@@ -62,72 +62,79 @@ export const ConfirmMergeAccount = ({
   );
 
   const triedStartMerge = useRef(false);
-  useEffect(() => {
-    if (
-      triedStartMerge.current ||
-      loginContext.state !== 'logged-in' ||
-      state.get().result !== null
-    ) {
-      return;
-    }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (
+          triedStartMerge.current ||
+          loginContextUnch.state !== 'logged-in' ||
+          state.get().result !== null
+        ) {
+          return;
+        }
+        const loginContext = loginContextUnch;
 
-    triedStartMerge.current = true;
-    tryStartMerge();
-    return undefined;
+        triedStartMerge.current = true;
+        tryStartMerge();
+        return undefined;
 
-    async function tryStartMergeInner() {
-      const mergeToken = state.get().mergeToken;
-      if (mergeToken === null || mergeToken === undefined) {
-        throw new Error('merge token is null or undefined');
-      }
+        async function tryStartMergeInner() {
+          const mergeToken = state.get().mergeToken;
+          if (mergeToken === null || mergeToken === undefined) {
+            throw new Error('merge token is null or undefined');
+          }
 
-      const response = await apiFetch(
-        '/api/1/oauth/merge/start',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-          },
-          body: JSON.stringify({
-            merge_token: mergeToken,
-          }),
-        },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const raw = await response.json();
-      const parsed = convertUsingKeymap(raw, oauthMergeResultKeyMap);
-      resources.get().session?.storeAction('start', {
-        ...parsed,
-        conflictDetails:
-          parsed.conflictDetails === null || parsed.conflictDetails === undefined
-            ? null
-            : {
-                ...parsed.conflictDetails,
-                mergeJwt: 'REDACTED',
+          const response = await apiFetch(
+            '/api/1/oauth/merge/start',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
               },
-      });
-      state.get().onInitialMergeResult(parsed, null);
-    }
+              body: JSON.stringify({
+                merge_token: mergeToken,
+              }),
+            },
+            loginContext
+          );
 
-    async function tryStartMerge() {
-      state.get().onFetchingInitialMergeResult();
-      try {
-        await tryStartMergeInner();
-      } catch (e) {
-        console.log('error starting merge:', e);
-        const error = await describeError(e);
-        resources.get().session?.storeAction('start', {
-          error: e instanceof Response ? `${e.status}: ${e.statusText}` : `${e}`,
-        });
-        state.get().onInitialMergeResult(false, error);
-      }
-    }
-  }, [state, resources, loginContext]);
+          if (!response.ok) {
+            throw response;
+          }
+
+          const raw = await response.json();
+          const parsed = convertUsingKeymap(raw, oauthMergeResultKeyMap);
+          resources.get().session?.storeAction('start', {
+            ...parsed,
+            conflictDetails:
+              parsed.conflictDetails === null || parsed.conflictDetails === undefined
+                ? null
+                : {
+                    ...parsed.conflictDetails,
+                    mergeJwt: 'REDACTED',
+                  },
+          });
+          state.get().onInitialMergeResult(parsed, null);
+        }
+
+        async function tryStartMerge() {
+          state.get().onFetchingInitialMergeResult();
+          try {
+            await tryStartMergeInner();
+          } catch (e) {
+            console.log('error starting merge:', e);
+            const error = await describeError(e);
+            resources.get().session?.storeAction('start', {
+              error: e instanceof Response ? `${e.status}: ${e.statusText}` : `${e}`,
+            });
+            state.get().onInitialMergeResult(false, error);
+          }
+        }
+      },
+      [state, resources]
+    )
+  );
 
   const screen = useMappedValueWithCallbacks(
     state,

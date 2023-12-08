@@ -29,8 +29,13 @@ const settings: PromptSettings<InteractiveWordPrompt, string | null> = {
     index ? (prompt.prompt.options ?? [])[index] ?? null : null,
   getResponseDistributionFromStats: (prompt, stats) =>
     stats.wordActive ?? prompt.prompt.options.map(() => 0),
-  storeResponse: async (loginContext, prompt, time, response, index) => {
+  storeResponse: async (loginContextRaw, prompt, time, response, index) => {
     if (index === null) {
+      return;
+    }
+
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
       return;
     }
 
@@ -50,7 +55,7 @@ const settings: PromptSettings<InteractiveWordPrompt, string | null> = {
         }),
         keepalive: true,
       },
-      loginContext
+      loginContextUnch
     );
   },
 };

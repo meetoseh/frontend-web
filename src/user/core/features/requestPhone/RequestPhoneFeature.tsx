@@ -1,4 +1,4 @@
-import { useContext, useRef } from 'react';
+import { useContext } from 'react';
 import { Feature } from '../../models/Feature';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { RequestPhoneResources } from './RequestPhoneResources';
@@ -11,74 +11,88 @@ import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks'
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
+import { setVWC } from '../../../../shared/lib/setVWC';
 
 export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResources> = {
   identifier: 'requestPhone',
 
   useWorldState: () => {
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
+    const phoneNumberMissing = useMappedValueWithCallbacks(
+      loginContextRaw.value,
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return false;
+        }
+
+        return loginContextUnch.userAttributes.phoneNumber === null;
+      }
+    );
+
     const phoneNumberIAN = useInappNotificationValueWithCallbacks({
-      type: 'react-rerender',
-      props: {
+      type: 'callbacks',
+      props: () => ({
         uid: 'oseh_ian_ENUob52K4t7HTs7idvR7Ig',
-        suppress: loginContext.userAttributes?.phoneNumber !== null,
-      },
+        suppress: !phoneNumberMissing.get(),
+      }),
+      callbacks: phoneNumberMissing.callbacks,
     });
     const onboardingPhoneNumberIAN = useInappNotificationValueWithCallbacks({
-      type: 'react-rerender',
-      props: {
+      type: 'callbacks',
+      props: () => ({
         uid: 'oseh_ian_bljOnb8Xkxt-aU9Fm7Qq9w',
-        suppress: loginContext.userAttributes?.phoneNumber !== null,
-      },
+        suppress: !phoneNumberMissing.get(),
+      }),
+      callbacks: phoneNumberMissing.callbacks,
     });
-    const hasPhoneNumber = useWritableValueWithCallbacks<boolean>(() => false);
 
-    const realHasPhoneNumber = loginContext.userAttributes?.phoneNumber !== null;
-    if (realHasPhoneNumber !== hasPhoneNumber.get()) {
-      hasPhoneNumber.set(realHasPhoneNumber);
-      hasPhoneNumber.callbacks.call(undefined);
-    }
+    const hadPhoneNumber = useWritableValueWithCallbacks<{ sub: string; hadPn: boolean } | null>(
+      () => null
+    );
+    useValueWithCallbacksEffect(loginContextRaw.value, (loginContextUnch) => {
+      if (loginContextUnch.state === 'loading') {
+        return undefined;
+      }
 
-    const realUserSub = loginContext.userAttributes?.sub;
-    const userSub = useWritableValueWithCallbacks<string | undefined>(() => realUserSub);
-    if (realUserSub !== userSub.get()) {
-      userSub.set(realUserSub);
-      userSub.callbacks.call(undefined);
-    }
+      if (loginContextUnch.state === 'logged-out') {
+        setVWC(hadPhoneNumber, null);
+        return undefined;
+      }
 
-    const hadPhoneNumber = useRef({
-      sub: realUserSub,
-      hadPn: realHasPhoneNumber,
+      const curr = hadPhoneNumber.get();
+      if (curr !== null && curr.sub === loginContextUnch.userAttributes.sub) {
+        return;
+      }
+
+      setVWC(hadPhoneNumber, {
+        sub: loginContextUnch.userAttributes.sub,
+        hadPn: loginContextUnch.userAttributes.phoneNumber !== null,
+      });
     });
-    if (hadPhoneNumber.current.sub !== realUserSub) {
-      hadPhoneNumber.current = {
-        sub: realUserSub,
-        hadPn: realHasPhoneNumber,
-      };
-    }
 
     const justAddedPhoneNumber = useMappedValuesWithCallbacks(
-      [hasPhoneNumber, userSub],
-      (): string | null => {
-        if (hadPhoneNumber.current.hadPn) {
-          return null;
+      [hadPhoneNumber, loginContextRaw.value],
+      () => {
+        const hadPn = hadPhoneNumber.get();
+        const loginContextUnch = loginContextRaw.value.get();
+
+        if (loginContextUnch.state !== 'logged-in') {
+          return false;
         }
 
-        if (hasPhoneNumber.get() && realUserSub !== undefined) {
-          return realUserSub;
-        }
-
-        return null;
+        const hasPn = loginContextUnch.userAttributes.phoneNumber !== null;
+        return !hadPn && hasPn;
       }
     );
 
     return useMappedValuesWithCallbacks(
-      [phoneNumberIAN, onboardingPhoneNumberIAN, justAddedPhoneNumber, hasPhoneNumber, userSub],
+      [phoneNumberIAN, onboardingPhoneNumberIAN, justAddedPhoneNumber, phoneNumberMissing],
       (): RequestPhoneState => ({
         phoneNumberIAN: phoneNumberIAN.get(),
         onboardingPhoneNumberIAN: onboardingPhoneNumberIAN.get(),
-        hasPhoneNumber: hasPhoneNumber.get(),
-        justAddedPhoneNumber: justAddedPhoneNumber.get() === userSub.get(),
+        hasPhoneNumber: !phoneNumberMissing.get(),
+        justAddedPhoneNumber: justAddedPhoneNumber.get(),
       })
     );
   },

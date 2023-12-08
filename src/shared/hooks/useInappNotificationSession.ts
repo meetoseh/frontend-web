@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef } from 'react';
+import { useCallback, useContext, useRef } from 'react';
 import { LoginContext } from '../contexts/LoginContext';
 import { apiFetch } from '../ApiConstants';
 import {
@@ -8,6 +8,7 @@ import {
 import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
 import { useMappedValuesWithCallbacks } from './useMappedValuesWithCallbacks';
 import { useUnwrappedValueWithCallbacks } from './useUnwrappedValueWithCallbacks';
+import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
 
 /**
  * Describes a session for an in-app notification. A session is a reusable
@@ -82,13 +83,9 @@ export const useInappNotificationSessionValueWithCallbacks = (
   const propsVWC = useVariableStrategyPropsAsValueWithCallbacks(propsVariableStrategy);
   const sessionVWC = useWritableValueWithCallbacks<Session | null>(() => null);
   const sessionPromiseRef = useRef<Promise<Session> | null>(null);
-  const loginContextVWC = useVariableStrategyPropsAsValueWithCallbacks({
-    type: 'react-rerender',
-    props: loginContextRaw,
-  });
 
   return useMappedValuesWithCallbacks(
-    [propsVWC, sessionVWC, loginContextVWC],
+    [propsVWC, sessionVWC, loginContextRaw.value],
     (): InappNotificationSession | null => {
       const props = propsVWC.get();
       if (props.uid === null) {
@@ -96,13 +93,13 @@ export const useInappNotificationSessionValueWithCallbacks = (
       }
 
       const session = sessionVWC.get();
-      const loginContext = loginContextVWC.get();
+      const loginContext = loginContextRaw.value.get();
 
       return {
         inappNotificationUid: props.uid,
         inappNotificationUserUid: session?.inappNotificationUid ?? null,
         start: async () => {
-          if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
+          if (loginContext.state !== 'logged-in') {
             throw new Error('Not logged in');
           }
           const userSub = loginContext.userAttributes.sub;
@@ -207,35 +204,41 @@ export const useStartSession = (
     onStart?: () => void;
   }
 ): void => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const started = useRef(false);
   const sessionVWC = useVariableStrategyPropsAsValueWithCallbacks(sessionVariableStrategy);
   const onStartRef = useRef(opts?.onStart);
   onStartRef.current = opts?.onStart;
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in' || started.current) {
-      return;
-    }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in' || started.current) {
+          return;
+        }
 
-    sessionVWC.callbacks.add(handleSessionChanged);
-    handleSessionChanged();
-    return () => {
-      sessionVWC.callbacks.remove(handleSessionChanged);
-    };
+        sessionVWC.callbacks.add(handleSessionChanged);
+        handleSessionChanged();
+        return () => {
+          sessionVWC.callbacks.remove(handleSessionChanged);
+        };
 
-    function handleSessionChanged() {
-      const session = sessionVWC.get();
-      if (started.current || session === null) {
-        return;
-      }
+        function handleSessionChanged() {
+          const session = sessionVWC.get();
+          if (started.current || session === null) {
+            return;
+          }
 
-      started.current = true;
-      session.start();
-      sessionVWC.callbacks.remove(handleSessionChanged);
-      if (onStartRef.current) {
-        onStartRef.current();
-      }
-    }
-  }, [loginContext, sessionVWC]);
+          started.current = true;
+          session.start();
+          sessionVWC.callbacks.remove(handleSessionChanged);
+          if (onStartRef.current) {
+            onStartRef.current();
+          }
+        }
+      },
+      [sessionVWC]
+    )
+  );
 };

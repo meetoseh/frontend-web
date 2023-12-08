@@ -76,7 +76,7 @@ export const CourseJourneyItem = ({
   onClick,
   instructorImages,
 }: HistoryItemProps) => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const instructorImageVWC = useOsehImageStateValueWithCallbacks(
     adaptValueWithCallbacksAsVariableStrategyProps(
       useMappedValueWithCallbacks(
@@ -132,6 +132,13 @@ export const CourseJourneyItem = ({
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
+
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        setVWC(downloadErrorVWC, <>You must be logged in to download</>);
+        return;
+      }
+      const loginContext = loginContextUnch;
 
       const item = itemVWC.get();
       setVWC(downloadingVWC, true);
@@ -302,7 +309,7 @@ export const CourseJourneyItem = ({
         setVWC(downloadingVWC, false);
       }
     },
-    [downloadingVWC, downloadErrorVWC, itemVWC, loginContext, mapItems, setItem]
+    [downloadingVWC, downloadErrorVWC, itemVWC, loginContextRaw, mapItems, setItem]
   );
 
   const modalContext = useContext(ModalContext);

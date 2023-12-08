@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { ReactElement, useCallback } from 'react';
 import styles from '../notifs_dashboard/AdminNotifsDashboard.module.css';
 import customStyles from './AdminSMSDashboard.module.css';
 import {
@@ -13,7 +13,6 @@ import { combineClasses } from '../../shared/lib/combineClasses';
 import { Button } from '../../shared/forms/Button';
 import { setVWC } from '../../shared/lib/setVWC';
 import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
-import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import {
   formatNetworkDate,
@@ -40,16 +39,11 @@ const flowChartSettings: FlowChartProps = {
  * our sms system.
  */
 export const AdminSMSDashboard = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
-
   const sendQueueInfo = useNetworkResponse<{
     length: number;
     oldestLastQueuedAt: Date | null;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/sms/send_queue_info',
         { method: 'GET' },
@@ -64,7 +58,7 @@ export const AdminSMSDashboard = (): ReactElement => {
         oldestLastQueuedAt:
           data.oldest_last_queued_at === null ? null : new Date(data.oldest_last_queued_at * 1000),
       };
-    }, [loginContext])
+    }, [])
   );
 
   const sendJobInfo = useNetworkResponse<{
@@ -79,11 +73,7 @@ export const AdminSMSDashboard = (): ReactElement => {
     stopReason: 'list_exhausted' | 'time_exhausted' | 'signal';
     numInPurgatory: number;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/sms/last_send_job',
         { method: 'GET' },
@@ -110,7 +100,7 @@ export const AdminSMSDashboard = (): ReactElement => {
         stopReason: data.stop_reason,
         numInPurgatory: data.num_in_purgatory,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const pendingSetInfo = useNetworkResponse<{
@@ -118,10 +108,7 @@ export const AdminSMSDashboard = (): ReactElement => {
     oldestDueAt: Date | null;
     numOverdue: number;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/sms/pending_set_info',
         { method: 'GET' },
@@ -136,15 +123,11 @@ export const AdminSMSDashboard = (): ReactElement => {
         oldestDueAt: data.oldest_due_at === null ? null : new Date(data.oldest_due_at * 1000),
         numOverdue: data.num_overdue,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const webhookStats = useNetworkResponse<PartialStats>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/sms/partial_sms_webhook_stats',
         { method: 'GET' },
@@ -157,7 +140,7 @@ export const AdminSMSDashboard = (): ReactElement => {
 
       const data = await response.json();
       return parsePartialStats(data);
-    }, [loginContext])
+    }, [])
   );
 
   const eventQueueInfo = useNetworkResponse<{
@@ -167,11 +150,7 @@ export const AdminSMSDashboard = (): ReactElement => {
     newestInformationReceivedAt: Date | null;
     newestItemDelay: number | null;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/sms/event_queue_info',
         { method: 'GET' },
@@ -197,7 +176,7 @@ export const AdminSMSDashboard = (): ReactElement => {
             : new Date(data.newest_information_received_at * 1000),
         newestItemDelay: data.newest_item_delay,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const receiptReconciliationJobInfo = useNetworkResponse<{
@@ -216,11 +195,7 @@ export const AdminSMSDashboard = (): ReactElement => {
     removed: number;
     purgatorySize: number;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/sms/last_receipt_reconciliation_job',
         { method: 'GET' },
@@ -251,7 +226,7 @@ export const AdminSMSDashboard = (): ReactElement => {
         removed: data.removed,
         purgatorySize: data.purgatory_size,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const receiptStaleDetectionJobInfo = useNetworkResponse<{
@@ -262,10 +237,7 @@ export const AdminSMSDashboard = (): ReactElement => {
     stopReason: 'list_exhausted' | 'time_exhausted' | 'signal';
     recoveryQueueSize: number;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/sms/last_receipt_stale_job',
         { method: 'GET' },
@@ -286,7 +258,7 @@ export const AdminSMSDashboard = (): ReactElement => {
         stopReason: data.stop_reason,
         recoveryQueueSize: data.recovery_queue_size,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const receiptRecoveryJobInfo = useNetworkResponse<{
@@ -303,11 +275,7 @@ export const AdminSMSDashboard = (): ReactElement => {
     stopReason: 'list_exhausted' | 'time_exhausted' | 'signal';
     purgatorySize: number;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/sms/last_receipt_recovery_job',
         { method: 'GET' },
@@ -336,7 +304,7 @@ export const AdminSMSDashboard = (): ReactElement => {
         stopReason: data.stop_reason,
         purgatorySize: data.purgatory_size,
       };
-    }, [loginContext])
+    }, [])
   );
 
   return (

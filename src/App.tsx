@@ -25,6 +25,7 @@ import { AnxietyLanding } from './user/landing/AnxietyLanding';
 import { ModalProvider } from './shared/contexts/ModalContext';
 import { ClearCache } from './user/connectivity/ClearCache';
 import { DebugFeatures } from './dbg/features/DebugFeatures';
+import { getLoginRedirect, setLoginRedirect } from './user/login/lib/LoginRedirectStore';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -75,10 +76,10 @@ function App() {
     (async () => {
       await Promise.all([storeAuthTokens(tokens), storeUserAttributes(userAttributes)]);
 
-      const redirectLoc = localStorage.getItem('login-redirect');
-      if (redirectLoc) {
-        localStorage.removeItem('login-redirect');
-        window.location.assign(redirectLoc);
+      const redirectLoc = await getLoginRedirect();
+      if (redirectLoc !== null) {
+        await setLoginRedirect(null);
+        window.location.assign(redirectLoc.url);
       } else {
         const urlWithoutHash = new URL(window.location.href);
         urlWithoutHash.hash = '';

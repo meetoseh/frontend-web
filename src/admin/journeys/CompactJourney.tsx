@@ -1,10 +1,11 @@
 import { Journey } from './Journey';
 import styles from './CompactJourney.module.css';
 import { OsehImage } from '../../shared/images/OsehImage';
-import { ReactElement, useContext, useState, useEffect } from 'react';
+import { ReactElement, useContext, useState, useCallback } from 'react';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type CompactJourneyProps = {
   /**
@@ -33,43 +34,54 @@ export const CompactJourney = ({
   showViews,
   imageHandler,
 }: CompactJourneyProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [views, setViews] = useState<{ journeyUid: string; count: number } | undefined>(undefined);
 
-  useEffect(() => {
-    if (!showViews || views?.journeyUid === journey.uid || loginContext.state !== 'logged-in') {
-      return;
-    }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (
+          !showViews ||
+          views?.journeyUid === journey.uid ||
+          loginContextUnch.state !== 'logged-in'
+        ) {
+          return;
+        }
+        const loginContext = loginContextUnch;
 
-    let active = true;
-    fetchViews();
-    return () => {
-      active = false;
-    };
+        let active = true;
+        fetchViews();
+        return () => {
+          active = false;
+        };
 
-    async function fetchViews() {
-      const response = await apiFetch(
-        '/api/1/admin/journey_views?' +
-          new URLSearchParams({ journey_uid: journey.uid }).toString(),
-        {
-          method: 'GET',
-        },
-        loginContext
-      );
+        async function fetchViews() {
+          const response = await apiFetch(
+            '/api/1/admin/journey_views?' +
+              new URLSearchParams({ journey_uid: journey.uid }).toString(),
+            {
+              method: 'GET',
+            },
+            loginContext
+          );
 
-      if (!response.ok) {
-        throw response;
-      }
+          if (!response.ok) {
+            throw response;
+          }
 
-      const data = await response.json();
-      if (active) {
-        setViews({
-          journeyUid: journey.uid,
-          count: data.views,
-        });
-      }
-    }
-  }, [loginContext, journey.uid, showViews, views]);
+          const data = await response.json();
+          if (active) {
+            setViews({
+              journeyUid: journey.uid,
+              count: data.views,
+            });
+          }
+        }
+      },
+      [journey.uid, showViews, views]
+    )
+  );
 
   return (
     <div className={styles.container}>

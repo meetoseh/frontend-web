@@ -9,6 +9,7 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useInappNotificationSessionValueWithCallbacks } from '../../../../shared/hooks/useInappNotificationSession';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 
 const ianUid = 'oseh_ian_uKEDNejaLGNWKhDcgmHORg';
 
@@ -18,7 +19,7 @@ export const ConfirmMergeAccountFeature: Feature<
 > = {
   identifier: 'confirmMergeAccount',
   useWorldState: () => {
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
     const mergeTokenVWC = useWritableValueWithCallbacks<string | null | undefined>(() => undefined);
     const resultVWC = useWritableValueWithCallbacks<OauthMergeResult | false | null | undefined>(
       () => null
@@ -28,11 +29,18 @@ export const ConfirmMergeAccountFeature: Feature<
     const promptingReviewReminderSettingsVWC = useWritableValueWithCallbacks(() => false);
     const mergedThisSessionVWC = useWritableValueWithCallbacks(() => false);
 
-    useEffect(() => {
-      if (loginContext.state === 'logged-out') {
-        setVWC(mergeTokenVWC, null);
-      }
-    }, [loginContext.state, mergeTokenVWC]);
+    useValueWithCallbacksEffect(
+      loginContextRaw.value,
+      useCallback(
+        (loginContextUnch) => {
+          if (loginContextUnch.state === 'logged-out') {
+            setVWC(mergeTokenVWC, null);
+          }
+          return undefined;
+        },
+        [mergeTokenVWC]
+      )
+    );
 
     useEffect(() => {
       if (mergeTokenVWC.get() !== undefined) {

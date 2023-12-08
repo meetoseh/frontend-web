@@ -32,7 +32,7 @@ export const ConfirmationRequired = ({
   state,
 }: FeatureComponentProps<ConfirmMergeAccountState, ConfirmMergeAccountResources>): ReactElement => {
   const modalContext = useContext(ModalContext);
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const phoneHintVWC = useWritableValueWithCallbacks<string | null>(() => null);
   const phoneErrorVWC = useWritableValueWithCallbacks<string | null>(() => null);
   const emailHintVWC = useWritableValueWithCallbacks<string | null>(() => null);
@@ -48,6 +48,7 @@ export const ConfirmationRequired = ({
       }
       const email = emailHintVWC.get();
       const phone = phoneHintVWC.get();
+      const loginContextUnch = loginContextRaw.value.get();
 
       const s = state.get();
       if (
@@ -57,7 +58,7 @@ export const ConfirmationRequired = ({
         s.result.result !== 'confirmationRequired' ||
         s.result.conflictDetails === null ||
         s.confirmResult !== null ||
-        loginContext.state !== 'logged-in'
+        loginContextUnch.state !== 'logged-in'
       ) {
         resources.get().session?.storeAction('confirm_start', {
           email,
@@ -67,6 +68,7 @@ export const ConfirmationRequired = ({
         setVWC(modalError, <>Contact support at hi@oseh.com for assistance</>);
         return;
       }
+      const loginContext = loginContextUnch;
 
       if (s.result.conflictDetails.email !== null && email === null) {
         resources.get().session?.storeAction('confirm_start', {
@@ -138,7 +140,7 @@ export const ConfirmationRequired = ({
       state,
       closeDisabled,
       modalError,
-      loginContext,
+      loginContextRaw,
       emailErrorVWC,
       phoneErrorVWC,
       resources,

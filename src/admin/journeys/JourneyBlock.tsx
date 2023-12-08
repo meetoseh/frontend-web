@@ -27,6 +27,7 @@ import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPick
 import { JourneyEmotionsBlock } from './emotions/JourneyEmotionsBlock';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { CompactJourney } from './CompactJourney';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type JourneyBlockProps = {
   /**
@@ -53,7 +54,7 @@ export const JourneyBlock = ({
   setJourney,
   imageHandler,
 }: JourneyBlockProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
   const [editing, setEditing] = useState(false);
@@ -97,96 +98,121 @@ export const JourneyBlock = ({
     setNewDeleted(journey.deletedAt !== null);
   }, [journey.deletedAt]);
 
-  useEffect(() => {
-    let active = true;
-    fetchVariationOfJourney();
-    return () => {
-      active = false;
-    };
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
+        }
+        const loginContext = loginContextUnch;
 
-    async function fetchVariationOfJourney() {
-      setCurrentVariationOfJourney(null);
-      if (journey.variationOfJourneyUID === null || loginContext.state !== 'logged-in') {
-        return;
-      }
+        let active = true;
+        fetchVariationOfJourney();
+        return () => {
+          active = false;
+        };
 
-      const response = await apiFetch(
-        '/api/1/journeys/search',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            filters: { uid: { operator: 'eq', value: journey.variationOfJourneyUID } },
-          }),
-        },
-        loginContext
-      );
-      if (!response.ok) {
-        console.log('failed to fetch variation of journey', response.status, await response.text());
-        return;
-      }
-      const data: { items: any[] } = await response.json();
-      if (data.items.length < 1) {
-        console.log('failed to fetch variation of journey: no items');
-        return;
-      }
+        async function fetchVariationOfJourney() {
+          setCurrentVariationOfJourney(null);
+          if (journey.variationOfJourneyUID === null || loginContext.state !== 'logged-in') {
+            return;
+          }
 
-      if (!active) {
-        return;
-      }
-
-      const variation = convertUsingKeymap(data.items[0], journeyKeyMap);
-      setCurrentVariationOfJourney(variation);
-    }
-  }, [journey.variationOfJourneyUID, loginContext]);
-
-  useEffect(() => {
-    let active = true;
-    fetchVariations();
-    return () => {
-      active = false;
-    };
-    async function fetchVariations() {
-      setVariations([]);
-      if (loginContext.state !== 'logged-in') {
-        return;
-      }
-
-      const response = await apiFetch(
-        '/api/1/journeys/search',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            filters: {
-              variation_of_journey_uid: { operator: 'eq', value: journey.uid },
-              ...(journey.deletedAt === null
-                ? {
-                    deleted_at: { operator: 'eq', value: null },
-                  }
-                : {}),
+          const response = await apiFetch(
+            '/api/1/journeys/search',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                filters: { uid: { operator: 'eq', value: journey.variationOfJourneyUID } },
+              }),
             },
-          }),
-        },
-        loginContext
-      );
-      if (!response.ok) {
-        console.log(
-          'failed to fetch variations of journey',
-          response.status,
-          await response.text()
-        );
-        return;
-      }
-      const data: { items: any[] } = await response.json();
-      if (!active) {
-        return;
-      }
+            loginContext
+          );
+          if (!response.ok) {
+            console.log(
+              'failed to fetch variation of journey',
+              response.status,
+              await response.text()
+            );
+            return;
+          }
+          const data: { items: any[] } = await response.json();
+          if (data.items.length < 1) {
+            console.log('failed to fetch variation of journey: no items');
+            return;
+          }
 
-      const variations = data.items.map((item) => convertUsingKeymap(item, journeyKeyMap));
-      setVariations(variations);
-    }
-  }, [journey.uid, journey.deletedAt, loginContext]);
+          if (!active) {
+            return;
+          }
+
+          const variation = convertUsingKeymap(data.items[0], journeyKeyMap);
+          setCurrentVariationOfJourney(variation);
+        }
+      },
+      [journey.variationOfJourneyUID]
+    )
+  );
+
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
+        }
+        const loginContext = loginContextUnch;
+        let active = true;
+        fetchVariations();
+        return () => {
+          active = false;
+        };
+        async function fetchVariations() {
+          setVariations([]);
+          if (loginContext.state !== 'logged-in') {
+            return;
+          }
+
+          const response = await apiFetch(
+            '/api/1/journeys/search',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                filters: {
+                  variation_of_journey_uid: { operator: 'eq', value: journey.uid },
+                  ...(journey.deletedAt === null
+                    ? {
+                        deleted_at: { operator: 'eq', value: null },
+                      }
+                    : {}),
+                },
+              }),
+            },
+            loginContext
+          );
+          if (!response.ok) {
+            console.log(
+              'failed to fetch variations of journey',
+              response.status,
+              await response.text()
+            );
+            return;
+          }
+          const data: { items: any[] } = await response.json();
+          if (!active) {
+            return;
+          }
+
+          const variations = data.items.map((item) => convertUsingKeymap(item, journeyKeyMap));
+          setVariations(variations);
+        }
+      },
+      [journey.uid, journey.deletedAt]
+    )
+  );
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 992);
@@ -240,6 +266,12 @@ export const JourneyBlock = ({
   }, [showChooseImage, modalContext.modals, imageHandler]);
 
   const save = useCallback(async () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+
     setSaving(true);
     setError(null);
     let newJourney = journey;
@@ -335,7 +367,7 @@ export const JourneyBlock = ({
     }
   }, [
     journey,
-    loginContext,
+    loginContextRaw.value,
     newBackgroundImage,
     newDescription,
     newInstructor,

@@ -7,7 +7,7 @@ import {
   useInappNotificationValueWithCallbacks,
 } from '../../../../../shared/hooks/useInappNotification';
 import { JourneyRef, journeyRefKeyMap } from '../../../../journey/models/JourneyRef';
-import { LoginContext } from '../../../../../shared/contexts/LoginContext';
+import { LoginContext, LoginContextValueUnion } from '../../../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../../../../admin/crud/CrudFetcher';
 import { useOsehImageStateRequestHandler } from '../../../../../shared/images/useOsehImageStateRequestHandler';
@@ -28,7 +28,7 @@ import { useMappedValuesWithCallbacks } from '../../../../../shared/hooks/useMap
  */
 export const ECPPartialFeature = {
   useWorldState: (emotionVWC: ValueWithCallbacks<Emotion | null>): ValueWithCallbacks<ECPState> => {
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
     const ianVWC = useInappNotificationValueWithCallbacks({
       type: 'react-rerender',
       props: { uid: 'oseh_ian_GqGxDHGQeZT9OsSEGEU90g', suppress: false },
@@ -41,10 +41,12 @@ export const ECPPartialFeature = {
       let cleanup: (() => void) | null = null;
       emotionVWC.callbacks.add(handleChanged);
       ianVWC.callbacks.add(handleChanged);
+      loginContextRaw.value.callbacks.add(handleChanged);
       handleChanged();
       return () => {
         emotionVWC.callbacks.remove(handleChanged);
         ianVWC.callbacks.remove(handleChanged);
+        loginContextRaw.value.callbacks.remove(handleChanged);
         if (cleanup !== null) {
           cleanup();
           cleanup = null;
@@ -53,10 +55,11 @@ export const ECPPartialFeature = {
 
       function handle(
         emotion: Emotion | null,
-        ian: InappNotification | null
+        ian: InappNotification | null,
+        loginContextUnch: LoginContextValueUnion
       ): (() => void) | undefined {
         if (
-          loginContext.state !== 'logged-in' ||
+          loginContextUnch.state !== 'logged-in' ||
           ian === null ||
           !ian.showNow ||
           emotion === null
@@ -67,6 +70,7 @@ export const ECPPartialFeature = {
           }
           return;
         }
+        const loginContext = loginContextUnch;
 
         let active = true;
         fetchJourney();
@@ -130,9 +134,9 @@ export const ECPPartialFeature = {
           cleanup = null;
         }
 
-        cleanup = handle(emotionVWC.get(), ianVWC.get()) ?? null;
+        cleanup = handle(emotionVWC.get(), ianVWC.get(), loginContextRaw.value.get()) ?? null;
       }
-    }, [ianVWC, loginContext, emotionVWC, journeyVWC]);
+    }, [ianVWC, loginContextRaw, emotionVWC, journeyVWC]);
 
     return useMappedValuesWithCallbacks(
       [ianVWC, emotionVWC, journeyVWC],

@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useState } from 'react';
+import { ReactElement, useCallback, useContext, useState } from 'react';
 import styles from './BigUserAttribution.module.css';
 import { User } from '../User';
 import { CrudItemBlock } from '../../crud/CrudItemBlock';
@@ -8,12 +8,12 @@ import { Journey } from '../../journeys/Journey';
 import { keyMap } from '../../journeys/Journeys';
 import { AdminDashboardLargeChartPlaceholder } from '../../dashboard/AdminDashboardLargeChartPlaceholder';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
-import { useSingletonEffect } from '../../../shared/lib/useSingletonEffect';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { CrudFormElement } from '../../crud/CrudFormElement';
 import { CompactJourney } from '../../journeys/CompactJourney';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 type UTMClick = UTM & {
   clickedAt: Date;
@@ -68,65 +68,65 @@ export const BigUserAttribution = ({
   user: User;
   imageHandler: OsehImageStateRequestHandler;
 }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [attributionInfo, setAttributionInfo] = useState<
     { sub: string; info: AttributionInfo | null } | undefined
   >(undefined);
   const [error, setError] = useState<ReactElement | null>(null);
 
-  useSingletonEffect(
-    (onDone) => {
-      if (attributionInfo !== undefined && attributionInfo.sub === user.sub) {
-        onDone();
-        return;
-      }
-
-      if (loginContext.state !== 'logged-in') {
-        onDone();
-        return;
-      }
-
-      let active = true;
-      fetchAttributionInfo();
-      return () => {
-        active = false;
-      };
-
-      async function fetchAttributionInfoInner() {
-        const response = await apiFetch(
-          `/api/1/users/${user.sub}/attribution`,
-          {
-            method: 'GET',
-          },
-          loginContext
-        );
-
-        if (!response.ok) {
-          throw response;
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (attributionInfo !== undefined && attributionInfo.sub === user.sub) {
+          return;
         }
 
-        const raw = await response.json();
-        const data = convertUsingKeymap(raw, attributionInfoKeyMap);
-        if (active) {
-          setAttributionInfo({ sub: user.sub, info: data });
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
         }
-      }
+        const loginContext = loginContextUnch;
 
-      async function fetchAttributionInfo() {
-        try {
-          await fetchAttributionInfoInner();
-        } catch (e) {
-          const err = await describeError(e);
-          if (active) {
-            setError(err);
-            setAttributionInfo({ sub: user.sub, info: null });
+        let active = true;
+        fetchAttributionInfo();
+        return () => {
+          active = false;
+        };
+
+        async function fetchAttributionInfoInner() {
+          const response = await apiFetch(
+            `/api/1/users/${user.sub}/attribution`,
+            {
+              method: 'GET',
+            },
+            loginContext
+          );
+
+          if (!response.ok) {
+            throw response;
           }
-        } finally {
-          onDone();
+
+          const raw = await response.json();
+          const data = convertUsingKeymap(raw, attributionInfoKeyMap);
+          if (active) {
+            setAttributionInfo({ sub: user.sub, info: data });
+          }
         }
-      }
-    },
-    [loginContext, attributionInfo, user]
+
+        async function fetchAttributionInfo() {
+          try {
+            await fetchAttributionInfoInner();
+          } catch (e) {
+            const err = await describeError(e);
+            if (active) {
+              setError(err);
+              setAttributionInfo({ sub: user.sub, info: null });
+            }
+          }
+        }
+      },
+      [attributionInfo, user]
+    )
   );
 
   if (attributionInfo === undefined) {

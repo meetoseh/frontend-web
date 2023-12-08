@@ -1,4 +1,4 @@
-import { PropsWithChildren, ReactElement, useCallback, useContext, useMemo } from 'react';
+import { PropsWithChildren, ReactElement, useCallback, useMemo } from 'react';
 import styles from './AdminNotifsDashboard.module.css';
 import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
@@ -8,7 +8,6 @@ import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../shared/lib
 import { Button } from '../../shared/forms/Button';
 import { FlowChart, FlowChartProps } from '../../shared/components/FlowChart';
 import { combineClasses } from '../../shared/lib/combineClasses';
-import { LoginContext } from '../../shared/contexts/LoginContext';
 import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../shared/ApiConstants';
 import { AdminDashboardLargeChartProps } from '../dashboard/AdminDashboardLargeChart';
@@ -114,14 +113,8 @@ const parsePartialPushReceiptStats = (raw: any): PartialPushReceiptStats => ({
  * current health our push notifications system.
  */
 export const AdminNotifsDashboard = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
-
   const activePushTokens = useNetworkResponse<{ num: number }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/total_push_tokens',
         { method: 'GET' },
@@ -132,17 +125,12 @@ export const AdminNotifsDashboard = (): ReactElement => {
       }
       const json = await response.json();
       return { num: json.total_push_tokens };
-    }, [loginContext])
+    }, [])
   );
 
   const pushTokenStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
   const pushTokenStats = useNetworkResponse<AdminDashboardLargeChartProps>(
-    useCallback(async () => {
-      console.log('loading push token stats');
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/daily_push_tokens',
         { method: 'GET' },
@@ -230,7 +218,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
         ],
         monthlyCharts: [],
       };
-    }, [loginContext]),
+    }, []),
     {
       loadPrevented: pushTokenStatsLoadPrevented,
     }
@@ -245,11 +233,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
     deleted_due_to_unrecognized_receipt: number;
     deleted_due_to_token_limit: number;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/todays_push_token_stats',
         { method: 'GET' },
@@ -261,7 +245,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
       }
 
       return await response.json();
-    }, [loginContext]),
+    }, []),
     {
       loadPrevented: pushTokenStatsLoadPrevented,
     }
@@ -271,11 +255,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
     length: number;
     oldestLastQueuedAt: Date | null;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/send_queue_info',
         { method: 'GET' },
@@ -295,7 +275,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
         oldestLastQueuedAt:
           data.oldest_last_queued_at !== null ? new Date(data.oldest_last_queued_at * 1000) : null,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const lastSendJob = useNetworkResponse<
@@ -311,11 +291,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
       }
     | false
   >(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/last_send_job',
         { method: 'GET' },
@@ -349,7 +325,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
         numFailedTransiently: data.num_failed_transiently,
         numInPurgatory: data.num_in_purgatory,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const receiptColdSetInfo = useNetworkResponse<{
@@ -357,11 +333,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
     numOverdue: number;
     oldestLastQueuedAt: Date | null;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/receipt_cold_set_info',
         { method: 'GET' },
@@ -383,16 +355,12 @@ export const AdminNotifsDashboard = (): ReactElement => {
         oldestLastQueuedAt:
           data.oldest_last_queued_at !== null ? new Date(data.oldest_last_queued_at * 1000) : null,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const pushTicketStatsLoadPrevented = useWritableValueWithCallbacks<boolean>(() => true);
   const pushTicketStats = useNetworkResponse<AdminDashboardLargeChartProps>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/daily_push_tickets',
         { method: 'GET' },
@@ -482,17 +450,13 @@ export const AdminNotifsDashboard = (): ReactElement => {
         ],
         monthlyCharts: [],
       };
-    }, [loginContext]),
+    }, []),
     {
       loadPrevented: pushTicketStatsLoadPrevented,
     }
   );
   const partialPushTicketStats = useNetworkResponse<PartialPushTicketStats>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/partial_push_ticket_stats',
         { method: 'GET' },
@@ -504,7 +468,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
       }
 
       return parsePartialPushTicketStats(await response.json());
-    }, [loginContext]),
+    }, []),
     {
       loadPrevented: pushTicketStatsLoadPrevented,
     }
@@ -519,11 +483,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
       }
     | false
   >(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/last_cold_to_hot_job',
         { method: 'GET' },
@@ -550,7 +510,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
         runningTime: data.running_time,
         numMoved: data.num_moved,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const lastCheckJobInfo = useNetworkResponse<
@@ -566,11 +526,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
       }
     | false
   >(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/last_check_job',
         { method: 'GET' },
@@ -603,18 +559,14 @@ export const AdminNotifsDashboard = (): ReactElement => {
         numFailedTransiently: data.num_failed_transiently,
         numInPurgatory: data.num_in_purgatory,
       };
-    }, [loginContext])
+    }, [])
   );
 
   const pushReceiptHotSetInfo = useNetworkResponse<{
     length: number;
     oldestLastQueuedAt: Date | null;
   }>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/receipt_hot_set_info',
         { method: 'GET' },
@@ -634,17 +586,12 @@ export const AdminNotifsDashboard = (): ReactElement => {
         oldestLastQueuedAt:
           data.oldest_last_queued_at === null ? null : new Date(data.oldest_last_queued_at * 1000),
       };
-    }, [loginContext])
+    }, [])
   );
 
   const pushReceiptStatsLoadPrevented = useWritableValueWithCallbacks(() => true);
   const pushReceiptStats = useNetworkResponse<AdminDashboardLargeChartProps>(
-    useCallback(async () => {
-      console.log('loading push token stats');
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/daily_push_receipts',
         { method: 'GET' },
@@ -761,17 +708,13 @@ export const AdminNotifsDashboard = (): ReactElement => {
         ],
         monthlyCharts: [],
       };
-    }, [loginContext]),
+    }, []),
     {
       loadPrevented: pushReceiptStatsLoadPrevented,
     }
   );
   const partialPushReceiptStats = useNetworkResponse<PartialPushReceiptStats>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/notifs/partial_push_receipt_stats',
         { method: 'GET' },
@@ -783,7 +726,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
       }
 
       return parsePartialPushReceiptStats(await response.json());
-    }, [loginContext]),
+    }, []),
     {
       loadPrevented: pushReceiptStatsLoadPrevented,
     }

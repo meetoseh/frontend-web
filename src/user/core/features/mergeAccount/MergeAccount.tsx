@@ -1,17 +1,16 @@
-import { ReactElement, useCallback, useEffect, useRef } from 'react';
+import { ReactElement, useCallback, useMemo, useRef } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
 import { MergeAccountState } from './MergeAccountState';
 import { MergeAccountResources } from './MergeAccountResources';
 import styles from './MergeAccount.module.css';
-import loginStyles from '../../../login/LoginApp.module.css';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import { Button } from '../../../../shared/forms/Button';
 import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
 import { useFullHeight } from '../../../../shared/hooks/useFullHeight';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
+import { ProvidersList, ProvidersListItem } from '../login/components/ProvidersList';
 
 export const MergeAccount = ({
   resources,
@@ -139,84 +138,44 @@ const ProviderUrls = (
   onLeavingWith: (provider: OauthProvider) => void,
   urls: MergeAccountResources['providerUrls']
 ): ReactElement => {
-  const googleRef = useRef<HTMLDivElement>(null);
-  const appleRef = useRef<HTMLDivElement>(null);
-  const emailRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const google = googleRef.current;
-    const apple = appleRef.current;
-    const email = emailRef.current;
-
-    if (google === null || apple === null || email === null) {
-      return;
-    }
-
-    google.removeAttribute('style');
-    apple.removeAttribute('style');
-    email.removeAttribute('style');
-
-    const googleWidth = google.offsetWidth;
-    const appleWidth = apple.offsetWidth;
-    const emailWidth = email.offsetWidth;
-
-    const maxWidth = Math.max(googleWidth, appleWidth, emailWidth);
-
-    google.style.paddingRight = `${maxWidth - googleWidth}px`;
-    apple.style.paddingRight = `${maxWidth - appleWidth}px`;
-    email.style.paddingRight = `${maxWidth - emailWidth}px`;
-  }, []);
-
   return (
-    <>
-      {urls && urls.Google && (
-        <Button
-          type="button"
-          variant="filled-white"
-          onClick={urls.Google}
-          onLinkClick={() => onLeavingWith('Google')}>
-          <div className={loginStyles.iconAndText}>
-            <div className={loginStyles.signInWithGoogleIcon}></div>
-            <div ref={googleRef}>Sign in with Google</div>
-          </div>
-        </Button>
-      )}
-      {urls && urls.SignInWithApple && (
-        <Button
-          type="button"
-          variant="filled-white"
-          onClick={urls.SignInWithApple}
-          onLinkClick={() => onLeavingWith('SignInWithApple')}>
-          <div className={loginStyles.iconAndText}>
-            <div className={loginStyles.signInWithAppleIcon}></div>
-            <div ref={appleRef}>Sign in with Apple</div>
-          </div>
-        </Button>
-      )}
-      {urls && urls.Direct && (
-        <Button
-          type="button"
-          variant="filled-white"
-          onClick={urls.Direct}
-          onLinkClick={() => onLeavingWith('Direct')}>
-          <div className={loginStyles.iconAndText}>
-            <div className={loginStyles.signInWithEmailIcon}></div>
-            <div ref={emailRef}>Sign in with Email</div>
-          </div>
-        </Button>
-      )}
-      {urls && urls.Dev && (
-        <Button
-          type="button"
-          variant="filled-white"
-          onClick={urls.Dev}
-          onLinkClick={() => onLeavingWith('Dev')}>
-          <div className={loginStyles.iconAndText}>
-            <div className={loginStyles.signInWithEmailIcon}></div>
-            <div ref={emailRef}>Sign in with Dev</div>
-          </div>
-        </Button>
-      )}
-    </>
+    <ProvidersList
+      items={useMemo((): ProvidersListItem[] => {
+        if (urls === null) {
+          return [];
+        }
+
+        const result: ProvidersListItem[] = [];
+        if (urls.Google) {
+          result.push({
+            provider: 'Google',
+            onClick: urls.Google,
+            onLinkClick: () => onLeavingWith('Google'),
+          });
+        }
+        if (urls.SignInWithApple) {
+          result.push({
+            provider: 'SignInWithApple',
+            onClick: urls.SignInWithApple,
+            onLinkClick: () => onLeavingWith('SignInWithApple'),
+          });
+        }
+        if (urls.Direct) {
+          result.push({
+            provider: 'Direct',
+            onClick: urls.Direct,
+            onLinkClick: () => onLeavingWith('Direct'),
+          });
+        }
+        if (urls.Dev) {
+          result.push({
+            provider: 'Dev',
+            onClick: urls.Dev,
+            onLinkClick: () => onLeavingWith('Dev'),
+          });
+        }
+        return result;
+      }, [urls, onLeavingWith])}
+    />
   );
 };

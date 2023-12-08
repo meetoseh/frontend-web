@@ -57,7 +57,7 @@ export const useToggleFavorited = ({
   working: workingVWC,
 }: UseToggleFavoritedProps): (() => Promise<void>) => {
   const modalContext = useContext(ModalContext);
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const showLikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
   const showUnlikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
   const showUnlikableUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
@@ -77,7 +77,7 @@ export const useToggleFavorited = ({
     }
     try {
       await toggleFavorited(
-        loginContext,
+        loginContextRaw,
         journey.type === 'react-rerender' ? journey.props : journey.props(),
         shared,
         showLikedUntilVWC,
@@ -100,7 +100,7 @@ export const useToggleFavorited = ({
       }
     }
   }, [
-    loginContext,
+    loginContextRaw,
     showLikedUntilVWC,
     showUnlikedUntilVWC,
     showUnlikableUntilVWC,

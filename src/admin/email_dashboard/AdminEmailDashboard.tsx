@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useMemo } from 'react';
+import { ReactElement, useCallback, useMemo } from 'react';
 import styles from '../notifs_dashboard/AdminNotifsDashboard.module.css';
 import { SectionDescription } from '../notifs_dashboard/AdminNotifsDashboard';
 import { FlowChart, FlowChartProps } from '../../shared/components/FlowChart';
@@ -14,7 +14,6 @@ import {
   formatNetworkNumber,
   formatNetworkString,
 } from '../../shared/lib/networkResponseUtils';
-import { LoginContext } from '../../shared/contexts/LoginContext';
 import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../shared/ApiConstants';
 
@@ -33,14 +32,8 @@ const flowChartSettings: FlowChartProps = {
  * health our email system.
  */
 export const AdminEmailDashboard = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
-
   const webhookStats = useNetworkResponse<PartialStats>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/email/partial_email_webhook_stats',
         { method: 'GET' },
@@ -53,7 +46,7 @@ export const AdminEmailDashboard = (): ReactElement => {
 
       const data = await response.json();
       return parsePartialStats(data);
-    }, [loginContext])
+    }, [])
   );
 
   return (

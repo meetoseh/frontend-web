@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import { User } from '../../User';
 import { CrudItemBlock } from '../../../crud/CrudItemBlock';
 import { ContactMethodLog, contactMethodLogKeyMap } from './ContactMethodLog';
@@ -30,7 +30,7 @@ const path = '/api/1/admin/logs/contact_method';
  * that can be scrolled with a "show more" button and supports filters
  */
 export const BigUserContactMethodLog = ({ user }: { user: User }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [items, setItems] = useState<ContactMethodLog[]>([]);
   const [filters, setFilters] = useState<CrudFetcherFilter>(() => createDefaultFilter(user));
@@ -44,22 +44,33 @@ export const BigUserContactMethodLog = ({ user }: { user: User }): ReactElement 
     []
   );
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-    return fetcher.resetAndLoadWithCancelCallback(
-      filters,
-      sort,
-      limit,
-      loginContext,
-      console.error
-    );
-  }, [fetcher, filters, sort, loginContext]);
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContext) => {
+        if (loginContext.state !== 'logged-in') {
+          return;
+        }
+        return fetcher.resetAndLoadWithCancelCallback(
+          filters,
+          sort,
+          limit,
+          loginContext,
+          console.error
+        );
+      },
+      [fetcher, filters, sort]
+    )
+  );
 
   const onMore = useCallback(() => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
     fetcher.loadMore(filters, limit, loginContext);
-  }, [fetcher, filters, loginContext]);
+  }, [fetcher, filters, loginContextRaw]);
 
   useValueWithCallbacksEffect(
     showingFilters,

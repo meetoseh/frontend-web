@@ -4,6 +4,7 @@ import styles from './CrudPicker.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/contexts/LoginContext';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type CrudPickerProps<T> = {
   /**
@@ -86,7 +87,7 @@ export function CrudPicker<T extends { uid: string }>({
   doFocus = null,
   variant = 'down',
 }: CrudPickerProps<T>): ReactElement {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [focused, setFocused] = useState(false);
@@ -115,52 +116,62 @@ export function CrudPicker<T extends { uid: string }>({
     });
   }, [doFocus]);
 
-  useEffect(() => {
-    if (query === '' || disabled) {
-      setError(null);
-      setItems([]);
-      return;
-    }
-
-    let active = true;
-    let bonusCancellers: ((this: void) => void)[] = [];
-    fetchItems();
-    return () => {
-      active = false;
-      bonusCancellers.forEach((canceller) => {
-        canceller();
-      });
-    };
-
-    async function fetchItems() {
-      setError(null);
-
-      const fetchCanceller = fetcher.resetAndLoadWithCancelCallback(
-        filterMaker(query),
-        sort,
-        10,
-        loginContext,
-        async (e) => {
-          if (!active) {
-            return;
-          }
-          console.error('error fetching items', e);
-
-          if (e instanceof Response) {
-            const described = await describeErrorFromResponse(e);
-            if (!active) {
-              return;
-            }
-
-            setError(described);
-          } else {
-            setError(<>Could not connect to server. Check your internet connection.</>);
-          }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
         }
-      );
-      bonusCancellers.push(fetchCanceller);
-    }
-  }, [query, disabled, fetcher, filterMaker, loginContext, sort]);
+        const loginContext = loginContextUnch;
+        if (query === '' || disabled) {
+          setError(null);
+          setItems([]);
+          return;
+        }
+
+        let active = true;
+        let bonusCancellers: ((this: void) => void)[] = [];
+        fetchItems();
+        return () => {
+          active = false;
+          bonusCancellers.forEach((canceller) => {
+            canceller();
+          });
+        };
+
+        async function fetchItems() {
+          setError(null);
+
+          const fetchCanceller = fetcher.resetAndLoadWithCancelCallback(
+            filterMaker(query),
+            sort,
+            10,
+            loginContext,
+            async (e) => {
+              if (!active) {
+                return;
+              }
+              console.error('error fetching items', e);
+
+              if (e instanceof Response) {
+                const described = await describeErrorFromResponse(e);
+                if (!active) {
+                  return;
+                }
+
+                setError(described);
+              } else {
+                setError(<>Could not connect to server. Check your internet connection.</>);
+              }
+            }
+          );
+          bonusCancellers.push(fetchCanceller);
+        }
+      },
+      [query, disabled, fetcher, filterMaker, sort]
+    )
+  );
 
   useEffect(() => {
     if (containerRef.current === null) {

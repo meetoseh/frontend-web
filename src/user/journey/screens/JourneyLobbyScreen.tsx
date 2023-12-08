@@ -19,7 +19,7 @@ export const JourneyLobbyScreen = ({
   setScreen,
   onJourneyFinished,
 }: JourneyScreenProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const leavingCallback = useRef<(() => void) | null>(null);
   if (leavingCallback.current === undefined) {
     leavingCallback.current = null;
@@ -58,7 +58,7 @@ export const JourneyLobbyScreen = ({
         <div className={styles.content}>
           <JourneyPrompt
             journey={journey}
-            loginContext={loginContext}
+            loginContext={loginContextRaw}
             onFinished={gotoStart}
             leavingCallback={leavingCallback}
           />

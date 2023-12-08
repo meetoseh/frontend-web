@@ -42,15 +42,17 @@ export const IntroductoryJourneyBlock = ({
   onChanged,
   imageHandler,
 }: IntroductoryJourneyBlockProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [error, setError] = useState<ReactElement | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const onDelete = useCallback(async () => {
-    if (loginContext.state !== 'logged-in') {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
       setError(<>You need to login again.</>);
       return;
     }
+    const loginContext = loginContextUnch;
 
     setDeleting(true);
     setError(null);
@@ -73,7 +75,7 @@ export const IntroductoryJourneyBlock = ({
     } finally {
       setDeleting(false);
     }
-  }, [loginContext, onDeleted, journey]);
+  }, [loginContextRaw.value, onDeleted, journey]);
 
   return (
     <CrudItemBlock

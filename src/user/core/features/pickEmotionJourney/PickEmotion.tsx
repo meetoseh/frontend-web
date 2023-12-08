@@ -51,7 +51,11 @@ export const PickEmotion = ({
 }: FeatureComponentProps<PickEmotionJourneyState, PickEmotionJourneyResources> & {
   gotoJourney: () => void;
 }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
+  const givenNameVWC = useMappedValueWithCallbacks(loginContextRaw.value, (v) =>
+    v.state !== 'logged-in' ? null : v.userAttributes.givenName
+  );
+
   const selectedInfoVWC = useMappedValueWithCallbacks(
     resources,
     (r) => {
@@ -371,7 +375,12 @@ export const PickEmotion = ({
             </div>
             <div className={styles.settingsText}>
               <div className={styles.greeting}>
-                Hi {loginContext.userAttributes?.givenName ?? 'there'} 👋
+                Hi{' '}
+                <RenderGuardedComponent
+                  props={givenNameVWC}
+                  component={(givenName) => <>{givenName ?? 'there'}</>}
+                />{' '}
+                👋
               </div>
               <div className={styles.settingsLinkText}>Daily Check-in</div>
             </div>

@@ -9,13 +9,16 @@ import { ListLoginOptions } from './ListLoginOptions';
 import styles from './styles.module.css';
 import { RenderGuardedComponent } from '../../../../../shared/components/RenderGuardedComponent';
 import { Button } from '../../../../../shared/forms/Button';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 
 export const CreatedAndAttached = ({
   resources,
   state,
 }: FeatureComponentProps<ConfirmMergeAccountState, ConfirmMergeAccountResources>): ReactElement => {
-  const loginContext = useContext(LoginContext);
-  const givenName = loginContext.userAttributes?.givenName;
+  const loginContextRaw = useContext(LoginContext);
+  const givenNameVWC = useMappedValueWithCallbacks(loginContextRaw.value, (v) =>
+    v.state !== 'logged-in' ? undefined : v.userAttributes.givenName
+  );
   const closeDisabled = useWritableValueWithCallbacks(() => false);
   const onDismiss = useWritableValueWithCallbacks(() => () => {});
 
@@ -25,7 +28,12 @@ export const CreatedAndAttached = ({
       resources={resources}
       closeDisabled={closeDisabled}
       onDismiss={onDismiss}>
-      <div className={styles.title}>All set{givenName && <>, {givenName}</>}</div>
+      <div className={styles.title}>
+        <RenderGuardedComponent
+          props={givenNameVWC}
+          component={(givenName) => <>All set{givenName && <>, {givenName}</>}</>}
+        />
+      </div>
       <div className={styles.description}>
         Your <ListLoginOptions state={state} resources={resources} onlyMerging nullText="new" />{' '}
         identity is now connected with Oseh.

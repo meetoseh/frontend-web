@@ -14,9 +14,10 @@ import { apiFetch } from '../../../../../shared/ApiConstants';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { describeErrorFromResponse } from '../../../../../shared/forms/ErrorBlock';
 import { YesNoModal } from '../../../../../shared/components/YesNoModal';
+import { useValuesWithCallbacksEffect } from '../../../../../shared/hooks/useValuesWithCallbacksEffect';
 
 export const useHandleCancelSubscription = (
-  loginContext: LoginContextValue,
+  loginContextRaw: LoginContextValue,
   modalContext: ModalContextValue,
   errorVWC: WritableValueWithCallbacks<ReactElement | null>
 ): (() => void) => {
@@ -26,80 +27,98 @@ export const useHandleCancelSubscription = (
   const showCancelNoSubscriptionPromptVWC = useWritableValueWithCallbacks(() => false);
   const showCancelSuccessPromptVWC = useWritableValueWithCallbacks(() => false);
 
-  useValueWithCallbacksEffect(showCancelInitialPromptVWC, (showCancelInitialPrompt) => {
-    if (!showCancelInitialPrompt) {
-      return;
-    }
+  useValuesWithCallbacksEffect(
+    [loginContextRaw.value, showCancelInitialPromptVWC],
+    useCallback(() => {
+      const showCancelInitialPrompt = showCancelInitialPromptVWC.get();
+      const loginContextUnch = loginContextRaw.value.get();
+      if (!showCancelInitialPrompt || loginContextUnch.state !== 'logged-in') {
+        return undefined;
+      }
+      const loginContext = loginContextUnch;
 
-    const tryCancel = async () => {
-      try {
-        const response = await apiFetch(
-          '/api/1/users/me/subscription',
-          {
-            method: 'DELETE',
-          },
-          loginContext
-        );
+      const tryCancel = async () => {
+        try {
+          const response = await apiFetch(
+            '/api/1/users/me/subscription',
+            {
+              method: 'DELETE',
+            },
+            loginContext
+          );
 
-        if (!response.ok) {
-          throw response;
-        }
+          if (!response.ok) {
+            throw response;
+          }
 
-        setVWC(showCancelSuccessPromptVWC, true);
-      } catch (e) {
-        if (e instanceof TypeError) {
-          setVWC(errorVWC, <>Could not connect to server. Check your internet connection.</>);
-        } else if (e instanceof Response) {
-          if (e.status === 409) {
-            const body = await e.json();
-            console.log('conflict on cancel:', body);
-            if (body.type === 'no_active_subscription') {
-              setVWC(showCancelNoSubscriptionPromptVWC, true);
-            } else if (body.type === 'has_active_ios_subscription') {
-              setVWC(showCancelApplePromptVWC, true);
-            } else if (body.type === 'has_active_promotional_subscription') {
-              setVWC(showCancelPromoPromptVWC, true);
+          setVWC(showCancelSuccessPromptVWC, true);
+        } catch (e) {
+          if (e instanceof TypeError) {
+            setVWC(errorVWC, <>Could not connect to server. Check your internet connection.</>);
+          } else if (e instanceof Response) {
+            if (e.status === 409) {
+              const body = await e.json();
+              console.log('conflict on cancel:', body);
+              if (body.type === 'no_active_subscription') {
+                setVWC(showCancelNoSubscriptionPromptVWC, true);
+              } else if (body.type === 'has_active_ios_subscription') {
+                setVWC(showCancelApplePromptVWC, true);
+              } else if (body.type === 'has_active_promotional_subscription') {
+                setVWC(showCancelPromoPromptVWC, true);
+              } else {
+                console.error('unexpected 409 for deleting account:', body);
+                setVWC(
+                  errorVWC,
+                  <>
+                    Your subscription requires special handling in order to be canceled. Contact
+                    hi@oseh.com for assistance.
+                  </>
+                );
+              }
             } else {
-              console.error('unexpected 409 for deleting account:', body);
-              setVWC(
-                errorVWC,
-                <>
-                  Your subscription requires special handling in order to be canceled. Contact
-                  hi@oseh.com for assistance.
-                </>
-              );
+              console.error('unexpected response for deleting account:', e);
+              setVWC(errorVWC, await describeErrorFromResponse(e));
             }
           } else {
-            console.error('unexpected response for deleting account:', e);
-            setVWC(errorVWC, await describeErrorFromResponse(e));
+            console.error('unexpected error for deleting account:', e);
+            setVWC(
+              errorVWC,
+              <>An unexpected error occurred. Contact hi@oseh.com for assistance.</>
+            );
           }
-        } else {
-          console.error('unexpected error for deleting account:', e);
-          setVWC(errorVWC, <>An unexpected error occurred. Contact hi@oseh.com for assistance.</>);
+        } finally {
+          setVWC(showCancelInitialPromptVWC, false);
         }
-      } finally {
-        setVWC(showCancelInitialPromptVWC, false);
-      }
-    };
+      };
 
-    const requestDismiss = createWritableValueWithCallbacks<() => void>(() => {});
-    const onCancel = () => setVWC(showCancelInitialPromptVWC, false);
+      const requestDismiss = createWritableValueWithCallbacks<() => void>(() => {});
+      const onCancel = () => setVWC(showCancelInitialPromptVWC, false);
 
-    return addModalWithCallbackToRemove(
+      return addModalWithCallbackToRemove(
+        modalContext.modals,
+        <YesNoModal
+          title="Are you sure you want to unsubscribe from Oseh+?"
+          body="By unsubscribing, you will lose access to Oseh+."
+          cta1="Not Now"
+          cta2="Unsubscribe"
+          onClickOne={async () => requestDismiss.get()()}
+          onClickTwo={tryCancel}
+          onDismiss={onCancel}
+          emphasize={2}
+          requestDismiss={requestDismiss}
+        />
+      );
+    }, [
+      errorVWC,
+      loginContextRaw,
       modalContext.modals,
-      <YesNoModal
-        title="Are you sure you want to unsubscribe from Oseh+?"
-        body="By unsubscribing, you will lose access to Oseh+."
-        cta1="Not Now"
-        cta2="Unsubscribe"
-        onClickOne={async () => requestDismiss.get()()}
-        onClickTwo={tryCancel}
-        onDismiss={onCancel}
-        emphasize={2}
-        requestDismiss={requestDismiss}
-      />
-    );
-  });
+      showCancelInitialPromptVWC,
+      showCancelApplePromptVWC,
+      showCancelPromoPromptVWC,
+      showCancelNoSubscriptionPromptVWC,
+      showCancelSuccessPromptVWC,
+    ])
+  );
 
   useValueWithCallbacksEffect(showCancelApplePromptVWC, (showCancelApplePrompt) => {
     if (!showCancelApplePrompt) {

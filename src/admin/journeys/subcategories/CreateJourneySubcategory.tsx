@@ -23,7 +23,7 @@ type CreateJourneySubcategoryProps = {
 export const CreateJourneySubcategory = ({
   onCreated,
 }: CreateJourneySubcategoryProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [internalName, setInternalName] = useState('');
   const [externalName, setExternalName] = useState('');
   const [bias, setBias] = useState<{ str: string; num: number | undefined }>({
@@ -34,6 +34,12 @@ export const CreateJourneySubcategory = ({
   const [saving, setSaving] = useState(false);
 
   const save = useCallback(async () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+
     if (bias.num === undefined) {
       setError(<>Bias must be a number.</>);
       return;
@@ -79,7 +85,7 @@ export const CreateJourneySubcategory = ({
     } finally {
       setSaving(false);
     }
-  }, [internalName, externalName, loginContext, bias, onCreated]);
+  }, [internalName, externalName, loginContextRaw.value, bias, onCreated]);
 
   return (
     <CrudCreateBlock>

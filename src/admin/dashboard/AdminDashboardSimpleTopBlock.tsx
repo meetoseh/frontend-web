@@ -1,7 +1,8 @@
-import { ReactElement, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { AdminDashboardTopBlock } from './AdminDashboardTopBlock';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type AdminDashboardSimpleTopBlockProps = {
   /**
@@ -30,42 +31,49 @@ export const AdminDashboardSimpleTopBlock = ({
   path,
   label,
 }: AdminDashboardSimpleTopBlockProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [value, setValue] = useState(0);
 
-  useEffect(() => {
-    let active = true;
-    fetchValue();
-    return () => {
-      active = false;
-    };
-
-    async function fetchValue() {
-      if (loginContext.state !== 'logged-in') {
-        return;
-      }
-
-      const response = await apiFetch(path, {}, loginContext);
-      if (!active) {
-        return;
-      }
-
-      if (!response.ok) {
-        const text = await response.text();
-        if (!active) {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
           return;
         }
-        console.log("Couldn't fetch simple top block value", response, text);
-        return;
-      }
+        const loginContext = loginContextUnch;
 
-      const data = await response.json();
-      if (!active) {
-        return;
-      }
-      setValue(data.value);
-    }
-  }, [loginContext, path]);
+        let active = true;
+        fetchValue();
+        return () => {
+          active = false;
+        };
+
+        async function fetchValue() {
+          const response = await apiFetch(path, {}, loginContext);
+          if (!active) {
+            return;
+          }
+
+          if (!response.ok) {
+            const text = await response.text();
+            if (!active) {
+              return;
+            }
+            console.log("Couldn't fetch simple top block value", response, text);
+            return;
+          }
+
+          const data = await response.json();
+          if (!active) {
+            return;
+          }
+          setValue(data.value);
+        }
+      },
+      [path]
+    )
+  );
 
   return <AdminDashboardTopBlock iconClassName={iconClassName} value={value} label={label} />;
 };

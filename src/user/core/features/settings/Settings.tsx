@@ -29,10 +29,10 @@ export const Settings = ({
   state,
   resources,
 }: FeatureComponentProps<SettingsState, SettingsResources>) => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  const handleDeleteAccount = useHandleDeleteAccount(loginContext, modalContext, errorVWC);
+  const handleDeleteAccount = useHandleDeleteAccount(loginContextRaw, modalContext, errorVWC);
   const mergeError = useWritableValueWithCallbacks<ReactElement | null>(() => null);
 
   useErrorModal(modalContext.modals, errorVWC, 'settings');
@@ -62,8 +62,9 @@ export const Settings = ({
       text: 'Logout',
       key: 'logout',
       onClick: () => {
-        if (loginContext.state === 'logged-in') {
-          loginContext.setAuthTokens(null);
+        const loginContextUnch = loginContextRaw.value.get();
+        if (loginContextUnch.state === 'logged-in') {
+          loginContextRaw.setAuthTokens(null);
           state.get().setShow(false, true);
         }
         return new Promise(() => {});

@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import { LoginContext, LoginProvider } from '../shared/contexts/LoginContext';
 import { ModalProvider } from '../shared/contexts/ModalContext';
 import { SplashScreen } from './splash/SplashScreen';
@@ -14,6 +14,7 @@ import { useWritableValueWithCallbacks } from '../shared/lib/Callbacks';
 import { setVWC } from '../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../shared/hooks/useMappedValuesWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../shared/hooks/useValuesWithCallbacksEffect';
+import { useValueWithCallbacksEffect } from '../shared/hooks/useValueWithCallbacksEffect';
 
 export default function UserApp(): ReactElement {
   return (
@@ -41,7 +42,7 @@ const requiredFonts = [
  * to add loading fonts and showing a splash screen while loading
  */
 const UserAppInner = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const fontsLoaded = useFonts(requiredFonts);
   const features = useFeaturesState();
 
@@ -54,78 +55,88 @@ const UserAppInner = (): ReactElement => {
   const beenLoadedVWC = useWritableValueWithCallbacks<boolean>(() => false);
   const handlingCheckoutVWC = useWritableValueWithCallbacks<boolean>(() => true);
 
-  useEffect(() => {
-    let active = true;
-    checkCheckoutSuccess();
-    return () => {
-      active = false;
-    };
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        let active = true;
+        checkCheckoutSuccess();
+        return () => {
+          active = false;
+        };
 
-    async function checkCheckoutSuccess() {
-      if (loginContext.state === 'logged-out') {
-        setVWC(handlingCheckoutVWC, false);
-        return;
-      }
+        async function checkCheckoutSuccess() {
+          if (loginContextUnch.state === 'logged-out') {
+            setVWC(handlingCheckoutVWC, false);
+            return;
+          }
 
-      if (loginContext.state !== 'logged-in') {
-        return;
-      }
+          if (loginContextUnch.state !== 'logged-in') {
+            return;
+          }
 
-      const searchParams = new URLSearchParams(window.location.search);
-      if (!searchParams.has('checkout_uid')) {
-        setVWC(handlingCheckoutVWC, false);
-        return;
-      }
+          const searchParams = new URLSearchParams(window.location.search);
+          if (!searchParams.has('checkout_uid')) {
+            setVWC(handlingCheckoutVWC, false);
+            return;
+          }
 
-      setVWC(handlingCheckoutVWC, true);
-      try {
-        const uid = searchParams.get('checkout_uid');
+          setVWC(handlingCheckoutVWC, true);
+          try {
+            const uid = searchParams.get('checkout_uid');
 
-        await apiFetch(
-          '/api/1/users/me/checkout/stripe/finish',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-            },
-            body: JSON.stringify({
-              checkout_uid: uid,
-            }),
-            keepalive: true,
-          },
-          loginContext
-        );
+            await apiFetch(
+              '/api/1/users/me/checkout/stripe/finish',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                },
+                body: JSON.stringify({
+                  checkout_uid: uid,
+                }),
+                keepalive: true,
+              },
+              loginContextUnch
+            );
 
-        const newParams = new URLSearchParams(window.location.search);
-        newParams.delete('checkout_uid');
-        newParams.delete('checkout_success');
-        window.history.replaceState(
-          {},
-          document.title,
-          `${window.location.pathname}?${newParams.toString()}`
-        );
-      } finally {
-        if (active) {
-          setVWC(handlingCheckoutVWC, false);
+            const newParams = new URLSearchParams(window.location.search);
+            newParams.delete('checkout_uid');
+            newParams.delete('checkout_success');
+            window.history.replaceState(
+              {},
+              document.title,
+              `${window.location.pathname}?${newParams.toString()}`
+            );
+          } finally {
+            if (active) {
+              setVWC(handlingCheckoutVWC, false);
+            }
+          }
         }
+      },
+      [handlingCheckoutVWC]
+    )
+  );
+
+  useValuesWithCallbacksEffect(
+    [loginContextRaw.value, handlingCheckoutVWC, features],
+    useCallback((): undefined => {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state === 'loading' || !fontsLoaded || handlingCheckoutVWC.get()) {
+        setVWC(stateVWC, 'loading');
+        return;
       }
-    }
-  }, [loginContext, handlingCheckoutVWC]);
 
-  useValuesWithCallbacksEffect([handlingCheckoutVWC, features], (): undefined => {
-    if (loginContext.state === 'loading' || !fontsLoaded || handlingCheckoutVWC.get()) {
-      setVWC(stateVWC, 'loading');
-      return;
-    }
+      if (features.get() === undefined) {
+        setVWC(stateVWC, 'loading');
+        return;
+      }
 
-    if (features.get() === undefined) {
-      setVWC(stateVWC, 'loading');
-      return;
-    }
-
-    setVWC(beenLoadedVWC, true);
-    setVWC(stateVWC, 'features');
-  });
+      setVWC(beenLoadedVWC, true);
+      setVWC(stateVWC, 'features');
+    }, [loginContextRaw.value, fontsLoaded, handlingCheckoutVWC, features, beenLoadedVWC, stateVWC])
+  );
 
   const splashTypeVWC = useMappedValuesWithCallbacks(
     [flashWhiteInsteadOfSplashVWC, beenLoadedVWC],

@@ -182,7 +182,7 @@ export const FastUnsubscribeLoggedIn = ({
     [resources]
   );
 
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   return (
     <div className={styles.container} ref={containerRef}>
@@ -193,8 +193,19 @@ export const FastUnsubscribeLoggedIn = ({
         </div>
         <div className={styles.content}>
           <div className={styles.subtitle}>
-            <div>{loginContext?.userAttributes?.name}</div>
-            <div>{loginContext?.userAttributes?.email}</div>
+            <RenderGuardedComponent
+              props={loginContextRaw.value}
+              component={(v) =>
+                v.state === 'logged-in' ? (
+                  <>
+                    <div>{v.userAttributes.name}</div>
+                    <div>{v.userAttributes.email}</div>
+                  </>
+                ) : (
+                  <></>
+                )
+              }
+            />
           </div>
           <div className={styles.title}>Daily Notifications</div>
           <div className={styles.section}>
@@ -232,10 +243,17 @@ const unsubscribeByUID = async (
   removed: WritableValueWithCallbacks<boolean>,
   error: WritableValueWithCallbacks<ReactElement | null>,
   uid: string | undefined,
-  loginContext: LoginContextValue,
+  loginContextRaw: LoginContextValue,
   e: React.MouseEvent<HTMLButtonElement>
 ) => {
   e.preventDefault();
+
+  const loginContextUnch = loginContextRaw.value.get();
+  if (loginContextUnch.state !== 'logged-in') {
+    setVWC(error, <>You need to login again.</>);
+    return;
+  }
+  const loginContext = loginContextUnch;
 
   setVWC(saving, true);
   setVWC(error, null);
@@ -312,12 +330,12 @@ const UnsubscribeSMS = ({ sms }: { sms: DailyReminderSMSItem | null }): ReactEle
   const saving = useWritableValueWithCallbacks<boolean>(() => false);
   const removed = useWritableValueWithCallbacks<boolean>(() => false);
   const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   const unsubscribe = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) =>
-      unsubscribeByUID(saving, removed, error, sms?.uid, loginContext, e),
-    [error, loginContext, removed, saving, sms]
+      unsubscribeByUID(saving, removed, error, sms?.uid, loginContextRaw, e),
+    [error, loginContextRaw, removed, saving, sms]
   );
 
   useErrorModal(modals.modals, error, 'sms unsubscribe');
@@ -349,12 +367,12 @@ const UnsubscribeEmail = ({ email }: { email: DailyReminderEmailItem | null }): 
   const saving = useWritableValueWithCallbacks<boolean>(() => false);
   const removed = useWritableValueWithCallbacks<boolean>(() => false);
   const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   const unsubscribe = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) =>
-      unsubscribeByUID(saving, removed, error, email?.uid, loginContext, e),
-    [error, loginContext, removed, saving, email]
+      unsubscribeByUID(saving, removed, error, email?.uid, loginContextRaw, e),
+    [error, loginContextRaw, removed, saving, email]
   );
 
   useErrorModal(modals.modals, error, 'email unsubscribe');
@@ -378,12 +396,12 @@ const UnsubscribePush = ({ push }: { push: DailyReminderPushItem | null }): Reac
   const saving = useWritableValueWithCallbacks<boolean>(() => false);
   const removed = useWritableValueWithCallbacks<boolean>(() => false);
   const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   const unsubscribe = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) =>
-      unsubscribeByUID(saving, removed, error, push?.uid, loginContext, e),
-    [error, loginContext, removed, saving, push]
+      unsubscribeByUID(saving, removed, error, push?.uid, loginContextRaw, e),
+    [error, loginContextRaw, removed, saving, push]
   );
 
   useErrorModal(modals.modals, error, 'push unsubscribe');

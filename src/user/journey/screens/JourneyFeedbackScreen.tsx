@@ -35,7 +35,7 @@ export const JourneyFeedbackScreen = ({
   shared,
   setScreen,
 }: JourneyScreenProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const responseVWC = useWritableValueWithCallbacks<number | null>(() => null);
   const emojiStatesVWCs = useMemo(
     () =>
@@ -186,9 +186,11 @@ export const JourneyFeedbackScreen = ({
 
   const storeResponse = useCallback(async () => {
     const response = responseVWC.get();
-    if (response === null || loginContext.state !== 'logged-in') {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (response === null || loginContextUnch.state !== 'logged-in') {
       return;
     }
+    const loginContext = loginContextUnch;
 
     const resp = await apiFetch(
       '/api/1/journeys/feedback',
@@ -212,7 +214,7 @@ export const JourneyFeedbackScreen = ({
     if (!resp.ok) {
       console.warn('Failed to store feedback response', resp);
     }
-  }, [loginContext, responseVWC, journey.uid, journey.jwt]);
+  }, [loginContextRaw, responseVWC, journey.uid, journey.jwt]);
 
   const onX = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {

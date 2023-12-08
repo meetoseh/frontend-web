@@ -59,8 +59,13 @@ const settings: PromptSettings<InteractiveNumericPrompt, number | null> = {
     }
     return result;
   },
-  storeResponse: async (loginContext, prompt, time, response, index) => {
+  storeResponse: async (loginContextRaw, prompt, time, response, index) => {
     if (index === null) {
+      return;
+    }
+
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
       return;
     }
 
@@ -80,7 +85,7 @@ const settings: PromptSettings<InteractiveNumericPrompt, number | null> = {
         }),
         keepalive: true,
       },
-      loginContext
+      loginContextUnch
     );
   },
 };

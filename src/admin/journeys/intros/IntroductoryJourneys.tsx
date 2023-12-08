@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { Crud } from '../../crud/Crud';
 import { CrudFetcher, CrudFetcherFilter, CrudFetcherSort } from '../../crud/CrudFetcher';
@@ -7,6 +7,7 @@ import { CreateIntroductoryJourney } from './CreateIntroductoryJourney';
 import { IntroductoryJourney, keyMap } from './IntroductoryJourney';
 import { IntroductoryJourneyBlock } from './IntroductoryJourneyBlock';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 const path = '/api/1/journeys/introductory/search';
 const limit = 8;
@@ -20,7 +21,7 @@ const defaultSort: CrudFetcherSort = [];
  * getting thrown into the current daily event.
  */
 export const IntroductoryJourneys = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [journeys, setJourneys] = useState<IntroductoryJourney[]>([]);
   const [loading, setLoading] = useState(true);
   const [haveMore, setHaveMore] = useState(false);
@@ -66,22 +67,33 @@ export const IntroductoryJourneys = (): ReactElement => {
     []
   );
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-    return fetcher.resetAndLoadWithCancelCallback(
-      filters,
-      sort,
-      limit,
-      loginContext,
-      console.error
-    );
-  }, [fetcher, filters, sort, loginContext]);
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContext) => {
+        if (loginContext.state !== 'logged-in') {
+          return;
+        }
+        return fetcher.resetAndLoadWithCancelCallback(
+          filters,
+          sort,
+          limit,
+          loginContext,
+          console.error
+        );
+      },
+      [fetcher, filters, sort]
+    )
+  );
 
   const onMore = useCallback(() => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
     fetcher.loadMore(filters, limit, loginContext);
-  }, [fetcher, filters, loginContext]);
+  }, [fetcher, filters, loginContextRaw.value]);
 
   return (
     <Crud

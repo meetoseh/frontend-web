@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import { describeError } from '../../../shared/forms/ErrorBlock';
 import styles from './JourneyPostScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
@@ -16,6 +16,8 @@ import { useToggleFavorited } from '../hooks/useToggleFavorited';
 import { InlineOsehSpinner } from '../../../shared/components/InlineOsehSpinner';
 import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../shared/contexts/ModalContext';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 
 type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 const DAYS_OF_WEEK: DayOfWeek[] = [
@@ -66,62 +68,69 @@ export const JourneyPostScreen = ({
    */
   overrideOnContinue?: () => void;
 }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const streakVWC = useWritableValueWithCallbacks<StreakInfo | null>(() => null);
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
+        }
+        const loginContext = loginContextUnch;
 
-    let active = true;
-    fetchStreak();
-    return () => {
-      active = false;
-    };
+        let active = true;
+        fetchStreak();
+        return () => {
+          active = false;
+        };
 
-    async function fetchStreak() {
-      setVWC(errorVWC, null);
-      try {
-        const response = await apiFetch(
-          '/api/1/users/me/streak',
-          {
-            method: 'GET',
-          },
-          loginContext
-        );
-        if (!active) {
-          return;
+        async function fetchStreak() {
+          setVWC(errorVWC, null);
+          try {
+            const response = await apiFetch(
+              '/api/1/users/me/streak',
+              {
+                method: 'GET',
+              },
+              loginContext
+            );
+            if (!active) {
+              return;
+            }
+            if (!response.ok) {
+              throw response;
+            }
+            const data: {
+              streak: number;
+              days_of_week: DayOfWeek[];
+              goal_days_per_week: number | null;
+            } = await response.json();
+            if (!active) {
+              return;
+            }
+            setVWC(streakVWC, {
+              streak: data.streak,
+              daysOfWeek: data.days_of_week,
+              goalDaysPerWeek: data.goal_days_per_week,
+            });
+          } catch (e) {
+            if (!active) {
+              return;
+            }
+            const err = await describeError(e);
+            if (!active) {
+              return;
+            }
+            setVWC(errorVWC, err);
+          }
         }
-        if (!response.ok) {
-          throw response;
-        }
-        const data: {
-          streak: number;
-          days_of_week: DayOfWeek[];
-          goal_days_per_week: number | null;
-        } = await response.json();
-        if (!active) {
-          return;
-        }
-        setVWC(streakVWC, {
-          streak: data.streak,
-          daysOfWeek: data.days_of_week,
-          goalDaysPerWeek: data.goal_days_per_week,
-        });
-      } catch (e) {
-        if (!active) {
-          return;
-        }
-        const err = await describeError(e);
-        if (!active) {
-          return;
-        }
-        setVWC(errorVWC, err);
-      }
-    }
-  }, [loginContext, errorVWC, streakVWC]);
+      },
+      [errorVWC, streakVWC]
+    )
+  );
 
   const onContinue = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -157,82 +166,82 @@ export const JourneyPostScreen = ({
 
   const blurredImage = useMappedValueWithCallbacks(shared, (s) => s.blurredImage);
 
-  const userIdentifier = (() => {
-    if (
-      loginContext.userAttributes === null ||
-      loginContext.userAttributes.givenName === 'Anonymous'
-    ) {
-      return null;
+  const userIdentifierVWC = useMappedValueWithCallbacks(
+    loginContextRaw.value,
+    (loginContextUnch) => {
+      if (
+        loginContextUnch.state !== 'logged-in' ||
+        loginContextUnch.userAttributes.givenName === 'Anonymous'
+      ) {
+        return null;
+      }
+
+      return loginContextUnch.userAttributes.givenName;
     }
+  );
 
-    return loginContext.userAttributes.givenName;
-  })();
+  const titleVWC = useMappedValuesWithCallbacks(
+    [userIdentifierVWC, streakVWC],
+    useCallback((): ReactElement => {
+      const userIdentifier = userIdentifierVWC.get();
+      const streak = streakVWC.get();
+      if (streak === null) {
+        return <InlineOsehSpinner size={{ type: 'react-rerender', props: { height: 24 } }} />;
+      }
 
-  const titleVWC = useMappedValueWithCallbacks(
-    streakVWC,
-    useCallback(
-      (streak): ReactElement => {
-        if (streak === null) {
-          return <InlineOsehSpinner size={{ type: 'react-rerender', props: { height: 24 } }} />;
-        }
+      if (isOnboarding) {
+        return <>{userIdentifier ? `${userIdentifier}, h` : 'H'}igh-five on your first class!</>;
+      }
 
-        if (isOnboarding) {
-          return <>{userIdentifier ? `${userIdentifier}, h` : 'H'}igh-five on your first class!</>;
-        }
-
-        if (streak.streak === 1) {
-          if (classesTakenToday === 3) {
-            return (
-              <>
-                Fantastic work{userIdentifier ? `, ${userIdentifier}` : ''}&#8212;but you
-                don&rsquo;t need to do it all today!
-              </>
-            );
-          }
-          return <>{userIdentifier ? `${userIdentifier}, h` : 'H'}igh-five on your new streak!</>;
-        }
-
-        if (streak.streak === 2) {
-          return <>Lift-off{userIdentifier ? `, ${userIdentifier}` : ''} 🚀 Keep it up!</>;
-        }
-
-        if (streak.streak === 3) {
+      if (streak.streak === 1) {
+        if (classesTakenToday === 3) {
           return (
             <>
-              Congratulations on making it to day {streak.streak}
-              {userIdentifier ? `, ${userIdentifier}` : ''}!
+              Fantastic work{userIdentifier ? `, ${userIdentifier}` : ''}&#8212;but you don&rsquo;t
+              need to do it all today!
             </>
           );
         }
-
-        if (
-          streak.streak === 5 &&
-          streak.daysOfWeek.includes('Monday') &&
-          streak.daysOfWeek.includes('Friday')
-        ) {
-          return <>A clean streak this week{userIdentifier ? `, ${userIdentifier}` : ''}! 🎉</>;
-        }
-
-        if (streak.streak < 7) {
-          return <>{userIdentifier}, you&rsquo;re on a roll!</>;
-        }
-
-        if (streak.streak === 7) {
-          return (
-            <>
-              A full week&#8212;exceptional work{userIdentifier ? `, ${userIdentifier}!` : '!'} 😎
-            </>
-          );
-        }
-
-        if ([30, 50, 100, 200, 365, 500, 1000].includes(streak.streak)) {
-          return <>You&rsquo;re on fire{userIdentifier ? `, ${userIdentifier}` : ''} 🔥</>;
-        }
-
         return <>{userIdentifier ? `${userIdentifier}, h` : 'H'}igh-five on your new streak!</>;
-      },
-      [isOnboarding, userIdentifier, classesTakenToday]
-    )
+      }
+
+      if (streak.streak === 2) {
+        return <>Lift-off{userIdentifier ? `, ${userIdentifier}` : ''} 🚀 Keep it up!</>;
+      }
+
+      if (streak.streak === 3) {
+        return (
+          <>
+            Congratulations on making it to day {streak.streak}
+            {userIdentifier ? `, ${userIdentifier}` : ''}!
+          </>
+        );
+      }
+
+      if (
+        streak.streak === 5 &&
+        streak.daysOfWeek.includes('Monday') &&
+        streak.daysOfWeek.includes('Friday')
+      ) {
+        return <>A clean streak this week{userIdentifier ? `, ${userIdentifier}` : ''}! 🎉</>;
+      }
+
+      if (streak.streak < 7) {
+        return <>{userIdentifier}, you&rsquo;re on a roll!</>;
+      }
+
+      if (streak.streak === 7) {
+        return (
+          <>A full week&#8212;exceptional work{userIdentifier ? `, ${userIdentifier}!` : '!'} 😎</>
+        );
+      }
+
+      if ([30, 50, 100, 200, 365, 500, 1000].includes(streak.streak)) {
+        return <>You&rsquo;re on fire{userIdentifier ? `, ${userIdentifier}` : ''} 🔥</>;
+      }
+
+      return <>{userIdentifier ? `${userIdentifier}, h` : 'H'}igh-five on your new streak!</>;
+    }, [isOnboarding, userIdentifierVWC, streakVWC, classesTakenToday])
   );
 
   const goalTextVWC = useMappedValueWithCallbacks(

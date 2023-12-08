@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
@@ -8,6 +8,7 @@ import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { JourneyAudioContent } from './audio_contents/JourneyAudioContent';
 import { keyMap as journeyAudioContentKeyMap } from './audio_contents/JourneyAudioContents';
 import styles from './CreateJourneyChooseAudioContent.module.css';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type CreateJourneyChooseAudioContentProps = {
   /**
@@ -19,84 +20,88 @@ type CreateJourneyChooseAudioContentProps = {
 export const CreateJourneyChooseAudioContent = ({
   onSelected,
 }: CreateJourneyChooseAudioContentProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<JourneyAudioContent[]>([]);
   const [error, setError] = useState<ReactElement | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    fetchItems();
-    return () => {
-      active = false;
-    };
-
-    async function fetchItems() {
-      setError(null);
-      if (loginContext.state !== 'logged-in') {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
+      if (loginContextUnch.state !== 'logged-in') {
         return;
       }
+      const loginContext = loginContextUnch;
 
-      setLoading(true);
-      try {
-        let response: Response;
+      let active = true;
+      fetchItems();
+      return () => {
+        active = false;
+      };
+
+      async function fetchItems() {
+        setError(null);
+        setLoading(true);
         try {
-          response = await apiFetch(
-            '/api/1/journeys/audio_contents/search',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json; charset=utf-8' },
-              body: JSON.stringify({
-                sort: [
-                  {
-                    key: 'last_uploaded_at',
-                    dir: 'desc',
-                  },
-                ],
-                limit: 6,
-              }),
-            },
-            loginContext
+          let response: Response;
+          try {
+            response = await apiFetch(
+              '/api/1/journeys/audio_contents/search',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                  sort: [
+                    {
+                      key: 'last_uploaded_at',
+                      dir: 'desc',
+                    },
+                  ],
+                  limit: 6,
+                }),
+              },
+              loginContext
+            );
+          } catch (e) {
+            if (!active) {
+              return;
+            }
+            console.error(e);
+            setError(<>Failed to connect to server. Check your internet connection.</>);
+            return;
+          }
+
+          if (!active) {
+            return;
+          }
+
+          if (!response.ok) {
+            const err = await describeErrorFromResponse(response);
+            if (!active) {
+              return;
+            }
+            setError(err);
+            return;
+          }
+
+          const raw: { items: any[] } = await response.json();
+          if (!active) {
+            return;
+          }
+
+          const items: JourneyAudioContent[] = raw.items.map((item) =>
+            convertUsingKeymap(item, journeyAudioContentKeyMap)
           );
+          setItems(items);
         } catch (e) {
-          if (!active) {
-            return;
-          }
           console.error(e);
-          setError(<>Failed to connect to server. Check your internet connection.</>);
-          return;
+          setError(<>An unexpected error occurred. Contact support.</>);
+        } finally {
+          setLoading(false);
         }
-
-        if (!active) {
-          return;
-        }
-
-        if (!response.ok) {
-          const err = await describeErrorFromResponse(response);
-          if (!active) {
-            return;
-          }
-          setError(err);
-          return;
-        }
-
-        const raw: { items: any[] } = await response.json();
-        if (!active) {
-          return;
-        }
-
-        const items: JourneyAudioContent[] = raw.items.map((item) =>
-          convertUsingKeymap(item, journeyAudioContentKeyMap)
-        );
-        setItems(items);
-      } catch (e) {
-        console.error(e);
-        setError(<>An unexpected error occurred. Contact support.</>);
-      } finally {
-        setLoading(false);
       }
-    }
-  }, [loginContext]);
+    }, [])
+  );
 
   return (
     <div className={styles.container}>

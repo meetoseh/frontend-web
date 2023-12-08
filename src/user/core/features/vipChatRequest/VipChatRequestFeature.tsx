@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect } from 'react';
+import { useCallback, useContext } from 'react';
 import { Feature } from '../../models/Feature';
 import { VipChatRequestResources } from './VipChatRequestResources';
 import { VipChatRequestState, VipChatRequest, convertVipChatRequest } from './VipChatRequestState';
@@ -8,10 +8,11 @@ import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWin
 import { VipChatRequestComponent } from './VipChatRequestComponent';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
+import { setVWC } from '../../../../shared/lib/setVWC';
 
 /**
  * Determines when we last showed the vip chat request for the user with the
@@ -64,144 +65,154 @@ export const VipChatRequestFeature: Feature<VipChatRequestState, VipChatRequestR
   identifier: 'vipChatRequest',
 
   useWorldState() {
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
     const chatRequest = useWritableValueWithCallbacks<{
       sub: string;
       request: VipChatRequest | null;
     } | null>(() => null);
     const lastSeenAt = useWritableValueWithCallbacks<Date | null>(() => null);
 
-    useEffect(() => {
-      if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null) {
-        setLastSeenAt(null);
-        return;
-      }
-
-      setLastSeenAt(getLastShownAt(loginContext.userAttributes.sub));
-
-      function setLastSeenAt(v: Date | null) {
-        if (v === lastSeenAt.get()) {
-          return;
-        }
-
-        lastSeenAt.set(v);
-        lastSeenAt.callbacks.call(undefined);
-      }
-    }, [loginContext, lastSeenAt]);
-
-    useEffect(() => {
-      let removeHandler: (() => void) | null = null;
-      lastSeenAt.callbacks.add(handleLastSeenAtChanged);
-      handleLastSeenAtChanged();
-      return () => {
-        if (removeHandler !== null) {
-          removeHandler();
-          removeHandler = null;
-        }
-        lastSeenAt.callbacks.remove(handleLastSeenAtChanged);
-      };
-
-      function handleLastSeenAtChanged() {
-        if (removeHandler !== null) {
-          removeHandler();
-          removeHandler = null;
-        }
-
-        if (loginContext.state !== 'logged-in') {
-          setChatRequest(null);
-          return;
-        }
-
-        const sub = loginContext.userAttributes?.sub ?? null;
-        if (sub === null) {
-          setChatRequest(null);
-          return;
-        }
-
-        const old = chatRequest.get();
-        if (old !== null && old.sub === sub) {
-          return;
-        }
-
-        removeHandler = handleLastSeenAt(lastSeenAt.get()) ?? null;
-      }
-
-      function handleLastSeenAt(lastSeenAt: Date | null): (() => void) | undefined {
-        if (loginContext.state !== 'logged-in') {
-          setChatRequest(null);
-          return;
-        }
-
-        if (
-          lastSeenAt !== null &&
-          lastSeenAt.getTime() + 1000 * 60 * 60 * 24 * 3 > new Date().getTime()
-        ) {
-          setChatRequest(null);
-          return;
-        }
-
-        let active = true;
-        fetchChatRequest();
-        return () => {
-          active = false;
-        };
-
-        async function fetchChatRequestInner(): Promise<VipChatRequest | null> {
-          const response = await apiFetch(
-            '/api/1/vip_chat_requests/mine',
-            {
-              method: 'GET',
-            },
-            loginContext
-          );
-
-          if (response.status === 204) {
-            return null;
+    useValueWithCallbacksEffect(
+      loginContextRaw.value,
+      useCallback(
+        (loginContextUnch) => {
+          if (loginContextUnch.state !== 'logged-in') {
+            setLastSeenAt(null);
+            return;
           }
+          const loginContext = loginContextUnch;
 
-          if (!response.ok) {
-            throw response;
-          }
+          setLastSeenAt(getLastShownAt(loginContext.userAttributes.sub));
+          return undefined;
 
-          const data = await response.json();
-          return convertVipChatRequest(data);
-        }
-
-        async function fetchChatRequest() {
-          try {
-            const req = await fetchChatRequestInner();
-            if (active) {
-              setChatRequest(req);
+          function setLastSeenAt(v: Date | null) {
+            if (v === lastSeenAt.get()) {
+              return;
             }
-          } catch (e) {
-            if (active) {
-              console.error('error fetching vip chat request', e);
+
+            lastSeenAt.set(v);
+            lastSeenAt.callbacks.call(undefined);
+          }
+        },
+        [lastSeenAt]
+      )
+    );
+
+    useValueWithCallbacksEffect(
+      loginContextRaw.value,
+      useCallback(
+        (loginContextUnch) => {
+          let removeHandler: (() => void) | null = null;
+          lastSeenAt.callbacks.add(handleLastSeenAtChanged);
+          handleLastSeenAtChanged();
+          return () => {
+            if (removeHandler !== null) {
+              removeHandler();
+              removeHandler = null;
+            }
+            lastSeenAt.callbacks.remove(handleLastSeenAtChanged);
+          };
+
+          function handleLastSeenAtChanged() {
+            if (removeHandler !== null) {
+              removeHandler();
+              removeHandler = null;
+            }
+
+            if (loginContextUnch.state !== 'logged-in') {
               setChatRequest(null);
+              return;
+            }
+
+            const sub = loginContextUnch.userAttributes.sub;
+            const old = chatRequest.get();
+            if (old !== null && old.sub === sub) {
+              return;
+            }
+
+            removeHandler = handleLastSeenAt(lastSeenAt.get()) ?? null;
+          }
+
+          function handleLastSeenAt(lastSeenAt: Date | null): (() => void) | undefined {
+            if (loginContextUnch.state !== 'logged-in') {
+              setChatRequest(null);
+              return;
+            }
+            const loginContext = loginContextUnch;
+
+            if (
+              lastSeenAt !== null &&
+              lastSeenAt.getTime() + 1000 * 60 * 60 * 24 * 3 > new Date().getTime()
+            ) {
+              setChatRequest(null);
+              return;
+            }
+
+            let active = true;
+            fetchChatRequest();
+            return () => {
+              active = false;
+            };
+
+            async function fetchChatRequestInner(): Promise<VipChatRequest | null> {
+              const response = await apiFetch(
+                '/api/1/vip_chat_requests/mine',
+                {
+                  method: 'GET',
+                },
+                loginContext
+              );
+
+              if (response.status === 204) {
+                return null;
+              }
+
+              if (!response.ok) {
+                throw response;
+              }
+
+              const data = await response.json();
+              return convertVipChatRequest(data);
+            }
+
+            async function fetchChatRequest() {
+              try {
+                const req = await fetchChatRequestInner();
+                if (active) {
+                  setChatRequest(req);
+                }
+              } catch (e) {
+                if (active) {
+                  console.error('error fetching vip chat request', e);
+                  setChatRequest(null);
+                }
+              }
             }
           }
-        }
-      }
 
-      function setChatRequest(req: VipChatRequest | null) {
-        const sub = loginContext.userAttributes?.sub ?? null;
-        if (sub === null) {
-          if (chatRequest.get() !== null) {
-            chatRequest.set(null);
-            chatRequest.callbacks.call(undefined);
+          function setChatRequest(req: VipChatRequest | null) {
+            if (loginContextUnch.state !== 'logged-in') {
+              setVWC(chatRequest, null);
+              return;
+            }
+
+            const sub = loginContextUnch.userAttributes.sub;
+            const old = chatRequest.get();
+            if (old === null || old.sub !== sub || old.request !== req) {
+              chatRequest.set({ sub, request: req });
+              chatRequest.callbacks.call(undefined);
+            }
           }
-          return;
-        }
+        },
+        [lastSeenAt, chatRequest]
+      )
+    );
 
-        const old = chatRequest.get();
-        if (old === null || old.sub !== sub || old.request !== req) {
-          chatRequest.set({ sub, request: req });
-          chatRequest.callbacks.call(undefined);
-        }
-      }
-    }, [loginContext, lastSeenAt, chatRequest]);
+    const onDone = useCallback(() => {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state === 'logged-in') {
+        const loginContext = loginContextUnch;
 
-    const onDoneRaw = useCallback(() => {
-      if (loginContext.userAttributes?.sub) {
         const now = new Date();
         storeLastShownAt(loginContext.userAttributes.sub, now);
         lastSeenAt.set(now);
@@ -209,15 +220,17 @@ export const VipChatRequestFeature: Feature<VipChatRequestState, VipChatRequestR
         chatRequest.set({ sub: loginContext.userAttributes.sub, request: null });
         chatRequest.callbacks.call(undefined);
       }
-    }, [loginContext.userAttributes?.sub, lastSeenAt, chatRequest]);
-    const onDoneVWC = useReactManagedValueAsValueWithCallbacks(onDoneRaw);
+    }, [loginContextRaw, lastSeenAt, chatRequest]);
 
     return useMappedValuesWithCallbacks(
-      [chatRequest, onDoneVWC],
-      (): VipChatRequestState => ({
-        chatRequest: chatRequest.get()?.request ?? null,
-        onDone: onDoneVWC.get(),
-      })
+      [chatRequest],
+      useCallback(
+        (): VipChatRequestState => ({
+          chatRequest: chatRequest.get()?.request ?? null,
+          onDone,
+        }),
+        [onDone, chatRequest]
+      )
     );
   },
 

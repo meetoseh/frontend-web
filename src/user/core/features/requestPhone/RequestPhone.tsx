@@ -31,7 +31,7 @@ export const RequestPhone = ({
   state,
   resources,
 }: FeatureComponentProps<RequestPhoneState, RequestPhoneResources>): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const interests = useContext(InterestsContext);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
@@ -124,10 +124,12 @@ export const RequestPhone = ({
   const onStartPhone = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (loginContext.state !== 'logged-in') {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
         setVWC(error, <>You need to be logged in to do that.</>);
         return;
       }
+      const loginContext = loginContextUnch;
 
       if (!phoneFormatCorrect.get()) {
         const focusPhoneFn = focusPhone.get();
@@ -177,7 +179,7 @@ export const RequestPhone = ({
       }
     },
     [
-      loginContext,
+      loginContextRaw,
       phoneFormatCorrect,
       focusPhone,
       phone,
@@ -195,10 +197,12 @@ export const RequestPhone = ({
   const onVerifyPhone = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (loginContext.state !== 'logged-in') {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
         setVWC(error, <>You need to be logged in to do that.</>);
         return;
       }
+      const loginContext = loginContextUnch;
 
       const phoneNumber = phone.get().replaceAll(/ - /g, '');
 
@@ -223,10 +227,16 @@ export const RequestPhone = ({
           throw response;
         }
 
-        await loginContext.setUserAttributes({
-          ...loginContext.userAttributes!,
-          phoneNumber,
-        });
+        const latestContext = loginContextRaw.value.get();
+        if (
+          latestContext.state === 'logged-in' &&
+          latestContext.userAttributes.sub === loginContext.userAttributes.sub
+        ) {
+          await loginContextRaw.setUserAttributes({
+            ...latestContext.userAttributes,
+            phoneNumber,
+          });
+        }
         resources.get().session?.storeAction?.call(undefined, 'verify_success', null);
         setVWC(step, 'done');
       } catch (e) {
@@ -238,7 +248,7 @@ export const RequestPhone = ({
         setVWC(saving, false);
       }
     },
-    [loginContext, code, phone, verificationUid, resources, error, saving, step]
+    [loginContextRaw, code, phone, verificationUid, resources, error, saving, step]
   );
 
   const onSkipPhone = useCallback(

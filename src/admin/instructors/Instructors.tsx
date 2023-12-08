@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { Crud } from '../crud/Crud';
 import {
@@ -17,6 +17,7 @@ import {
   InstructorFilterAndSortBlock,
 } from './InstructorFilterAndSortBlock';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 const limit = 6;
 const path = '/api/1/instructors/search';
@@ -30,7 +31,7 @@ export const keyMap: CrudFetcherKeyMap<Instructor> = {
  * Shows the crud components for instructors
  */
 export const Instructors = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [items, setItems] = useState<Instructor[]>([]);
   const [filters, setFilters] = useState<CrudFetcherFilter>(defaultFilter);
   const [sort, setSort] = useState<CrudFetcherSort>(defaultSort);
@@ -43,22 +44,34 @@ export const Instructors = (): ReactElement => {
     []
   );
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-    return fetcher.resetAndLoadWithCancelCallback(
-      filters,
-      sort,
-      limit,
-      loginContext,
-      console.error
-    );
-  }, [fetcher, filters, sort, loginContext]);
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContext) => {
+        if (loginContext.state !== 'logged-in') {
+          return;
+        }
+        return fetcher.resetAndLoadWithCancelCallback(
+          filters,
+          sort,
+          limit,
+          loginContext,
+          console.error
+        );
+      },
+      [fetcher, filters, sort]
+    )
+  );
 
   const onMore = useCallback(() => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+
     fetcher.loadMore(filters, limit, loginContext);
-  }, [fetcher, filters, loginContext]);
+  }, [fetcher, filters, loginContextRaw]);
 
   const onInstructorCreated = useCallback((instructor: Instructor) => {
     setItems((i) => [...i, instructor]);

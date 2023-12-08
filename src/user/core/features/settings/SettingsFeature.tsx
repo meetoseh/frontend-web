@@ -6,12 +6,12 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
 import { SettingsState } from './SettingsState';
 import { SettingsResources } from './SettingsResources';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { Settings } from './Settings';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useIdentities } from './hooks/useIdentities';
+import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
 
 /**
  * Simple link page where the user can perform some key actions, like logging out.
@@ -54,7 +54,7 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
     );
   },
   useResources: (stateVWC, requiredVWC, allStatesVWC) => {
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
     const haveProVWC = useWritableValueWithCallbacks<boolean | undefined>(() => undefined);
     const loadErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
     const gotoEditTimesVWC = useMappedValueWithCallbacks(
@@ -91,73 +91,74 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
     );
     const identitiesVWC = useIdentities(useMappedValueWithCallbacks(requiredVWC, (req) => !req));
 
-    useValueWithCallbacksEffect(
-      requiredVWC,
-      useCallback(
-        (required: boolean) => {
-          if (!required || loginContext.state !== 'logged-in') {
-            return undefined;
+    useValuesWithCallbacksEffect(
+      [requiredVWC, loginContextRaw.value],
+      useCallback(() => {
+        const required = requiredVWC.get();
+        const loginContextUnch = loginContextRaw.value.get();
+
+        if (!required || loginContextUnch.state !== 'logged-in') {
+          return undefined;
+        }
+        const loginContext = loginContextUnch;
+
+        let active = true;
+        fetchHavePro();
+        return () => {
+          active = false;
+        };
+
+        async function fetchHaveProInner() {
+          let response = await apiFetch(
+            '/api/1/users/me/entitlements/pro',
+            {
+              method: 'GET',
+              headers: {
+                Pragma: 'no-cache',
+              },
+            },
+            loginContext
+          );
+          if (!active) {
+            return;
           }
 
-          let active = true;
-          fetchHavePro();
-          return () => {
-            active = false;
-          };
-
-          async function fetchHaveProInner() {
-            let response = await apiFetch(
+          if (response.status === 429) {
+            response = await apiFetch(
               '/api/1/users/me/entitlements/pro',
               {
                 method: 'GET',
-                headers: {
-                  Pragma: 'no-cache',
-                },
               },
               loginContext
             );
             if (!active) {
               return;
             }
-
-            if (response.status === 429) {
-              response = await apiFetch(
-                '/api/1/users/me/entitlements/pro',
-                {
-                  method: 'GET',
-                },
-                loginContext
-              );
-              if (!active) {
-                return;
-              }
-            }
-
-            if (!response.ok) {
-              throw response;
-            }
-
-            const data: { is_active: boolean } = await response.json();
-            if (!active) {
-              return;
-            }
-
-            setVWC(haveProVWC, data.is_active);
           }
 
-          async function fetchHavePro() {
-            try {
-              await fetchHaveProInner();
-            } catch (e) {
-              const err = await describeError(e);
-              if (active) {
-                setVWC(loadErrorVWC, err);
-              }
+          if (!response.ok) {
+            throw response;
+          }
+
+          const data: { is_active: boolean } = await response.json();
+          if (!active) {
+            return;
+          }
+
+          setVWC(haveProVWC, data.is_active);
+        }
+
+        async function fetchHavePro() {
+          try {
+            await fetchHaveProInner();
+          } catch (e) {
+            const err = await describeError(e);
+            if (active) {
+              setVWC(loadErrorVWC, err);
             }
           }
-        },
-        [loginContext, haveProVWC, loadErrorVWC]
-      )
+        }
+      }, [loginContextRaw, haveProVWC, loadErrorVWC, requiredVWC])
     );
 
     return useMappedValuesWithCallbacks(

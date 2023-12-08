@@ -17,7 +17,7 @@ type CreateInstructorProps = {
 };
 
 export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [name, setName] = useState('');
   const [bias, setBias] = useState<{ str: string; parsed: number | undefined }>({
     str: '0.00',
@@ -27,10 +27,12 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
   const [error, setError] = useState<ReactElement | null>(null);
 
   const createInstructor = useCallback(async () => {
-    if (loginContext.state !== 'logged-in') {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
       setError(<>You must be logged in to create an instructor</>);
       return;
     }
+    const loginContext = loginContextUnch;
 
     if (bias.parsed === undefined) {
       setError(<>Bias must be a number</>);
@@ -78,7 +80,7 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
     setName('');
     setBias({ str: '0.00', parsed: 0 });
     setLoading(false);
-  }, [onCreated, name, bias, loginContext]);
+  }, [onCreated, name, bias, loginContextRaw]);
 
   return (
     <CrudCreateBlock>

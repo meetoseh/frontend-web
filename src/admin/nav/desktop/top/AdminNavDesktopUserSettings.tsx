@@ -11,14 +11,14 @@ export const AdminNavDesktopUserSettings = ({
 }: {
   imageHandler: OsehImageStateRequestHandler;
 }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const logout = useCallback(
     async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
       event.preventDefault();
-      loginContext.setAuthTokens.apply(undefined, [null]);
+      loginContextRaw.setAuthTokens.apply(undefined, [null]);
       window.location.href = '/';
     },
-    [loginContext.setAuthTokens]
+    [loginContextRaw.setAuthTokens]
   );
 
   return (

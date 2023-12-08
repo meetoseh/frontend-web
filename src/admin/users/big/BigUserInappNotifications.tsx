@@ -1,9 +1,8 @@
-import { ReactElement, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { User } from '../User';
 import { CrudItemBlock } from '../../crud/CrudItemBlock';
 import styles from './BigUserInappNotifications.module.css';
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../../crud/CrudFetcher';
-import { useSingletonEffect } from '../../../shared/lib/useSingletonEffect';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../shared/ApiConstants';
@@ -12,6 +11,7 @@ import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/cont
 import { ModalWrapper } from '../../../shared/ModalWrapper';
 import { CrudFormElement } from '../../crud/CrudFormElement';
 import buttonStyles from '../../../shared/buttons.module.css';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 type Session = {
   uid: string;
@@ -55,7 +55,7 @@ type SessionWithActions = {
  * recentness
  */
 export const BigUserInappNotifications = ({ user }: { user: User }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [sessions, setSessions] = useState<
     { sub: string; actions: SessionWithActions[] } | undefined
@@ -63,182 +63,187 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
   const [activeSession, setActiveSession] = useState<SessionWithActions | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
 
-  useSingletonEffect(
-    (onDone) => {
-      if (sessions !== undefined && sessions.sub === user.sub) {
-        onDone();
-        return;
-      }
-
-      if (loginContext.state !== 'logged-in') {
-        onDone();
-        return;
-      }
-
-      let active = true;
-      fetchSessions();
-      return () => {
-        active = false;
-      };
-
-      async function fetchSessionsInner() {
-        const response = await apiFetch(
-          '/api/1/notifications/inapp/search_sessions',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-            },
-            body: JSON.stringify({
-              filters: {
-                user_sub: {
-                  operator: 'eq',
-                  value: user.sub,
-                },
-              },
-              sort: [
-                {
-                  key: 'created_at',
-                  dir: 'desc',
-                  before: null,
-                  after: null,
-                },
-              ],
-              limit: 15,
-            }),
-          },
-          loginContext
-        );
-
-        if (!response.ok) {
-          throw response;
-        }
-
-        const data: { items: any[] } = await response.json();
-        if (!active) {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (sessions !== undefined && sessions.sub === user.sub) {
           return;
         }
-        setSessions({
-          sub: user.sub,
-          actions: data.items.map((item) => ({
-            session: convertUsingKeymap(item, sessionKeyMap),
-            actions: undefined,
-          })),
-        });
-      }
 
-      async function fetchSessions() {
-        setError(null);
-        try {
-          await fetchSessionsInner();
-        } catch (e) {
-          const err = await describeError(e);
-          if (active) {
-            setError(err);
-          }
-        } finally {
-          onDone();
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
         }
-      }
-    },
-    [loginContext, user, sessions]
+
+        const loginContext = loginContextUnch;
+
+        let active = true;
+        fetchSessions();
+        return () => {
+          active = false;
+        };
+
+        async function fetchSessionsInner() {
+          const response = await apiFetch(
+            '/api/1/notifications/inapp/search_sessions',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+              },
+              body: JSON.stringify({
+                filters: {
+                  user_sub: {
+                    operator: 'eq',
+                    value: user.sub,
+                  },
+                },
+                sort: [
+                  {
+                    key: 'created_at',
+                    dir: 'desc',
+                    before: null,
+                    after: null,
+                  },
+                ],
+                limit: 15,
+              }),
+            },
+            loginContext
+          );
+
+          if (!response.ok) {
+            throw response;
+          }
+
+          const data: { items: any[] } = await response.json();
+          if (!active) {
+            return;
+          }
+          setSessions({
+            sub: user.sub,
+            actions: data.items.map((item) => ({
+              session: convertUsingKeymap(item, sessionKeyMap),
+              actions: undefined,
+            })),
+          });
+        }
+
+        async function fetchSessions() {
+          setError(null);
+          try {
+            await fetchSessionsInner();
+          } catch (e) {
+            const err = await describeError(e);
+            if (active) {
+              setError(err);
+            }
+          }
+        }
+      },
+      [user, sessions]
+    )
   );
 
-  useSingletonEffect(
-    (onDone) => {
-      if (activeSession === null) {
-        onDone();
-        return;
-      }
-
-      if (activeSession.actions !== undefined) {
-        onDone();
-        return;
-      }
-
-      let active = true;
-      fetchActions();
-      return () => {
-        active = false;
-      };
-
-      async function fetchActionsInner() {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
         if (activeSession === null) {
           return;
         }
 
-        const response = await apiFetch(
-          '/api/1/notifications/inapp/search_actions',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-            },
-            body: JSON.stringify({
-              filters: {
-                inapp_notification_user_uid: {
-                  operator: 'eq',
-                  value: activeSession.session.uid,
-                },
-              },
-              sort: [
-                {
-                  key: 'created_at',
-                  dir: 'asc',
-                  before: null,
-                  after: null,
-                },
-              ],
-              limit: 25,
-            }),
-          },
-          loginContext
-        );
-
-        if (!response.ok) {
-          throw response;
-        }
-
-        const data: { items: any[] } = await response.json();
-        if (!active) {
+        if (activeSession.actions !== undefined) {
           return;
         }
 
-        const actions = data.items.map((item) => convertUsingKeymap(item, actionKeyMap));
-        setSessions((sessions) => {
-          if (sessions === undefined) {
-            return sessions;
-          }
-          return {
-            ...sessions,
-            actions: sessions.actions.map((session) => {
-              if (session.session.uid === activeSession.session.uid) {
-                return {
-                  ...session,
-                  actions,
-                };
-              }
-              return session;
-            }),
-          };
-        });
-      }
-
-      async function fetchActions() {
-        try {
-          await fetchActionsInner();
-        } catch (e) {
-          const err = await describeError(e);
-          if (active) {
-            setError(err);
-            setActiveSession(null);
-          }
-        } finally {
-          onDone();
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
         }
-      }
-    },
-    [activeSession]
+        const loginContext = loginContextUnch;
+
+        let active = true;
+        fetchActions();
+        return () => {
+          active = false;
+        };
+
+        async function fetchActionsInner() {
+          if (activeSession === null) {
+            return;
+          }
+
+          const response = await apiFetch(
+            '/api/1/notifications/inapp/search_actions',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+              },
+              body: JSON.stringify({
+                filters: {
+                  inapp_notification_user_uid: {
+                    operator: 'eq',
+                    value: activeSession.session.uid,
+                  },
+                },
+                sort: [
+                  {
+                    key: 'created_at',
+                    dir: 'asc',
+                    before: null,
+                    after: null,
+                  },
+                ],
+                limit: 25,
+              }),
+            },
+            loginContext
+          );
+
+          if (!response.ok) {
+            throw response;
+          }
+
+          const data: { items: any[] } = await response.json();
+          if (!active) {
+            return;
+          }
+
+          const actions = data.items.map((item) => convertUsingKeymap(item, actionKeyMap));
+          setSessions((sessions) => {
+            if (sessions === undefined) {
+              return sessions;
+            }
+            return {
+              ...sessions,
+              actions: sessions.actions.map((session) => {
+                if (session.session.uid === activeSession.session.uid) {
+                  return {
+                    ...session,
+                    actions,
+                  };
+                }
+                return session;
+              }),
+            };
+          });
+        }
+
+        async function fetchActions() {
+          try {
+            await fetchActionsInner();
+          } catch (e) {
+            const err = await describeError(e);
+            if (active) {
+              setError(err);
+              setActiveSession(null);
+            }
+          }
+        }
+      },
+      [activeSession]
+    )
   );
 
   useEffect(() => {

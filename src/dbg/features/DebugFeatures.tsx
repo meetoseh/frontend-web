@@ -24,7 +24,7 @@ export const DebugFeatures = (): ReactElement => {
 };
 
 const DebugFeaturesInner = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const states = useWritableValueWithCallbacks<any[]>(() => []);
   const required = useWritableValueWithCallbacks<(boolean | undefined)[]>(() => []);
   const requiredRollingSum = useWritableValueWithCallbacks<number[]>(() => []);
@@ -88,19 +88,22 @@ const DebugFeaturesInner = (): ReactElement => {
                 <div className={styles.featureSectionTitle}>State</div>
                 <div className={styles.featureStateContainer}>
                   <pre className={styles.featureState}>
-                    {JSON.stringify(
-                      {
-                        ...loginContext,
-                        authTokens:
-                          loginContext.authTokens === undefined
-                            ? 'UNDEFINED'
-                            : loginContext.authTokens === null
-                            ? 'NULL'
-                            : 'SET',
-                      },
-                      null,
-                      2
-                    )}
+                    <RenderGuardedComponent
+                      props={loginContextRaw.value}
+                      component={(loginContext) => (
+                        <>
+                          {JSON.stringify(
+                            {
+                              ...loginContext,
+                              authTokens:
+                                loginContext.state !== 'logged-in' ? 'NOT LOGGED IN' : 'SET',
+                            },
+                            null,
+                            2
+                          )}
+                        </>
+                      )}
+                    />
                   </pre>
                 </div>
               </div>

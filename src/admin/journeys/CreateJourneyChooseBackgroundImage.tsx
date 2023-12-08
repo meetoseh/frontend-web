@@ -27,7 +27,7 @@ export const CreateJourneyChooseBackgroundImage = ({
   onSelected,
   imageHandler,
 }: CreateJourneyChooseBackgroundImageProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [items, setItems] = useState<JourneyBackgroundImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [haveMore, setHaveMore] = useState(false);
@@ -44,6 +44,12 @@ export const CreateJourneyChooseBackgroundImage = ({
   }, []);
 
   const loadNext = useCallback(async () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+
     setError(null);
     try {
       await fetcher.loadMore({}, limit, loginContext, { replace: true });
@@ -53,9 +59,15 @@ export const CreateJourneyChooseBackgroundImage = ({
       const err = await describeError(e);
       setError(err);
     }
-  }, [fetcher, loginContext]);
+  }, [fetcher, loginContextRaw]);
 
   const reset = useCallback(() => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+
     setError(null);
     fetcher.resetAndLoadWithCancelCallback(
       {},
@@ -68,7 +80,7 @@ export const CreateJourneyChooseBackgroundImage = ({
         setError(err);
       }
     );
-  }, [fetcher, loginContext]);
+  }, [fetcher, loginContextRaw]);
 
   useEffect(() => {
     reset();

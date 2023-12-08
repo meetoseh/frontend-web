@@ -2,10 +2,7 @@ import { useMemo, useRef } from 'react';
 import { InfiniteListing, NetworkedInfiniteListing } from '../../../shared/lib/InfiniteListing';
 import { MinimalJourney, minimalJourneyKeyMap } from '../lib/MinimalJourney';
 import { LoginContextValue } from '../../../shared/contexts/LoginContext';
-import {
-  VariableStrategyProps,
-  useVariableStrategyPropsAsValueWithCallbacks,
-} from '../../../shared/anim/VariableStrategyProps';
+import { VariableStrategyProps } from '../../../shared/anim/VariableStrategyProps';
 
 /**
  * Returns an infinite list, which is reset upon creation, for history
@@ -17,11 +14,9 @@ import {
  * @returns The infinite list
  */
 export const useHistoryList = (
-  loginContext: VariableStrategyProps<LoginContextValue>,
+  loginContextRaw: LoginContextValue,
   visibleHeight: VariableStrategyProps<number>
 ): InfiniteListing<MinimalJourney> => {
-  const loginContextVWC = useVariableStrategyPropsAsValueWithCallbacks(loginContext);
-
   // We don't want to reload the listing due to height changing as that's pretty annoying.
   // so for now we just use whatever initial value it has
   const numVisibleRef = useRef(
@@ -68,9 +63,9 @@ export const useHistoryList = (
         ];
       },
       minimalJourneyKeyMap,
-      loginContextVWC.get
+      loginContextRaw
     );
     result.reset();
     return result;
-  }, [loginContextVWC]);
+  }, [loginContextRaw]);
 };

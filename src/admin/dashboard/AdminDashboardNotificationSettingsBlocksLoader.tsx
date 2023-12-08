@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { AdminDashboardTopBlock } from './AdminDashboardTopBlock';
@@ -7,6 +7,7 @@ import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 import { setVWC } from '../../shared/lib/setVWC';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 /**
  * Loads the information that's used in the daily reminders (formerly user
@@ -20,7 +21,7 @@ import { RenderGuardedComponent } from '../../shared/components/RenderGuardedCom
  * - How many users have push daily reminders enabled
  */
 export const AdminDashboardNotificationSettingsBlocksLoader = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const smsEnabled = useWritableValueWithCallbacks(() => 0);
   const emailEnabled = useWritableValueWithCallbacks(() => 0);
   const pushEnabled = useWritableValueWithCallbacks(() => 0);
@@ -30,37 +31,44 @@ export const AdminDashboardNotificationSettingsBlocksLoader = (): ReactElement =
     () => smsEnabled.get() + emailEnabled.get() + pushEnabled.get()
   );
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
+        }
+        const loginContext = loginContextUnch;
 
-    let active = true;
-    fetchCounts();
-    return () => {
-      active = false;
-    };
+        let active = true;
+        fetchCounts();
+        return () => {
+          active = false;
+        };
 
-    async function fetchCounts() {
-      const response = await apiFetch('/api/1/admin/daily_reminders/counts', {}, loginContext);
-      if (!response.ok) {
-        throw response;
-      }
+        async function fetchCounts() {
+          const response = await apiFetch('/api/1/admin/daily_reminders/counts', {}, loginContext);
+          if (!response.ok) {
+            throw response;
+          }
 
-      const body: {
-        sms: number;
-        email: number;
-        push: number;
-      } = await response.json();
-      if (!active) {
-        return;
-      }
+          const body: {
+            sms: number;
+            email: number;
+            push: number;
+          } = await response.json();
+          if (!active) {
+            return;
+          }
 
-      setVWC(smsEnabled, body.sms);
-      setVWC(emailEnabled, body.email);
-      setVWC(pushEnabled, body.push);
-    }
-  }, [loginContext, smsEnabled, emailEnabled, pushEnabled]);
+          setVWC(smsEnabled, body.sms);
+          setVWC(emailEnabled, body.email);
+          setVWC(pushEnabled, body.push);
+        }
+      },
+      [smsEnabled, emailEnabled, pushEnabled]
+    )
+  );
 
   return (
     <>

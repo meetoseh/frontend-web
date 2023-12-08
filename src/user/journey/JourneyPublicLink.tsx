@@ -1,10 +1,9 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import { Visitor, useVisitor } from '../../shared/hooks/useVisitor';
 import { LoginContext, LoginContextValue } from '../../shared/contexts/LoginContext';
 import { SplashScreen } from '../splash/SplashScreen';
 import { JourneyRef, journeyRefKeyMap } from './models/JourneyRef';
 import { useJourneyShared } from './hooks/useJourneyShared';
-import { useSingletonEffect } from '../../shared/lib/useSingletonEffect';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { JourneyStartScreen } from './screens/JourneyStartScreen';
@@ -15,6 +14,9 @@ import { InterestsProvider } from '../../shared/contexts/InterestsContext';
 import { useAnyImageStateValueWithCallbacksLoading } from '../../shared/images/useAnyImageStateValueWithCallbacksLoading';
 import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
+import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 
 /**
  * This is a top-level component intended to be used for the /jpl route.
@@ -30,17 +32,17 @@ import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWi
  * should not be within an interests provider.
  */
 export const JourneyPublicLink = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const visitor = useVisitor();
   return (
-    <InterestsProvider loginContext={loginContext} visitor={visitor}>
-      <JourneyPublicLinkInner loginContext={loginContext} visitor={visitor} />
+    <InterestsProvider loginContext={loginContextRaw} visitor={visitor}>
+      <JourneyPublicLinkInner loginContext={loginContextRaw} visitor={visitor} />
     </InterestsProvider>
   );
 };
 
 const JourneyPublicLinkInner = ({
-  loginContext,
+  loginContext: loginContextRaw,
   visitor,
 }: {
   loginContext: LoginContextValue;
@@ -55,70 +57,69 @@ const JourneyPublicLinkInner = ({
   const [screen, setScreen] = useState<'loading' | 'lobby' | 'start' | 'journey'>('loading');
   const [startedAudio, setStartedAudio] = useState(false);
 
-  useSingletonEffect(
-    (onDone) => {
-      if (loginContext.state === 'loading' || visitor.loading || journey !== null) {
-        onDone();
-        return;
-      }
-      if (code === null) {
-        console.error('no code in query parameter');
-        window.location.href = '/';
-        onDone();
-        return;
-      }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state === 'loading' || visitor.loading || journey !== null) {
+          return;
+        }
+        if (code === null) {
+          console.error('no code in query parameter');
+          window.location.assign(window.location.origin);
+          return;
+        }
 
-      const vis = visitor;
+        const vis = visitor;
 
-      let active = true;
-      fetchJourney();
-      return () => {
-        active = false;
-      };
+        let active = true;
+        fetchJourney();
+        return () => {
+          active = false;
+        };
 
-      async function fetchJourneyInner() {
-        const response = await apiFetch(
-          '/api/1/journeys/public_links/start',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              ...(vis.uid !== null ? { Visitor: vis.uid } : {}),
+        async function fetchJourneyInner() {
+          const response = await apiFetch(
+            '/api/1/journeys/public_links/start',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                ...(vis.uid !== null ? { Visitor: vis.uid } : {}),
+              },
+              body: JSON.stringify({
+                code,
+                source: 'browser',
+              }),
             },
-            body: JSON.stringify({
-              code,
-              source: 'browser',
-            }),
-          },
-          loginContext
-        );
-        if (!response.ok) {
-          throw response;
-        }
-
-        const data = await response.json();
-        const journey = convertUsingKeymap(data.journey, journeyRefKeyMap);
-        const visitorUid = data.visitor_uid;
-        if (vis.uid !== visitorUid) {
-          vis.setVisitor(visitorUid);
-        }
-        setJourney(journey);
-      }
-
-      async function fetchJourney() {
-        try {
-          await fetchJourneyInner();
-        } catch (e) {
-          if (active) {
-            console.error('error fetching journey:', e);
-            window.location.href = '/';
+            loginContextUnch.state === 'logged-in' ? loginContextUnch : null
+          );
+          if (!response.ok) {
+            throw response;
           }
-        } finally {
-          onDone();
+
+          const data = await response.json();
+          const journey = convertUsingKeymap(data.journey, journeyRefKeyMap);
+          const visitorUid = data.visitor_uid;
+          if (vis.uid !== visitorUid) {
+            vis.setVisitor(visitorUid);
+          }
+          setJourney(journey);
         }
-      }
-    },
-    [loginContext, visitor, journey, code]
+
+        async function fetchJourney() {
+          try {
+            await fetchJourneyInner();
+          } catch (e) {
+            if (active) {
+              console.error('error fetching journey:', e);
+              window.location.href = '/';
+            }
+          }
+        }
+      },
+      [visitor, journey, code]
+    )
   );
 
   const darkenedImageLoading = useAnyImageStateValueWithCallbacksLoading(
@@ -131,27 +132,35 @@ const JourneyPublicLinkInner = ({
       (s) => !s.audio.loaded || (!startedAudio && s.audio.play === null)
     )
   );
-  const settingUp =
-    visitor.loading ||
-    loginContext.state === 'loading' ||
-    journey === null ||
-    darkenedImageLoading ||
-    audioLoading;
+  const settingUpVWC = useMappedValueWithCallbacks(
+    loginContextRaw.value,
+    (loginContextUnch) =>
+      visitor.loading ||
+      journey === null ||
+      darkenedImageLoading ||
+      audioLoading ||
+      loginContextUnch.state === 'loading'
+  );
 
-  useEffect(() => {
-    if (screen !== 'loading' || settingUp) {
-      return;
-    }
+  useValuesWithCallbacksEffect(
+    [loginContextRaw.value, settingUpVWC],
+    useCallback(() => {
+      const settingUp = settingUpVWC.get();
+      const loginContextUnch = loginContextRaw.value.get();
+      if (screen !== 'loading' || settingUp) {
+        return undefined;
+      }
 
-    if (loginContext.state === 'logged-in') {
-      setScreen('lobby');
-      return;
-    }
-    setScreen('start');
-  }, [settingUp, screen, loginContext]);
+      if (loginContextUnch.state === 'logged-in') {
+        setScreen('lobby');
+        return;
+      }
+      setScreen('start');
+    }, [settingUpVWC, screen, loginContextRaw])
+  );
 
   const onFinished = useCallback(() => {
-    window.location.href = '/';
+    window.location.assign(window.location.origin);
   }, []);
 
   const handleSetScreen = useCallback(
@@ -160,7 +169,9 @@ const JourneyPublicLinkInner = ({
         newScreen = newScreen(screen === 'loading' ? 'start' : screen);
       }
 
-      if (newScreen === 'lobby' && loginContext.state === 'logged-in') {
+      const loginContextUnch = loginContextRaw.value.get();
+
+      if (newScreen === 'lobby' && loginContextUnch.state === 'logged-in') {
         setScreen('lobby');
         return;
       }
@@ -181,44 +192,51 @@ const JourneyPublicLinkInner = ({
 
       onFinished();
     },
-    [loginContext, shared, startedAudio, onFinished, screen]
+    [loginContextRaw, shared, startedAudio, onFinished, screen]
   );
 
-  if (screen === 'loading' || settingUp) {
-    return <SplashScreen />;
-  }
-
-  if (screen === 'lobby') {
-    return (
-      <JourneyLobbyScreen
-        journey={journey}
-        shared={shared}
-        setScreen={handleSetScreen}
-        isOnboarding={false}
-        onJourneyFinished={onFinished}
-      />
-    );
-  }
-
-  if (screen === 'start' || !startedAudio) {
-    return (
-      <JourneyStartScreen
-        journey={journey}
-        shared={shared}
-        setScreen={handleSetScreen}
-        isOnboarding={false}
-        onJourneyFinished={onFinished}
-      />
-    );
-  }
-
   return (
-    <Journey
-      journey={journey}
-      shared={shared}
-      setScreen={handleSetScreen}
-      isOnboarding={false}
-      onJourneyFinished={onFinished}
+    <RenderGuardedComponent
+      props={settingUpVWC}
+      component={(settingUp) => {
+        if (screen === 'loading' || settingUp || journey === null) {
+          return <SplashScreen />;
+        }
+
+        if (screen === 'lobby') {
+          return (
+            <JourneyLobbyScreen
+              journey={journey}
+              shared={shared}
+              setScreen={handleSetScreen}
+              isOnboarding={false}
+              onJourneyFinished={onFinished}
+            />
+          );
+        }
+
+        if (screen === 'start' || !startedAudio) {
+          return (
+            <JourneyStartScreen
+              journey={journey}
+              shared={shared}
+              setScreen={handleSetScreen}
+              isOnboarding={false}
+              onJourneyFinished={onFinished}
+            />
+          );
+        }
+
+        return (
+          <Journey
+            journey={journey}
+            shared={shared}
+            setScreen={handleSetScreen}
+            isOnboarding={false}
+            onJourneyFinished={onFinished}
+          />
+        );
+      }}
     />
   );
 };

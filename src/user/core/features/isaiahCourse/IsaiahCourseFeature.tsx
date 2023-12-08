@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { useInappNotificationValueWithCallbacks } from '../../../../shared/hooks/useInappNotification';
 import { Feature } from '../../models/Feature';
@@ -13,12 +13,13 @@ import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/u
 import { useInappNotificationSessionValueWithCallbacks } from '../../../../shared/hooks/useInappNotificationSession';
 import { IsaiahCourse } from './IsaiahCourse';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { getUTMFromURL } from '../../../../shared/hooks/useVisitor';
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 const courseToIanUid: Record<string, string> = {
@@ -30,7 +31,7 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
   identifier: 'isaiahCourse',
   useWorldState: () => {
     const interests = useContext(InterestsContext);
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
 
     const courseToAttach = useMemo(() => {
       const utm = getUTMFromURL();
@@ -46,103 +47,116 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
       return lastIsaiahCourseSlug ?? 'resilient-spirit-07202023';
     }, []);
 
-    const ian = useInappNotificationValueWithCallbacks({
+    const ianVWC = useInappNotificationValueWithCallbacks({
       type: 'react-rerender',
       props: {
         uid: courseToIanUid[courseToAttach],
         suppress: interests.state !== 'loaded' || interests.primaryInterest !== 'isaiah-course',
       },
     });
-    const primaryInterest =
-      interests.state === 'loading'
-        ? undefined
-        : interests.state === 'loaded'
-        ? loginContext.state === 'logged-in'
-          ? interests.primaryInterest
+    const primaryInterestVWC = useMappedValueWithCallbacks(
+      loginContextRaw.value,
+      (loginContextUnch) =>
+        interests.state === 'loading'
+          ? undefined
+          : interests.state === 'loaded'
+          ? loginContextUnch.state === 'logged-in'
+            ? interests.primaryInterest
+            : null
           : null
-        : null;
+    );
 
     const attachedCourse = useWritableValueWithCallbacks<boolean | null>(() => null);
-    useValueWithCallbacksEffect(ian, (ian) => {
-      if (attachedCourse.get() !== null) {
-        return;
-      }
+    useValuesWithCallbacksEffect(
+      [ianVWC, primaryInterestVWC, loginContextRaw.value],
+      useCallback(() => {
+        const ian = ianVWC.get();
+        const primaryInterest = primaryInterestVWC.get();
+        const loginContextUnch = loginContextRaw.value.get();
 
-      if (
-        primaryInterest !== 'isaiah-course' ||
-        ian === null ||
-        !ian.showNow ||
-        interests.state === 'loading'
-      ) {
-        return;
-      }
-
-      if (interests.state === 'unavailable') {
-        setVWC(attachedCourse, false);
-        return;
-      }
-
-      if (interests.visitor.loading) {
-        return;
-      }
-
-      let active = true;
-      attachCourse();
-      return () => {
-        active = false;
-      };
-
-      async function attachCourseInner() {
-        if (interests.state !== 'loaded') {
-          if (active) {
-            setVWC(attachedCourse, false);
-          }
+        if (attachedCourse.get() !== null) {
           return;
         }
 
-        const response = await apiFetch(
-          '/api/1/courses/attach_free',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              ...(interests.visitor.loading || interests.visitor.uid === null
-                ? {}
-                : { Visitor: interests.visitor.uid }),
+        if (
+          primaryInterest !== 'isaiah-course' ||
+          ian === null ||
+          !ian.showNow ||
+          interests.state === 'loading' ||
+          loginContextUnch.state !== 'logged-in'
+        ) {
+          return;
+        }
+        const loginContext = loginContextUnch;
+
+        if (interests.state === 'unavailable') {
+          setVWC(attachedCourse, false);
+          return;
+        }
+
+        if (interests.visitor.loading) {
+          return;
+        }
+
+        let active = true;
+        attachCourse();
+        return () => {
+          active = false;
+        };
+
+        async function attachCourseInner() {
+          if (interests.state !== 'loaded') {
+            if (active) {
+              setVWC(attachedCourse, false);
+            }
+            return;
+          }
+
+          const response = await apiFetch(
+            '/api/1/courses/attach_free',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                ...(interests.visitor.loading || interests.visitor.uid === null
+                  ? {}
+                  : { Visitor: interests.visitor.uid }),
+              },
+              body: JSON.stringify({
+                course_slug: courseToAttach,
+                source: 'browser',
+              }),
             },
-            body: JSON.stringify({
-              course_slug: courseToAttach,
-              source: 'browser',
-            }),
-          },
-          loginContext
-        );
-        if (!active) {
-          return;
+            loginContext
+          );
+          if (!active) {
+            return;
+          }
+          if (response.ok || response.status === 409) {
+            await response.text();
+            localStorage.removeItem('lastIsaiahCourseSlug');
+            setVWC(attachedCourse, true);
+            return;
+          }
+          throw response;
         }
-        if (response.ok || response.status === 409) {
-          await response.text();
-          localStorage.removeItem('lastIsaiahCourseSlug');
-          setVWC(attachedCourse, true);
-          return;
-        }
-        throw response;
-      }
 
-      async function attachCourse() {
-        try {
-          await attachCourseInner();
-        } catch (e) {
-          if (active) {
-            console.warn('failed to attach isaiah course:', e);
-            setVWC(attachedCourse, false);
+        async function attachCourse() {
+          try {
+            await attachCourseInner();
+          } catch (e) {
+            if (active) {
+              console.warn('failed to attach isaiah course:', e);
+              setVWC(attachedCourse, false);
+            }
           }
         }
-      }
-    });
-    return useMappedValuesWithCallbacks([ian, attachedCourse], () => ({
-      ian: ian.get(),
-      primaryInterest,
+      }, [ianVWC, primaryInterestVWC, interests, attachedCourse, courseToAttach, loginContextRaw])
+    );
+
+    return useMappedValuesWithCallbacks([ianVWC, primaryInterestVWC, attachedCourse], () => ({
+      ian: ianVWC.get(),
+      primaryInterest: primaryInterestVWC.get(),
       attachedCourse: attachedCourse.get(),
     }));
   },

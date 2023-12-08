@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import {
   convertUsingKeymap,
@@ -16,6 +16,7 @@ import { CrudListing } from '../crud/CrudListing';
 import { JourneyBlock } from './JourneyBlock';
 import { CreateJourney } from './CreateJourney';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 const limit = 3;
 const path = '/api/1/journeys/search';
@@ -42,7 +43,7 @@ export const keyMap: CrudFetcherKeyMap<Journey> = {
  * Shows the crud components for journeys
  */
 export const Journeys = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [items, setItems] = useState<Journey[]>([]);
   const [filters, setFilters] = useState<CrudFetcherFilter>(defaultFilter);
   const [sort, setSort] = useState<CrudFetcherSort>(defaultSort);
@@ -55,22 +56,33 @@ export const Journeys = (): ReactElement => {
     []
   );
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-    return fetcher.resetAndLoadWithCancelCallback(
-      filters,
-      sort,
-      limit,
-      loginContext,
-      console.error
-    );
-  }, [fetcher, filters, sort, loginContext]);
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContext) => {
+        if (loginContext.state !== 'logged-in') {
+          return;
+        }
+        return fetcher.resetAndLoadWithCancelCallback(
+          filters,
+          sort,
+          limit,
+          loginContext,
+          console.error
+        );
+      },
+      [fetcher, filters, sort]
+    )
+  );
 
   const onMore = useCallback(() => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
     fetcher.loadMore(filters, limit, loginContext);
-  }, [fetcher, filters, loginContext]);
+  }, [fetcher, filters, loginContextRaw]);
 
   const onItemCreated = useCallback((item: Journey) => {
     setItems((i) => [...i, item]);

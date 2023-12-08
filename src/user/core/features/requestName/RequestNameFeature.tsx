@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import { Feature } from '../../models/Feature';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { RequestNameState } from './RequestNameState';
@@ -6,7 +6,6 @@ import { RequestNameResources } from './RequestNameResources';
 import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
 import { RequestName } from './RequestName';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
-import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
@@ -22,17 +21,16 @@ export const RequestNameFeature: Feature<RequestNameState, RequestNameResources>
   identifier: 'requestName',
 
   useWorldState: () => {
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
 
-    const givenName = loginContext.userAttributes?.givenName;
-    const result = useWritableValueWithCallbacks<RequestNameState>(() => ({ givenName }));
+    const givenNameVWC = useMappedValueWithCallbacks(loginContextRaw.value, (loginContextUnch) =>
+      loginContextUnch.state !== 'logged-in' ? undefined : loginContextUnch.userAttributes.givenName
+    );
 
-    if (result.get().givenName !== givenName) {
-      result.set({ givenName });
-      result.callbacks.call(undefined);
-    }
-
-    return result;
+    return useMappedValueWithCallbacks(
+      givenNameVWC,
+      useCallback((givenName) => ({ givenName }), [])
+    );
   },
 
   useResources: (worldState, required) => {

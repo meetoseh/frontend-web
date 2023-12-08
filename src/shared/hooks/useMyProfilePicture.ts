@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { LoginContextValue } from '../contexts/LoginContext';
+import { LoginContextValue, LoginContextValueUnion } from '../contexts/LoginContext';
 import { OsehImageState } from '../images/OsehImageState';
 import { OsehImageStateRequestHandler } from '../images/useOsehImageStateRequestHandler';
 import { OsehImageRef } from '../images/OsehImageRef';
@@ -102,19 +102,22 @@ export const useMyProfilePictureStateValueWithCallbacks = (
         cleanup = null;
       }
 
-      cleanup = handleProps(propsVWC.get()) ?? null;
+      cleanup = handleLoginContextInProps(propsVWC.get());
     }
 
-    function handleProps(props: MyProfilePictureStateProps): (() => void) | undefined {
-      const loginContext = props.loginContext;
+    function handleProps(
+      props: MyProfilePictureStateProps,
+      loginContextUnch: LoginContextValueUnion
+    ): (() => void) | undefined {
       const load = props.load ?? true;
-      if (loginContext.state !== 'logged-in' || loginContext.userAttributes === null || !load) {
+      if (loginContextUnch.state !== 'logged-in' || !load) {
         if (state.get().state !== 'loading') {
           state.set({ state: 'loading', image: null });
           state.callbacks.call(undefined);
         }
         return;
       }
+      const loginContext = loginContextUnch;
 
       let active = true;
       const cancelers = new Callbacks<undefined>();
@@ -198,6 +201,20 @@ export const useMyProfilePictureStateValueWithCallbacks = (
           });
           state.callbacks.call(undefined);
         }
+      }
+    }
+
+    function handleLoginContextInProps(props: MyProfilePictureStateProps): () => void {
+      const loginContextRaw = props.loginContext;
+
+      loginContextRaw.value.callbacks.add(onLoginContextChanged);
+
+      return () => {
+        loginContextRaw.value.callbacks.remove(onLoginContextChanged);
+      };
+
+      function onLoginContextChanged() {
+        handleProps(props, loginContextRaw.value.get());
       }
     }
   }, [propsVWC, state]);

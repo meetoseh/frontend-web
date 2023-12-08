@@ -4,7 +4,6 @@ import {
   SetStateAction,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -21,6 +20,7 @@ import {
 import { Checkbox } from '../../shared/forms/Checkbox';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type UserFilterAndSortBlockProps = {
   /**
@@ -96,55 +96,63 @@ export const UserFilterAndSortBlock = ({
   filter,
   setFilter,
 }: UserFilterAndSortBlockProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [interests, setInterests] = useState<string[]>(['anxiety', 'mindful', 'sleep']);
 
-  useEffect(() => {
-    let active = true;
-    fetchInterests();
-    return () => {
-      active = false;
-    };
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
+      if (loginContextUnch.state !== 'logged-in') {
+        return;
+      }
+      const loginContext = loginContextUnch;
 
-    async function fetchInterestsInner() {
-      const response = await apiFetch(
-        '/api/1/interests/search',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
+      let active = true;
+      fetchInterests();
+      return () => {
+        active = false;
+      };
+
+      async function fetchInterestsInner() {
+        const response = await apiFetch(
+          '/api/1/interests/search',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              sort: [
+                {
+                  key: 'slug',
+                  dir: 'asc',
+                  before: null,
+                  after: null,
+                },
+              ],
+              limit: 100,
+            }),
           },
-          body: JSON.stringify({
-            sort: [
-              {
-                key: 'slug',
-                dir: 'asc',
-                before: null,
-                after: null,
-              },
-            ],
-            limit: 100,
-          }),
-        },
-        loginContext
-      );
-      if (!response.ok) {
-        throw response;
+          loginContext
+        );
+        if (!response.ok) {
+          throw response;
+        }
+        const interests: { items: { slug: string }[] } = await response.json();
+        if (active) {
+          setInterests(interests.items.map((i) => i.slug));
+        }
       }
-      const interests: { items: { slug: string }[] } = await response.json();
-      if (active) {
-        setInterests(interests.items.map((i) => i.slug));
-      }
-    }
 
-    async function fetchInterests() {
-      try {
-        await fetchInterestsInner();
-      } catch (e) {
-        console.warn('failed to fetch interests for filtering: ', e);
+      async function fetchInterests() {
+        try {
+          await fetchInterestsInner();
+        } catch (e) {
+          console.warn('failed to fetch interests for filtering: ', e);
+        }
       }
-    }
-  }, [loginContext]);
+    }, [])
+  );
 
   const sortName = useMemo(() => {
     return SORTS.find((s) => JSON.stringify(s.sort) === JSON.stringify(sort))!.name;

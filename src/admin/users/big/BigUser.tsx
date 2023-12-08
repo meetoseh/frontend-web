@@ -1,9 +1,8 @@
-import { ReactElement, useContext, useMemo, useState } from 'react';
+import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import styles from './BigUser.module.css';
 import { BigUserBasicInfo } from './BigUserBasicInfo';
 import { User, userKeyMap } from '../User';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
-import { useSingletonEffect } from '../../../shared/lib/useSingletonEffect';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { BigUserAttribution } from './BigUserAttribution';
@@ -13,6 +12,7 @@ import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehI
 import { BigUserContactMethodLog } from './contact_method_log/BigUserContactMethodLog';
 import { BigUserDailyReminderSettingsLog } from './daily_reminder_settings_log/BigUserDailyReminderSettingsLog';
 import { BigUserDailyReminders } from './BigUserDailyReminders';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 /**
  * Acts as a dashboard for a specific user, aka a traditional user show page,
@@ -20,7 +20,7 @@ import { BigUserDailyReminders } from './BigUserDailyReminders';
  * the listing page.
  */
 export const BigUser = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const sub = useMemo(() => {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('sub');
@@ -34,78 +34,78 @@ export const BigUser = (): ReactElement => {
 
   const [user, setUser] = useState<User | null | undefined>(undefined);
 
-  useSingletonEffect(
-    (onDone) => {
-      if (loginContext.state !== 'logged-in') {
-        onDone();
-        return;
-      }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
+        }
+        const loginContext = loginContextUnch;
 
-      if (user !== undefined) {
-        onDone();
-        return;
-      }
+        if (user !== undefined) {
+          return;
+        }
 
-      let active = true;
-      fetchUser();
-      return () => {
-        active = false;
-      };
+        let active = true;
+        fetchUser();
+        return () => {
+          active = false;
+        };
 
-      async function fetchUserInner() {
-        const response = await apiFetch(
-          '/api/1/users/search',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              filters: {
-                sub: {
-                  operator: 'eq',
-                  value: sub,
+        async function fetchUserInner() {
+          const response = await apiFetch(
+            '/api/1/users/search',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                filters: {
+                  sub: {
+                    operator: 'eq',
+                    value: sub,
+                  },
                 },
-              },
-              limit: 1,
-            }),
-          },
-          loginContext
-        );
-        if (!response.ok) {
-          throw response;
-        }
-
-        const data: { items: any[] } = await response.json();
-        if (!active) {
-          return;
-        }
-
-        if (data.items.length === 0) {
-          console.log('No matching user found');
-          setUser(null);
-          return;
-        }
-
-        if (typeof userKeyMap === 'function') {
-          setUser(userKeyMap(data.items[0]));
-        } else {
-          setUser(convertUsingKeymap(data.items[0], userKeyMap));
-        }
-      }
-
-      async function fetchUser() {
-        try {
-          await fetchUserInner();
-        } catch (e) {
-          if (active) {
-            console.log('Error fetching user', e);
-            setUser(null);
+                limit: 1,
+              }),
+            },
+            loginContext
+          );
+          if (!response.ok) {
+            throw response;
           }
-        } finally {
-          onDone();
+
+          const data: { items: any[] } = await response.json();
+          if (!active) {
+            return;
+          }
+
+          if (data.items.length === 0) {
+            console.log('No matching user found');
+            setUser(null);
+            return;
+          }
+
+          if (typeof userKeyMap === 'function') {
+            setUser(userKeyMap(data.items[0]));
+          } else {
+            setUser(convertUsingKeymap(data.items[0], userKeyMap));
+          }
         }
-      }
-    },
-    [sub, user, loginContext]
+
+        async function fetchUser() {
+          try {
+            await fetchUserInner();
+          } catch (e) {
+            if (active) {
+              console.log('Error fetching user', e);
+              setUser(null);
+            }
+          }
+        }
+      },
+      [sub, user]
+    )
   );
 
   if (user === undefined) {

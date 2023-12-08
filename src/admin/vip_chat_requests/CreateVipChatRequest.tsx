@@ -20,12 +20,18 @@ type CreateVipChatRequestProps = {
  * A standard create block for creating a vip chat request.
  */
 export const CreateVipChatRequest = ({ onCreated }: CreateVipChatRequestProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [sub, setSub] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ReactElement | null>(null);
 
   const createVipChatRequest = useCallback(async () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+
     setError(null);
     setLoading(true);
 
@@ -66,7 +72,7 @@ export const CreateVipChatRequest = ({ onCreated }: CreateVipChatRequestProps): 
     } finally {
       setLoading(false);
     }
-  }, [onCreated, sub, loginContext]);
+  }, [onCreated, sub, loginContextRaw]);
 
   return (
     <CrudCreateBlock>

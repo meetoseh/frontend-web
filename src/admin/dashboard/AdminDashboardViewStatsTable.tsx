@@ -21,6 +21,7 @@ import {
 import { AdminDashboardLargeChartPlaceholder } from './AdminDashboardLargeChartPlaceholder';
 import styles from './AdminDashboardViewStatsTable.module.css';
 import { DashboardTable, DashboardTableProps } from './subComponents/DashboardTable';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type ChartData = {
   labels: string[];
@@ -82,7 +83,7 @@ const tableDataKeyMap: CrudFetcherKeyMap<TableData> = {
  * broken down by subcategory, with a total
  */
 export const AdminDashboardViewStatsTable = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   // up to but not including date
   const maxDate = useMemo(() => new Date(Date.now() - 86400000), []);
   const maxDateISO = useMemo(() => maxDate.toISOString().split('T')[0], [maxDate]);
@@ -129,60 +130,67 @@ export const AdminDashboardViewStatsTable = (): ReactElement => {
     };
   }, [data, preventingPlaceholder]);
 
-  useEffect(() => {
-    if (!shouldLoadData) {
-      return;
-    }
-    const isoDate = new Date(date.getTime() + 86400000).toISOString().split('T')[0];
-    if (data !== null) {
-      if (data.isoDate === isoDate) {
-        return;
-      }
-      setData(null);
-      return;
-    }
-
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
-
-    let active = true;
-    loadData();
-    return () => {
-      active = false;
-    };
-
-    async function loadDataInner() {
-      const response = await apiFetch(
-        '/api/1/admin/journey_subcategory_view_stats?' + new URLSearchParams({ date: isoDate }),
-        { method: 'GET' },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const raw = await response.json();
-      const data = convertUsingKeymap(raw, tableDataKeyMap);
-
-      if (active) {
-        setData({ isoDate, data });
-      }
-    }
-
-    async function loadData() {
-      setError(null);
-      try {
-        await loadDataInner();
-      } catch (e) {
-        const error = await describeError(e);
-        if (active) {
-          setError(error);
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (!shouldLoadData) {
+          return;
         }
-      }
-    }
-  }, [shouldLoadData, data, date, loginContext]);
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
+        }
+        const loginContext = loginContextUnch;
+
+        const isoDate = new Date(date.getTime() + 86400000).toISOString().split('T')[0];
+        if (data !== null) {
+          if (data.isoDate === isoDate) {
+            return;
+          }
+          setData(null);
+          return;
+        }
+
+        let active = true;
+        loadData();
+        return () => {
+          active = false;
+        };
+
+        async function loadDataInner() {
+          const response = await apiFetch(
+            '/api/1/admin/journey_subcategory_view_stats?' + new URLSearchParams({ date: isoDate }),
+            { method: 'GET' },
+            loginContext
+          );
+
+          if (!response.ok) {
+            throw response;
+          }
+
+          const raw = await response.json();
+          const data = convertUsingKeymap(raw, tableDataKeyMap);
+
+          if (active) {
+            setData({ isoDate, data });
+          }
+        }
+
+        async function loadData() {
+          setError(null);
+          try {
+            await loadDataInner();
+          } catch (e) {
+            const error = await describeError(e);
+            if (active) {
+              setError(error);
+            }
+          }
+        }
+      },
+      [shouldLoadData, data, date]
+    )
+  );
 
   const onDateChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {

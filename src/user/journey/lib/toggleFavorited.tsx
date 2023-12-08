@@ -25,7 +25,7 @@ import { describeError } from '../../../shared/forms/ErrorBlock';
  *   set this to false. If we don't know, this should be undefined.
  */
 export const toggleFavorited = async (
-  loginContext: LoginContextValue,
+  loginContextRaw: LoginContextValue,
   journey: { uid: string },
   shared: ValueWithCallbacks<{ favorited: boolean | null; setFavorited: (v: boolean) => void }>,
   showLikedUntilVWC: WritableValueWithCallbacks<number | undefined>,
@@ -38,6 +38,12 @@ export const toggleFavorited = async (
   if (favorited === null) {
     return;
   }
+
+  const loginContextUnch = loginContextRaw.value.get();
+  if (loginContextUnch.state !== 'logged-in') {
+    return;
+  }
+  const loginContext = loginContextUnch;
 
   setVWC(showLikedUntilVWC, undefined);
   setVWC(showUnlikedUntilVWC, undefined);

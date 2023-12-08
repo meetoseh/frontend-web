@@ -2,7 +2,7 @@ import { useContext, useEffect } from 'react';
 import { useWindowSizeValueWithCallbacks } from '../../../shared/hooks/useWindowSize';
 import { JourneyRef } from '../models/JourneyRef';
 import { JourneyShared } from '../models/JourneyShared';
-import { LoginContext } from '../../../shared/contexts/LoginContext';
+import { LoginContext, LoginContextValueUnion } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { fetchWebExport } from '../../../shared/content/useOsehContentTarget';
@@ -26,7 +26,7 @@ import { OsehContentTarget } from '../../../shared/content/OsehContentTarget';
 export const useJourneyShared = (
   journeyVariableStrategy: VariableStrategyProps<JourneyRef | null>
 ): ValueWithCallbacks<JourneyShared> => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const journeyVWC = useVariableStrategyPropsAsValueWithCallbacks(journeyVariableStrategy);
   const windowSizeVWC = useWindowSizeValueWithCallbacks({
     type: 'react-rerender',
@@ -63,9 +63,11 @@ export const useJourneyShared = (
     let managedJourneyUID: string | null = null;
     let unmountJourneyHandler: (() => void) | null = null;
     journeyVWC.callbacks.add(handleJourneyChanged);
+    loginContextRaw.value.callbacks.add(handleJourneyChanged);
     handleJourneyChanged();
     return () => {
       journeyVWC.callbacks.remove(handleJourneyChanged);
+      loginContextRaw.value.callbacks.remove(handleJourneyChanged);
       if (unmountJourneyHandler !== null) {
         unmountJourneyHandler();
         unmountJourneyHandler = null;
@@ -90,10 +92,13 @@ export const useJourneyShared = (
         managedJourneyUID = journeyOuter.uid;
       }
 
-      unmountJourneyHandler = handleJourney(journeyOuter);
+      unmountJourneyHandler = handleJourney(journeyOuter, loginContextRaw.value.get());
     }
 
-    function handleJourney(journey: JourneyRef): () => void {
+    function handleJourney(
+      journey: JourneyRef,
+      loginContextUnch: LoginContextValueUnion
+    ): () => void {
       const cleanup = [
         handleOriginalImage(),
         handleDarkenedAndBlurredImages(),
@@ -287,12 +292,12 @@ export const useJourneyShared = (
           if (!active) {
             return;
           }
-          if (loginContext.state === 'loading') {
+          if (loginContextUnch.state === 'loading') {
             setFavorited(null);
             return;
           }
 
-          if (loginContext.state === 'logged-out') {
+          if (loginContextUnch.state === 'logged-out') {
             setFavorited(false);
             return;
           }
@@ -322,7 +327,7 @@ export const useJourneyShared = (
                 limit: 1,
               }),
             },
-            loginContext
+            loginContextUnch
           );
           if (!response.ok) {
             throw response;
@@ -377,7 +382,7 @@ export const useJourneyShared = (
     journeyVWC,
     windowSizeVWC,
     previewSizeVWC,
-    loginContext,
+    loginContextRaw,
     audioVWC,
     imageHandler,
     result,

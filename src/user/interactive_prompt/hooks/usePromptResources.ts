@@ -115,7 +115,7 @@ export const usePromptResources = <P extends InteractivePrompt, R>(
     },
     onFinished: props.onFinished,
   });
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   useSimpleSelectionHandler({
     selection: { type: 'callbacks', props: selectedIndex.get, callbacks: selectedIndex.callbacks },
     prompt: { type: 'react-rerender', props: props.prompt },
@@ -123,7 +123,7 @@ export const usePromptResources = <P extends InteractivePrompt, R>(
     promptTime: { type: 'callbacks', props: time.get, callbacks: time.callbacks },
     callback: (selected: number | null, time: number) =>
       settings.storeResponse(
-        loginContext,
+        loginContextRaw,
         props.prompt,
         time,
         settings.getSelectionFromIndex(props.prompt, selected),

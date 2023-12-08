@@ -32,8 +32,13 @@ const settings: PromptSettings<InteractiveColorPrompt, string | null> = {
   getSelectionFromIndex: (prompt, index) => (index ? prompt.prompt.colors[index] ?? null : null),
   getResponseDistributionFromStats: (prompt, stats) =>
     stats.colorActive ?? prompt.prompt.colors.map(() => 0),
-  storeResponse: async (loginContext, prompt, time, response, index) => {
+  storeResponse: async (loginContextRaw, prompt, time, response, index) => {
     if (index === null) {
+      return;
+    }
+
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
       return;
     }
 
@@ -53,7 +58,7 @@ const settings: PromptSettings<InteractiveColorPrompt, string | null> = {
         }),
         keepalive: true,
       },
-      loginContext
+      loginContextUnch
     );
   },
 };

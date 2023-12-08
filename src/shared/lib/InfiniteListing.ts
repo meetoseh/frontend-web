@@ -111,10 +111,10 @@ export class NetworkedInfiniteListing<T extends object> {
     initialSort: CrudFetcherSort,
     sortMaker: InfiniteListingSortMaker<T>,
     keyMap: CrudFetcherKeyMap<T> | ((raw: any) => T),
-    getLoginContext: () => LoginContextValue
+    loginContextRaw: LoginContextValue
   ) {
     this.cachedList = new CachedServerList(
-      new ServerList(endpoint, loadLimit, filter, initialSort, sortMaker, keyMap, getLoginContext),
+      new ServerList(endpoint, loadLimit, filter, initialSort, sortMaker, keyMap, loginContextRaw),
       Math.max(2 * visibleLimit, 2 * loadLimit),
       visibleLimit,
       rotationLength
@@ -1178,21 +1178,12 @@ class ServerList<T> {
    * into the items we want to store in memory.
    */
   private readonly keyMap: CrudFetcherKeyMap<T> | ((raw: any) => T);
+
   /**
-   * A function which fetches the current login context. Within a react context
-   * this wouldn't need to be a function, but to adapt it into this class the
-   * following pattern would normally be used:
-   *
-   * ```ts
-   * const Component = () => {
-   *   const loginContext = useContext(LoginContext);
-   *   const loginContextRef = useRef(loginContext);
-   *   loginContextRef.current = loginContext;
-   *   const getLoginContext = useCallback(() => loginContextRef.current, []);
-   * }
-   * ```
+   * The value provided from useContext(LoginContext), which never updates,
+   * hence is not an issue to use as a dependency.
    */
-  private readonly getLoginContext: () => LoginContextValue;
+  private readonly loginContextRaw: LoginContextValue;
 
   constructor(
     endpoint: string,
@@ -1201,7 +1192,7 @@ class ServerList<T> {
     initialSort: CrudFetcherSort,
     sortMaker: InfiniteListingSortMaker<T>,
     keyMap: CrudFetcherKeyMap<T> | ((raw: any) => T),
-    getLoginContext: () => LoginContextValue
+    loginContextRaw: LoginContextValue
   ) {
     this.endpoint = endpoint;
     this.limit = limit;
@@ -1209,7 +1200,7 @@ class ServerList<T> {
     this.initialSort = initialSort;
     this.sortMaker = sortMaker;
     this.keyMap = keyMap;
-    this.getLoginContext = getLoginContext;
+    this.loginContextRaw = loginContextRaw;
   }
 
   private loadWithSort(sort: CrudFetcherSort): CancelablePromise<ServerListResponse<T>> {
@@ -1233,7 +1224,7 @@ class ServerList<T> {
         throw new Error('Promise cancelled');
       }
 
-      const loginContext = this.getLoginContext.call(undefined);
+      const loginContext = this.loginContextRaw.value.get();
       if (loginContext.state === 'loading') {
         active = false;
         throw new Error('LoginContext still loading');
@@ -1253,7 +1244,7 @@ class ServerList<T> {
           }),
           ...(signal === undefined ? {} : { signal }),
         },
-        loginContext
+        loginContext.state === 'logged-in' ? loginContext : null
       );
       if (!active) {
         active = false;

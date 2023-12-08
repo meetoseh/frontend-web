@@ -1,4 +1,4 @@
-import { MutableRefObject, ReactElement, useEffect, useState } from 'react';
+import { MutableRefObject, ReactElement, useCallback, useState } from 'react';
 import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { describeError } from '../../../shared/forms/ErrorBlock';
@@ -10,6 +10,7 @@ import {
   interactivePromptKeyMap,
 } from '../../interactive_prompt/models/InteractivePrompt';
 import { JourneyRef } from '../models/JourneyRef';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 type JourneyPromptProps = {
   /**
@@ -45,59 +46,66 @@ const COUNTDOWN_CONFIG: CountdownTextConfig = {
  */
 export const JourneyPrompt = ({
   journey,
-  loginContext,
+  loginContext: loginContextRaw,
   onFinished,
   leavingCallback,
 }: JourneyPromptProps): ReactElement => {
   const [interactivePrompt, setInteractivePrompt] = useState<InteractivePrompt | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
 
-  useEffect(() => {
-    if (loginContext.state !== 'logged-in') {
-      return;
-    }
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
+          return;
+        }
+        const loginContext = loginContextUnch;
 
-    let active = true;
-    setError(null);
-    fetchPrompt().catch((e) => {
-      if (active) {
-        console.log('Error fetching prompt: ', e);
-        describeError(e).then((errorElement) => {
+        let active = true;
+        setError(null);
+        fetchPrompt().catch((e) => {
           if (active) {
-            setError(errorElement);
+            console.log('Error fetching prompt: ', e);
+            describeError(e).then((errorElement) => {
+              if (active) {
+                setError(errorElement);
+              }
+            });
           }
         });
-      }
-    });
-    return () => {
-      active = false;
-    };
+        return () => {
+          active = false;
+        };
 
-    async function fetchPrompt() {
-      const response = await apiFetch(
-        '/api/1/journeys/start_interactive_prompt',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            journey_uid: journey.uid,
-            journey_jwt: journey.jwt,
-          }),
-        },
-        loginContext
-      );
+        async function fetchPrompt() {
+          const response = await apiFetch(
+            '/api/1/journeys/start_interactive_prompt',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                journey_uid: journey.uid,
+                journey_jwt: journey.jwt,
+              }),
+            },
+            loginContext
+          );
 
-      if (!response.ok) {
-        throw response;
-      }
+          if (!response.ok) {
+            throw response;
+          }
 
-      const body = await response.json();
-      const prompt = convertUsingKeymap(body, interactivePromptKeyMap);
-      if (active) {
-        setInteractivePrompt(prompt);
-      }
-    }
-  }, [journey, loginContext]);
+          const body = await response.json();
+          const prompt = convertUsingKeymap(body, interactivePromptKeyMap);
+          if (active) {
+            setInteractivePrompt(prompt);
+          }
+        }
+      },
+      [journey]
+    )
+  );
 
   if (interactivePrompt === null) {
     return error ?? <></>;

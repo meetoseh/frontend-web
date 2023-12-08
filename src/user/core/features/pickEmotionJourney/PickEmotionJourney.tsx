@@ -27,7 +27,7 @@ export const PickEmotionJourney = ({
   state,
   resources,
 }: FeatureComponentProps<PickEmotionJourneyState, PickEmotionJourneyResources>): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [step, setStep] = useState<{
     journeyUid: string | null;
     step: 'pick' | JourneyRouterScreenId;
@@ -95,6 +95,13 @@ export const PickEmotionJourney = ({
         return;
       }
 
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        console.warn('Cannot go to journey screen without a logged in user.');
+        return;
+      }
+      const loginContext = loginContextUnch;
+
       if (typeof screen === 'function') {
         screen = screen(stepRef.current.step);
       }
@@ -134,7 +141,7 @@ export const PickEmotionJourney = ({
       stepRef.current = newStep;
       setStep(newStep);
     },
-    [resources, loginContext]
+    [resources, loginContextRaw]
   );
 
   const forceSplash = useUnwrappedValueWithCallbacks(

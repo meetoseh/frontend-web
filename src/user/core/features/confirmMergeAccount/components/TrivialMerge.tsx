@@ -9,13 +9,16 @@ import { RenderGuardedComponent } from '../../../../../shared/components/RenderG
 import { useWritableValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
 import { Button } from '../../../../../shared/forms/Button';
 import { ListLoginOptions } from './ListLoginOptions';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 
 export const TrivialMerge = ({
   resources,
   state,
 }: FeatureComponentProps<ConfirmMergeAccountState, ConfirmMergeAccountResources>): ReactElement => {
-  const loginContext = useContext(LoginContext);
-  const givenName = loginContext.userAttributes?.givenName;
+  const loginContextRaw = useContext(LoginContext);
+  const givenNameVWC = useMappedValueWithCallbacks(loginContextRaw.value, (v) =>
+    v.state !== 'logged-in' ? undefined : v.userAttributes.givenName
+  );
 
   const closeDisabled = useWritableValueWithCallbacks(() => false);
   const onDismiss = useWritableValueWithCallbacks(() => () => {});
@@ -27,7 +30,12 @@ export const TrivialMerge = ({
       closeDisabled={closeDisabled}
       onDismiss={onDismiss}
       keepSessionOpen>
-      <div className={styles.title}>All set{givenName && <>, {givenName}</>}</div>
+      <div className={styles.title}>
+        <RenderGuardedComponent
+          props={givenNameVWC}
+          component={(givenName) => <>All set{givenName && <>, {givenName}</>}</>}
+        />
+      </div>
       <div className={styles.description}>
         You have successfully merged your two accounts. You can now login with{' '}
         <ListLoginOptions state={state} resources={resources} />

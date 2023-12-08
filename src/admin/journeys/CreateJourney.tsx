@@ -37,6 +37,7 @@ import { InstructorPicker } from '../instructors/InstructorPicker';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { JourneyPicker } from './JourneyPicker';
 import { CompactJourney } from './CompactJourney';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type CreateJourneyProps = {
   /**
@@ -55,7 +56,7 @@ type CreateJourneyProps = {
  * as there are nested components (audio, image) which cannot be null.
  */
 export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [audioContent, setAudioContent] = useState<JourneyAudioContent | null>(null);
   const [showAddAudioContentModal, setShowAddAudioContentModal] = useState(false);
@@ -81,11 +82,18 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
   const [saving, setSaving] = useState(false);
   const [createErrorCollapsed, setCreateErrorCollapsed] = useState(true);
 
-  useEffect(() => {
-    if (showAddAudioContentModal && loginContext.state !== 'logged-in') {
-      setShowAddAudioContentModal(false);
-    }
-  }, [loginContext, showAddAudioContentModal]);
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContext) => {
+        if (showAddAudioContentModal && loginContext.state !== 'logged-in') {
+          setShowAddAudioContentModal(false);
+        }
+        return undefined;
+      },
+      [showAddAudioContentModal]
+    )
+  );
 
   useEffect(() => {
     if (!showChooseAudioContentModal) {
@@ -145,6 +153,13 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
   const create = useCallback(
     async (e: MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
+
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        return;
+      }
+      const loginContext = loginContextUnch;
+
       setSaving(true);
       setError(null);
       try {
@@ -198,7 +213,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
       }
     },
     [
-      loginContext,
+      loginContextRaw,
       audioContent,
       backgroundImage,
       description,

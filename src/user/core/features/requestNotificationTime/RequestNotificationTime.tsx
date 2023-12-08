@@ -45,7 +45,7 @@ export const RequestNotificationTime = ({
   state,
   resources,
 }: FeatureComponentProps<RequestNotificationTimeState, RequestNotificationTimeResources>) => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
   const timezone = useTimezone();
@@ -95,6 +95,11 @@ export const RequestNotificationTime = ({
 
   const trySaveSettingsWithoutTracking = useCallback(
     async (channel: string, days: DayOfWeek[], start: number, end: number) => {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        throw new Error('not logged in');
+      }
+      const loginContext = loginContextUnch;
       const response = await apiFetch(
         '/api/1/users/me/attributes/notification_time',
         {
@@ -115,7 +120,7 @@ export const RequestNotificationTime = ({
         throw response;
       }
     },
-    [loginContext, timezone]
+    [loginContextRaw, timezone]
   );
 
   const checkIfSavePromptRequired = useCallback((): boolean => {

@@ -15,6 +15,7 @@ import {
   readStoredTouchLinkCode,
   writeStoredTouchLinkCode,
 } from './TouchLinkStore';
+import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
 
 /**
  * Detects if the user came from a user touch link and, if so, loads
@@ -36,7 +37,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
       () => undefined
     );
 
-    const loginContext = useContext(LoginContext);
+    const loginContextRaw = useContext(LoginContext);
     const interests = useContext(InterestsContext);
 
     useValueWithCallbacksEffect(
@@ -84,113 +85,113 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
       )
     );
 
-    useValueWithCallbacksEffect(
-      activeLinkCode,
-      useCallback(
-        (activeLink) => {
-          let running = true;
-          getLinkInfo();
-          return () => {
-            running = false;
-          };
+    useValuesWithCallbacksEffect(
+      [activeLinkCode, loginContextRaw.value],
+      useCallback(() => {
+        const activeLink = activeLinkCode.get();
+        const loginContextUnch = loginContextRaw.value.get();
 
-          async function getLinkInfoInner() {
-            if (
-              !running ||
-              activeLink === null ||
-              activeLink === undefined ||
-              activeLink.link !== null
-            ) {
-              return;
-            }
+        let running = true;
+        getLinkInfo();
+        return () => {
+          running = false;
+        };
 
-            if (
-              loginContext.state === 'loading' ||
-              interests.state === 'loading' ||
-              interests.visitor.loading
-            ) {
-              return;
-            }
+        async function getLinkInfoInner() {
+          if (
+            !running ||
+            activeLink === null ||
+            activeLink === undefined ||
+            activeLink.link !== null
+          ) {
+            return;
+          }
 
-            const response = await apiFetch(
-              '/api/1/notifications/complete',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json; charset=utf-8',
-                  ...(interests.visitor.uid !== null
-                    ? {
-                        Visitor: interests.visitor.uid,
-                      }
-                    : {}),
-                },
-                body: JSON.stringify({
-                  code: activeLink.code,
-                }),
+          if (
+            loginContextUnch.state === 'loading' ||
+            interests.state === 'loading' ||
+            interests.visitor.loading
+          ) {
+            return;
+          }
+
+          const response = await apiFetch(
+            '/api/1/notifications/complete',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                ...(interests.visitor.uid !== null
+                  ? {
+                      Visitor: interests.visitor.uid,
+                    }
+                  : {}),
               },
-              loginContext
-            );
+              body: JSON.stringify({
+                code: activeLink.code,
+              }),
+            },
+            loginContextUnch.state === 'logged-in' ? loginContextUnch : null
+          );
 
-            if (!response.ok) {
-              if (response.status === 404) {
-                if (running) {
-                  setVWC(activeLinkCode, null);
-                }
-                return;
+          if (!response.ok) {
+            if (response.status === 404) {
+              if (running) {
+                setVWC(activeLinkCode, null);
               }
-
-              throw response;
+              return;
             }
 
-            const data: {
-              page_identifier: string;
-              page_extra: Record<string, any>;
-              click_uid: string;
-            } = await response.json();
+            throw response;
+          }
 
+          const data: {
+            page_identifier: string;
+            page_extra: Record<string, any>;
+            click_uid: string;
+          } = await response.json();
+
+          if (!running) {
+            return;
+          }
+
+          const newActiveLinkCode: StoredTouchLinkCode = {
+            ...activeLink,
+            link: {
+              link: {
+                pageIdentifier: data.page_identifier,
+                pageExtra: data.page_extra,
+              },
+              onClickUid: data.click_uid,
+              setUser: loginContextUnch.state === 'logged-in',
+            },
+          };
+          try {
+            await writeStoredTouchLinkCode(newActiveLinkCode).promise;
+          } finally {
+            if (running) {
+              setVWC(activeLinkCode, newActiveLinkCode);
+            }
+          }
+        }
+
+        async function getLinkInfo() {
+          try {
+            await getLinkInfoInner();
+          } catch (e) {
             if (!running) {
               return;
             }
 
-            const newActiveLinkCode: StoredTouchLinkCode = {
-              ...activeLink,
-              link: {
-                link: {
-                  pageIdentifier: data.page_identifier,
-                  pageExtra: data.page_extra,
-                },
-                onClickUid: data.click_uid,
-                setUser: loginContext.state === 'logged-in',
-              },
-            };
-            try {
-              await writeStoredTouchLinkCode(newActiveLinkCode).promise;
-            } finally {
-              if (running) {
-                setVWC(activeLinkCode, newActiveLinkCode);
-              }
-            }
+            console.log('Failed to get link destination:', e);
+            setVWC(activeLinkCode, null);
           }
-
-          async function getLinkInfo() {
-            try {
-              await getLinkInfoInner();
-            } catch (e) {
-              if (!running) {
-                return;
-              }
-
-              console.log('Failed to get link destination:', e);
-              setVWC(activeLinkCode, null);
-            }
-          }
-        },
-        [activeLinkCode, loginContext, interests]
-      )
+        }
+      }, [activeLinkCode, loginContextRaw, interests])
     );
 
-    useValueWithCallbacksEffect(
-      activeLinkCode,
+    useValuesWithCallbacksEffect(
+      [activeLinkCode, loginContextRaw.value],
       useCallback(() => {
         let running = true;
         handlePostLogin();
@@ -200,8 +201,9 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
 
         async function handlePostLoginInner() {
           const link = activeLinkCode.get();
+          const loginContextUnch = loginContextRaw.value.get();
           if (
-            loginContext.state !== 'logged-in' ||
+            loginContextUnch.state !== 'logged-in' ||
             interests.state === 'loading' ||
             interests.visitor.loading ||
             link === null ||
@@ -239,7 +241,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
                 }),
                 keepalive: true,
               },
-              loginContext
+              loginContextUnch
             );
           } finally {
             if (running) {
@@ -259,52 +261,51 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
             console.log('Failed to handle post login:', e);
           }
         }
-      }, [activeLinkCode, loginContext, interests])
+      }, [activeLinkCode, loginContextRaw, interests])
     );
 
-    useValueWithCallbacksEffect(
-      activeLinkCode,
-      useCallback(
-        (link) => {
-          // The goal of this callback is that if the link points to the home
-          // screen then we hard redirect to the homescreen to ensure the user
-          // is prompted to open the app if they have the app installed, which
-          // they wouldn't be for /l/* urls given that they sometimes point to
-          // functionality not available in the app
+    useValuesWithCallbacksEffect(
+      [activeLinkCode, loginContextRaw.value],
+      useCallback(() => {
+        // The goal of this callback is that if the link points to the home
+        // screen then we hard redirect to the homescreen to ensure the user
+        // is prompted to open the app if they have the app installed, which
+        // they wouldn't be for /l/* urls given that they sometimes point to
+        // functionality not available in the app
 
-          // We also have /a/* shortlinks which are always supported in the app
-          // and hence automatically redirect there without us needed to reload
+        // We also have /a/* shortlinks which are always supported in the app
+        // and hence automatically redirect there without us needed to reload
+        const link = activeLinkCode.get();
+        if (
+          link === null ||
+          link === undefined ||
+          link.link === null ||
+          link.link.link.pageIdentifier !== 'home'
+        ) {
+          return;
+        }
 
-          if (
-            link === null ||
-            link === undefined ||
-            link.link === null ||
-            link.link.link.pageIdentifier !== 'home'
-          ) {
-            return;
-          }
+        const loginContextUnch = loginContextRaw.value.get();
 
-          if (loginContext.state === 'loading') {
-            return;
-          }
+        if (loginContextUnch.state === 'loading') {
+          return;
+        }
 
-          if (loginContext.state === 'logged-in' && !link.link.setUser) {
-            // wait for the user to be set
-            return;
-          }
+        if (loginContextUnch.state === 'logged-in' && !link.link.setUser) {
+          // wait for the user to be set
+          return;
+        }
 
-          const currentPath = window.location.pathname;
-          if (!currentPath.startsWith('/l/')) {
-            return;
-          }
+        const currentPath = window.location.pathname;
+        if (!currentPath.startsWith('/l/')) {
+          return;
+        }
 
-          const url = new URL(window.location.href);
-          url.pathname = '';
-          window.location.href = url.toString();
-          return undefined;
-        },
-        [loginContext]
-      )
+        const url = new URL(window.location.href);
+        url.pathname = '';
+        window.location.assign(url.toString());
+        return undefined;
+      }, [loginContextRaw, activeLinkCode])
     );
 
     return useMappedValuesWithCallbacks([activeLinkCode, codeInUrl], (): TouchLinkState => {

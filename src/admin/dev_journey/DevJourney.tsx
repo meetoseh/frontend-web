@@ -1,4 +1,4 @@
-import { CSSProperties, ReactElement, useContext, useEffect, useState } from 'react';
+import { CSSProperties, ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { ActionsBlock } from './blocks/ActionsBlock';
@@ -6,6 +6,7 @@ import { HistoricalBlock } from './blocks/HistoricalBlock';
 import { LiveBlock } from './blocks/LiveBlock';
 import { StatsBlock } from './blocks/StatsBlock';
 import { JourneyRef } from './DevJourneyApp';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 type DevJourneyProps = {
   /**
@@ -22,7 +23,7 @@ export const DevJourney = ({ journeyRef }: DevJourneyProps): ReactElement => {
   const [running, setRunning] = useState(false);
   const [sessionUID, setSessionUID] = useState<string | null>(null);
   const [journeyTime, setJourneyTime] = useState<number>(-1);
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   useEffect(() => {
     const mediaQuery = matchMedia('(max-width: 991px)');
@@ -38,86 +39,77 @@ export const DevJourney = ({ journeyRef }: DevJourneyProps): ReactElement => {
     };
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    startOrEndSession();
-    return () => {
-      active = false;
-    };
-
-    async function startOrEndSession() {
-      if (sessionUID === null && !running) {
-        return;
-      }
-      if (sessionUID !== null && running) {
-        return;
-      }
-
-      if (!running) {
-        apiFetch(
-          '/api/1/journeys/events/leave',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              journey_uid: journeyRef.uid,
-              journey_jwt: journeyRef.jwt,
-              session_uid: sessionUID,
-              journey_time: Math.max(Math.min(journeyTime, journeyRef.durationSeconds), 0),
-              data: {},
-            }),
-          },
-          loginContext
-        );
-        setSessionUID(null);
-        return;
-      }
-
-      const response = await apiFetch(
-        `/api/1/journeys/dev_start_session/${journeyRef.uid}`,
-        {
-          method: 'POST',
-        },
-        loginContext
-      );
-      if (!active) {
-        return;
-      }
-      if (!response.ok) {
-        const text = await response.text();
-        if (!active) {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
           return;
         }
-        console.log('Failed to start journey session', response, text);
-        setRunning(false);
-        return;
-      }
-      const data = await response.json();
-      if (!active) {
-        return;
-      }
+        const loginContext = loginContextUnch;
 
-      const newSessionUID: string = data.session_uid;
+        let active = true;
+        startOrEndSession();
+        return () => {
+          active = false;
+        };
 
-      const joinResponse = await apiFetch(
-        '/api/1/journeys/events/join',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            journey_uid: journeyRef.uid,
-            journey_jwt: journeyRef.jwt,
-            session_uid: newSessionUID,
-            journey_time: Math.max(Math.min(journeyTime, journeyRef.durationSeconds), 0),
-            data: {},
-          }),
-        },
-        loginContext
-      );
-      if (!active) {
-        if (joinResponse.ok) {
-          await apiFetch(
-            '/api/1/journeys/events/leave',
+        async function startOrEndSession() {
+          if (sessionUID === null && !running) {
+            return;
+          }
+          if (sessionUID !== null && running) {
+            return;
+          }
+
+          if (!running) {
+            apiFetch(
+              '/api/1/journeys/events/leave',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                  journey_uid: journeyRef.uid,
+                  journey_jwt: journeyRef.jwt,
+                  session_uid: sessionUID,
+                  journey_time: Math.max(Math.min(journeyTime, journeyRef.durationSeconds), 0),
+                  data: {},
+                }),
+              },
+              loginContext
+            );
+            setSessionUID(null);
+            return;
+          }
+
+          const response = await apiFetch(
+            `/api/1/journeys/dev_start_session/${journeyRef.uid}`,
+            {
+              method: 'POST',
+            },
+            loginContext
+          );
+          if (!active) {
+            return;
+          }
+          if (!response.ok) {
+            const text = await response.text();
+            if (!active) {
+              return;
+            }
+            console.log('Failed to start journey session', response, text);
+            setRunning(false);
+            return;
+          }
+          const data = await response.json();
+          if (!active) {
+            return;
+          }
+
+          const newSessionUID: string = data.session_uid;
+
+          const joinResponse = await apiFetch(
+            '/api/1/journeys/events/join',
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -131,20 +123,40 @@ export const DevJourney = ({ journeyRef }: DevJourneyProps): ReactElement => {
             },
             loginContext
           );
+          if (!active) {
+            if (joinResponse.ok) {
+              await apiFetch(
+                '/api/1/journeys/events/leave',
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                  body: JSON.stringify({
+                    journey_uid: journeyRef.uid,
+                    journey_jwt: journeyRef.jwt,
+                    session_uid: newSessionUID,
+                    journey_time: Math.max(Math.min(journeyTime, journeyRef.durationSeconds), 0),
+                    data: {},
+                  }),
+                },
+                loginContext
+              );
+            }
+            return;
+          }
+          if (!joinResponse.ok) {
+            const text = await joinResponse.text();
+            if (!active) {
+              return;
+            }
+            console.log('Failed to join journey session', response, text);
+            return;
+          }
+          setSessionUID(newSessionUID);
         }
-        return;
-      }
-      if (!joinResponse.ok) {
-        const text = await joinResponse.text();
-        if (!active) {
-          return;
-        }
-        console.log('Failed to join journey session', response, text);
-        return;
-      }
-      setSessionUID(newSessionUID);
-    }
-  }, [running, journeyRef, sessionUID, loginContext, journeyTime]);
+      },
+      [running, journeyRef, sessionUID, journeyTime]
+    )
+  );
 
   useEffect(() => {
     let active = true;

@@ -42,10 +42,7 @@ export const CourseJourneysList = ({
   listHeight,
   imageHandler,
 }: CourseJourneysListProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
-  const loginContextRef = useRef(loginContext);
-  loginContextRef.current = loginContext;
-
+  const loginContextRaw = useContext(LoginContext);
   const infiniteListing = useMemo<InfiniteListing<MinimalCourseJourney>>(() => {
     const numVisible = Math.ceil(listHeight.get() / 85) * 25;
     const result = new NetworkedInfiniteListing<MinimalCourseJourney>(
@@ -109,11 +106,11 @@ export const CourseJourneysList = ({
         ];
       },
       minimalCourseJourneyKeyMap,
-      () => loginContextRef.current
+      loginContextRaw
     );
     result.reset();
     return result;
-  }, [listHeight]);
+  }, [listHeight, loginContextRaw]);
 
   const loading = useRef<boolean>(false);
   const gotoJourneyInCourse = useCallback(
@@ -121,9 +118,11 @@ export const CourseJourneysList = ({
       if (loading.current) {
         return;
       }
-      if (loginContext.state !== 'logged-in') {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
         return;
       }
+      const loginContext = loginContextUnch;
 
       loading.current = true;
       try {
@@ -154,7 +153,7 @@ export const CourseJourneysList = ({
         loading.current = false;
       }
     },
-    [loginContext, showJourney]
+    [loginContextRaw, showJourney]
   );
 
   const boundComponent = useMemo<
@@ -217,26 +216,29 @@ const CourseJourneyItemComponent = ({
   previous: ValueWithCallbacks<MinimalCourseJourney | null>;
   instructorImages: OsehImageStateRequestHandler;
 }): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const gotoJourney = useCallback(async () => {
     const item = itemVWC.get();
     await gotoJourneyInCourse(item.journey.uid, item.course.uid);
 
     if (item.isNext) {
-      apiFetch(
-        '/api/1/courses/advance',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            course_uid: item.course.uid,
-            journey_uid: item.journey.uid,
-          }),
-        },
-        loginContext
-      );
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state === 'logged-in') {
+        apiFetch(
+          '/api/1/courses/advance',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({
+              course_uid: item.course.uid,
+              journey_uid: item.journey.uid,
+            }),
+          },
+          loginContextUnch
+        );
+      }
     }
-  }, [gotoJourneyInCourse, loginContext, itemVWC]);
+  }, [gotoJourneyInCourse, loginContextRaw, itemVWC]);
   const mapItems = useCallback(
     (fn: (item: MinimalCourseJourney) => MinimalCourseJourney) => {
       replaceItem(() => true, fn);

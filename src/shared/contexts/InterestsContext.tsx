@@ -4,7 +4,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -13,6 +12,7 @@ import { LoginContext, LoginContextValue } from './LoginContext';
 import { Visitor, getUTMFromURL, UTM, useVisitor } from '../hooks/useVisitor';
 import { apiFetch } from '../ApiConstants';
 import { useLogoutHandler } from '../hooks/useLogoutHandler';
+import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';
 
 /**
  * A discriminatory union based on 'type': the reason the interests were set.
@@ -263,7 +263,7 @@ const getInterestFromUTM = (utm: UTM): { primaryInterest: string; interests: str
  * before providing them.
  */
 export const InterestsProvider = ({
-  loginContext,
+  loginContext: loginContextRaw,
   visitor,
   children,
 }: PropsWithChildren<InterestsContextProps>): ReactElement => {
@@ -271,7 +271,9 @@ export const InterestsProvider = ({
 
   const setInterests = useCallback(
     async (primaryInterest: string, interests: string[], reason: SetInterestReason) => {
-      if (loginContext.state === 'loading') {
+      const loginContextUnch = loginContextRaw.value.get();
+
+      if (loginContextUnch.state === 'loading') {
         throw new Error('cannot set interests while login context is loading');
       }
       if (visitor.loading) {
@@ -297,7 +299,7 @@ export const InterestsProvider = ({
             source: 'browser',
           }),
         },
-        loginContext
+        loginContextUnch.state === 'logged-in' ? loginContextUnch : null
       );
 
       if (response.ok) {
@@ -323,7 +325,7 @@ export const InterestsProvider = ({
         });
       }
     },
-    [loginContext, visitor]
+    [loginContextRaw, visitor]
   );
 
   const clearInterests = useCallback(async () => {
@@ -335,135 +337,141 @@ export const InterestsProvider = ({
 
   const setInterestsRef = useRef(setInterests);
   setInterestsRef.current = setInterests;
-  useEffect(() => {
-    if (baseState.state !== 'loading') {
-      return;
-    }
-
-    if (loginContext.state === 'loading' || visitor.loading) {
-      return;
-    }
-
-    const vis = visitor;
-
-    let active = true;
-    fetchState();
-    return () => {
-      active = false;
-    };
-
-    async function fetchFromServer(): Promise<LocallyStoredInterests | null> {
-      const response = await apiFetch(
-        '/api/1/users/me/interests/?source=browser',
-        {
-          method: 'GET',
-          headers:
-            vis.uid === null
-              ? {}
-              : {
-                  Visitor: vis.uid,
-                },
-        },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data: {
-        primary_interest: string | null;
-        interests: string[];
-        visitor_uid: string;
-      } = await response.json();
-
-      vis.setVisitor(data.visitor_uid);
-
-      if (data.primary_interest === null) {
-        return null;
-      }
-
-      const nowMS = Date.now();
-      return {
-        primaryInterest: data.primary_interest,
-        interests: data.interests,
-        authoritative: false,
-        staleAfter: nowMS + 1000 * 60 * 10,
-        expiresAt: nowMS + 1000 * 60 * 60 * 24 * 7,
-      };
-    }
-
-    async function fetchStateInner() {
-      const utm = getUTMFromURL();
-      if (utm !== null) {
-        const utmInt = getInterestFromUTM(utm);
-        if (utmInt !== null) {
-          await setInterestsRef.current(utmInt.primaryInterest, utmInt.interests, {
-            type: 'utm',
-            ...utm,
-          });
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (baseState.state !== 'loading') {
           return;
         }
-      }
 
-      const nowMS = Date.now();
-      const locallyStored = fetchLocalInterests();
-
-      if (locallyStored !== null && locallyStored.expiresAt > nowMS) {
-        if (!active) {
+        if (loginContextUnch.state === 'loading' || visitor.loading) {
           return;
         }
-        setBaseState({
-          state: 'loaded',
-          visitor,
-          primaryInterest: locallyStored.primaryInterest,
-          interests: locallyStored.interests,
-          setInterests: _noSetInterests,
-          clearLocallyStoredInterests: _noClearInterests,
-        });
 
-        if (locallyStored.staleAfter !== null && locallyStored.staleAfter < nowMS) {
+        const vis = visitor;
+
+        let active = true;
+        fetchState();
+        return () => {
+          active = false;
+        };
+
+        async function fetchFromServer(): Promise<LocallyStoredInterests | null> {
+          const response = await apiFetch(
+            '/api/1/users/me/interests/?source=browser',
+            {
+              method: 'GET',
+              headers:
+                vis.uid === null
+                  ? {}
+                  : {
+                      Visitor: vis.uid,
+                    },
+            },
+            loginContextUnch.state === 'logged-in' ? loginContextUnch : null
+          );
+
+          if (!response.ok) {
+            throw response;
+          }
+
+          const data: {
+            primary_interest: string | null;
+            interests: string[];
+            visitor_uid: string;
+          } = await response.json();
+
+          vis.setVisitor(data.visitor_uid);
+
+          if (data.primary_interest === null) {
+            return null;
+          }
+
+          const nowMS = Date.now();
+          return {
+            primaryInterest: data.primary_interest,
+            interests: data.interests,
+            authoritative: false,
+            staleAfter: nowMS + 1000 * 60 * 10,
+            expiresAt: nowMS + 1000 * 60 * 60 * 24 * 7,
+          };
+        }
+
+        async function fetchStateInner() {
+          const utm = getUTMFromURL();
+          if (utm !== null) {
+            const utmInt = getInterestFromUTM(utm);
+            if (utmInt !== null) {
+              await setInterestsRef.current(utmInt.primaryInterest, utmInt.interests, {
+                type: 'utm',
+                ...utm,
+              });
+              return;
+            }
+          }
+
+          const nowMS = Date.now();
+          const locallyStored = fetchLocalInterests();
+
+          if (locallyStored !== null && locallyStored.expiresAt > nowMS) {
+            if (!active) {
+              return;
+            }
+            setBaseState({
+              state: 'loaded',
+              visitor,
+              primaryInterest: locallyStored.primaryInterest,
+              interests: locallyStored.interests,
+              setInterests: _noSetInterests,
+              clearLocallyStoredInterests: _noClearInterests,
+            });
+
+            if (locallyStored.staleAfter !== null && locallyStored.staleAfter < nowMS) {
+              const serverStored = await fetchFromServer();
+              if (!active) {
+                return;
+              }
+              if (serverStored !== null) {
+                storeInterestsLocally(serverStored);
+              }
+            }
+            return;
+          }
+
           const serverStored = await fetchFromServer();
           if (!active) {
             return;
           }
           if (serverStored !== null) {
             storeInterestsLocally(serverStored);
+            setBaseState({
+              state: 'loaded',
+              visitor,
+              primaryInterest: serverStored.primaryInterest,
+              interests: serverStored.interests,
+              setInterests: _noSetInterests,
+              clearLocallyStoredInterests: _noClearInterests,
+            });
+            return;
           }
-        }
-        return;
-      }
 
-      const serverStored = await fetchFromServer();
-      if (!active) {
-        return;
-      }
-      if (serverStored !== null) {
-        storeInterestsLocally(serverStored);
-        setBaseState({
-          state: 'loaded',
-          visitor,
-          primaryInterest: serverStored.primaryInterest,
-          interests: serverStored.interests,
-          setInterests: _noSetInterests,
-          clearLocallyStoredInterests: _noClearInterests,
-        });
-        return;
-      }
-
-      setBaseState({ state: 'unavailable', visitor, setInterests: _noSetInterests });
-    }
-
-    async function fetchState() {
-      try {
-        await fetchStateInner();
-      } catch (e) {
-        if (active) {
           setBaseState({ state: 'unavailable', visitor, setInterests: _noSetInterests });
         }
-      }
-    }
-  }, [baseState, loginContext, visitor]);
+
+        async function fetchState() {
+          try {
+            await fetchStateInner();
+          } catch (e) {
+            if (active) {
+              setBaseState({ state: 'unavailable', visitor, setInterests: _noSetInterests });
+            }
+          }
+        }
+      },
+      [baseState, visitor]
+    )
+  );
 
   const state = useMemo<InterestsContextValue>(() => {
     if (baseState.state === 'loading') {
@@ -496,11 +504,11 @@ export const InterestsProvider = ({
  * the login context and useVisitor to get the visitor.
  */
 export const InterestsAutoProvider = ({ children }: PropsWithChildren<object>) => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const visitor = useVisitor();
 
   return (
-    <InterestsProvider loginContext={loginContext} visitor={visitor}>
+    <InterestsProvider loginContext={loginContextRaw} visitor={visitor}>
       {children}
     </InterestsProvider>
   );

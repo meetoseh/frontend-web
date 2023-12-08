@@ -23,7 +23,7 @@ export const VipChatRequestComponent = ({
   state,
   resources,
 }: FeatureComponentProps<VipChatRequestState, VipChatRequestResources>) => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const contentStyle = useMappedValueWithCallbacks(resources, (r) => {
     if (r.windowSize.width <= 439) {
       return { padding: '0 24px' };
@@ -43,10 +43,16 @@ export const VipChatRequestComponent = ({
 
   const trackEvent = useCallback(
     (event: 'open' | 'click_cta' | 'click_x' | 'click_done' | 'close_window') => {
+      const loginContextUnch = loginContextRaw.value.get();
       const chatRequest = state.get().chatRequest;
-      if (loginContext.state !== 'logged-in' || chatRequest === null || chatRequest === undefined) {
+      if (
+        loginContextUnch.state !== 'logged-in' ||
+        chatRequest === null ||
+        chatRequest === undefined
+      ) {
         return;
       }
+      const loginContext = loginContextUnch;
 
       if (state.get().suppressEvents) {
         console.log('suppressed tracking event: ' + event);
@@ -67,7 +73,7 @@ export const VipChatRequestComponent = ({
         loginContext
       );
     },
-    [loginContext, state]
+    [loginContextRaw, state]
   );
 
   const sentDone = useRef(false);

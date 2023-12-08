@@ -23,7 +23,7 @@ export const useManageConnectWithProvider = ({
   mergeError: WritableValueWithCallbacks<ReactElement | null>;
   modals: WritableValueWithCallbacks<Modals>;
 }): ((provider: OauthProvider, name: string) => Promise<void>) => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   const manageConnectWithProvider = useCallback(
     async (provider: OauthProvider, name: string): Promise<void> => {
@@ -33,6 +33,13 @@ export const useManageConnectWithProvider = ({
           ? identities.identities.filter((f) => f.provider === provider)
           : [];
       const isFirstForProvider = providerIdentities.length === 0;
+      const loginContextUnch = loginContextRaw.value.get();
+
+      if (loginContextUnch.state !== 'logged-in') {
+        setVWC(mergeError, <>You need to login again</>);
+        return;
+      }
+      const loginContext = loginContextUnch;
 
       setVWC(mergeError, null);
 
@@ -74,7 +81,7 @@ export const useManageConnectWithProvider = ({
       const closeModal = addModalWithCallbackToRemove(modals, modal);
       closeModalCallbacks.add(() => closeModal());
     },
-    [loginContext, mergeError, modals, resources]
+    [loginContextRaw, mergeError, modals, resources]
   );
 
   return manageConnectWithProvider;

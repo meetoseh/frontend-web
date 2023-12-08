@@ -1,8 +1,7 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { ReactElement, useCallback } from 'react';
 import styles from './NetworkBlockStats.module.css';
 import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../shared/ApiConstants';
-import { LoginContext } from '../../shared/contexts/LoginContext';
 import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { fromSnakeToTitleCase } from './fromSnakeToTitleCase';
 import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
@@ -79,23 +78,24 @@ export const NetworkBlockStats = ({
   items,
   specialStatusCodes,
 }: NetworkBlockStatsProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
   const data = useNetworkResponse<any | number>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return undefined;
-      }
+    useCallback(
+      async (active, loginContext) => {
+        const response = await apiFetch(path, { method: 'GET' }, loginContext);
+        if (
+          specialStatusCodes !== undefined &&
+          specialStatusCodes.hasOwnProperty(response.status)
+        ) {
+          return response.status;
+        }
 
-      const response = await apiFetch(path, { method: 'GET' }, loginContext);
-      if (specialStatusCodes !== undefined && specialStatusCodes.hasOwnProperty(response.status)) {
-        return response.status;
-      }
-
-      if (!response.ok) {
-        throw response;
-      }
-      return await response.json();
-    }, [path, loginContext, specialStatusCodes])
+        if (!response.ok) {
+          throw response;
+        }
+        return await response.json();
+      },
+      [path, specialStatusCodes]
+    )
   );
 
   const unwrappedDataError = useUnwrappedValueWithCallbacks(data.error, Object.is);

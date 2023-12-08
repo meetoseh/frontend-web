@@ -6,6 +6,7 @@ import styles from './AdminNavDesktopSideContent.module.css';
 import { AdminNavDesktopSideLink } from './AdminNavDesktopSideLink';
 import { AdminNavDesktopSideSectionHeader } from './AdminNavDesktopSideSectionHeader';
 import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 
 type AdminNavDesktopSideContentProps = {
   expanded: boolean;
@@ -18,7 +19,7 @@ export const AdminNavDesktopSideContent = ({
   expanded,
   imageHandler,
 }: AdminNavDesktopSideContentProps): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
 
   return (
     <div className={`${styles.outerContainer} ${expanded ? styles.expanded : styles.collapsed}`}>
@@ -117,7 +118,17 @@ export const AdminNavDesktopSideContent = ({
         <div className={styles.userCardContainer}>
           <MyProfilePicture imageHandler={imageHandler} />
           <div className={styles.userCardInfoContainer}>
-            <div className={styles.userCardName}>{loginContext.userAttributes?.name}</div>
+            <div className={styles.userCardName}>
+              <RenderGuardedComponent
+                props={loginContextRaw.value}
+                component={(loginContext) => {
+                  if (loginContext.state === 'logged-in') {
+                    return <>{loginContext.userAttributes?.name}</>;
+                  }
+                  return <></>;
+                }}
+              />
+            </div>
             <div className={styles.userCardRole}>Admin</div>
           </div>
         </div>

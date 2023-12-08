@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useContext, useRef, useState } from 'react';
 import '../../assets/fonts.css';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/images/OsehImage';
@@ -9,92 +9,105 @@ import { SplashScreen } from '../splash/SplashScreen';
 import { apiFetch } from '../../shared/ApiConstants';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 /**
  * Provides the user the ability to upgrade to oseh plus if they don't
  * already have it.
  */
 export const OsehPlusUpgradePrompt = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [havePro, setHavePro] = useState<boolean | null>(null);
   const [upgradeUrl, setUpgradeUrl] = useState<string | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
   const imageHandler = useOsehImageStateRequestHandler({});
   const windowSize = useWindowSize();
 
-  useEffect(() => {
-    if (loginContext.state === 'logged-out') {
-      window.location.href = '/';
-    }
-  }, [loginContext.state]);
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
+      if (loginContextUnch.state === 'logged-out') {
+        window.location.assign(window.location.origin);
+      }
+      return undefined;
+    }, [])
+  );
 
-  useEffect(() => {
-    let active = true;
-    getHaveEntitlement();
-    return () => {
-      active = false;
-    };
-
-    async function getHaveEntitlement() {
-      if (loginContext.state !== 'logged-in') {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback((loginContextUnch) => {
+      if (loginContextUnch.state !== 'logged-in') {
         return;
       }
+      const loginContext = loginContextUnch;
+      let active = true;
+      getHaveEntitlement();
+      return () => {
+        active = false;
+      };
 
-      try {
-        let response = await apiFetch(
-          '/api/1/users/me/entitlements/pro',
-          {
-            method: 'GET',
-            headers: {
-              Pragma: 'no-cache',
-            },
-          },
-          loginContext
-        );
-        if (!active) {
-          return;
-        }
-
-        if (response.status === 429) {
-          response = await apiFetch(
+      async function getHaveEntitlement() {
+        try {
+          let response = await apiFetch(
             '/api/1/users/me/entitlements/pro',
             {
               method: 'GET',
+              headers: {
+                Pragma: 'no-cache',
+              },
             },
             loginContext
           );
           if (!active) {
             return;
           }
-        }
 
-        if (!response.ok) {
-          throw response;
-        }
+          if (response.status === 429) {
+            response = await apiFetch(
+              '/api/1/users/me/entitlements/pro',
+              {
+                method: 'GET',
+              },
+              loginContext
+            );
+            if (!active) {
+              return;
+            }
+          }
 
-        const data = await response.json();
-        if (!active) {
-          return;
-        }
+          if (!response.ok) {
+            throw response;
+          }
 
-        setHavePro(data.is_active);
-      } catch (e) {
-        if (!active) {
-          return;
-        }
+          const data = await response.json();
+          if (!active) {
+            return;
+          }
 
-        console.error(e);
-        const err = await describeError(e);
-        if (!active) {
-          return;
+          setHavePro(data.is_active);
+        } catch (e) {
+          if (!active) {
+            return;
+          }
+
+          console.error(e);
+          const err = await describeError(e);
+          if (!active) {
+            return;
+          }
+          setError(err);
         }
-        setError(err);
       }
-    }
-  }, [loginContext]);
+    }, [])
+  );
 
   const urlPromise = useRef<Promise<string | null> | null>(null);
   const getUrl = useCallback(async () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return null;
+    }
+    const loginContext = loginContextUnch;
     try {
       const response = await apiFetch(
         '/api/1/users/me/checkout/stripe/start',
@@ -123,7 +136,7 @@ export const OsehPlusUpgradePrompt = (): ReactElement => {
       setError(err);
       return null;
     }
-  }, [loginContext]);
+  }, [loginContextRaw]);
 
   const onButtonHover = useCallback(async () => {
     if (upgradeUrl !== null || havePro !== false) {

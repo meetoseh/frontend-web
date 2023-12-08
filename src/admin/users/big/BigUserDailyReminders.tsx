@@ -1,10 +1,9 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { ReactElement, useCallback } from 'react';
 import { User } from '../User';
 import { DayOfWeek } from './daily_reminder_settings_log/DailyReminderSettingsLog';
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../../crud/CrudFetcher';
 import { useNetworkResponse } from '../../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { CrudItemBlock } from '../../crud/CrudItemBlock';
 import { IconButton } from '../../../shared/forms/IconButton';
 import icons from '../UserBlock.module.css';
@@ -49,25 +48,24 @@ const remindersKeyMap: CrudFetcherKeyMap<Reminders> = {
  * Shows the daily reminders that given user receives right now
  */
 export const BigUserDailyReminders = ({ user }: { user: User }): ReactElement => {
-  const loginContext = useContext(LoginContext);
   const reminders = useNetworkResponse(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-      const response = await apiFetch(
-        '/api/1/users/daily_reminders?sub=' + encodeURIComponent(user.sub),
-        {
-          method: 'GET',
-        },
-        loginContext
-      );
-      if (!response.ok) {
-        throw response;
-      }
-      const data = await response.json();
-      return convertUsingKeymap(data, remindersKeyMap);
-    }, [loginContext, user])
+    useCallback(
+      async (active, loginContext) => {
+        const response = await apiFetch(
+          '/api/1/users/daily_reminders?sub=' + encodeURIComponent(user.sub),
+          {
+            method: 'GET',
+          },
+          loginContext
+        );
+        if (!response.ok) {
+          throw response;
+        }
+        const data = await response.json();
+        return convertUsingKeymap(data, remindersKeyMap);
+      },
+      [user]
+    )
   );
 
   return (

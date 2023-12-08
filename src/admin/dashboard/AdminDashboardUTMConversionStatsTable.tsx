@@ -1,12 +1,4 @@
-import {
-  ChangeEvent,
-  ReactElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { ChangeEvent, ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
@@ -19,6 +11,7 @@ import {
   dateToLocaleISODateString,
   isoDateStringToLocaleDate,
 } from '../../shared/lib/dateToLocaleISODateString';
+import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
 /**
  * Describes basic utm information, only enforcing that source is present.
@@ -240,7 +233,7 @@ const convertUpdateableToTableData = (updateable: UpdateableTableData): TableDat
  * select which day.
  */
 export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
+  const loginContextRaw = useContext(LoginContext);
   const [startDate, setStartDate] = useState(() => new Date());
   const [endDate, setEndDate] = useState(startDate);
   const [error, setError] = useState<ReactElement | null>(null);
@@ -254,89 +247,100 @@ export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
     setShowingHelp((h) => !h);
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    fetchTableData();
-    return () => {
-      active = false;
-    };
-
-    async function fetchOneDayTableDataInner(date: Date): Promise<[Date, TableData]> {
-      const response = await apiFetch(
-        '/api/1/admin/utm_conversion_stats?' +
-          new URLSearchParams({
-            year: date.getUTCFullYear().toString(),
-            month: (date.getUTCMonth() + 1).toString(),
-            day: date.getUTCDate().toString(),
-          }),
-        {},
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
-      }
-
-      const data = await response.json();
-      return [date, convertUsingKeymap(data, tableDataKeyMap)];
-    }
-
-    async function fetchTableDataInner() {
-      const maxConcurrent = 5;
-      const result = convertToUpdateable({ rows: [] });
-      const runningPromises: Promise<[Date, TableData]>[] = [];
-      const dateToPromise = new Map<number, Promise<[Date, TableData]>>();
-
-      const utcStartDate = new Date(dateToLocaleISODateString(startDate));
-      const utcEndDate = new Date(dateToLocaleISODateString(endDate));
-
-      let nextDate = utcStartDate;
-      while (nextDate.getTime() <= utcEndDate.getTime() || runningPromises.length > 0) {
-        if (!active) {
+  useValueWithCallbacksEffect(
+    loginContextRaw.value,
+    useCallback(
+      (loginContextUnch) => {
+        if (loginContextUnch.state !== 'logged-in') {
           return;
         }
+        const loginContext = loginContextUnch;
 
-        while (
-          runningPromises.length < maxConcurrent &&
-          nextDate.getTime() <= utcEndDate.getTime()
-        ) {
-          const promise = fetchOneDayTableDataInner(nextDate);
-          runningPromises.push(promise);
-          dateToPromise.set(nextDate.getTime(), promise);
-          nextDate = new Date(nextDate.getTime() + 24 * 60 * 60 * 1000);
+        let active = true;
+        fetchTableData();
+        return () => {
+          active = false;
+        };
+
+        async function fetchOneDayTableDataInner(date: Date): Promise<[Date, TableData]> {
+          const response = await apiFetch(
+            '/api/1/admin/utm_conversion_stats?' +
+              new URLSearchParams({
+                year: date.getUTCFullYear().toString(),
+                month: (date.getUTCMonth() + 1).toString(),
+                day: date.getUTCDate().toString(),
+              }),
+            {},
+            loginContext
+          );
+
+          if (!response.ok) {
+            throw response;
+          }
+
+          const data = await response.json();
+          return [date, convertUsingKeymap(data, tableDataKeyMap)];
         }
 
-        const [finDate, finTable] = await Promise.race(runningPromises);
-        const finPromise = dateToPromise.get(finDate.getTime());
+        async function fetchTableDataInner() {
+          const maxConcurrent = 5;
+          const result = convertToUpdateable({ rows: [] });
+          const runningPromises: Promise<[Date, TableData]>[] = [];
+          const dateToPromise = new Map<number, Promise<[Date, TableData]>>();
 
-        if (finPromise === undefined) {
-          throw new Error('Promise not found');
+          const utcStartDate = new Date(dateToLocaleISODateString(startDate));
+          const utcEndDate = new Date(dateToLocaleISODateString(endDate));
+
+          let nextDate = utcStartDate;
+          while (nextDate.getTime() <= utcEndDate.getTime() || runningPromises.length > 0) {
+            if (!active) {
+              return;
+            }
+
+            while (
+              runningPromises.length < maxConcurrent &&
+              nextDate.getTime() <= utcEndDate.getTime()
+            ) {
+              const promise = fetchOneDayTableDataInner(nextDate);
+              runningPromises.push(promise);
+              dateToPromise.set(nextDate.getTime(), promise);
+              nextDate = new Date(nextDate.getTime() + 24 * 60 * 60 * 1000);
+            }
+
+            const [finDate, finTable] = await Promise.race(runningPromises);
+            const finPromise = dateToPromise.get(finDate.getTime());
+
+            if (finPromise === undefined) {
+              throw new Error('Promise not found');
+            }
+
+            runningPromises.splice(runningPromises.indexOf(finPromise), 1);
+            dateToPromise.delete(finDate.getTime());
+
+            updateTableData(result, finTable);
+          }
+
+          const tableData = convertUpdateableToTableData(result);
+          if (active) {
+            setTableData(tableData);
+          }
         }
 
-        runningPromises.splice(runningPromises.indexOf(finPromise), 1);
-        dateToPromise.delete(finDate.getTime());
-
-        updateTableData(result, finTable);
-      }
-
-      const tableData = convertUpdateableToTableData(result);
-      if (active) {
-        setTableData(tableData);
-      }
-    }
-
-    async function fetchTableData() {
-      setError(null);
-      try {
-        await fetchTableDataInner();
-      } catch (e) {
-        const error = await describeError(e);
-        if (active) {
-          setError(error);
+        async function fetchTableData() {
+          setError(null);
+          try {
+            await fetchTableDataInner();
+          } catch (e) {
+            const error = await describeError(e);
+            if (active) {
+              setError(error);
+            }
+          }
         }
-      }
-    }
-  }, [loginContext, startDate, endDate]);
+      },
+      [startDate, endDate]
+    )
+  );
 
   const onStartDateChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.valueAsDate) {

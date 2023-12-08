@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useMemo } from 'react';
+import { ReactElement, useCallback, useMemo } from 'react';
 import styles from '../notifs_dashboard/AdminNotifsDashboard.module.css';
 import {
   BlockStatisticTitleRow,
@@ -16,7 +16,6 @@ import {
 import { NetworkChart } from '../lib/NetworkChart';
 import { combineClasses } from '../../shared/lib/combineClasses';
 import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
-import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
@@ -57,13 +56,8 @@ type ProgressInfo = {
  * The admin daily reminders dashboard
  */
 export const AdminDailyRemindersDashboard = (): ReactElement => {
-  const loginContext = useContext(LoginContext);
   const progressInfo = useNetworkResponse<ProgressInfo>(
-    useCallback(async () => {
-      if (loginContext.state !== 'logged-in') {
-        return null;
-      }
-
+    useCallback(async (active, loginContext) => {
       const response = await apiFetch(
         '/api/1/admin/daily_reminders/progress_info',
         { method: 'GET' },
@@ -112,7 +106,7 @@ export const AdminDailyRemindersDashboard = (): ReactElement => {
         earliestUnixDate,
         progressByDateAndTimezone,
       };
-    }, [loginContext])
+    }, [])
   );
 
   return (

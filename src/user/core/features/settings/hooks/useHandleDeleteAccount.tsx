@@ -14,9 +14,10 @@ import { apiFetch } from '../../../../../shared/ApiConstants';
 import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { useValueWithCallbacksEffect } from '../../../../../shared/hooks/useValueWithCallbacksEffect';
 import { YesNoModal } from '../../../../../shared/components/YesNoModal';
+import { useValuesWithCallbacksEffect } from '../../../../../shared/hooks/useValuesWithCallbacksEffect';
 
 export const useHandleDeleteAccount = (
-  loginContext: LoginContextValue,
+  loginContextRaw: LoginContextValue,
   modalContext: ModalContextValue,
   errorVWC: WritableValueWithCallbacks<ReactElement | null>
 ): (() => void) => {
@@ -28,10 +29,12 @@ export const useHandleDeleteAccount = (
 
   const deleteAccount = useCallback(
     async (force: boolean): Promise<void> => {
-      if (loginContext.state !== 'logged-in') {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
         setVWC(errorVWC, <>Try logging in again first.</>);
         return;
       }
+      const loginContext = loginContextUnch;
 
       try {
         const response = await apiFetch(
@@ -72,7 +75,7 @@ export const useHandleDeleteAccount = (
           throw response;
         }
 
-        await loginContext.setAuthTokens(null);
+        await loginContextRaw.setAuthTokens(null);
         window.location.href = '/';
       } catch (e) {
         console.error(e);
@@ -81,7 +84,7 @@ export const useHandleDeleteAccount = (
       }
     },
     [
-      loginContext,
+      loginContextRaw,
       errorVWC,
       showDeleteConfirmApplePromptVWC,
       showDeleteConfirmGooglePromptVWC,
@@ -90,48 +93,47 @@ export const useHandleDeleteAccount = (
     ]
   );
 
-  useValueWithCallbacksEffect(
-    showDeleteConfirmInitialPromptVWC,
-    (showDeleteConfirmInitialPrompt) => {
-      if (loginContext.state !== 'logged-in') {
-        return;
-      }
-
-      if (!showDeleteConfirmInitialPrompt) {
-        return;
-      }
-
-      const onDelete = async () => {
-        try {
-          await deleteAccount(false);
-        } finally {
-          setVWC(showDeleteConfirmInitialPromptVWC, false);
-        }
-      };
-
-      const requestDismiss = createWritableValueWithCallbacks<() => void>(() => {});
-      const onCancel = async () => setVWC(showDeleteConfirmInitialPromptVWC, false);
-
-      return addModalWithCallbackToRemove(
-        modalContext.modals,
-        <YesNoModal
-          title="Are you sure you want to delete your account?"
-          body={
-            'By deleting your account, all your progress and history will be permanently lost. If ' +
-            'you have a subscription, we recommend you manually unsubscribe prior to deleting ' +
-            'your account.'
-          }
-          cta1="Not Now"
-          cta2="Delete"
-          onClickOne={async () => requestDismiss.get()()}
-          onClickTwo={onDelete}
-          emphasize={2}
-          onDismiss={onCancel}
-          requestDismiss={requestDismiss}
-        />
-      );
+  useValuesWithCallbacksEffect([showDeleteConfirmInitialPromptVWC, loginContextRaw.value], () => {
+    const showDeleteConfirmInitialPrompt = showDeleteConfirmInitialPromptVWC.get();
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
     }
-  );
+
+    if (!showDeleteConfirmInitialPrompt) {
+      return;
+    }
+
+    const onDelete = async () => {
+      try {
+        await deleteAccount(false);
+      } finally {
+        setVWC(showDeleteConfirmInitialPromptVWC, false);
+      }
+    };
+
+    const requestDismiss = createWritableValueWithCallbacks<() => void>(() => {});
+    const onCancel = async () => setVWC(showDeleteConfirmInitialPromptVWC, false);
+
+    return addModalWithCallbackToRemove(
+      modalContext.modals,
+      <YesNoModal
+        title="Are you sure you want to delete your account?"
+        body={
+          'By deleting your account, all your progress and history will be permanently lost. If ' +
+          'you have a subscription, we recommend you manually unsubscribe prior to deleting ' +
+          'your account.'
+        }
+        cta1="Not Now"
+        cta2="Delete"
+        onClickOne={async () => requestDismiss.get()()}
+        onClickTwo={onDelete}
+        emphasize={2}
+        onDismiss={onCancel}
+        requestDismiss={requestDismiss}
+      />
+    );
+  });
 
   useValueWithCallbacksEffect(showDeleteConfirmApplePromptVWC, (showDeleteConfirmApplePrompt) => {
     if (!showDeleteConfirmApplePrompt) {

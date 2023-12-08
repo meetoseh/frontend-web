@@ -21,6 +21,9 @@ import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hoo
 import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
+import { setVWC } from '../../../../shared/lib/setVWC';
 
 type Selected = {
   word: Emotion;
@@ -111,7 +114,6 @@ export const PickEmotionJourneyFeature: Feature<
     );
   },
   useResources: (stateVWC, requiredVWC, allStates) => {
-    const loginContext = useContext(LoginContext);
     const optionsVWC = useWritableValueWithCallbacks<{
       clientUid: string;
       words: Emotion[];
@@ -150,17 +152,13 @@ export const PickEmotionJourneyFeature: Feature<
       )
     );
     const loginContextRaw = useContext(LoginContext);
-    const loginContextVWC = useReactManagedValueAsValueWithCallbacks(loginContextRaw);
-    const profilePictureProps = useMappedValuesWithCallbacks(
-      [requiredVWC, loginContextVWC],
-      () => ({
-        loginContext: loginContextVWC.get(),
-        displayWidth: 45,
-        displayHeight: 45,
-        handler: images,
-        load: requiredVWC.get(),
-      })
-    );
+    const profilePictureProps = useMappedValueWithCallbacks(requiredVWC, (load) => ({
+      loginContext: loginContextRaw,
+      displayWidth: 45,
+      displayHeight: 45,
+      handler: images,
+      load,
+    }));
     const profilePictureVWC = useMyProfilePictureStateValueWithCallbacks({
       type: 'callbacks',
       props: () => profilePictureProps.get(),
@@ -176,107 +174,115 @@ export const PickEmotionJourneyFeature: Feature<
       reloadEmotions.current = new Callbacks();
     }
 
-    useEffect(() => {
-      let cleanup: (() => void) | null = null;
-      reloadEmotions.current.add(handlePropsChanged);
-      handlePropsChanged();
-      return () => {
-        reloadEmotions.current.remove(handlePropsChanged);
-        if (cleanup !== null) {
-          cleanup();
-          cleanup = null;
-        }
-      };
+    useValueWithCallbacksEffect(
+      loginContextRaw.value,
+      useCallback(
+        (loginContextUnch) => {
+          if (loginContextUnch.state !== 'logged-in') {
+            setVWC(selectedVWC, null);
+            setVWC(optionsVWC, null);
+            return undefined;
+          }
 
-      function handleProps(): () => void {
-        let active = true;
-        fetchOptions();
-        return () => {
-          active = false;
-        };
+          const loginContext = loginContextUnch;
+          let cleanup: (() => void) | null = null;
+          reloadEmotions.current.add(handlePropsChanged);
+          handlePropsChanged();
+          return () => {
+            reloadEmotions.current.remove(handlePropsChanged);
+            if (cleanup !== null) {
+              cleanup();
+              cleanup = null;
+            }
+          };
 
-        async function fetchOptionsInner() {
-          selectedVWC.set(null);
-          selectedVWC.callbacks.call(undefined);
-          optionsVWC.set(null);
-          optionsVWC.callbacks.call(undefined);
+          function handleProps(): () => void {
+            let active = true;
+            fetchOptions();
+            return () => {
+              active = false;
+            };
 
-          const now = new Date();
-          const response = await apiFetch(
-            '/api/1/emotions/personalized',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json; charset=utf-8' },
-              body: JSON.stringify({
-                recently_seen: stateVWC
-                  .get()
-                  .recentlyViewed.slice(-5)
-                  .map((r) => r.words.map((w) => w.word)),
-                local_time: {
-                  hour_24: now.getHours(),
-                  minute: now.getMinutes(),
+            async function fetchOptionsInner() {
+              setVWC(selectedVWC, null);
+              setVWC(optionsVWC, null);
+
+              const now = new Date();
+              const response = await apiFetch(
+                '/api/1/emotions/personalized',
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                  body: JSON.stringify({
+                    recently_seen: stateVWC
+                      .get()
+                      .recentlyViewed.slice(-5)
+                      .map((r) => r.words.map((w) => w.word)),
+                    local_time: {
+                      hour_24: now.getHours(),
+                      minute: now.getMinutes(),
+                    },
+                    num_emotions: 12,
+                  }),
                 },
-                num_emotions: 12,
-              }),
-            },
-            loginContext
-          );
+                loginContext
+              );
 
-          if (!response.ok) {
-            throw response;
-          }
+              if (!response.ok) {
+                throw response;
+              }
 
-          const data = await response.json();
-          const emotions: Emotion[] = data.items;
-          if (active) {
-            const uid = stateVWC.get().onViewed.call(undefined, emotions);
-            optionsVWC.set({ clientUid: uid, words: emotions });
-            optionsVWC.callbacks.call(undefined);
-          }
-        }
-
-        async function fetchOptions() {
-          if (loginContext.state !== 'logged-in') {
-            return;
-          }
-
-          try {
-            await fetchOptionsInner();
-            if (errorVWC.get() !== null) {
-              errorVWC.set(null);
-              errorVWC.callbacks.call(undefined);
+              const data = await response.json();
+              const emotions: Emotion[] = data.items;
+              if (active) {
+                const uid = stateVWC.get().onViewed.call(undefined, emotions);
+                setVWC(optionsVWC, { clientUid: uid, words: emotions });
+              }
             }
-          } catch (e) {
-            const err = await describeError(e);
-            if (active) {
-              errorVWC.set(err);
-              errorVWC.callbacks.call(undefined);
+
+            async function fetchOptions() {
+              if (loginContext.state !== 'logged-in') {
+                return;
+              }
+
+              try {
+                await fetchOptionsInner();
+                setVWC(errorVWC, null);
+              } catch (e) {
+                const err = await describeError(e);
+                if (active) {
+                  setVWC(errorVWC, err);
+                }
+              }
             }
           }
-        }
-      }
 
-      function handlePropsChanged() {
-        if (cleanup !== null) {
-          cleanup();
-          cleanup = null;
-        }
+          function handlePropsChanged() {
+            if (cleanup !== null) {
+              cleanup();
+              cleanup = null;
+            }
 
-        cleanup = handleProps();
-      }
-    }, [errorVWC, loginContext, optionsVWC, stateVWC, selectedVWC]);
+            cleanup = handleProps();
+          }
+        },
+        [errorVWC, optionsVWC, stateVWC, selectedVWC]
+      )
+    );
 
     const onSelect = useCallback(
       async (word: Emotion, skipsStats?: boolean, replacedEmotionUserUid?: string | null) => {
+        const loginContextUnch = loginContextRaw.value.get();
         const options = optionsVWC.get();
         const selected = selectedVWC.get();
         if (
           options === null ||
           !options.words.some((w) => w === word) ||
-          loginContext.state !== 'logged-in'
+          loginContextUnch.state !== 'logged-in'
         ) {
           return;
         }
+        const loginContext = loginContextUnch;
 
         if (replacedEmotionUserUid === undefined) {
           if (selected === null) {
@@ -327,7 +333,7 @@ export const PickEmotionJourneyFeature: Feature<
           errorVWC.callbacks.call(undefined);
         }
       },
-      [loginContext, errorVWC, optionsVWC, selectedVWC]
+      [loginContextRaw, errorVWC, optionsVWC, selectedVWC]
     );
 
     useEffect(() => {
