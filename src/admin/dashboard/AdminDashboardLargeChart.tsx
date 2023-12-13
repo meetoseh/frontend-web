@@ -12,7 +12,6 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import Popup from 'reactjs-popup';
-import '../../assets/fonts.css';
 import styles from './AdminDashboardLargeChart.module.css';
 import iconStyles from './icons.module.css';
 import { Button } from '../../shared/forms/Button';

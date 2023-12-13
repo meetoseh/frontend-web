@@ -1,6 +1,5 @@
 import { ReactElement, useEffect, useMemo, useState } from 'react';
 import { HTTP_API_URL } from '../../shared/ApiConstants';
-import '../../assets/fonts.css';
 import styles from './ConnectivityScreen.module.css';
 
 type PingStats = {

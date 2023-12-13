@@ -1,5 +1,4 @@
 import { ReactElement } from 'react';
-import '../../../assets/fonts.css';
 import styles from './AdminNavMobileLink.module.css';
 
 type AdminNavMobileLinkProps = {

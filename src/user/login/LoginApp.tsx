@@ -1,5 +1,4 @@
 import { ReactElement, useContext, useRef } from 'react';
-import '../../assets/fonts.css';
 import styles from './LoginApp.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { SplashScreen } from '../splash/SplashScreen';

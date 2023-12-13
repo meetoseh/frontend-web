@@ -1,7 +1,6 @@
 import { ReactElement, useCallback, useContext, useRef } from 'react';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
-import '../../../assets/fonts.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import styles from './JourneyLobbyScreen.module.css';
 import { JourneyPrompt } from '../components/JourneyPrompt';

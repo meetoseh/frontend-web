@@ -1,5 +1,4 @@
 import { ReactElement, useCallback, useContext, useRef, useState } from 'react';
-import '../../assets/fonts.css';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/images/OsehImage';
 import styles from './OsehPlusUpgradePrompt.module.css';

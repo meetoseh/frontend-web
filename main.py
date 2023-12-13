@@ -10,6 +10,7 @@ import os
 from itgs import Itgs
 import updater
 from fastapi import FastAPI, Request, Response
+from typing import cast
 from starlette.middleware.cors import CORSMiddleware
 from error_middleware import handle_request_error
 import routes.journey_public_links
@@ -47,21 +48,33 @@ app.include_router(routes.update_password.router)
 app.router.redirect_slashes = False
 
 
-if os.environ["ENVIRONMENT"] == "dev" and "ROOT_NGINX_FRONTEND_URL" in os.environ:
+if os.environ["ENVIRONMENT"] == "dev":
     import urllib3
+
+    assert (
+        "ROOT_NGINX_FRONTEND_URL" in os.environ
+    ), "ROOT_NGINX_FRONTEND_URL must be set in dev"
+    assert "ROOT_FRONTEND_SSR_URL" in os.environ, "ROOT_FRONTEND_SSR_URL must be set"
 
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     nginx_url = os.environ["ROOT_NGINX_FRONTEND_URL"]
+    ssr_url = os.environ["ROOT_FRONTEND_SSR_URL"]
     forwarded_headers = frozenset(("Content-Type", "ETag", "Cache-Control"))
 
     # Avoids the need for port forwarding
     @app.get("{full_path:path}", include_in_schema=False)
     def catch_all(request: Request, full_path: str):
-        raw_path = request.scope["raw_path"].decode("utf-8")
+        raw_path = cast(str, request.scope["raw_path"].decode("utf-8"))
         raw_query_params = request.scope["query_string"].decode("utf-8")
         raw_loc = f"{raw_path}?{raw_query_params}" if raw_query_params else raw_path
-        raw_response = requests.get(nginx_url + raw_loc, verify=False)
+
+        if raw_path.startswith("/shared"):
+            full_url = ssr_url + raw_loc
+        else:
+            full_url = nginx_url + raw_loc
+
+        raw_response = requests.get(full_url, verify=False)
         headers = dict(
             (k, v) for (k, v) in raw_response.headers.items() if k in forwarded_headers
         )

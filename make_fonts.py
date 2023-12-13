@@ -25,9 +25,9 @@ DEFAULT_STYLE = "normal"
 
 
 def main():
-    with open(os.path.join("src", "assets", "fonts.css"), "w") as f:
+    with open(os.path.join("public", "fonts.css"), "w") as f:
         for diskname, name in FONTS:
-            for file in os.listdir(os.path.join("src", "assets", "fonts", diskname)):
+            for file in os.listdir(os.path.join("public", "fonts", diskname)):
                 if file.startswith(f"{diskname}-") and file.endswith(".ttf"):
                     suffix = file[len(diskname) + 1 : -4]
 
@@ -49,7 +49,7 @@ def main():
                     print(f"  font-weight: {weight};", file=f)
                     print(f"  font-display: swap;", file=f)
                     print(
-                        f"  src: url('fonts/{diskname}/{file}') format('truetype');",
+                        f"  src: url('/fonts/{diskname}/{file}') format('truetype');",
                         file=f,
                     )
                     print("}", file=f)

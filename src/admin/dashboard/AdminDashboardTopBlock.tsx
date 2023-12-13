@@ -1,5 +1,4 @@
 import { ReactElement } from 'react';
-import '../../assets/fonts.css';
 import { combineClasses } from '../../shared/lib/combineClasses';
 import styles from './AdminDashboardTopBlock.module.css';
 

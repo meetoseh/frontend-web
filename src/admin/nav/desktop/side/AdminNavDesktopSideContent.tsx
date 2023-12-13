@@ -1,7 +1,6 @@
 import { ReactElement, useContext } from 'react';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { MyProfilePicture } from '../../../../shared/components/MyProfilePicture';
-import '../../../../assets/fonts.css';
 import styles from './AdminNavDesktopSideContent.module.css';
 import { AdminNavDesktopSideLink } from './AdminNavDesktopSideLink';
 import { AdminNavDesktopSideSectionHeader } from './AdminNavDesktopSideSectionHeader';

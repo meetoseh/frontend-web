@@ -4,7 +4,6 @@ import {
   AdminDashboardLargeChartItem,
   AdminDashboardLargeChartMonthlyItem,
 } from './AdminDashboardLargeChart';
-import '../../assets/fonts.css';
 import detailStyles from './subComponents/ChartDetails.module.css';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';

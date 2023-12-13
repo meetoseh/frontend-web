@@ -1,6 +1,5 @@
 import { ReactElement, useEffect, useState } from 'react';
 import { LoginProvider } from '../shared/contexts/LoginContext';
-import '../assets/fonts.css';
 import { AdminNavDesktopTop } from './nav/desktop/top/AdminNavDesktopTop';
 import { AdminNavDesktopSideHeader } from './nav/desktop/side/AdminNavDesktopSideHeader';
 import { AdminNavDesktopSideContent } from './nav/desktop/side/AdminNavDesktopSideContent';

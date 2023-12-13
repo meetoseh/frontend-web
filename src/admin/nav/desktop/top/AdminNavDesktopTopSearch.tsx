@@ -1,5 +1,4 @@
 import { ReactElement, useEffect, useState } from 'react';
-import '../../../../assets/fonts.css';
 import { AdminNavDesktopSideLink } from '../side/AdminNavDesktopSideLink';
 import styles from './AdminNavDesktopTopSearch.module.css';
 import sideContentStyles from '../side/AdminNavDesktopSideContent.module.css';

@@ -1,6 +1,5 @@
 import { PropsWithChildren, ReactElement, useContext, useRef } from 'react';
 import { LoginContext } from '../shared/contexts/LoginContext';
-import '../assets/fonts.css';
 import styles from './RequireLoggedIn.module.css';
 import { LoginButton } from '../shared/LoginButton';
 import { useFullHeight } from '../shared/hooks/useFullHeight';
