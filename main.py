@@ -69,12 +69,19 @@ if os.environ["ENVIRONMENT"] == "dev":
         raw_query_params = request.scope["query_string"].decode("utf-8")
         raw_loc = f"{raw_path}?{raw_query_params}" if raw_query_params else raw_path
 
-        if raw_path.startswith("/shared"):
+        if raw_path.startswith("/shared") or raw_path in (
+            "/sitemap.xml",
+            "/sitemap.txt",
+        ):
             full_url = ssr_url + raw_loc
         else:
             full_url = nginx_url + raw_loc
 
-        raw_response = requests.get(full_url, verify=False)
+        try:
+            raw_response = requests.get(full_url, verify=False)
+        except:
+            return Response(status_code=500)
+
         headers = dict(
             (k, v) for (k, v) in raw_response.headers.items() if k in forwarded_headers
         )

@@ -229,7 +229,7 @@ export class OrderedDictionary<T, LookupKey extends keyof T, SortKey extends key
       throw new Error('duplicate lookup key');
     }
 
-    if (this.head.value < value) {
+    if (this.head.value[this.sortKey] < value[this.sortKey]) {
       throw new Error('value is not the lowest sort key');
     }
 
@@ -264,7 +264,7 @@ export class OrderedDictionary<T, LookupKey extends keyof T, SortKey extends key
       throw new Error('duplicate lookup key');
     }
 
-    if (this.tail.value > value) {
+    if (this.tail.value[this.sortKey] > value[this.sortKey]) {
       throw new Error('value is not the highest sort key');
     }
 
@@ -305,13 +305,13 @@ export class OrderedDictionary<T, LookupKey extends keyof T, SortKey extends key
 
     if (hint === 'front') {
       let node = this.head;
-      while (node.next !== null && node.value < value) {
+      while (node.next !== null && node.value[this.sortKey] < value[this.sortKey]) {
         node = node.next;
       }
       this.linkBefore(node, value);
     } else {
       let node = this.tail;
-      while (node.prev !== null && node.value > value) {
+      while (node.prev !== null && node.value[this.sortKey] > value[this.sortKey]) {
         node = node.prev;
       }
       this.linkAfter(node, value);
@@ -356,7 +356,7 @@ export class OrderedDictionary<T, LookupKey extends keyof T, SortKey extends key
    */
   deleteBelow(key: T[SortKey]): number {
     let removed = 0;
-    while (this.head !== null && this.head.value < key) {
+    while (this.head !== null && this.head.value[this.sortKey] < key) {
       this.shift();
       removed++;
     }
@@ -372,7 +372,7 @@ export class OrderedDictionary<T, LookupKey extends keyof T, SortKey extends key
    */
   deleteAtOrBelow(key: T[SortKey]): number {
     let removed = 0;
-    while (this.head !== null && this.head.value <= key) {
+    while (this.head !== null && this.head.value[this.sortKey] <= key) {
       this.shift();
       removed++;
     }
@@ -388,7 +388,7 @@ export class OrderedDictionary<T, LookupKey extends keyof T, SortKey extends key
    */
   deleteAbove(key: T[SortKey]): number {
     let removed = 0;
-    while (this.tail !== null && this.tail.value > key) {
+    while (this.tail !== null && this.tail.value[this.sortKey] > key) {
       this.pop();
       removed++;
     }
@@ -404,7 +404,7 @@ export class OrderedDictionary<T, LookupKey extends keyof T, SortKey extends key
    */
   deleteAtOrAbove(key: T[SortKey]): number {
     let removed = 0;
-    while (this.tail !== null && this.tail.value >= key) {
+    while (this.tail !== null && this.tail.value[this.sortKey] >= key) {
       this.pop();
       removed++;
     }
