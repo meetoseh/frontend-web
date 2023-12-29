@@ -139,7 +139,7 @@ class Itgs:
 
             async def cleanup(me: "Itgs") -> None:
                 if me._redis_main is not None:
-                    await me._redis_main.close()
+                    await me._redis_main.aclose()
                     me._redis_main = None
 
                 if me._sentinel is not None:
