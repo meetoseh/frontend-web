@@ -60,7 +60,7 @@ if os.environ["ENVIRONMENT"] == "dev":
 
     nginx_url = os.environ["ROOT_NGINX_FRONTEND_URL"]
     ssr_url = os.environ["ROOT_FRONTEND_SSR_URL"]
-    forwarded_headers = frozenset(("Content-Type", "ETag", "Cache-Control"))
+    forwarded_headers = frozenset(("Content-Type", "ETag", "Cache-Control", "Location"))
 
     # Avoids the need for port forwarding
     @app.get("{full_path:path}", include_in_schema=False)
@@ -78,7 +78,7 @@ if os.environ["ENVIRONMENT"] == "dev":
             full_url = nginx_url + raw_loc
 
         try:
-            raw_response = requests.get(full_url, verify=False)
+            raw_response = requests.get(full_url, verify=False, allow_redirects=False)
         except:
             return Response(status_code=500)
 
