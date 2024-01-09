@@ -308,34 +308,45 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
       }, [loginContextRaw, activeLinkCode])
     );
 
-    return useMappedValuesWithCallbacks([activeLinkCode, codeInUrl], (): TouchLinkState => {
-      const link = activeLinkCode.get();
-
-      return {
-        code: link === null ? null : link === undefined ? codeInUrl.get() : link.code,
-        linkInfo:
+    return useMappedValuesWithCallbacks(
+      [activeLinkCode, codeInUrl, loginContextRaw.value],
+      (): TouchLinkState => {
+        const link = activeLinkCode.get();
+        const linkInfo =
           link === null
             ? null
             : link === undefined
             ? undefined
             : link.link === null
             ? undefined
-            : link.link.link,
-        handledLink: () => {
-          if (
-            window.location.pathname.startsWith('/l/') ||
-            window.location.pathname.startsWith('/a/')
-          ) {
-            const url = new URL(window.location.href);
-            url.pathname = '';
-            window.history.pushState({}, '', url.toString());
-          }
-          writeStoredTouchLinkCode(null);
-          setVWC(codeInUrl, null);
-          setVWC(activeLinkCode, null);
-        },
-      };
-    });
+            : link.link.link;
+        const loginRaw = loginContextRaw.value.get();
+
+        return {
+          code: link === null ? null : link === undefined ? codeInUrl.get() : link.code,
+          linkInfo,
+          linkAnalyticsDone:
+            linkInfo === null ||
+            linkInfo === undefined ||
+            (loginRaw.state !== 'loading' &&
+              (loginRaw.state === 'logged-out' ||
+                (link !== null && link !== undefined && link.link !== null && link.link.setUser))),
+          handledLink: () => {
+            if (
+              window.location.pathname.startsWith('/l/') ||
+              window.location.pathname.startsWith('/a/')
+            ) {
+              const url = new URL(window.location.href);
+              url.pathname = '';
+              window.history.pushState({}, '', url.toString());
+            }
+            writeStoredTouchLinkCode(null);
+            setVWC(codeInUrl, null);
+            setVWC(activeLinkCode, null);
+          },
+        };
+      }
+    );
   },
   useResources: () => {
     return useWritableValueWithCallbacks<TouchLinkResources>(() => ({ loading: true }));

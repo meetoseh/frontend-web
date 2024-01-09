@@ -35,6 +35,12 @@ export type TouchLinkState = {
   linkInfo: TouchLinkInfo | null | undefined;
 
   /**
+   * True if we've completed the standard analytics on the current link,
+   * false otherwise.
+   */
+  linkAnalyticsDone: boolean;
+
+  /**
    * A function which can be called if the links destination has been handled
    * by the user and we should remove it from storage.
    */

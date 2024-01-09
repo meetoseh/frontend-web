@@ -20,9 +20,11 @@ import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithC
 import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
 import { MergeAccountFeature } from '../features/mergeAccount/MergeAccountFeature';
 import { ConfirmMergeAccountFeature } from '../features/confirmMergeAccount/ConfirmMergeAccountFeature';
+import { ShareJourneyFeature } from '../features/shareJourney/ShareJourneyFeature';
 
 export const features = [
   TouchLinkFeature,
+  ShareJourneyFeature,
   FastUnsubscribeFeature,
   LoginFeature,
   RequestNameFeature,

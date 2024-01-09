@@ -10,6 +10,7 @@ import { RequestNameState } from '../features/requestName/RequestNameState';
 import { RequestNotificationTimeState } from '../features/requestNotificationTime/RequestNotificationTimeState';
 import { RequestPhoneState } from '../features/requestPhone/RequestPhoneState';
 import { SettingsState } from '../features/settings/SettingsState';
+import { ShareJourneyState } from '../features/shareJourney/ShareJourneyState';
 import { SignupRewardState } from '../features/signupReward/SignupRewardState';
 import { TouchLinkState } from '../features/touchLink/TouchLinkState';
 import { VipChatRequestState } from '../features/vipChatRequest/VipChatRequestState';
@@ -30,4 +31,5 @@ export type FeatureAllStates = {
   fastUnsubscribe: FastUnsubscribeState;
   mergeAccount: MergeAccountState;
   confirmMergeAccount: ConfirmMergeAccountState;
+  shareJourney: ShareJourneyState;
 };

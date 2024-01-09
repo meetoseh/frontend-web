@@ -229,7 +229,6 @@ export const storeAuthTokens = async (authTokens: TokenResponseConfig | null) =>
   // We're async for consistency with the react-native app, but there is no async
   // storage interface available
   if (authTokens === null) {
-    console.trace('clearing auth tokens');
     localStorage.removeItem('authTokens');
   } else {
     localStorage.setItem('authTokens', JSON.stringify(authTokens));
