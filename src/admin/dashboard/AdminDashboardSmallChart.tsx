@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Chart,
   CategoryScale,
@@ -13,6 +13,10 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import styles from './AdminDashboardSmallChart.module.css';
+import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { setVWC } from '../../shared/lib/setVWC';
+import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
+import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 
 Chart.register(
   LineController,
@@ -27,7 +31,7 @@ Chart.register(
 
 type AdminDashboardSmallChartProps = {
   /**
-   * The name for the chart,m e.g., "New Customers"
+   * The name for the chart, e.g., "New Customers"
    */
   name: string;
 
@@ -52,6 +56,18 @@ type AdminDashboardSmallChartProps = {
    * The values corresponding with the labels
    */
   values: number[];
+
+  /**
+   * The maximum number of points to display, to prevent the chart from
+   * getting too crowded. If not specified, a reasonable default is used.
+   * 0 for no limit.
+   */
+  targetPoints?: number;
+};
+
+type SmoothedDataset = {
+  labels: string[];
+  dataset: ChartDataset<'line', number[]>;
 };
 
 /**
@@ -63,13 +79,14 @@ export const AdminDashboardSmallChart = ({
   average,
   labels,
   values,
+  targetPoints,
 }: AdminDashboardSmallChartProps): ReactElement => {
-  const [dataset, setDataset] = useState<ChartDataset<'line', number[]>>({
+  const datasetVWC = useWritableValueWithCallbacks<ChartDataset<'line', number[]>>(() => ({
     label: name,
     data: values,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderColor: 'rgba(255, 255, 255, 1.0)',
-  });
+  }));
   const chartRef = useRef<Chart<'line'> | null>(null);
 
   useEffect(() => {
@@ -89,7 +106,7 @@ export const AdminDashboardSmallChart = ({
     gradient.addColorStop(1 - 100.0 / chart.height, 'rgba(255, 255, 255, 0.4)');
     gradient.addColorStop(1, 'rgba(255, 255, 255, 0.4)');
 
-    setDataset({
+    setVWC(datasetVWC, {
       label: name,
       data: values,
       backgroundColor: gradient,
@@ -100,6 +117,41 @@ export const AdminDashboardSmallChart = ({
       },
     });
   }, [name, values]);
+
+  const smoothedVWC = useMappedValueWithCallbacks(
+    datasetVWC,
+    useCallback(
+      (dataset): SmoothedDataset => {
+        const target = targetPoints ?? 6;
+        if (target <= 0) {
+          return { labels, dataset };
+        }
+
+        const smoothedLabels: string[] = [];
+        const smoothedValues: number[] = [];
+        const step = Math.max(1, Math.floor(labels.length / target));
+
+        for (let start = 0; start < labels.length; start += step) {
+          const end = Math.min(start + step, labels.length);
+          let sum = 0;
+          for (let i = start; i < end; i++) {
+            sum += values[i];
+          }
+          smoothedLabels.push(`${labels[start]} - ${labels[end - 1]}`);
+          smoothedValues.push(sum);
+        }
+
+        return {
+          labels: smoothedLabels,
+          dataset: {
+            ...dataset,
+            data: smoothedValues,
+          },
+        };
+      },
+      [labels, targetPoints]
+    )
+  );
 
   return (
     <div className={styles.container}>
@@ -115,61 +167,66 @@ export const AdminDashboardSmallChart = ({
         </div>
       </div>
       <div className={styles.chartContainer}>
-        <Line
-          ref={chartRef}
-          data={{
-            labels,
-            datasets: [dataset],
-          }}
-          options={{
-            responsive: true,
-            interaction: {
-              mode: 'nearest',
-            },
-            aspectRatio: 1,
-            layout: {
-              autoPadding: false,
-              padding: {
-                top: 100,
-                bottom: 4,
-              },
-            },
-            elements: {
-              point: {
-                pointStyle: 'line',
-                hitRadius: 10,
-              },
-              line: {
-                tension: 0.4,
-              },
-            },
-            scales: {
-              x: {
-                display: false,
-                grid: {
-                  display: false,
+        <RenderGuardedComponent
+          props={smoothedVWC}
+          component={({ labels, dataset }) => (
+            <Line
+              ref={chartRef}
+              data={{
+                labels,
+                datasets: [dataset],
+              }}
+              options={{
+                responsive: true,
+                interaction: {
+                  mode: 'nearest',
                 },
-                ticks: {
-                  display: false,
+                aspectRatio: 1,
+                layout: {
+                  autoPadding: false,
+                  padding: {
+                    top: 100,
+                    bottom: 4,
+                  },
                 },
-              },
-              y: {
-                display: false,
-                min: 0,
-                grid: {
-                  display: false,
+                elements: {
+                  point: {
+                    pointStyle: 'line',
+                    hitRadius: 10,
+                  },
+                  line: {
+                    tension: 0.4,
+                  },
                 },
-                ticks: {
-                  display: false,
+                scales: {
+                  x: {
+                    display: false,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      display: false,
+                    },
+                  },
+                  y: {
+                    display: false,
+                    min: 0,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      display: false,
+                    },
+                  },
                 },
-              },
-            },
-            plugins: {
-              legend: {
-                display: false,
-              },
-            },
-          }}
+                plugins: {
+                  legend: {
+                    display: false,
+                  },
+                },
+              }}
+            />
+          )}
         />
       </div>
     </div>
