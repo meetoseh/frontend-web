@@ -131,8 +131,11 @@ export const AdminDashboardSmallChart = ({
         const smoothedValues: number[] = [];
         const step = Math.max(1, Math.floor(labels.length / target));
 
-        for (let start = 0; start < labels.length; start += step) {
-          const end = Math.min(start + step, labels.length);
+        const endIfDidntDropFromStart = labels.length - (labels.length % step);
+
+        for (let start = endIfDidntDropFromStart; start < labels.length; start += step) {
+          const end = start + step;
+
           let sum = 0;
           for (let i = start; i < end; i++) {
             sum += values[i];
