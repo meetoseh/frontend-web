@@ -37,6 +37,16 @@
             "comment": "Matches notification links from email/sms"
           },
           {
+            "/": "/shared/*",
+            "exclude": true,
+            "comment": "Matches shared journey links, long-form"
+          },
+          {
+            "/": "/s/*",
+            "exclude": true,
+            "comment": "Matches shared journey links, short-form"
+          },
+          {
             "comment": "Matches any URL and instructs the system to open it as a universal link."
           }
         ]
