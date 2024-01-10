@@ -130,10 +130,9 @@ export const AdminDashboardSmallChart = ({
         const smoothedLabels: string[] = [];
         const smoothedValues: number[] = [];
         const step = Math.max(1, Math.floor(labels.length / target));
+        const numToDrop = labels.length % step;
 
-        const endIfDidntDropFromStart = labels.length - (labels.length % step);
-
-        for (let start = endIfDidntDropFromStart; start < labels.length; start += step) {
+        for (let start = numToDrop; start < labels.length; start += step) {
           const end = start + step;
 
           let sum = 0;
