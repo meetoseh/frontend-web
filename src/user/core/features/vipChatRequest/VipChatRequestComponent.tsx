@@ -172,6 +172,7 @@ export const VipChatRequestComponent = ({
         alt: '',
         loading: true,
         placeholderColor: '#000000',
+        thumbhash: null,
       }
   );
 

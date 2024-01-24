@@ -1,6 +1,8 @@
 import { ReactElement, useEffect, useRef } from 'react';
 import { ValueWithCallbacks } from '../lib/Callbacks';
 import { OsehImageState } from './OsehImageState';
+import { thumbHashToDataURL } from 'thumbhash';
+import { base64URLToByteArray } from '../lib/colorUtils';
 
 /**
  * Renders a single image state specified as a ValueWithCallbacks. This will
@@ -31,7 +33,7 @@ export const OsehImageFromStateValueWithCallbacks = ({
     }
 
     const container = containerRef.current;
-    let rendering: OsehImageState | null = null;
+    let rendering: (OsehImageState & { thumbhashUrl?: string }) | null = null;
 
     state.callbacks.add(rerender);
     rerender();
@@ -40,20 +42,38 @@ export const OsehImageFromStateValueWithCallbacks = ({
     };
 
     function rerender() {
-      const val = Object.assign({}, state.get());
+      const val: OsehImageState & { thumbhashUrl?: string } = Object.assign({}, state.get());
 
-      if (rendering !== null && rendering.loading && val.loading) {
+      if (
+        rendering !== null &&
+        rendering.thumbhash !== null &&
+        rendering.thumbhash === val.thumbhash
+      ) {
+        val.thumbhashUrl = rendering.thumbhashUrl;
+      }
+
+      if (
+        rendering !== null &&
+        rendering.loading &&
+        rendering.thumbhash === null &&
+        val.loading &&
+        val.thumbhash === null
+      ) {
         updatePlaceholder(rendering, val);
         return;
       }
 
-      if (rendering !== null && !rendering.loading && !val.loading) {
+      if (
+        rendering !== null &&
+        (!rendering.loading || rendering.thumbhash !== null) &&
+        (!val.loading || val.thumbhash !== null)
+      ) {
         updateImage(rendering, val);
         return;
       }
 
       reset();
-      if (val.loading) {
+      if (val.loading && val.thumbhash === null) {
         setPlaceholderFromReset(val);
       } else {
         setImageFromReset(val);
@@ -73,7 +93,7 @@ export const OsehImageFromStateValueWithCallbacks = ({
       rendering = current;
     }
 
-    function setImageFromReset(current: OsehImageState) {
+    function setImageFromReset(current: OsehImageState & { thumbhashUrl?: string }) {
       container.style.display = 'flex';
       container.style.alignItems = 'center';
       container.style.justifyContent = 'center';
@@ -82,10 +102,11 @@ export const OsehImageFromStateValueWithCallbacks = ({
       container.appendChild(
         (() => {
           const img = document.createElement('img');
-          img.src = current.localUrl ?? require('../placeholder.png');
+          img.src = getImageUrl(current) ?? require('../placeholder.png');
           img.style.width = `${current.displayWidth}px`;
           img.style.height = `${current.displayHeight}px`;
-          img.style.objectFit = 'cover';
+          img.style.objectFit =
+            current.localUrl === null && current.thumbhash !== null ? 'fill' : 'cover';
           return img;
         })()
       );
@@ -105,7 +126,10 @@ export const OsehImageFromStateValueWithCallbacks = ({
       rendering = current;
     }
 
-    function updateImage(old: OsehImageState, current: OsehImageState) {
+    function updateImage(
+      old: OsehImageState & { thumbhashUrl?: string },
+      current: OsehImageState & { thumbhashUrl?: string }
+    ) {
       const img: HTMLImageElement = container.children[0] as HTMLImageElement;
 
       if (old.displayWidth !== current.displayWidth) {
@@ -116,10 +140,32 @@ export const OsehImageFromStateValueWithCallbacks = ({
         container.style.height = `${current.displayHeight}px`;
         img.style.height = `${current.displayHeight}px`;
       }
-      if (old.localUrl !== current.localUrl) {
-        img.src = current.localUrl ?? require('../placeholder.png');
+      const oldUrl = getImageUrl(old);
+      const newUrl = getImageUrl(current);
+
+      if (oldUrl !== newUrl) {
+        img.src = newUrl ?? require('../placeholder.png');
+        img.style.objectFit =
+          current.localUrl === null && current.thumbhash !== null ? 'fill' : 'cover';
       }
       rendering = current;
+    }
+
+    function getImageUrl(state: OsehImageState & { thumbhashUrl?: string }): string | null {
+      if (state.localUrl !== null) {
+        return state.localUrl;
+      }
+
+      if (state.thumbhashUrl !== undefined) {
+        return state.thumbhashUrl;
+      }
+
+      if (state.thumbhash !== null) {
+        state.thumbhashUrl = thumbHashToDataURL(base64URLToByteArray(state.thumbhash));
+        return state.thumbhashUrl;
+      }
+
+      return null;
     }
   }, [state]);
 

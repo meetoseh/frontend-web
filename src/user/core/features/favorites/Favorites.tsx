@@ -89,7 +89,12 @@ export const Favorites = ({
       component={(journey) => {
         if (journey !== null) {
           return (
-            <JourneyRouter journey={journey} onFinished={onJourneyFinished} isOnboarding={false} />
+            <JourneyRouter
+              journey={journey}
+              onFinished={onJourneyFinished}
+              isOnboarding={false}
+              takeAnother={null}
+            />
           );
         }
 

@@ -15,6 +15,7 @@ import Popup from 'reactjs-popup';
 import styles from './AdminDashboardLargeChart.module.css';
 import iconStyles from './icons.module.css';
 import { Button } from '../../shared/forms/Button';
+import { combineClasses } from '../../shared/lib/combineClasses';
 
 Chart.register(
   LineController,
@@ -90,6 +91,7 @@ export const AdminDashboardLargeChart = ({
     AdminDashboardLargeChartMonthlyItem[]
   >([]);
   const [primaryChart, setPrimaryChart] = useState<AdminDashboardLargeChartItem>(dailyCharts[0]);
+  const [daysPerGraphPoint, setDaysPerGraphPoint] = useState<number>(1);
 
   // many of the plugins don't take kindly to changing the data, especially the colors plugin
   const [chartCounter, setChartCounter] = useState(0);
@@ -164,16 +166,51 @@ export const AdminDashboardLargeChart = ({
     }
 
     if (selectedDailyCharts.length > 0) {
+      const [labels, convertValues] = (() => {
+        const ogLabels = selectedDailyCharts[0].labels;
+        if (daysPerGraphPoint === 1) {
+          return [ogLabels, (values: number[]) => values];
+        }
+
+        const step = daysPerGraphPoint;
+        const numToDrop = ogLabels.length % step;
+        const smoothedLabels: string[] = [];
+
+        for (let start = numToDrop; start < ogLabels.length; start += step) {
+          const end = start + step;
+
+          smoothedLabels.push(`${ogLabels[start]} - ${ogLabels[end - 1]}`);
+        }
+
+        return [
+          smoothedLabels,
+          (values: number[]) => {
+            const smoothedValues: number[] = [];
+            for (let start = numToDrop; start < ogLabels.length; start += step) {
+              const end = start + step;
+
+              let sum = 0;
+              for (let i = start; i < end; i++) {
+                sum += values[i];
+              }
+              smoothedValues.push(sum);
+            }
+
+            return smoothedValues;
+          },
+        ];
+      })();
+
       return {
-        labels: selectedDailyCharts[0].labels,
+        labels,
         datasets: [
           ...selectedDailyCharts.map((chart) => ({
             label: chart.name,
-            data: chart.values,
+            data: convertValues(chart.values),
           })),
           ...selectedMonthlyCharts.map((chart) => ({
             label: chart.name,
-            data: chart.dailyVariant.values,
+            data: convertValues(chart.dailyVariant.values),
           })),
         ],
       };
@@ -186,7 +223,7 @@ export const AdminDashboardLargeChart = ({
         data: chart.values,
       })),
     };
-  }, [selectedDailyCharts, selectedMonthlyCharts]);
+  }, [selectedDailyCharts, selectedMonthlyCharts, daysPerGraphPoint]);
 
   return (
     <div className={styles.container}>
@@ -263,6 +300,47 @@ export const AdminDashboardLargeChart = ({
                 ))}
               </div>
             </Popup>
+            <Popup
+              trigger={
+                <div className={styles.moreContainer}>
+                  Smoothing: {daysPerGraphPoint} day{daysPerGraphPoint === 1 ? '' : 's'}
+                </div>
+              }
+              position="right top"
+              on="click"
+              closeOnDocumentClick
+              mouseLeaveDelay={300}
+              mouseEnterDelay={0}
+              arrow={false}>
+              <div className={styles.popupContainer}>
+                <div className={styles.popupTitle}>Smoothing</div>
+                {[1, 3, 7, 30].map((nDays) => (
+                  <button
+                    key={nDays}
+                    type="button"
+                    className={combineClasses(
+                      styles.popupItem,
+                      nDays === daysPerGraphPoint ? styles.popupItemSelected : ''
+                    )}
+                    onClick={() => {
+                      setDaysPerGraphPoint(nDays);
+                    }}>
+                    <div className={styles.popupItemCheckboxContainer}>
+                      <span
+                        className={combineClasses(
+                          styles.checkbox,
+                          daysPerGraphPoint === nDays
+                            ? iconStyles.radioChecked
+                            : iconStyles.radioUnchecked
+                        )}></span>
+                    </div>
+                    <div className={styles.popupItemName}>
+                      {nDays} day{nDays === 1 ? '' : 's'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </Popup>
           </div>
           {primaryChart.help && (
             <div className={styles.helpContainer}>
@@ -312,6 +390,9 @@ export const AdminDashboardLargeChart = ({
               elements: {
                 point: {
                   pointStyle: 'line',
+                },
+                line: {
+                  tension: 0.4,
                 },
               },
               scales: {

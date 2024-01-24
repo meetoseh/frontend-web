@@ -24,6 +24,7 @@ export const JourneyStartScreen = ({
   isOnboarding,
   onJourneyFinished,
   selectedEmotionAntonym,
+  takeAnother,
   duration = '1-minute',
 }: JourneyScreenProps & {
   selectedEmotionAntonym?: string;
@@ -87,6 +88,7 @@ export const JourneyStartScreen = ({
           setScreen={setScreen}
           isOnboarding={isOnboarding}
           onJourneyFinished={onJourneyFinished}
+          takeAnother={takeAnother}
         />
       </div>
       <div className={combineClasses(styles.innerContainer, styles.foreground)}>

@@ -27,6 +27,7 @@ import { AdminEmailDashboard } from './email_dashboard/AdminEmailDashboard';
 import { AdminTouchDashboard } from './touch_dashboard/AdminTouchDashboard';
 import { AdminDailyRemindersDashboard } from './daily_reminders_dashboard/AdminDailyRemindersDashboard';
 import { AdminSignInWithOsehDashboard } from './sign_in_with_oseh_dashboard/AdminSignInWithOsehDashboard';
+import { AdminSharingDashboard } from './sharing_dashboard/SharingDashboard';
 import { FlowChartExamples } from './flow_chart_examples/FlowChartExamples';
 
 export const AdminRoutes = (): ReactElement => {
@@ -40,6 +41,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="users" element={<Users />} />
       <Route path="user" element={<BigUser />} />
       <Route path="vip_chat_requests" element={<VipChatRequests />} />
+      <Route path="sharing_dashboard" element={<AdminSharingDashboard />} />
       <Route path="notifs_dashboard" element={<AdminNotifsDashboard />} />
       <Route path="sms_dashboard" element={<AdminSMSDashboard />} />
       <Route path="email_dashboard" element={<AdminEmailDashboard />} />

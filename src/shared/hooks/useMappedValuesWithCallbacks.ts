@@ -24,7 +24,7 @@ export const useMappedValuesWithCallbacks = <V, T extends ValueWithCallbacks<V>[
   arr: T,
   mapper: (arr: V[]) => U,
   rawOpts?: MappedValueWithCallbacksOpts<V[], U>
-) => {
+): ValueWithCallbacks<U> => {
   const opts: Required<MappedValueWithCallbacksOpts<V[], U>> = Object.assign(
     {
       inputEqualityFn: defaultEqualityFn,

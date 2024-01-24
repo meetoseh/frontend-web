@@ -1,188 +1,214 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { ReactElement, useCallback, useContext, useRef } from 'react';
 import { JourneyScreenProps } from '../models/JourneyScreenProps';
-import styles from './JourneyFeedbackScreen.module.css';
-import assistiveStyles from '../../../shared/assistive.module.css';
-import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
-import { Button } from '../../../shared/forms/Button';
-import {
-  Callbacks,
-  ValueWithCallbacks,
-  WritableValueWithCallbacks,
-  createWritableValueWithCallbacks,
-  useWritableValueWithCallbacks,
-} from '../../../shared/lib/Callbacks';
-import { ease, easeInOut, easeOutBack } from '../../../shared/lib/Bezier';
-import {
-  BezierAnimation,
-  animIsComplete,
-  calculateAnimValue,
-} from '../../../shared/lib/BezierAnimation';
+import styles from './JourneyFeedbackScreen.module.css';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
-import { setVWC } from '../../../shared/lib/setVWC';
+import { Button } from '../../../shared/forms/Button';
+import { IconButtonWithLabel } from '../../../shared/forms/IconButtonWithLabel';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { useToggleFavorited } from '../hooks/useToggleFavorited';
+import { useShareClass } from '../hooks/useShareClass';
+import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { JourneyFeedback } from '../components/JourneyFeedback';
+import {
+  base64URLToByteArray,
+  computeAverageRGBAUsingThumbhash,
+} from '../../../shared/lib/colorUtils';
+import { VerticalLayout } from '../../../shared/responsive/VerticalLayout';
+import { useVerticalLayout } from '../../../shared/responsive/useVerticalLayout';
+import { useWindowSizeValueWithCallbacks } from '../../../shared/hooks/useWindowSize';
+import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
+import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
+import { OsehImageProps } from '../../../shared/images/OsehImageProps';
+import { useStaleOsehImageOnSwap } from '../../../shared/images/useStaleOsehImageOnSwap';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { areOsehImageStatesEqual } from '../../../shared/images/OsehImageState';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
-import { BezierAnimator, BezierColorAnimator } from '../../../shared/anim/AnimationLoop';
-import { useAnimatedValueWithCallbacks } from '../../../shared/anim/useAnimatedValueWithCallbacks';
+import { apiFetch } from '../../../shared/ApiConstants';
+import { useReactManagedValueAsValueWithCallbacks } from '../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
+import {
+  useRefVWC,
+  useResponsiveRefs,
+  useSetRef,
+} from '../../../shared/responsive/useResponsiveRefs';
+
+type VLKey =
+  | 'topPadding'
+  | 'image'
+  | 'imageFeedbackMargin'
+  | 'feedback'
+  | 'feedbackControlsMargin'
+  | 'finish'
+  | 'finishAnotherMargin'
+  | 'another'
+  | 'bottomPadding';
+
+const baseVerticalLayout: VerticalLayout<VLKey> = {
+  topPadding: { minHeight: 48, scaling: { 2: { end: 96 }, 3: {} } },
+  image: { minHeight: 237, scaling: { 1: { end: 390 } } },
+  imageFeedbackMargin: { minHeight: 32, scaling: {} },
+  feedback: { minHeight: 93, scaling: {} },
+  feedbackControlsMargin: { minHeight: 32, scaling: {} },
+  finish: { minHeight: 56, scaling: {} },
+  finishAnotherMargin: { minHeight: 12, scaling: {} },
+  another: { minHeight: 56, scaling: {} },
+  bottomPadding: { minHeight: 20, scaling: { 2: { end: 40 }, 3: {} } },
+};
+
+const baseVerticalLayoutWithoutAnother: VerticalLayout<VLKey> = {
+  ...baseVerticalLayout,
+  finishAnotherMargin: { minHeight: 0, scaling: {} },
+  another: { minHeight: 0, scaling: {} },
+};
+
+const verticalLayoutKeys = Object.keys(baseVerticalLayout) as VLKey[];
+const verticalLayoutApplyKeys = [
+  'topPadding',
+  'imageFeedbackMargin',
+  'feedbackControlsMargin',
+  'finishAnotherMargin',
+  'bottomPadding',
+] as const;
 
 /**
  * Asks the user for feedback about the journey so that we can curate the
- * content that they see.
+ * content that they see. They are also given the opportunity to jump straight
+ * into another class or share the class they just took (if it's shareable)
  */
 export const JourneyFeedbackScreen = ({
   journey,
   shared,
+  takeAnother,
   setScreen,
 }: JourneyScreenProps): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
-  const responseVWC = useWritableValueWithCallbacks<number | null>(() => null);
-  const emojiStatesVWCs = useMemo(
-    () =>
-      [0, 1, 2, 3].map(() =>
-        createWritableValueWithCallbacks<FeedbackButtonState>({
-          rotation: 0,
-          scale: 1,
-          ...getTarget(false),
-        })
-      ),
-    []
+
+  const toggleFavorited = useToggleFavorited({
+    journey: { type: 'react-rerender', props: journey },
+    shared,
+  });
+  const shareClass = useShareClass({ journey: { type: 'react-rerender', props: journey } });
+  const onToggleFavorited = useCallback(
+    async (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      toggleFavorited();
+    },
+    [toggleFavorited]
+  );
+  const onShareClass = useCallback(
+    async (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      shareClass.shareClass();
+    },
+    [shareClass]
   );
 
-  // Manages the emoji rotation & scale when a response is selected
-  useEffect(() => {
-    let active = true;
-    let canceled = new Callbacks<undefined>();
-    let animations: {
-      rotation: BezierAnimation[];
-      scale: BezierAnimation[];
-    } | null = null;
-    let animating = false;
+  const responseVWC = useWritableValueWithCallbacks<number | null>(() => null);
 
-    startManaging();
-    return () => {
-      if (active) {
-        active = false;
-        canceled.call(undefined);
+  const backgroundAverageRGB = useMappedValueWithCallbacks(
+    shared,
+    (s): [number, number, number] => {
+      if (s.darkenedImage.thumbhash === null) {
+        return [0.2, 0.2, 0.2];
       }
-    };
 
-    function startManaging() {
-      onResponseChanged();
-
-      responseVWC.callbacks.add(onResponseChanged);
-
-      canceled.add(() => {
-        responseVWC.callbacks.remove(onResponseChanged);
-      });
+      const thumbhashBytes = base64URLToByteArray(s.darkenedImage.thumbhash);
+      const averageRGBA = computeAverageRGBAUsingThumbhash(thumbhashBytes);
+      return [averageRGBA[0], averageRGBA[1], averageRGBA[2]];
+    },
+    {
+      outputEqualityFn: (a, b) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2],
     }
+  );
 
-    function onResponseChanged() {
-      clearStyles();
+  const windowSizeVWC = useWindowSizeValueWithCallbacks();
+  const height = useMappedValueWithCallbacks(windowSizeVWC, (s) => s.height);
 
-      const response = responseVWC.get();
-      if (response === null) {
-        animations = null;
-        return;
+  const refs = useResponsiveRefs(verticalLayoutKeys);
+
+  const layout = useReactManagedValueAsValueWithCallbacks(
+    (() => {
+      if (takeAnother === null) {
+        return baseVerticalLayoutWithoutAnother;
       }
+      return baseVerticalLayout;
+    })(),
+    Object.is
+  );
 
-      const scaleFirstDirection = (Math.random() > 0.5 ? 1 : -1) as 1 | -1;
-      animations = {
-        rotation: [
-          {
-            from: 0,
-            to: 360 * (Math.random() > 0.5 ? 1 : -1),
-            startedAt: null,
-            ease: easeOutBack,
-            duration: 1000,
-          },
-        ],
-        scale: [
-          {
-            from: 1,
-            to: 1 + 0.1 * scaleFirstDirection,
-            startedAt: null,
-            ease: ease,
-            duration: 200,
-          },
-          {
-            from: 1 + 0.1 * scaleFirstDirection,
-            to: 1 - 0.1 * scaleFirstDirection,
-            startedAt: null,
-            ease: easeInOut,
-            duration: 400,
-          },
-          {
-            from: 1 - 0.1 * scaleFirstDirection,
-            to: 1,
-            startedAt: null,
-            ease: ease,
-            duration: 200,
-          },
-        ],
+  const [, appliedVerticalLayout, scrollingRequired] = useVerticalLayout(layout, height, refs);
+
+  const feedbackImageProps = useMappedValuesWithCallbacks(
+    [appliedVerticalLayout, windowSizeVWC],
+    (): OsehImageProps => ({
+      uid: journey.darkenedBackgroundImage.uid,
+      jwt: journey.darkenedBackgroundImage.jwt,
+      displayWidth: Math.min(342, windowSizeVWC.get().width - 48),
+      displayHeight: appliedVerticalLayout.get().image,
+      alt: '',
+    })
+  );
+
+  const imageHandler = useOsehImageStateRequestHandler({});
+  const feedbackImageRaw = useStaleOsehImageOnSwap(
+    useOsehImageStateValueWithCallbacks(
+      {
+        type: 'callbacks',
+        props: feedbackImageProps.get,
+        callbacks: feedbackImageProps.callbacks,
+      },
+      imageHandler
+    )
+  );
+  const feedbackImage = useMappedValuesWithCallbacks(
+    [feedbackImageRaw, shared],
+    () => {
+      const v = feedbackImageRaw.get();
+      if (v.thumbhash !== null) {
+        return v;
+      }
+      return {
+        ...v,
+        thumbhash: shared.get().darkenedImage.thumbhash,
       };
-      if (!animating) {
-        animating = true;
-        requestAnimationFrame(onFrame);
-      }
+    },
+    {
+      outputEqualityFn: areOsehImageStatesEqual,
     }
+  );
 
-    function clearStyles() {
-      emojiStatesVWCs.forEach((s, idx) => {
-        setVWC(
-          s,
-          {
-            ...s.get(),
-            rotation: 0,
-            scale: 1,
-          },
-          emojiStateEqualityFn
-        );
+  useValuesWithCallbacksEffect(
+    [appliedVerticalLayout, ...verticalLayoutApplyKeys.map((key) => refs[key].ref)],
+    () => {
+      const applied = appliedVerticalLayout.get();
+      verticalLayoutApplyKeys.forEach((key) => {
+        const ele = refs[key].ref.get();
+        if (ele === null) {
+          return;
+        }
+
+        ele.style.minHeight = `${applied[key]}px`;
       });
+      return undefined;
     }
+  );
 
-    function onFrame(now: DOMHighResTimeStamp) {
-      const response = responseVWC.get();
-      if (!active || animations === null || response === null) {
-        animating = false;
-        return;
-      }
-
-      while (animations.rotation.length > 0 && animIsComplete(animations.rotation[0], now)) {
-        animations.rotation.shift();
-      }
-
-      while (animations.scale.length > 0 && animIsComplete(animations.scale[0], now)) {
-        animations.scale.shift();
-      }
-
-      if (animations.rotation.length === 0 && animations.scale.length === 0) {
-        clearStyles();
-        animating = false;
-        return;
-      }
-
-      const rotation =
-        animations.rotation.length === 0 ? 0 : calculateAnimValue(animations.rotation[0], now);
-      const scale =
-        animations.scale.length === 0 ? 1 : calculateAnimValue(animations.scale[0], now);
-      setVWC(
-        emojiStatesVWCs[response - 1],
-        {
-          ...emojiStatesVWCs[response - 1].get(),
-          rotation,
-          scale,
-        },
-        emojiStateEqualityFn
-      );
-      requestAnimationFrame(onFrame);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useValueWithCallbacksEffect(scrollingRequired, (req) => {
+    if (containerRef.current === null) {
+      return undefined;
     }
-  }, [emojiStatesVWCs, responseVWC]);
-
-  useSimpleButtonAnimators(emojiStatesVWCs[0], responseVWC, 1);
-  useSimpleButtonAnimators(emojiStatesVWCs[1], responseVWC, 2);
-  useSimpleButtonAnimators(emojiStatesVWCs[2], responseVWC, 3);
-  useSimpleButtonAnimators(emojiStatesVWCs[3], responseVWC, 4);
+    const ele = containerRef.current;
+    if (req) {
+      ele.style.position = 'relative';
+      ele.style.bottom = 'unset';
+    } else {
+      ele.style.position = 'absolute';
+      ele.style.bottom = '0';
+    }
+  });
 
   const storeResponse = useCallback(async () => {
     const response = responseVWC.get();
@@ -216,7 +242,7 @@ export const JourneyFeedbackScreen = ({
     }
   }, [loginContextRaw, responseVWC, journey.uid, journey.jwt]);
 
-  const onX = useCallback(
+  const onContinue = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       storeResponse();
@@ -225,224 +251,105 @@ export const JourneyFeedbackScreen = ({
     [setScreen, storeResponse]
   );
 
-  const onContinue = onX;
-
-  const clickResponse = useMemo<((e: React.MouseEvent<HTMLButtonElement>) => void)[]>(
-    () =>
-      [1, 2, 3, 4].map((i) => (e) => {
-        e.preventDefault();
-        setVWC(responseVWC, i);
-      }),
-    [responseVWC]
+  const onTakeAnother = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      storeResponse();
+      takeAnother?.onTakeAnother();
+    },
+    [storeResponse, takeAnother]
   );
 
+  const anotherForwardRefVWC = useRefVWC('another', refs);
+
   return (
-    <div className={styles.container}>
+    <div className={styles.container} ref={containerRef}>
       <div className={styles.imageContainer}>
         <OsehImageFromStateValueWithCallbacks
           state={useMappedValueWithCallbacks(shared, (s) => s.blurredImage)}
         />
       </div>
       <div className={styles.innerContainer}>
-        <div className={styles.closeButtonContainer}>
-          <div className={styles.closeButtonInnerContainer}>
-            <button type="button" className={styles.close} onClick={onX}>
-              <div className={styles.closeIcon} />
-              <div className={assistiveStyles.srOnly}>Close</div>
-            </button>
-          </div>
-        </div>
-
         <div className={styles.primaryContainer}>
-          <div className={styles.question}>
-            <div className={styles.title}>How did that feel?</div>
-            <div className={styles.answers}>
-              <FeedbackButton
-                onClick={clickResponse[0]}
-                emoji={'😍'}
-                text="Loved"
-                state={emojiStatesVWCs[0]}
-              />
-              <FeedbackButton
-                onClick={clickResponse[1]}
-                emoji={'😌'}
-                text="Liked"
-                state={emojiStatesVWCs[1]}
-              />
-              <FeedbackButton
-                onClick={clickResponse[2]}
-                emoji={'😕'}
-                text="Disliked"
-                state={emojiStatesVWCs[2]}
-              />
-              <FeedbackButton
-                onClick={clickResponse[3]}
-                emoji={'☹️'}
-                text="Hated"
-                state={emojiStatesVWCs[3]}
-              />
+          <div ref={useSetRef('topPadding', refs)} />
+          <div className={styles.shareContainer} ref={useSetRef('image', refs)}>
+            <div className={styles.shareBackground}>
+              <OsehImageFromStateValueWithCallbacks state={feedbackImage} />
+            </div>
+            <div className={styles.shareForeground}>
+              <div className={styles.shareInfo}>
+                <div className={styles.shareTitle}>{journey.title}</div>
+                <div className={styles.shareInstructor}>{journey.instructor.name}</div>
+              </div>
+              <div className={styles.shareControls}>
+                <RenderGuardedComponent
+                  props={shareClass.shareable}
+                  component={(shareable) =>
+                    shareable === false ? (
+                      <></>
+                    ) : (
+                      <RenderGuardedComponent
+                        props={shareClass.working}
+                        component={(working) => (
+                          <IconButtonWithLabel
+                            iconClass={styles.iconShare}
+                            label="Share Class"
+                            onClick={onShareClass}
+                            disabled={working}
+                            spinner={working}
+                          />
+                        )}
+                      />
+                    )
+                  }
+                />
+                <RenderGuardedComponent
+                  props={shared}
+                  component={(s) => (
+                    <>
+                      {s.favorited !== null && (
+                        <IconButtonWithLabel
+                          iconClass={s.favorited ? styles.iconFullHeart : styles.iconEmptyHeart}
+                          label="Favorite"
+                          onClick={onToggleFavorited}
+                        />
+                      )}
+                    </>
+                  )}
+                />
+              </div>
             </div>
           </div>
-          <div className={styles.continueContainer}>
-            <RenderGuardedComponent
-              props={useMappedValueWithCallbacks(responseVWC, (r) => r !== null)}
-              component={(haveResponse) => (
-                <Button
-                  type="button"
-                  variant={haveResponse ? 'filled-white' : 'link-white'}
-                  onClick={onContinue}
-                  fullWidth>
-                  {haveResponse ? 'Continue' : 'Skip'}
-                </Button>
-              )}
-            />
-            <div className={styles.infoText}>
-              Your ratings will be used to personalize your experience
-            </div>
+          <div ref={useSetRef('imageFeedbackMargin', refs)} />
+          <div className={styles.feedbackContainer} ref={useSetRef('feedback', refs)}>
+            <div className={styles.feedbackTitle}>How did that class feel?</div>
+            <JourneyFeedback response={responseVWC} backgroundAverageRGB={backgroundAverageRGB} />
           </div>
+          <div ref={useSetRef('feedbackControlsMargin', refs)} />
+          <div className={styles.controlsContainer}>
+            <Button
+              type="button"
+              variant="filled-white"
+              fullWidth
+              refVWC={useRefVWC('finish', refs)}
+              onClick={onContinue}>
+              Finish
+            </Button>
+            <div ref={useSetRef('finishAnotherMargin', refs)} />
+            {takeAnother !== null && (
+              <Button
+                type="button"
+                variant="outlined-white"
+                fullWidth
+                refVWC={anotherForwardRefVWC}
+                onClick={onTakeAnother}>
+                Take another {takeAnother.emotion} class
+              </Button>
+            )}
+          </div>
+          <div ref={useSetRef('bottomPadding', refs)} />
         </div>
       </div>
     </div>
-  );
-};
-
-type FeedbackButtonState = {
-  /* 0-1 grayscale strength */
-  grayscale: number;
-  /* degrees */
-  rotation: number;
-  /* 0-1 scale */
-  scale: number;
-  /* 0-255 rgb, 0-1 opacity */
-  gradient: {
-    color1: [number, number, number, number];
-    color2: [number, number, number, number];
-  };
-};
-
-const emojiStateEqualityFn = (a: FeedbackButtonState, b: FeedbackButtonState) =>
-  a.grayscale === b.grayscale && a.rotation === b.rotation && a.scale === b.scale;
-
-type FeedbackButtonProps = {
-  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  emoji: string;
-  text: string;
-  state: ValueWithCallbacks<FeedbackButtonState>;
-};
-
-const FeedbackButton = ({
-  onClick,
-  emoji,
-  text,
-  state: stateVWC,
-}: FeedbackButtonProps): React.ReactElement => {
-  const emojiRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  useValueWithCallbacksEffect(
-    stateVWC,
-    useCallback((state) => {
-      if (emojiRef.current === null || buttonRef.current === null) {
-        return;
-      }
-      const container = buttonRef.current;
-      const emoji = emojiRef.current;
-      emoji.style.transform = `rotate(${state.rotation}deg) scale(${state.scale})`;
-      emoji.style.filter = `grayscale(${state.grayscale * 100}%)`;
-      container.style.background = `linear-gradient(95.08deg, rgba(${state.gradient.color1.join(
-        ','
-      )}) 2.49%, rgba(${state.gradient.color2.join(',')}) 97.19%)`;
-      return undefined;
-    }, [])
-  );
-
-  return (
-    <button className={styles.answer} onClick={onClick} ref={buttonRef}>
-      <div className={styles.answerEmoji} ref={emojiRef}>
-        {emoji}
-      </div>
-      <div className={styles.answerText}>{text}</div>
-    </button>
-  );
-};
-
-type SimpleFeedbackButtonState = {
-  grayscale: number;
-  gradient: FeedbackButtonState['gradient'];
-};
-
-const getTarget = (selected: boolean): SimpleFeedbackButtonState => {
-  return selected
-    ? {
-        grayscale: 0,
-        gradient: {
-          color1: [87, 184, 162, 1],
-          color2: [0, 153, 153, 1],
-        },
-      }
-    : {
-        grayscale: 1,
-        gradient: {
-          color1: [68, 98, 102, 0.4],
-          color2: [68, 98, 102, 0.4],
-        },
-      };
-};
-
-const useSimpleButtonAnimators = (
-  stateVWC: WritableValueWithCallbacks<FeedbackButtonState>,
-  responseVWC: ValueWithCallbacks<number | null>,
-  response: number
-) => {
-  const target = useAnimatedValueWithCallbacks<SimpleFeedbackButtonState>(
-    getTarget(responseVWC.get() === response),
-    () => [
-      new BezierAnimator(
-        ease,
-        350,
-        (p) => p.grayscale,
-        (p, v) => (p.grayscale = v)
-      ),
-      new BezierColorAnimator(
-        ease,
-        350,
-        (p) => p.gradient.color1,
-        (p, v) => (p.gradient.color1 = v)
-      ),
-      new BezierColorAnimator(
-        ease,
-        350,
-        (p) => p.gradient.color2,
-        (p, v) => (p.gradient.color2 = v)
-      ),
-    ],
-    (p) => {
-      setVWC(
-        stateVWC,
-        {
-          ...stateVWC.get(),
-          ...p,
-        },
-        emojiStateEqualityFn
-      );
-    }
-  );
-
-  useValueWithCallbacksEffect(
-    responseVWC,
-    useCallback(
-      (selected) => {
-        setVWC(
-          target,
-          getTarget(selected === response),
-          (a, b) =>
-            a.grayscale === b.grayscale &&
-            a.gradient.color1.every((v, i) => v === b.gradient.color1[i]) &&
-            a.gradient.color2.every((v, i) => v === b.gradient.color2[i])
-        );
-        return undefined;
-      },
-      [response, target]
-    )
   );
 };

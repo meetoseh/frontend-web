@@ -32,16 +32,10 @@ export const useJourneyShared = (
     type: 'react-rerender',
     props: undefined,
   });
-  const previewSizeVWC = useMappedValueWithCallbacks(windowSizeVWC, (windowSize) => {
-    if (windowSize.width >= 390 && windowSize.height >= 844) {
-      return { width: 270, height: 470 };
-    }
 
-    return { width: 208, height: 357 };
-  });
   const imageHandler = useOsehImageStateRequestHandler({});
   const result = useWritableValueWithCallbacks<JourneyShared>(() =>
-    createLoadingJourneyShared(windowSizeVWC.get(), previewSizeVWC.get())
+    createLoadingJourneyShared(windowSizeVWC.get())
   );
 
   const targetVWC = useWritableValueWithCallbacks<OsehContentTarget>(() => ({
@@ -87,7 +81,7 @@ export const useJourneyShared = (
       }
 
       if (managedJourneyUID !== journeyOuter.uid) {
-        result.set(createLoadingJourneyShared(windowSizeVWC.get(), previewSizeVWC.get()));
+        result.set(createLoadingJourneyShared(windowSizeVWC.get()));
         result.callbacks.call(undefined);
         managedJourneyUID = journeyOuter.uid;
       }
@@ -100,7 +94,6 @@ export const useJourneyShared = (
       loginContextUnch: LoginContextValueUnion
     ): () => void {
       const cleanup = [
-        handleOriginalImage(),
         handleDarkenedAndBlurredImages(),
         handleContentTarget(),
         handleAudio(),
@@ -109,53 +102,6 @@ export const useJourneyShared = (
       return () => {
         cleanup.forEach((fn) => fn());
       };
-
-      function handleOriginalImage(): () => void {
-        let removeRequest: (() => void) | null = null;
-        previewSizeVWC.callbacks.add(update);
-        update();
-
-        return () => {
-          previewSizeVWC.callbacks.remove(update);
-          if (removeRequest !== null) {
-            removeRequest();
-            removeRequest = null;
-          }
-        };
-
-        function update() {
-          if (removeRequest !== null) {
-            removeRequest();
-            removeRequest = null;
-          }
-
-          const request = imageHandler.request({
-            uid: journey.backgroundImage.uid,
-            jwt: journey.backgroundImage.jwt,
-            displayWidth: previewSizeVWC.get().width,
-            displayHeight: previewSizeVWC.get().height,
-            alt: '',
-          });
-          request.stateChanged.add(handleImageStateChanged);
-          removeRequest = () => {
-            request.stateChanged.remove(handleImageStateChanged);
-            request.release();
-          };
-          handleImageStateChanged();
-
-          function handleImageStateChanged() {
-            if (request.state.loading) {
-              return;
-            }
-
-            result.set({
-              ...result.get(),
-              originalImage: request.state,
-            });
-            result.callbacks.call(undefined);
-          }
-        }
-      }
 
       function handleDarkenedAndBlurredImages(): () => void {
         let removeRequest: (() => void) | null = null;
@@ -367,27 +313,16 @@ export const useJourneyShared = (
 
     function handlePerpetualLoading(): () => void {
       windowSizeVWC.callbacks.add(update);
-      previewSizeVWC.callbacks.add(update);
 
       return () => {
         windowSizeVWC.callbacks.remove(update);
-        previewSizeVWC.callbacks.remove(update);
       };
 
       function update() {
-        result.set(createLoadingJourneyShared(windowSizeVWC.get(), previewSizeVWC.get()));
+        result.set(createLoadingJourneyShared(windowSizeVWC.get()));
       }
     }
-  }, [
-    journeyVWC,
-    windowSizeVWC,
-    previewSizeVWC,
-    loginContextRaw,
-    audioVWC,
-    imageHandler,
-    result,
-    targetVWC,
-  ]);
+  }, [journeyVWC, windowSizeVWC, loginContextRaw, audioVWC, imageHandler, result, targetVWC]);
 
   return result;
 };
@@ -397,26 +332,20 @@ export const useJourneyShared = (
  * real journey shared available.
  *
  * @param windowSize The size of the window
- * @param previewSize The size of the preview
+ * @param feedbackSize The size of the darkened image on the feedback screen
  * @returns A loading-state of journey shared
  */
-export const createLoadingJourneyShared = (
-  windowSize: { width: number; height: number },
-  previewSize: { width: number; height: number }
-): JourneyShared => ({
-  originalImage: {
-    localUrl: null,
-    displayWidth: previewSize.width,
-    displayHeight: previewSize.height,
-    alt: '',
-    loading: true,
-  },
+export const createLoadingJourneyShared = (windowSize: {
+  width: number;
+  height: number;
+}): JourneyShared => ({
   darkenedImage: {
     localUrl: null,
     displayWidth: windowSize.width,
     displayHeight: windowSize.height,
     alt: '',
     loading: true,
+    thumbhash: null,
   },
   blurredImage: {
     localUrl: null,
@@ -424,6 +353,7 @@ export const createLoadingJourneyShared = (
     displayHeight: windowSize.height,
     alt: '',
     loading: true,
+    thumbhash: null,
   },
   audio: {
     play: null,

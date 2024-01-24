@@ -28,6 +28,22 @@ export type JourneyScreenProps = {
   onJourneyFinished: (privileged: boolean) => void;
 
   /**
+   * If take another class support is available, the relevant information.
+   */
+  takeAnother: {
+    /**
+     * The emotion or word for the type of class that will be found, e.g.,
+     * "grounded". Used in e.g "Take another grounded class"
+     */
+    emotion: string;
+
+    /**
+     * The function to call when the user requests to take another class.
+     */
+    onTakeAnother: () => void;
+  } | null;
+
+  /**
    * True if this is an onboarding journey, false otherwise.
    */
   isOnboarding: boolean;

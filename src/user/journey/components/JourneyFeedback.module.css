@@ -1,0 +1,14 @@
+.container {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: center;
+  margin-left: -12px;
+  margin-top: -12px;
+}
+
+.container > * {
+  margin-left: 12px;
+  margin-top: 12px;
+  flex-grow: 1;
+}

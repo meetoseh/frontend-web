@@ -2,7 +2,7 @@ import { ReactElement, useCallback, useContext, useState } from 'react';
 import styles from './BigUserAttribution.module.css';
 import { User } from '../User';
 import { CrudItemBlock } from '../../crud/CrudItemBlock';
-import { UTM } from '../../../shared/hooks/useVisitor';
+import { UTM } from '../../../shared/hooks/useVisitorValueWithCallbacks';
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../../crud/CrudFetcher';
 import { Journey } from '../../journeys/Journey';
 import { keyMap } from '../../journeys/Journeys';

@@ -9,10 +9,17 @@ import {
   useState,
 } from 'react';
 import { LoginContext, LoginContextValue } from './LoginContext';
-import { Visitor, getUTMFromURL, UTM, useVisitor } from '../hooks/useVisitor';
+import {
+  Visitor,
+  getUTMFromURL,
+  UTM,
+  useVisitorValueWithCallbacks,
+} from '../hooks/useVisitorValueWithCallbacks';
 import { apiFetch } from '../ApiConstants';
 import { useLogoutHandler } from '../hooks/useLogoutHandler';
 import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';
+import { ValueWithCallbacks } from '../lib/Callbacks';
+import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
 
 /**
  * A discriminatory union based on 'type': the reason the interests were set.
@@ -44,6 +51,12 @@ export type InterestsContextValue =
        * the visitor or user may have interests, but we don't know yet.
        */
       state: 'loading';
+
+      /**
+       * The visitor state, since it's convenient to include this as a context
+       * whenever interests are being used and it's required for interests
+       */
+      visitor: ValueWithCallbacks<Visitor>;
     }
   | {
       /**
@@ -57,7 +70,7 @@ export type InterestsContextValue =
        * The visitor state, since it's convenient to include this as a context
        * whenever interests are being used and it's required for interests
        */
-      visitor: Visitor;
+      visitor: ValueWithCallbacks<Visitor>;
 
       /**
        * The primary interest for the user, typically used for personalization.
@@ -103,7 +116,7 @@ export type InterestsContextValue =
        * The visitor state, since it's convenient to include this as a context
        * whenever interests are being used and it's required for interests
        */
-      visitor: Visitor;
+      visitor: ValueWithCallbacks<Visitor>;
 
       /**
        * Used to set the interests for the user locally and in the backend. This
@@ -153,7 +166,7 @@ type InterestsContextProps = {
   /**
    * The visitor, which is used if the user is logged out
    */
-  visitor: Visitor;
+  visitor: ValueWithCallbacks<Visitor>;
 };
 
 const _noSetInterests = () => {
@@ -264,14 +277,18 @@ const getInterestFromUTM = (utm: UTM): { primaryInterest: string; interests: str
  */
 export const InterestsProvider = ({
   loginContext: loginContextRaw,
-  visitor,
+  visitor: visitorVWC,
   children,
 }: PropsWithChildren<InterestsContextProps>): ReactElement => {
-  const [baseState, setBaseState] = useState<InterestsContextValue>({ state: 'loading' });
+  const [baseState, setBaseState] = useState<InterestsContextValue>({
+    state: 'loading',
+    visitor: visitorVWC,
+  });
 
   const setInterests = useCallback(
     async (primaryInterest: string, interests: string[], reason: SetInterestReason) => {
       const loginContextUnch = loginContextRaw.value.get();
+      const visitor = visitorVWC.get();
 
       if (loginContextUnch.state === 'loading') {
         throw new Error('cannot set interests while login context is loading');
@@ -317,7 +334,7 @@ export const InterestsProvider = ({
         });
         setBaseState({
           state: 'loaded',
-          visitor,
+          visitor: visitorVWC,
           primaryInterest: data.primary_interest,
           interests: data.interests,
           setInterests: _noSetInterests,
@@ -325,176 +342,182 @@ export const InterestsProvider = ({
         });
       }
     },
-    [loginContextRaw, visitor]
+    [loginContextRaw, visitorVWC]
   );
 
   const clearInterests = useCallback(async () => {
     deleteLocalInterests();
-    setBaseState({ state: 'unavailable', visitor, setInterests: _noSetInterests });
-  }, [visitor]);
+    setBaseState({
+      state: 'unavailable',
+      visitor: visitorVWC,
+      setInterests: _noSetInterests,
+    });
+  }, [visitorVWC]);
 
   useLogoutHandler(clearInterests);
 
   const setInterestsRef = useRef(setInterests);
   setInterestsRef.current = setInterests;
-  useValueWithCallbacksEffect(
-    loginContextRaw.value,
-    useCallback(
-      (loginContextUnch) => {
-        if (baseState.state !== 'loading') {
-          return;
+  useValuesWithCallbacksEffect(
+    [loginContextRaw.value, visitorVWC],
+    useCallback(() => {
+      if (baseState.state !== 'loading') {
+        return;
+      }
+      const loginContextUnch = loginContextRaw.value.get();
+      const visitor = visitorVWC.get();
+      if (loginContextUnch.state === 'loading' || visitor.loading) {
+        return;
+      }
+
+      const vis = visitor;
+
+      let active = true;
+      fetchState();
+      return () => {
+        active = false;
+      };
+
+      async function fetchFromServer(): Promise<LocallyStoredInterests | null> {
+        const response = await apiFetch(
+          '/api/1/users/me/interests/?source=browser',
+          {
+            method: 'GET',
+            headers:
+              vis.uid === null
+                ? {}
+                : {
+                    Visitor: vis.uid,
+                  },
+          },
+          loginContextUnch.state === 'logged-in' ? loginContextUnch : null
+        );
+
+        if (!response.ok) {
+          throw response;
         }
 
-        if (loginContextUnch.state === 'loading' || visitor.loading) {
-          return;
+        const data: {
+          primary_interest: string | null;
+          interests: string[];
+          visitor_uid: string;
+        } = await response.json();
+
+        vis.setVisitor(data.visitor_uid);
+
+        if (data.primary_interest === null) {
+          return null;
         }
 
-        const vis = visitor;
-
-        let active = true;
-        fetchState();
-        return () => {
-          active = false;
+        const nowMS = Date.now();
+        return {
+          primaryInterest: data.primary_interest,
+          interests: data.interests,
+          authoritative: false,
+          staleAfter: nowMS + 1000 * 60 * 10,
+          expiresAt: nowMS + 1000 * 60 * 60 * 24 * 7,
         };
+      }
 
-        async function fetchFromServer(): Promise<LocallyStoredInterests | null> {
-          const response = await apiFetch(
-            '/api/1/users/me/interests/?source=browser',
-            {
-              method: 'GET',
-              headers:
-                vis.uid === null
-                  ? {}
-                  : {
-                      Visitor: vis.uid,
-                    },
-            },
-            loginContextUnch.state === 'logged-in' ? loginContextUnch : null
-          );
-
-          if (!response.ok) {
-            throw response;
-          }
-
-          const data: {
-            primary_interest: string | null;
-            interests: string[];
-            visitor_uid: string;
-          } = await response.json();
-
-          vis.setVisitor(data.visitor_uid);
-
-          if (data.primary_interest === null) {
-            return null;
-          }
-
-          const nowMS = Date.now();
-          return {
-            primaryInterest: data.primary_interest,
-            interests: data.interests,
-            authoritative: false,
-            staleAfter: nowMS + 1000 * 60 * 10,
-            expiresAt: nowMS + 1000 * 60 * 60 * 24 * 7,
-          };
-        }
-
-        async function fetchStateInner() {
-          const utm = getUTMFromURL();
-          if (utm !== null) {
-            const utmInt = getInterestFromUTM(utm);
-            if (utmInt !== null) {
-              await setInterestsRef.current(utmInt.primaryInterest, utmInt.interests, {
-                type: 'utm',
-                ...utm,
-              });
-              return;
-            }
-          }
-
-          const nowMS = Date.now();
-          const locallyStored = fetchLocalInterests();
-
-          if (locallyStored !== null && locallyStored.expiresAt > nowMS) {
-            if (!active) {
-              return;
-            }
-            setBaseState({
-              state: 'loaded',
-              visitor,
-              primaryInterest: locallyStored.primaryInterest,
-              interests: locallyStored.interests,
-              setInterests: _noSetInterests,
-              clearLocallyStoredInterests: _noClearInterests,
+      async function fetchStateInner() {
+        const utm = getUTMFromURL();
+        if (utm !== null) {
+          const utmInt = getInterestFromUTM(utm);
+          if (utmInt !== null) {
+            await setInterestsRef.current(utmInt.primaryInterest, utmInt.interests, {
+              type: 'utm',
+              ...utm,
             });
-
-            if (locallyStored.staleAfter !== null && locallyStored.staleAfter < nowMS) {
-              const serverStored = await fetchFromServer();
-              if (!active) {
-                return;
-              }
-              if (serverStored !== null) {
-                storeInterestsLocally(serverStored);
-              }
-            }
             return;
           }
+        }
 
-          const serverStored = await fetchFromServer();
+        const nowMS = Date.now();
+        const locallyStored = fetchLocalInterests();
+
+        if (locallyStored !== null && locallyStored.expiresAt > nowMS) {
           if (!active) {
             return;
           }
-          if (serverStored !== null) {
-            storeInterestsLocally(serverStored);
-            setBaseState({
-              state: 'loaded',
-              visitor,
-              primaryInterest: serverStored.primaryInterest,
-              interests: serverStored.interests,
-              setInterests: _noSetInterests,
-              clearLocallyStoredInterests: _noClearInterests,
-            });
-            return;
-          }
+          setBaseState({
+            state: 'loaded',
+            visitor: visitorVWC,
+            primaryInterest: locallyStored.primaryInterest,
+            interests: locallyStored.interests,
+            setInterests: _noSetInterests,
+            clearLocallyStoredInterests: _noClearInterests,
+          });
 
-          setBaseState({ state: 'unavailable', visitor, setInterests: _noSetInterests });
-        }
-
-        async function fetchState() {
-          try {
-            await fetchStateInner();
-          } catch (e) {
-            if (active) {
-              setBaseState({ state: 'unavailable', visitor, setInterests: _noSetInterests });
+          if (locallyStored.staleAfter !== null && locallyStored.staleAfter < nowMS) {
+            const serverStored = await fetchFromServer();
+            if (!active) {
+              return;
+            }
+            if (serverStored !== null) {
+              storeInterestsLocally(serverStored);
             }
           }
+          return;
         }
-      },
-      [baseState, visitor]
-    )
+
+        const serverStored = await fetchFromServer();
+        if (!active) {
+          return;
+        }
+        if (serverStored !== null) {
+          storeInterestsLocally(serverStored);
+          setBaseState({
+            state: 'loaded',
+            visitor: visitorVWC,
+            primaryInterest: serverStored.primaryInterest,
+            interests: serverStored.interests,
+            setInterests: _noSetInterests,
+            clearLocallyStoredInterests: _noClearInterests,
+          });
+          return;
+        }
+
+        setBaseState({ state: 'unavailable', visitor: visitorVWC, setInterests: _noSetInterests });
+      }
+
+      async function fetchState() {
+        try {
+          await fetchStateInner();
+        } catch (e) {
+          if (active) {
+            setBaseState({
+              state: 'unavailable',
+              visitor: visitorVWC,
+              setInterests: _noSetInterests,
+            });
+          }
+        }
+      }
+    }, [baseState])
   );
 
   const state = useMemo<InterestsContextValue>(() => {
     if (baseState.state === 'loading') {
-      return { state: 'loading' };
+      return { state: 'loading', visitor: visitorVWC };
     }
 
     if (baseState.state === 'unavailable') {
       return {
         state: 'unavailable',
-        visitor,
+        visitor: visitorVWC,
         setInterests,
       };
     }
 
     return {
       state: 'loaded',
-      visitor,
+      visitor: visitorVWC,
       primaryInterest: baseState.primaryInterest,
       interests: baseState.interests,
       setInterests,
       clearLocallyStoredInterests: clearInterests,
     };
-  }, [baseState, visitor, setInterests, clearInterests]);
+  }, [baseState, visitorVWC, setInterests, clearInterests]);
 
   return <InterestsContext.Provider value={state}>{children}</InterestsContext.Provider>;
 };
@@ -505,7 +528,7 @@ export const InterestsProvider = ({
  */
 export const InterestsAutoProvider = ({ children }: PropsWithChildren<object>) => {
   const loginContextRaw = useContext(LoginContext);
-  const visitor = useVisitor();
+  const visitor = useVisitorValueWithCallbacks();
 
   return (
     <InterestsProvider loginContext={loginContextRaw} visitor={visitor}>

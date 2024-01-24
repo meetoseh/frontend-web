@@ -1,5 +1,8 @@
 import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
-import { Visitor, useVisitor } from '../../shared/hooks/useVisitor';
+import {
+  Visitor,
+  useVisitorValueWithCallbacks,
+} from '../../shared/hooks/useVisitorValueWithCallbacks';
 import { LoginContext, LoginContextValue } from '../../shared/contexts/LoginContext';
 import { SplashScreen } from '../splash/SplashScreen';
 import { JourneyRef, journeyRefKeyMap } from './models/JourneyRef';
@@ -14,9 +17,10 @@ import { InterestsProvider } from '../../shared/contexts/InterestsContext';
 import { useAnyImageStateValueWithCallbacksLoading } from '../../shared/images/useAnyImageStateValueWithCallbacksLoading';
 import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
-import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
+import { ValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 
 /**
  * This is a top-level component intended to be used for the /jpl route.
@@ -33,7 +37,7 @@ import { RenderGuardedComponent } from '../../shared/components/RenderGuardedCom
  */
 export const JourneyPublicLink = (): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
-  const visitor = useVisitor();
+  const visitor = useVisitorValueWithCallbacks();
   return (
     <InterestsProvider loginContext={loginContextRaw} visitor={visitor}>
       <JourneyPublicLinkInner loginContext={loginContextRaw} visitor={visitor} />
@@ -43,10 +47,10 @@ export const JourneyPublicLink = (): ReactElement => {
 
 const JourneyPublicLinkInner = ({
   loginContext: loginContextRaw,
-  visitor,
+  visitor: visitorVWC,
 }: {
   loginContext: LoginContextValue;
-  visitor: Visitor;
+  visitor: ValueWithCallbacks<Visitor>;
 }): ReactElement => {
   const code = useMemo(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -57,69 +61,68 @@ const JourneyPublicLinkInner = ({
   const [screen, setScreen] = useState<'loading' | 'lobby' | 'start' | 'journey'>('loading');
   const [startedAudio, setStartedAudio] = useState(false);
 
-  useValueWithCallbacksEffect(
-    loginContextRaw.value,
-    useCallback(
-      (loginContextUnch) => {
-        if (loginContextUnch.state === 'loading' || visitor.loading || journey !== null) {
-          return;
-        }
-        if (code === null) {
-          console.error('no code in query parameter');
-          window.location.assign(window.location.origin);
-          return;
-        }
+  useValuesWithCallbacksEffect(
+    [loginContextRaw.value, visitorVWC],
+    useCallback(() => {
+      const loginContextUnch = loginContextRaw.value.get();
+      const visitor = visitorVWC.get();
+      if (loginContextUnch.state === 'loading' || visitor.loading || journey !== null) {
+        return;
+      }
+      if (code === null) {
+        console.error('no code in query parameter');
+        window.location.assign(window.location.origin);
+        return;
+      }
 
-        const vis = visitor;
+      const vis = visitor;
 
-        let active = true;
-        fetchJourney();
-        return () => {
-          active = false;
-        };
+      let active = true;
+      fetchJourney();
+      return () => {
+        active = false;
+      };
 
-        async function fetchJourneyInner() {
-          const response = await apiFetch(
-            '/api/1/journeys/public_links/start',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                ...(vis.uid !== null ? { Visitor: vis.uid } : {}),
-              },
-              body: JSON.stringify({
-                code,
-                source: 'browser',
-              }),
+      async function fetchJourneyInner() {
+        const response = await apiFetch(
+          '/api/1/journeys/public_links/start',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              ...(vis.uid !== null ? { Visitor: vis.uid } : {}),
             },
-            loginContextUnch.state === 'logged-in' ? loginContextUnch : null
-          );
-          if (!response.ok) {
-            throw response;
-          }
-
-          const data = await response.json();
-          const journey = convertUsingKeymap(data.journey, journeyRefKeyMap);
-          const visitorUid = data.visitor_uid;
-          if (vis.uid !== visitorUid) {
-            vis.setVisitor(visitorUid);
-          }
-          setJourney(journey);
+            body: JSON.stringify({
+              code,
+              source: 'browser',
+            }),
+          },
+          loginContextUnch.state === 'logged-in' ? loginContextUnch : null
+        );
+        if (!response.ok) {
+          throw response;
         }
 
-        async function fetchJourney() {
-          try {
-            await fetchJourneyInner();
-          } catch (e) {
-            if (active) {
-              console.error('error fetching journey:', e);
-              window.location.href = '/';
-            }
+        const data = await response.json();
+        const journey = convertUsingKeymap(data.journey, journeyRefKeyMap);
+        const visitorUid = data.visitor_uid;
+        if (vis.uid !== visitorUid) {
+          vis.setVisitor(visitorUid);
+        }
+        setJourney(journey);
+      }
+
+      async function fetchJourney() {
+        try {
+          await fetchJourneyInner();
+        } catch (e) {
+          if (active) {
+            console.error('error fetching journey:', e);
+            window.location.href = '/';
           }
         }
-      },
-      [visitor, journey, code]
-    )
+      }
+    }, [journey, code, loginContextRaw, visitorVWC])
   );
 
   const darkenedImageLoading = useAnyImageStateValueWithCallbacksLoading(
@@ -132,15 +135,17 @@ const JourneyPublicLinkInner = ({
       (s) => !s.audio.loaded || (!startedAudio && s.audio.play === null)
     )
   );
-  const settingUpVWC = useMappedValueWithCallbacks(
-    loginContextRaw.value,
-    (loginContextUnch) =>
+  const settingUpVWC = useMappedValuesWithCallbacks([loginContextRaw.value, visitorVWC], () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    const visitor = visitorVWC.get();
+    return (
       visitor.loading ||
       journey === null ||
       darkenedImageLoading ||
       audioLoading ||
       loginContextUnch.state === 'loading'
-  );
+    );
+  });
 
   useValuesWithCallbacksEffect(
     [loginContextRaw.value, settingUpVWC],
@@ -211,6 +216,7 @@ const JourneyPublicLinkInner = ({
               setScreen={handleSetScreen}
               isOnboarding={false}
               onJourneyFinished={onFinished}
+              takeAnother={null}
             />
           );
         }
@@ -223,6 +229,7 @@ const JourneyPublicLinkInner = ({
               setScreen={handleSetScreen}
               isOnboarding={false}
               onJourneyFinished={onFinished}
+              takeAnother={null}
             />
           );
         }
@@ -234,6 +241,7 @@ const JourneyPublicLinkInner = ({
             setScreen={handleSetScreen}
             isOnboarding={false}
             onJourneyFinished={onFinished}
+            takeAnother={null}
           />
         );
       }}

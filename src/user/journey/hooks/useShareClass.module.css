@@ -1,0 +1,76 @@
+.disablePointerEvents {
+  pointer-events: none;
+}
+
+.disablePointerEvents * {
+  pointer-events: none !important;
+}
+
+.container {
+  width: 100%;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.content {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 390px;
+  padding: 0 24px;
+}
+
+.copyContainer {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0em;
+  text-align: left;
+  color: #c8cdd0;
+  margin-bottom: 4px;
+}
+
+.link {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  outline: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  display: block;
+  text-align: center;
+  width: 100%;
+
+  padding: 8px 16px;
+  background: #ffffff26;
+  border-radius: 8px;
+  color: #eaeaeb;
+}
+
+button.link:hover {
+  background: #ffffff3d;
+  color: white;
+  cursor: pointer;
+}
+
+.iconShare {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 17px;
+  height: 20px;
+  background-image: url('../icons/share.svg');
+}
+.nativeShareContainer {
+  margin-left: 20px;
+}

@@ -1,5 +1,10 @@
 import { ReactElement, useCallback, useContext, useMemo } from 'react';
-import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import {
+  Callbacks,
+  ValueWithCallbacks,
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../lib/Callbacks';
 import { setVWC } from '../lib/setVWC';
 import { describeError } from '../forms/ErrorBlock';
 import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
@@ -48,7 +53,7 @@ export type UseNetworkResponseOpts = {
  */
 export const useNetworkResponse = <T>(
   fetcher: (
-    active: { current: boolean },
+    active: ValueWithCallbacks<boolean>,
     loginContext: LoginContextValueLoggedIn
   ) => Promise<T | null>,
   opts?: UseNetworkResponseOpts
@@ -82,26 +87,26 @@ export const useNetworkResponse = <T>(
         }
         const loginContext = loginContextUnch;
 
-        let active = { current: true };
+        const active = createWritableValueWithCallbacks(true);
         fetchWrapper();
         return () => {
-          active.current = false;
+          setVWC(active, false);
         };
 
         async function fetchWrapper() {
           try {
             const answer = await fetcher(active, loginContext);
-            if (active.current) {
+            if (active.get()) {
               setVWC(error, null);
               setVWC(result, answer);
             }
           } catch (e) {
-            if (!active.current) {
+            if (!active.get()) {
               return;
             }
 
             const described = await describeError(e);
-            if (active.current) {
+            if (active.get()) {
               setVWC(result, null);
               setVWC(error, described);
             }
@@ -127,7 +132,7 @@ export const useNetworkResponse = <T>(
     setVWC(error, null);
     try {
       const minTime = new Promise((resolve) => setTimeout(resolve, minRefreshTimeMS));
-      const answer = await fetcher({ current: true }, loginContext);
+      const answer = await fetcher(createWritableValueWithCallbacks(true), loginContext);
       await minTime;
       setVWC(result, answer);
     } catch (e) {

@@ -1,0 +1,63 @@
+.button {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.label,
+.unselectedLabelPlaceholder {
+  margin-top: 2px;
+  height: 12px;
+  text-align: center;
+
+  font-family: 'Open Sans';
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 15.6px;
+}
+
+.emoji {
+  background: #33333e;
+  border-radius: 10px;
+  min-width: 48px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.emojiInner {
+  font-size: 24px;
+  line-height: 24px;
+}
+.label {
+  color: #c8cdd0;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+.labelExclamation {
+  display: block;
+  position: relative;
+  overflow: visible;
+  width: 0px;
+}
+
+.unselectedLabelPlaceholder {
+  color: transparent;
+}
+
+.unselectedLabelPlaceholder::before {
+  content: '';
+}

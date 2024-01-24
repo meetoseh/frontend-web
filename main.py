@@ -69,9 +69,14 @@ if os.environ["ENVIRONMENT"] == "dev":
         raw_query_params = request.scope["query_string"].decode("utf-8")
         raw_loc = f"{raw_path}?{raw_query_params}" if raw_query_params else raw_path
 
-        if raw_path.startswith("/shared") or raw_path in (
-            "/sitemap.xml",
-            "/sitemap.txt",
+        if (
+            raw_path.startswith("/shared")
+            or raw_path.startswith("/s/")
+            or raw_path
+            in (
+                "/sitemap.xml",
+                "/sitemap.txt",
+            )
         ):
             full_url = ssr_url + raw_loc
         else:

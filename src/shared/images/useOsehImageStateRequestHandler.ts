@@ -172,6 +172,7 @@ export const useOsehImageStateRequestHandler = ({
         alt: props.alt,
         loading: true,
         placeholderColor: props.placeholderColor,
+        thumbhash: null,
       },
       stateChanged: new Callbacks<OsehImageState>(),
       release: () => {
@@ -342,6 +343,19 @@ export const useOsehImageStateRequestHandler = ({
       };
       req.releasedCallbacks.add(releaseItem);
       canceledCallbacks.add(releaseItem);
+
+      if (req.requested.state.thumbhash !== bestItem.item.thumbhash) {
+        req.requested.state = {
+          ...req.requested.state,
+          thumbhash: bestItem.item.thumbhash,
+        };
+        req.requested.stateChanged.call(req.requested.state);
+
+        if (!active || req.released) {
+          return;
+        }
+      }
+
       let item: DownloadedItem;
       try {
         item = await getPlaylistItem(bestItem.item, playlist.jwt);

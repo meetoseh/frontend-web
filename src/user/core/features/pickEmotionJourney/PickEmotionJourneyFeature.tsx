@@ -457,7 +457,7 @@ export const PickEmotionJourneyFeature: Feature<
           loading:
             error === null &&
             (options === null ||
-              background.loading ||
+              background.thumbhash === null ||
               profilePicture.state === 'loading' ||
               (profilePicture.image !== null && profilePicture.image.loading)),
           error: error,

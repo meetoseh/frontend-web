@@ -9,7 +9,7 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 import { SplashScreen } from '../../../splash/SplashScreen';
 import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
-import { getUTMFromURL } from '../../../../shared/hooks/useVisitor';
+import { getUTMFromURL } from '../../../../shared/hooks/useVisitorValueWithCallbacks';
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 import { useOauthProviderUrlsValueWithCallbacks } from '../../../login/hooks/useOauthProviderUrlsValueWithCallbacks';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';

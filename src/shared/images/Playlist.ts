@@ -26,6 +26,11 @@ export type PlaylistItem = {
    * The size of the item in bytes
    */
   sizeBytes: number;
+  /**
+   * The thumbhash of the image, base64url encoded.
+   * See https://evanw.github.io/thumbhash/
+   */
+  thumbhash: string;
 };
 
 export const playlistItemKeymap: CrudFetcherKeyMap<PlaylistItem> = {

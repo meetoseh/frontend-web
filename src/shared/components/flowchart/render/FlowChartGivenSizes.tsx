@@ -1,12 +1,14 @@
 import { ReactElement } from 'react';
 import { World, WorldItem, WorldPoint, WorldSize } from '../types/World';
 import { Config } from '../types/Config';
-import { ValueWithCallbacks } from '../../../lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../lib/Callbacks';
 import { useMappedValuesWithCallbacks } from '../../../hooks/useMappedValuesWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../../hooks/useMappedValueWithCallbacks';
-import { SizeTree, createWorld } from '../createWorld';
+import { SizeTree, createWorld, createWorldFast } from '../createWorld';
 import { RenderGuardedComponent } from '../../RenderGuardedComponent';
 import { Arrow } from './Arrow';
+import { useValueWithCallbacksEffect } from '../../../hooks/useValueWithCallbacksEffect';
+import { setVWC } from '../../../lib/setVWC';
 
 type ElementAndSize = {
   /**
@@ -63,9 +65,38 @@ export const FlowChartGivenSizes = ({
 }: {
   props: ValueWithCallbacks<FlowChartGivenSizesProps>;
 }): ReactElement => {
-  const world = useMappedValueWithCallbacks(props, ({ width, cfg, roots }): World => {
-    return createWorld(cfg.layout, convertToSizeTree(roots), width);
+  const world = useWritableValueWithCallbacks<World | null>(() => null);
+  const fallbackWorld = useMappedValueWithCallbacks(props, ({ width, cfg, roots }) => {
+    return createWorldFast(cfg.layout, convertToSizeTree(roots), width);
   });
+
+  useValueWithCallbacksEffect(props, ({ width, cfg, roots }) => {
+    let running = true;
+    const controller = window.AbortController !== undefined ? new AbortController() : null;
+    const signal = controller?.signal;
+    computeWorld();
+    return () => {
+      running = false;
+      controller?.abort();
+    };
+
+    async function computeWorld() {
+      try {
+        const newWorld = await createWorld(cfg.layout, convertToSizeTree(roots), width, { signal });
+        if (!running) {
+          return;
+        }
+        setVWC(world, newWorld);
+      } catch (e) {
+        if (!running) {
+          return;
+        }
+        console.error('error computing world:', e);
+        setVWC(world, null);
+      }
+    }
+  });
+
   const flattenedItems = useMappedValueWithCallbacks(props, ({ roots }) =>
     flattenElementAndSizeTree(roots)
   );
@@ -74,7 +105,7 @@ export const FlowChartGivenSizes = ({
     [props, world, flattenedItems],
     (): MaterializedRendererProps => ({
       items: flattenedItems.get(),
-      world: world.get(),
+      world: world.get() ?? fallbackWorld.get(),
       cfg: props.get().cfg,
       width: props.get().width,
     })

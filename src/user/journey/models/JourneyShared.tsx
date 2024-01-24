@@ -8,17 +8,12 @@ import { OsehImageState } from '../../../shared/images/OsehImageState';
  * react rerenders can be tighter (i.e., in more nested components).
  */
 export type JourneyShared = {
-  /**
-   * The original background image, prior to darkening.
-   * This should be used selectively, since contrast may be poor. It is
-   * only shown within a preview for the share export, and hence is loaded
-   * at a lowered resolution.
-   */
-  originalImage: OsehImageState;
-  /** This is actually the darkened image, since we don't need the original */
+  /** The image, pre-darkened, for the full background */
   darkenedImage: OsehImageState;
-  /** The blurred image so the share screen comes up quick */
+
+  /** The blurred image so the feedback and post-class screens comes up quick */
   blurredImage: OsehImageState;
+
   /**
    * The audio for the journey; has loaded state inside
    * (audio.loaded).

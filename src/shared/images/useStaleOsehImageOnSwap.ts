@@ -25,6 +25,18 @@ export const useStaleOsehImageOnSwap = (
     useCallback(
       (img) => {
         const oldResult = result.get();
+
+        if (
+          img.loading &&
+          oldResult.loading &&
+          img.thumbhash === null &&
+          oldResult.thumbhash !== null
+        ) {
+          result.set({ ...img, thumbhash: oldResult.thumbhash });
+          result.callbacks.call(undefined);
+          return;
+        }
+
         if (!img.loading || oldResult.loading) {
           result.set(img);
           result.callbacks.call(undefined);

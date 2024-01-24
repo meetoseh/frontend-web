@@ -7,7 +7,6 @@ import { Journey } from '../../../journey/screens/Journey';
 import { SplashScreen } from '../../../splash/SplashScreen';
 import { JourneyRouterScreenId } from '../../../journey/JourneyRouter';
 import { JourneyPostScreen } from '../../../journey/screens/JourneyPostScreen';
-import { JourneyShareScreen } from '../../../journey/screens/JourneyShareScreen';
 import { JourneyStartScreen } from '../../../journey/screens/JourneyStartScreen';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../../shared/ApiConstants';
@@ -79,6 +78,10 @@ export const PickEmotionJourney = ({
       return;
     }
     setStep({ journeyUid: selected.journey.uid, step: 'lobby' });
+  }, [resources]);
+
+  const onTakeAnother = useCallback(() => {
+    resources.get().takeAnotherClass();
   }, [resources]);
 
   const onFinishJourney = useCallback(() => {
@@ -171,9 +174,7 @@ export const PickEmotionJourney = ({
   );
   const sharedVWC = useMappedValueWithCallbacks(
     resources,
-    (r) =>
-      r.selected?.shared ??
-      createLoadingJourneyShared({ width: 0, height: 0 }, { width: 0, height: 0 })
+    (r) => r.selected?.shared ?? createLoadingJourneyShared({ width: 0, height: 0 })
   );
   const ecpIsRequired = useUnwrappedValueWithCallbacks(ecpIsRequiredVWC);
 
@@ -208,6 +209,10 @@ export const PickEmotionJourney = ({
           setScreen,
           onJourneyFinished: onFinishJourney,
           isOnboarding: resources.get().isOnboarding,
+          takeAnother: {
+            emotion: sel.word.word,
+            onTakeAnother,
+          },
         };
 
         if (step.step === 'lobby') {
@@ -230,10 +235,6 @@ export const PickEmotionJourney = ({
           return (
             <JourneyPostScreen {...props} classesTakenToday={state.get().classesTakenThisSession} />
           );
-        }
-
-        if (step.step === 'share') {
-          return <JourneyShareScreen {...props} />;
         }
 
         throw new Error(createUnknownStepMessage(step.step));

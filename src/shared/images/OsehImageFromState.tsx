@@ -1,5 +1,6 @@
 import { ReactElement } from 'react';
 import { OsehImageState } from './OsehImageState';
+import { ThumbhashImage } from './ThumbhashImage';
 
 /**
  * Creates a component which renders an image whose state has already been loaded
@@ -13,12 +14,19 @@ export const OsehImageFromState = ({
   displayHeight,
   alt,
   placeholderColor,
+  thumbhash,
 }: OsehImageState): ReactElement => {
   if (localUrl === null && placeholderColor !== undefined) {
     return (
       <div
         style={{ width: displayWidth, height: displayHeight, backgroundColor: placeholderColor }}
       />
+    );
+  }
+
+  if (localUrl === null && thumbhash !== null) {
+    return (
+      <ThumbhashImage thumbhash={thumbhash} width={displayWidth} height={displayHeight} alt={alt} />
     );
   }
 

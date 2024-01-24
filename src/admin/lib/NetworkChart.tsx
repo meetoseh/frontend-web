@@ -29,13 +29,30 @@ type NetworkChartProps = {
    * loaded, e.g., '/api/1/admin/sms/daily_sms_sends'
    */
   historicalDataPath: string;
+
+  /**
+   * If specified, these keys are removed from the partial list. Useful for
+   * some cases where the partial data is not really available from the backend
+   * (usually just for simplification of implementaiton when the data is redundant)
+   */
+  suppressInPartial?: string[];
+
+  /**
+   * The bottom margin of the container
+   */
+  marginBottom?: number;
 };
 
 /**
  * Loads and displays a historical data chart and table of recent
  * partial (incomplete) data.
  */
-export const NetworkChart = ({ partialDataPath, historicalDataPath }: NetworkChartProps) => {
+export const NetworkChart = ({
+  partialDataPath,
+  historicalDataPath,
+  suppressInPartial,
+  marginBottom,
+}: NetworkChartProps) => {
   const loadPrevented = useWritableValueWithCallbacks(() => true);
   const historicalData = useNetworkResponse<AdminDashboardLargeChartProps>(
     useCallback(
@@ -65,9 +82,9 @@ export const NetworkChart = ({ partialDataPath, historicalDataPath }: NetworkCha
         }
 
         const data = await response.json();
-        return parsePartialStats(data);
+        return parsePartialStats(data, suppressInPartial);
       },
-      [partialDataPath]
+      [partialDataPath, suppressInPartial]
     )
   );
 
@@ -102,7 +119,9 @@ export const NetworkChart = ({ partialDataPath, historicalDataPath }: NetworkCha
   }, [loadPrevented]);
 
   return (
-    <div className={styles.sectionGraphsAndTodaysStats}>
+    <div
+      className={styles.sectionGraphsAndTodaysStats}
+      style={marginBottom === undefined ? undefined : { marginBottom: `${marginBottom}px` }}>
       <SectionGraphs>
         <RenderGuardedComponent props={historicalData.error} component={formatNetworkError} />
         <RenderGuardedComponent props={partialData.error} component={formatNetworkError} />
@@ -166,11 +185,37 @@ const parseChart = (data: any): AdminDashboardLargeChartProps => {
       continue;
     }
 
+    const breakdown = ((): Record<string, number[]> | undefined => {
+      const rawBreakdown = data[`${key}_breakdown`] as
+        | Record<string, number[] | Record<string, number>>
+        | undefined;
+
+      if (rawBreakdown === undefined) {
+        return undefined;
+      }
+
+      const denseOrSparseBreakdown = rawBreakdown;
+      const denseBreakdown = {} as Record<string, number[]>;
+      for (const [k, denseOrSparseArray] of Object.entries(denseOrSparseBreakdown)) {
+        if (Array.isArray(denseOrSparseArray)) {
+          denseBreakdown[k] = denseOrSparseArray;
+          continue;
+        }
+
+        const denseArray = [] as number[];
+        for (let i = 0; i < labels.length; i++) {
+          denseArray.push(denseOrSparseArray[i.toString()] ?? 0);
+        }
+        denseBreakdown[k] = denseArray;
+      }
+      return denseBreakdown;
+    })();
+
     datasets.push({
       key,
       label: fromSnakeToTitleCase(key),
       data: value as number[],
-      breakdown: data[`${key}_breakdown`],
+      breakdown,
     });
   }
 

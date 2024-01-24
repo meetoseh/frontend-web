@@ -86,10 +86,11 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
     );
 
     useValuesWithCallbacksEffect(
-      [activeLinkCode, loginContextRaw.value],
+      [activeLinkCode, loginContextRaw.value, interests.visitor],
       useCallback(() => {
         const activeLink = activeLinkCode.get();
         const loginContextUnch = loginContextRaw.value.get();
+        const visitor = interests.visitor.get();
 
         let running = true;
         getLinkInfo();
@@ -110,7 +111,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
           if (
             loginContextUnch.state === 'loading' ||
             interests.state === 'loading' ||
-            interests.visitor.loading
+            visitor.loading
           ) {
             return;
           }
@@ -121,9 +122,9 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json; charset=utf-8',
-                ...(interests.visitor.uid !== null
+                ...(visitor.uid !== null
                   ? {
-                      Visitor: interests.visitor.uid,
+                      Visitor: visitor.uid,
                     }
                   : {}),
               },
@@ -191,7 +192,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
     );
 
     useValuesWithCallbacksEffect(
-      [activeLinkCode, loginContextRaw.value],
+      [activeLinkCode, loginContextRaw.value, interests.visitor],
       useCallback(() => {
         let running = true;
         handlePostLogin();
@@ -202,10 +203,11 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
         async function handlePostLoginInner() {
           const link = activeLinkCode.get();
           const loginContextUnch = loginContextRaw.value.get();
+          const visitor = interests.visitor.get();
           if (
             loginContextUnch.state !== 'logged-in' ||
             interests.state === 'loading' ||
-            interests.visitor.loading ||
+            visitor.loading ||
             link === null ||
             link === undefined ||
             link.link === null ||
@@ -233,7 +235,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json; charset=utf-8',
-                  ...(interests.visitor.uid !== null ? { Visitor: interests.visitor.uid } : {}),
+                  ...(visitor.uid !== null ? { Visitor: visitor.uid } : {}),
                 },
                 body: JSON.stringify({
                   code: link.code,

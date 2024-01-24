@@ -15,6 +15,7 @@ const createLoadingState = (props: OsehImageProps): OsehImageState => ({
   alt: props.alt,
   loading: true,
   placeholderColor: props.placeholderColor,
+  thumbhash: null,
 });
 
 /**

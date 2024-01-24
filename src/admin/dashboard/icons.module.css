@@ -30,11 +30,25 @@
   background-image: url('./icons/checkbox-checked.svg');
 }
 
+.radioChecked {
+  composes: icon from '../../shared/icons.module.css';
+  width: 16px;
+  height: 16px;
+  background-image: url('./icons/radio-checked.svg');
+}
+
 .checkboxUnchecked {
   composes: icon from '../../shared/icons.module.css';
   width: 16px;
   height: 16px;
   background-image: url('./icons/checkbox-unchecked.svg');
+}
+
+.radioUnchecked {
+  composes: icon from '../../shared/icons.module.css';
+  width: 16px;
+  height: 16px;
+  background-image: url('./icons/radio-unchecked.svg');
 }
 
 .anyNotificationIcon {

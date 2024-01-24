@@ -47,6 +47,7 @@ export const FastUnsubscribeLoggedOut = ({
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const loginContextUnch = loginContextRaw.value.get();
+      const visitor = interests.visitor.get();
 
       setVWC(saving, true);
       setVWC(formError, null);
@@ -57,10 +58,8 @@ export const FastUnsubscribeLoggedOut = ({
             method: 'POST',
             headers: {
               'Content-Type': 'application/json; charset=utf-8',
-              ...(interests.state !== 'loading' &&
-              !interests.visitor.loading &&
-              interests.visitor.uid !== null
-                ? { Visitor: interests.visitor.uid }
+              ...(interests.state !== 'loading' && !visitor.loading && visitor.uid !== null
+                ? { Visitor: visitor.uid }
                 : {}),
             },
             body: JSON.stringify({

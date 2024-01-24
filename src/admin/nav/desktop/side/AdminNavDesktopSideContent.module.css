@@ -39,6 +39,11 @@
   background-image: url('./icons/vip-chat-requests.svg');
 }
 
+.iconSharing {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/sharing.svg');
+}
+
 .iconUsers {
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/users.svg');

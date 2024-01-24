@@ -160,6 +160,7 @@ export const ExtendedClassesPack = ({
         onJourneyFinished={handleStartJourneyFinished}
         selectedEmotionAntonym={emotion.antonym}
         duration="3-minute"
+        takeAnother={null}
       />
     );
   }
@@ -173,6 +174,7 @@ export const ExtendedClassesPack = ({
         onCloseEarly={handleJourneyCloseEarly}
         onJourneyFinished={handleJourneyJourneyFinished}
         isOnboarding={false}
+        takeAnother={null}
       />
     );
   }

@@ -6,7 +6,6 @@ import { JourneyScreenProps } from './models/JourneyScreenProps';
 import { Journey } from './screens/Journey';
 import { JourneyLobbyScreen } from './screens/JourneyLobbyScreen';
 import { JourneyPostScreen } from './screens/JourneyPostScreen';
-import { JourneyShareScreen } from './screens/JourneyShareScreen';
 import { JourneyStartScreen } from './screens/JourneyStartScreen';
 import { JourneyFeedbackScreen } from './screens/JourneyFeedbackScreen';
 import { getCurrentServerTimeMS } from '../../shared/lib/getCurrentServerTimeMS';
@@ -26,14 +25,31 @@ type JourneyRouterProps = {
    * True if this is an onboarding journey, false otherwise.
    */
   isOnboarding: boolean;
+
+  /**
+   * If take another class support is available, the relevant information.
+   */
+  takeAnother: {
+    /**
+     * The emotion or word for the type of class that will be found, e.g.,
+     * "grounded". Used in e.g "Take another grounded class"
+     */
+    emotion: string;
+
+    /**
+     * The function to call when the user requests to take another class.
+     */
+    onTakeAnother: () => void;
+  } | null;
 };
 
-export type JourneyRouterScreenId = 'lobby' | 'start' | 'journey' | 'feedback' | 'post' | 'share';
+export type JourneyRouterScreenId = 'lobby' | 'start' | 'journey' | 'feedback' | 'post';
 
 export const JourneyRouter = ({
   journey,
   onFinished,
   isOnboarding,
+  takeAnother,
 }: JourneyRouterProps): ReactElement => {
   const [screen, setScreen] = useState<JourneyRouterScreenId>('lobby');
   const sharedState = useJourneyShared({ type: 'react-rerender', props: journey });
@@ -65,8 +81,9 @@ export const JourneyRouter = ({
       },
       onJourneyFinished: onFinished,
       isOnboarding,
+      takeAnother,
     };
-  }, [journey, sharedState, onFinished, isOnboarding]);
+  }, [journey, sharedState, onFinished, isOnboarding, takeAnother]);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = null;
@@ -125,9 +142,6 @@ export const JourneyRouter = ({
     return <JourneyPostScreen {...screenProps} />;
   }
 
-  if (screen === 'share') {
-    return <JourneyShareScreen {...screenProps} />;
-  }
   return handleUnknownScreen(screen);
 };
 

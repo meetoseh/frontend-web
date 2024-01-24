@@ -1,0 +1,87 @@
+.button {
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  text-decoration: none;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 5px; /* required for focus-visible */
+  margin: 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #eaeaeb;
+}
+
+.iconContainer {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  margin-bottom: 2px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.label {
+  color: #c8cdd0;
+  text-align: center;
+  font-family: 'Open Sans';
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 15.6px;
+}
+
+.button:hover {
+  background: none;
+  border: none;
+  outline: none;
+}
+
+.button:hover > .iconContainer {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.button:hover > .label {
+  color: white;
+}
+
+.button:active {
+  background: none;
+  border: none;
+  outline: none;
+  text-decoration: none;
+}
+
+.button:active > .label {
+  color: #c8cdd0;
+}
+
+.button:focus-visible {
+  outline: 3px solid #eaeaeb;
+  background: #191c1d;
+}
+
+.button:focus-visible > .iconContainer {
+  background: #383838;
+}
+
+.button:focus-visible > .label {
+  color: white;
+}
+
+@media not (prefers-reduced-motion) {
+  .button > .iconContainer {
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .button > .label {
+    transition: color 0.3s ease;
+  }
+}

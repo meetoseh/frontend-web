@@ -20,12 +20,17 @@ export type PartialStatsItem = {
  * @param raw the raw api representation
  * @returns the parsed PartialStatsItem
  */
-export const parsePartialStatsItems = (raw: any): PartialStatsItem[] => {
+export const parsePartialStatsItems = (raw: any, suppress?: string[]): PartialStatsItem[] => {
+  const suppressSet = new Set(suppress);
   const result: PartialStatsItem[] = [];
   for (let [key, value] of Object.entries(raw)) {
     if (key.endsWith('_breakdown')) {
       continue;
     }
+    if (suppressSet.has(key)) {
+      continue;
+    }
+
     result.push({
       key,
       label: fromSnakeToTitleCase(key),
@@ -64,17 +69,17 @@ export type PartialStats = {
  * @param raw the raw api representation
  * @returns the parsed PartialStats
  */
-export const parsePartialStats = (raw: any): PartialStats => {
+export const parsePartialStats = (raw: any, suppress?: string[]): PartialStats => {
   return {
-    today: parsePartialStatsItems(raw.today),
+    today: parsePartialStatsItems(raw.today, suppress),
     yesterday:
       raw.yesterday === undefined || raw.yesterday === null
         ? undefined
-        : parsePartialStatsItems(raw.yesterday),
+        : parsePartialStatsItems(raw.yesterday, suppress),
     twoDaysAgo:
       raw.two_days_ago === undefined || raw.two_days_ago === null
         ? undefined
-        : parsePartialStatsItems(raw.two_days_ago),
+        : parsePartialStatsItems(raw.two_days_ago, suppress),
   };
 };
 

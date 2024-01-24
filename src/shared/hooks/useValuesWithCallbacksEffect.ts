@@ -37,6 +37,29 @@ export function useValuesWithCallbacksEffect<U, T extends ValueWithCallbacks<U>>
     };
 
     function handleVWCS(inner: T[]): () => void {
+      if (process.env.REACT_APP_ENVIRONMENT === 'dev') {
+        for (let vwcIndex = 0; vwcIndex < inner.length; vwcIndex++) {
+          const vwc = inner[vwcIndex];
+          if (
+            typeof vwc !== 'object' ||
+            vwc === null ||
+            !('callbacks' in vwc) ||
+            !('add' in vwc.callbacks)
+          ) {
+            console.error(
+              'useValuesWithCallbacksEffect: vwc does not have callbacks; index',
+              vwcIndex,
+              'value',
+              vwc,
+              'all vwc:',
+              inner,
+              'handler:',
+              effect
+            );
+          }
+        }
+      }
+
       let canceler: (() => void) | undefined = undefined;
       inner.forEach((vwc) => vwc.callbacks.add(handleValueChanged));
       handleValueChanged();

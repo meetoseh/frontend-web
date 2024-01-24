@@ -4,7 +4,7 @@ import {
   getUTMFromURL,
   loadVisitorFromStore,
   writeVisitorToStore,
-} from '../../shared/hooks/useVisitor';
+} from '../../shared/hooks/useVisitorValueWithCallbacks';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { useTimezone } from '../../shared/hooks/useTimezone';

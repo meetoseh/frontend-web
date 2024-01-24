@@ -3,6 +3,9 @@ import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { AdminDashboardTopBlock } from './AdminDashboardTopBlock';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { setVWC } from '../../shared/lib/setVWC';
+import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 
 type AdminDashboardSimpleTopBlockProps = {
   /**
@@ -32,7 +35,7 @@ export const AdminDashboardSimpleTopBlock = ({
   label,
 }: AdminDashboardSimpleTopBlockProps): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
-  const [value, setValue] = useState(0);
+  const value = useWritableValueWithCallbacks(() => 0);
 
   useValueWithCallbacksEffect(
     loginContextRaw.value,
@@ -68,12 +71,19 @@ export const AdminDashboardSimpleTopBlock = ({
           if (!active) {
             return;
           }
-          setValue(data.value);
+          setVWC(value, data.value);
         }
       },
       [path]
     )
   );
 
-  return <AdminDashboardTopBlock iconClassName={iconClassName} value={value} label={label} />;
+  return (
+    <RenderGuardedComponent
+      props={value}
+      component={(value) => (
+        <AdminDashboardTopBlock iconClassName={iconClassName} value={value} label={label} />
+      )}
+    />
+  );
 };

@@ -3,7 +3,7 @@ import { Feature } from '../../models/Feature';
 import { LoginResources, LoginVariant } from './LoginResources';
 import { LoginState } from './LoginState';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { getUTMFromURL } from '../../../../shared/hooks/useVisitor';
+import { getUTMFromURL } from '../../../../shared/hooks/useVisitorValueWithCallbacks';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { Login } from './Login';

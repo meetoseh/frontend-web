@@ -11,12 +11,17 @@
   background: transparent;
 }
 
+.containerScroll {
+  position: relative;
+  width: 100%;
+}
+
 .imageContainer {
   display: flex;
   justify-content: center;
   align-items: center;
 
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -29,116 +34,128 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 32px;
+  padding: 0 24px;
   width: 100%;
-  max-width: 438px;
-  max-height: 684px;
+  max-width: 390px;
   height: 100%;
-}
-
-.closeButtonContainer {
-  position: absolute;
-  top: 16px;
-  left: 0;
-  width: 100%;
-  z-index: 1;
-}
-
-.closeButtonInnerContainer {
-  width: 100%;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: row-reverse;
-  padding-right: 16px;
-}
-
-.close {
-  composes: unstyled from '../../../shared/buttons.module.css';
-}
-
-.closeIcon {
-  composes: icon from '../../../shared/icons.module.css';
-  width: 24px;
-  height: 24px;
-  background-image: url('../icons/close.svg');
 }
 
 .primaryContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
   height: 100%;
 }
 
-.question {
-  width: 100%;
-  margin-bottom: 60px;
+.shareContainer {
+  display: grid;
+  grid-template: 1fr / 1fr;
 }
 
-.title {
-  font-family: 'Open Sans', sans-serif;
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 400;
-  color: #f9f9f9;
-  margin-bottom: 24px;
-  width: 100%;
-  text-align: left;
-}
-
-.answers {
-  width: 100%;
+.shareBackground {
+  grid-area: 1 / 1 / 1 / 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
 
-.answer:not(:first-child) {
-  margin-top: 18px;
+.shareBackground img {
+  border-radius: 8px;
 }
 
-.answer {
-  composes: unstyled from '../../../shared/buttons.module.css';
-  width: 100%;
+.shareForeground {
+  grid-area: 1 / 1 / 1 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.shareInfo {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.shareTitle {
+  color: #eaeaeb;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 28.6px;
+  margin-bottom: 2px;
+}
+
+.shareInstructor {
+  color: #c8cdd0;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.shareControls {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
+  justify-content: flex-end;
   align-items: center;
-  padding: 13px 26px;
-  border-radius: 10px;
-  backdrop-filter: blur(2px);
+  padding: 12px;
 }
 
-.answerEmoji {
-  font-size: 32px;
-  line-height: 32px;
-  margin-right: 18px;
+.shareControls > *:not(:first-child) {
+  margin-left: 9px; /* 5px from button itself, but 2px is on button in figma */
 }
 
-.answerText {
+.iconShare {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 17px;
+  height: 20px;
+  background-image: url('../icons/share.svg');
+}
+
+.iconFullHeart {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('../icons/fullHeart.svg');
+}
+
+.iconEmptyHeart {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 24px;
+  height: 24px;
+  background-image: url('../icons/emptyHeart.svg');
+}
+
+.feedbackContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.feedbackTitle {
+  color: #eaeaeb;
+  text-align: start;
   font-family: 'Open Sans', sans-serif;
-  font-weight: 400;
   font-size: 16px;
-  line-height: 16px;
-  letter-spacing: 0.25px;
-  color: white;
-}
-
-.continueContainer {
-  width: 100%;
-}
-
-.infoText {
-  margin-top: 18px;
-  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
   font-weight: 400;
-  font-size: 14px;
-  line-height: 24px;
+  line-height: 19px;
   letter-spacing: 0.25px;
-  text-align: center;
+  margin-bottom: 12px;
+}
+
+.controlsContainer {
   width: 100%;
-  color: white;
+  display: flex;
+  flex-direction: column;
 }

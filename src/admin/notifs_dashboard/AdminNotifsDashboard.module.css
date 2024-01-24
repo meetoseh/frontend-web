@@ -91,6 +91,12 @@
   font-weight: 700;
 }
 
+.blockTag > pre {
+  display: inline-block;
+  font-family: 'Roboto Mono', monospace;
+  font-weight: 400;
+}
+
 .blockTitle {
   font-family: 'Open Sans', sans-serif;
   font-size: 24px;
