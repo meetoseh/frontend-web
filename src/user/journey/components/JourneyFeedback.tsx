@@ -32,15 +32,15 @@ export const JourneyFeedback = ({
   response: responseVWC,
   backgroundAverageRGB,
 }: JourneyFeedbackProps): ReactElement => {
-  const hated = useMappedValueWithCallbacks(responseVWC, (r) => r === 1);
-  const disliked = useMappedValueWithCallbacks(responseVWC, (r) => r === 2);
-  const liked = useMappedValueWithCallbacks(responseVWC, (r) => r === 3);
-  const loved = useMappedValueWithCallbacks(responseVWC, (r) => r === 4);
+  const hated = useMappedValueWithCallbacks(responseVWC, (r) => r === 4);
+  const disliked = useMappedValueWithCallbacks(responseVWC, (r) => r === 3);
+  const liked = useMappedValueWithCallbacks(responseVWC, (r) => r === 2);
+  const loved = useMappedValueWithCallbacks(responseVWC, (r) => r === 1);
 
-  const onPressHated = useCallback(() => setVWC(responseVWC, 1), [responseVWC]);
-  const onPressDisliked = useCallback(() => setVWC(responseVWC, 2), [responseVWC]);
-  const onPressLiked = useCallback(() => setVWC(responseVWC, 3), [responseVWC]);
-  const onPressLoved = useCallback(() => setVWC(responseVWC, 4), [responseVWC]);
+  const onPressHated = useCallback(() => setVWC(responseVWC, 4), [responseVWC]);
+  const onPressDisliked = useCallback(() => setVWC(responseVWC, 3), [responseVWC]);
+  const onPressLiked = useCallback(() => setVWC(responseVWC, 2), [responseVWC]);
+  const onPressLoved = useCallback(() => setVWC(responseVWC, 1), [responseVWC]);
 
   const buttonBackground = useMappedValueWithCallbacks(backgroundAverageRGB, (bknd) =>
     alphaBlend(bknd, [1, 1, 1, 0.15])
