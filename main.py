@@ -3,9 +3,10 @@ metadata into the page, this will handle serving the correct HTML file. Generall
 we take the generated index.html and modify the tags we're taking over, and cache
 the result.
 
-Because this doesn't materially affect the page, in development it's not necessary
-to run this server.
+Because this doesn't materially affect the page, in development it may not be
+necessary to run this server. However, the rerouting rules are often still helpful
 """
+
 import os
 from itgs import Itgs
 import updater

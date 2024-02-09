@@ -1,6 +1,6 @@
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../../admin/crud/CrudFetcher';
 import { HTTP_API_URL } from '../ApiConstants';
-import { compareSizes } from './compareSizes';
+import { compareSizes, compareVectorSizes } from './compareSizes';
 
 /**
  * An item within a playlist
@@ -253,9 +253,13 @@ export function selectFormat<T extends Playlist>(
 
 /**
  * Selects the best item within the given list of options, given
- * that we want to render it at the given width and height.
+ * that we want to render it at the given width and height. This
+ * implicitly assumes rasterized items, and thus the comparison
+ * is inappropriate for vector items.
  *
  * @param items The list of items to choose from, must be non-empty
+ * @param want The width and height of the image we want to display
+ * @returns The best item to use
  */
 const selectBestItemFromItems = (
   items: PlaylistItem[],
@@ -268,6 +272,33 @@ const selectBestItemFromItems = (
   let best = items[0];
   for (let i = 1; i < items.length; i++) {
     if (compareSizes(want, items[i], best) < 0) {
+      best = items[i];
+    }
+  }
+  return best;
+};
+
+/**
+ * Selects the best item within the given list of options, given
+ * that we want to render it at the given width and height. This
+ * assumes vector items by ignoring the absolute width and height
+ * values and instead selecting based on the aspect ratio.
+ *
+ * @param items The list of items to choose from, must be non-empty
+ * @param want The width and height of the image we want to display
+ * @returns The best item to use
+ */
+const selectBestVectorItemFromItems = (
+  items: PlaylistItem[],
+  want: { width: number; height: number }
+): PlaylistItem => {
+  if (items.length === 0) {
+    throw new Error('Cannot select best item from empty list');
+  }
+
+  let best = items[0];
+  for (let i = 1; i < items.length; i++) {
+    if (compareVectorSizes(want, items[i], best) < 0) {
       best = items[i];
     }
   }
@@ -303,14 +334,53 @@ const selectBestItem = (
 export const selectBestItemUsingPixelRatio = ({
   playlist,
   usesWebp,
+  usesSvg,
   logical,
   preferredPixelRatio,
 }: {
   playlist: Playlist;
   usesWebp: boolean;
+  usesSvg: boolean;
   logical: { width: number; height: number };
   preferredPixelRatio: number;
 }): { item: PlaylistItem; cropTo?: { width: number; height: number } } => {
+  if (usesSvg && playlist.items.svg) {
+    const bestVectorItem = selectBestVectorItemFromItems(playlist.items.svg, logical);
+    const want = {
+      width: logical.width * preferredPixelRatio,
+      height: logical.height * preferredPixelRatio,
+    };
+    const scaleFactorRequired = Math.max(
+      want.width / bestVectorItem.width,
+      want.height / bestVectorItem.height
+    );
+    const rasterizedSize = {
+      width: scaleFactorRequired * bestVectorItem.width,
+      height: scaleFactorRequired * bestVectorItem.height,
+    };
+    const adjustedItem = {
+      ...bestVectorItem,
+      width: rasterizedSize.width,
+      height: rasterizedSize.height,
+    };
+    const threshold = 1 / preferredPixelRatio;
+    if (
+      Math.abs(adjustedItem.width - want.width) < threshold &&
+      Math.abs(adjustedItem.height - want.height) < threshold
+    ) {
+      return { item: adjustedItem };
+    }
+
+    return {
+      item: {
+        ...adjustedItem,
+        width: Math.ceil(adjustedItem.width * preferredPixelRatio) / preferredPixelRatio,
+        height: Math.ceil(adjustedItem.height * preferredPixelRatio) / preferredPixelRatio,
+      },
+      cropTo: { width: want.width, height: want.height },
+    };
+  }
+
   let pixelRatio = preferredPixelRatio;
   while (true) {
     const want = { width: logical.width * pixelRatio, height: logical.height * pixelRatio };

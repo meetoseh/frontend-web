@@ -16,6 +16,7 @@ import { DownloadedItem } from './DownloadedItem';
 import { USES_WEBP } from './usesWebp';
 import { downloadItem } from './downloadItem';
 import { cropImage } from './cropImage';
+import { USES_SVG } from './usesSvg';
 
 /**
  * Describes a manually ref-counted reference to a given OsehImageState. While
@@ -264,6 +265,7 @@ export const useOsehImageStateRequestHandler = ({
 
     async function handleQueue() {
       const usesWebp = await USES_WEBP;
+      const usesSvg = await USES_SVG;
 
       while (active) {
         const item = requestQueue.current.shift();
@@ -271,12 +273,12 @@ export const useOsehImageStateRequestHandler = ({
           break;
         }
         if (!item.released) {
-          handleRequest(item, usesWebp);
+          handleRequest(item, usesWebp, usesSvg);
         }
       }
     }
 
-    async function handleRequest(req: OsehImageRequest, usesWebp: boolean) {
+    async function handleRequest(req: OsehImageRequest, usesWebp: boolean, usesSvg: boolean) {
       let requeued = false;
       const requeue = () => {
         if (!req.released && !requeued) {
@@ -328,9 +330,14 @@ export const useOsehImageStateRequestHandler = ({
       const bestItem = selectBestItemUsingPixelRatio({
         playlist: playlist.playlist,
         usesWebp,
+        usesSvg,
         logical: { width: req.props.displayWidth, height: req.props.displayHeight },
         preferredPixelRatio: devicePixelRatio,
       });
+
+      if (bestItem.item.format === 'svg') {
+        console.log('selected svg item:', bestItem);
+      }
 
       let bestItemReleased = false;
       const releaseItem = () => {
@@ -392,7 +399,13 @@ export const useOsehImageStateRequestHandler = ({
       canceledCallbacks.add(releaseCrop);
       let crop: DownloadedItem;
       try {
-        crop = await getCrop(item, bestItem.cropTo, cropID);
+        crop = await getCrop(
+          item,
+          bestItem.item,
+          bestItem.cropTo,
+          cropID,
+          bestItem.item.format === 'svg'
+        );
       } catch (e) {
         handleError(e);
         return;
@@ -568,8 +581,10 @@ export const useOsehImageStateRequestHandler = ({
 
     async function getCrop(
       downloaded: DownloadedItem,
+      srcSize: { width: number; height: number },
       cropTo: { width: number; height: number },
-      cropID: string
+      cropID: string,
+      isVector: boolean
     ): Promise<DownloadedItem> {
       const reused = cropsByCropID.get(cropID);
       if (reused !== undefined) {
@@ -597,7 +612,13 @@ export const useOsehImageStateRequestHandler = ({
           return;
         }
 
-        const croppedUrl = await cropImage(downloaded.originalLocalUrl, cropTo, cropID);
+        const croppedUrl = await cropImage(
+          downloaded.originalLocalUrl,
+          srcSize,
+          cropTo,
+          cropID,
+          isVector
+        );
         if (done) {
           reject('canceled');
           return;
