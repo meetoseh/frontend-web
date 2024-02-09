@@ -52,8 +52,7 @@ export const AudioFileChoice = ({
           if (transcriptRef === null) {
             return (
               <div className={styles.transcriptUnavailable}>
-                Transcripts are only generated once additional metadata (e.g., speaker name, class
-                name) is available, to reduce typos
+                Transcripts are only generated once the speaker is known, for accuracy
               </div>
             );
           }
