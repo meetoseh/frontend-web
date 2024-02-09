@@ -40,6 +40,11 @@ export const showUploadSelector = <T extends object>({
         requestClose.get()();
       };
 
+      let closedPromiseResolve: () => void = () => {};
+      const closedPromise = new Promise<void>((resolve) => {
+        closedPromiseResolve = resolve;
+      });
+
       const closeModal = addModalWithCallbackToRemove(
         modals,
         <SlideInModal
@@ -57,6 +62,7 @@ export const showUploadSelector = <T extends object>({
             }
 
             closeModal();
+            closedPromiseResolve();
           }}
           requestClose={requestClose}
           animating={disabled}>
@@ -79,9 +85,12 @@ export const showUploadSelector = <T extends object>({
       if (state.finishing) {
         state.cancelers.remove(onCanceled);
         closeModal();
+        closedPromiseResolve();
         state.done = true;
         reject(new Error('canceled'));
       }
+
+      await closedPromise;
     },
   });
 };
