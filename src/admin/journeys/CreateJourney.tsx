@@ -1,12 +1,10 @@
 import {
   MouseEvent,
-  MutableRefObject,
   ReactElement,
   useCallback,
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import { Button } from '../../shared/forms/Button';
@@ -35,24 +33,11 @@ import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
 import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
 import { InstructorPicker } from '../instructors/InstructorPicker';
-import {
-  OsehImageStateRequestHandler,
-  useOsehImageStateRequestHandler,
-} from '../../shared/images/useOsehImageStateRequestHandler';
+import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { JourneyPicker } from './JourneyPicker';
 import { CompactJourney } from './CompactJourney';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
-import { showUploadSelector } from '../../shared/upload/selector/showUploadSelector';
-import { keyMap as journeyBackgroundImageKeyMap } from './background_images/JourneyBackgroundImages';
-import {
-  Callbacks,
-  WritableValueWithCallbacks,
-  createWritableValueWithCallbacks,
-} from '../../shared/lib/Callbacks';
-import { setVWC } from '../../shared/lib/setVWC';
-import { OsehImageState, areOsehImageStatesEqual } from '../../shared/images/OsehImageState';
-import { ImageFilesChoice } from '../../shared/upload/selector/ImageFilesChoice';
-import { ImageFileChoice } from '../../shared/upload/selector/ImageFileChoice';
+import { showJourneyBackgroundImageSelector } from './background_images/showJourneyBackgroundImageSelector';
 
 type CreateJourneyProps = {
   /**
@@ -434,31 +419,8 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
                   variant="link"
                   onClick={async (e) => {
                     e.preventDefault();
-                    const choice = await showUploadSelector({
-                      modals: modalContext.modals,
-                      content: {
-                        description: (
-                          <>
-                            <p>
-                              Choose from recently uploaded background images below. The content is
-                              shown from most recently uploaded to least recently uploaded.
-                            </p>
-                            <p>
-                              It is usually easier to use the upload option to select a local file,
-                              as background images are automatically de-duplicated: re-uploading is
-                              extremely fast and has no negative impact.
-                            </p>
-                          </>
-                        ),
-                        path: '/api/1/journeys/background_images/search',
-                        keyMap: journeyBackgroundImageKeyMap,
-                        itemsComponent: ({ items, onClick }) => (
-                          <JourneyBackgroundImages items={items} onClick={onClick} />
-                        ),
-                        fetchLimit: 6,
-                        loadMoreReplaces: true,
-                      },
-                    }).promise;
+                    const choice = await showJourneyBackgroundImageSelector(modalContext.modals)
+                      .promise;
 
                     if (choice !== undefined) {
                       setBackgroundImage(choice);
@@ -612,85 +574,5 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
         )}
       </div>
     </CrudCreateBlock>
-  );
-};
-
-const JourneyBackgroundImages = ({
-  items,
-  onClick,
-}: {
-  items: JourneyBackgroundImage[];
-  onClick: (item: JourneyBackgroundImage) => void;
-}): ReactElement => {
-  const imageHandler = useOsehImageStateRequestHandler({});
-
-  const images = useRef<WritableValueWithCallbacks<OsehImageState>[]>() as MutableRefObject<
-    WritableValueWithCallbacks<OsehImageState>[]
-  >;
-  if (images.current === undefined || images.current.length !== items.length) {
-    images.current = items.map(() =>
-      createWritableValueWithCallbacks<OsehImageState>({
-        localUrl: null,
-        thumbhash: null,
-        displayWidth: 180,
-        displayHeight: 368,
-        alt: '',
-        loading: true,
-      })
-    );
-  }
-
-  useEffect(() => {
-    const requests = items.map((item) =>
-      imageHandler.request({
-        uid: item.imageFile.uid,
-        jwt: item.imageFile.jwt,
-        displayWidth: 180,
-        displayHeight: 368,
-        alt: '',
-      })
-    );
-
-    let running = true;
-    const cancelers = new Callbacks<undefined>();
-
-    requests.forEach((request, index) => {
-      const vwc = images.current[index];
-      if (vwc === undefined) {
-        request.release();
-        return;
-      }
-
-      request.stateChanged.add(onStateChange);
-      cancelers.add(() => {
-        request.stateChanged.remove(onStateChange);
-        request.release();
-      });
-
-      function onStateChange() {
-        if (!running) {
-          return;
-        }
-
-        setVWC(vwc, request.state, areOsehImageStatesEqual);
-      }
-    });
-
-    return () => {
-      running = false;
-      cancelers.call(undefined);
-    };
-  }, [items, imageHandler]);
-
-  return (
-    <ImageFilesChoice>
-      {items.map((item, index) => (
-        <ImageFileChoice
-          key={item.uid}
-          image={images.current[index]}
-          onClick={() => onClick(item)}
-        />
-      ))}
-    </ImageFilesChoice>
   );
 };

@@ -13,7 +13,6 @@ import { LoginContext } from '../../shared/contexts/LoginContext';
 import { ModalContext, addModalWithCallbackToRemove } from '../../shared/contexts/ModalContext';
 import { CreateJourneyUploadBackgroundImage } from './CreateJourneyUploadBackgroundImage';
 import { ModalWrapper } from '../../shared/ModalWrapper';
-import { CreateJourneyChooseBackgroundImage } from './CreateJourneyChooseBackgroundImage';
 import { JourneySubcategory } from './subcategories/JourneySubcategory';
 import { Instructor } from '../instructors/Instructor';
 import { TextInput } from '../../shared/forms/TextInput';
@@ -28,6 +27,7 @@ import { JourneyEmotionsBlock } from './emotions/JourneyEmotionsBlock';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { CompactJourney } from './CompactJourney';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { showJourneyBackgroundImageSelector } from './background_images/showJourneyBackgroundImageSelector';
 
 type JourneyBlockProps = {
   /**
@@ -63,7 +63,6 @@ export const JourneyBlock = ({
   const [newTitle, setNewTitle] = useState('');
   const [newBackgroundImage, setNewBackgroundImage] = useState<JourneyBackgroundImage | null>(null);
   const [showUploadImage, setShowUploadImage] = useState(false);
-  const [showChooseImage, setShowChooseImage] = useState(false);
   const [newSubcategory, setNewSubcategory] = useState<JourneySubcategory | null>(null);
   const [subcategoryQuery, setSubcategoryQuery] = useState('');
   const [newInstructor, setNewInstructor] = useState<Instructor | null>(null);
@@ -245,25 +244,6 @@ export const JourneyBlock = ({
       </ModalWrapper>
     );
   }, [showUploadImage, modalContext.modals]);
-
-  useEffect(() => {
-    if (!showChooseImage) {
-      return;
-    }
-
-    return addModalWithCallbackToRemove(
-      modalContext.modals,
-      <ModalWrapper onClosed={() => setShowChooseImage(false)}>
-        <CreateJourneyChooseBackgroundImage
-          onSelected={(image) => {
-            setNewBackgroundImage(image);
-            setShowChooseImage(false);
-          }}
-          imageHandler={imageHandler}
-        />
-      </ModalWrapper>
-    );
-  }, [showChooseImage, modalContext.modals, imageHandler]);
 
   const save = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
@@ -504,7 +484,15 @@ export const JourneyBlock = ({
                   type="button"
                   variant="link"
                   disabled={saving}
-                  onClick={() => setShowChooseImage(true)}>
+                  onClick={async (e) => {
+                    e.preventDefault();
+
+                    const choice = await showJourneyBackgroundImageSelector(modalContext.modals)
+                      .promise;
+                    if (choice !== undefined) {
+                      setNewBackgroundImage(choice);
+                    }
+                  }}>
                   Choose
                 </Button>
               </div>
