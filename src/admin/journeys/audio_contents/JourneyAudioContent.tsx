@@ -21,6 +21,21 @@ export type JourneyAudioContent = {
   };
 
   /**
+   * The transcript for the audio, if available
+   */
+  transcript: {
+    /**
+     * The stable identifier for the transcript
+     */
+    uid: string;
+
+    /**
+     * A JWT allowing access to the transcript temporarily
+     */
+    jwt: string;
+  } | null;
+
+  /**
    * When the content file was originally created
    */
   contentFileCreatedAt: Date;

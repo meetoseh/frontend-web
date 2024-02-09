@@ -18,7 +18,6 @@ import { CrudFormElement } from '../crud/CrudFormElement';
 import { JourneyAudioContent } from './audio_contents/JourneyAudioContent';
 import { JourneyBackgroundImage } from './background_images/JourneyBackgroundImage';
 import styles from './CreateJourney.module.css';
-import { CreateJourneyChooseAudioContent } from './CreateJourneyChooseAudioContent';
 import { CreateJourneyUploadAudioContent } from './CreateJourneyUploadAudioContent';
 import { CreateJourneyUploadBackgroundImage } from './CreateJourneyUploadBackgroundImage';
 import { Journey } from './Journey';
@@ -38,6 +37,7 @@ import { JourneyPicker } from './JourneyPicker';
 import { CompactJourney } from './CompactJourney';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { showJourneyBackgroundImageSelector } from './background_images/showJourneyBackgroundImageSelector';
+import { showJourneyAudioContentSelector } from './audio_contents/showJourneyAudioContentSelector';
 
 type CreateJourneyProps = {
   /**
@@ -60,7 +60,6 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
   const modalContext = useContext(ModalContext);
   const [audioContent, setAudioContent] = useState<JourneyAudioContent | null>(null);
   const [showAddAudioContentModal, setShowAddAudioContentModal] = useState(false);
-  const [showChooseAudioContentModal, setShowChooseAudioContentModal] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<JourneyBackgroundImage | null>(null);
   const [showAddBackgroundImageModal, setShowAddBackgroundImageModal] = useState(false);
   const [backgroundImagePreviewType, setBackgroundImagePreviewType] = useState<
@@ -93,24 +92,6 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
       [showAddAudioContentModal]
     )
   );
-
-  useEffect(() => {
-    if (!showChooseAudioContentModal) {
-      return;
-    }
-
-    return addModalWithCallbackToRemove(
-      modalContext.modals,
-      <ModalWrapper onClosed={() => setShowChooseAudioContentModal(false)}>
-        <CreateJourneyChooseAudioContent
-          onSelected={(content) => {
-            setAudioContent(content);
-            setShowChooseAudioContentModal(false);
-          }}
-        />
-      </ModalWrapper>
-    );
-  }, [modalContext.modals, showChooseAudioContentModal]);
 
   useEffect(() => {
     if (!showAddAudioContentModal) {
@@ -345,7 +326,15 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
                 <Button
                   type="button"
                   variant="link"
-                  onClick={() => setShowChooseAudioContentModal(true)}>
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    const choice = await showJourneyAudioContentSelector(modalContext.modals)
+                      .promise;
+
+                    if (choice !== undefined) {
+                      setAudioContent(choice);
+                    }
+                  }}>
                   Choose
                 </Button>
               </div>
