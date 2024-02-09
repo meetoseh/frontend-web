@@ -1,0 +1,27 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.description {
+  max-width: 768px;
+  padding: 24px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.description p {
+  margin-bottom: 24px;
+}
+
+.loadMoreContainer,
+.resetContainer {
+  padding-top: 24px;
+  width: 100%;
+  max-width: 343px;
+}

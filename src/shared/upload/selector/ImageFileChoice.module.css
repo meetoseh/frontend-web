@@ -1,0 +1,7 @@
+.button {
+  composes: unstyled from '../../buttons.module.css';
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
