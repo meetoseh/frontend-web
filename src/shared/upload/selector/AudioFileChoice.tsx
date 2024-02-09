@@ -50,7 +50,12 @@ export const AudioFileChoice = ({
         props={transcript}
         component={(transcript) => {
           if (transcriptRef === null) {
-            return <></>;
+            return (
+              <div className={styles.transcriptUnavailable}>
+                Transcripts are only generated once additional metadata (e.g., speaker name, class
+                name) is available, to reduce typos
+              </div>
+            );
           }
           if (transcript.type === 'loading') {
             return (

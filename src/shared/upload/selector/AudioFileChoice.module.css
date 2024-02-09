@@ -12,7 +12,15 @@
   flex-direction: column;
   justify-content: flex-end;
   align-items: flex-start;
-  margin-bottom: 12px;
+}
+
+.transcriptUnavailable {
+  color: #8b8e90;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 15.6px;
 }
 
 .transcriptPhrase {
@@ -22,7 +30,4 @@
   font-style: normal;
   font-weight: 400;
   line-height: 19.2px;
-  padding: 3px;
-  border-radius: 3px;
-  background: rgba(25, 28, 29, 0.5);
 }
