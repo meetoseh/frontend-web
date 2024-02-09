@@ -10,14 +10,14 @@ import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { CrudFormElement } from '../crud/CrudFormElement';
 import { OsehImage } from '../../shared/images/OsehImage';
-import {
-  FileUploadHandler,
-  parseUploadInfoFromResponse,
-} from '../../shared/upload/FileUploadHandler';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap } from './Instructors';
 import { Checkbox } from '../../shared/forms/Checkbox';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { ModalContext } from '../../shared/contexts/ModalContext';
+import { Button } from '../../shared/forms/Button';
+import { showUploader } from '../../shared/upload/uploader/showUploader';
+import { createUploadPoller } from '../../shared/upload/uploader/createUploadPoller';
 
 type InstructorBlockProps = {
   instructor: Instructor;
@@ -31,6 +31,7 @@ export const InstructorBlock = ({
   imageHandler,
 }: InstructorBlockProps): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
+  const modalContext = useContext(ModalContext);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState(instructor.name);
   const [newBias, setNewBias] = useState<{ str: string; parsed: number | undefined }>({
@@ -39,8 +40,6 @@ export const InstructorBlock = ({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ReactElement | null>(null);
-  const [newPicture, setNewPicture] = useState<File | null>(null);
-  const [uploadHandler, setUploadHandler] = useState<ReactElement | null>(null);
   const [newDeleted, setNewDeleted] = useState(instructor.deletedAt !== null);
 
   const save = useCallback(async () => {
@@ -48,7 +47,6 @@ export const InstructorBlock = ({
     if (
       newName === instructor.name &&
       newBias.parsed === instructor.bias &&
-      newPicture === null &&
       newDeleted === (instructor.deletedAt !== null)
     ) {
       setEditing(false);
@@ -90,93 +88,6 @@ export const InstructorBlock = ({
 
         const data = await response.json();
         setInstructor(Object.assign({}, instructor, data));
-      }
-
-      if (newPicture !== null) {
-        const response = await apiFetch(
-          '/api/1/instructors/pictures/',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              uid: instructor.uid,
-              file_size: newPicture.size,
-            }),
-          },
-          loginContext
-        );
-        if (!response.ok) {
-          setError(await describeErrorFromResponse(response));
-          return;
-        }
-        const data = await response.json();
-        await new Promise<void>((resolve) => {
-          const handler = (
-            <FileUploadHandler
-              file={newPicture}
-              uploadInfo={parseUploadInfoFromResponse(data)}
-              onComplete={resolve}
-            />
-          );
-
-          setUploadHandler(handler);
-        });
-
-        let found = false;
-        for (let i = 0; i < 30; i++) {
-          await new Promise<void>((resolve) => setTimeout(resolve, 1000));
-          const response = await apiFetch(
-            '/api/1/instructors/search',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-              },
-              body: JSON.stringify({
-                filters: {
-                  uid: {
-                    operator: 'eq',
-                    value: instructor.uid,
-                  },
-                },
-              }),
-            },
-            loginContext
-          );
-
-          if (!response.ok) {
-            setError(await describeErrorFromResponse(response));
-            return;
-          }
-
-          const searchData = await response.json();
-          if (searchData.items.length !== 1) {
-            setError(<>The instructor was deleted during the request.</>);
-            return;
-          }
-
-          const newInstructor = convertUsingKeymap<Instructor>(searchData.items[0], keyMap);
-          if (
-            newInstructor.picture !== null &&
-            (instructor.picture === null || newInstructor.picture.uid !== instructor.picture.uid)
-          ) {
-            setInstructor(newInstructor);
-            found = true;
-            break;
-          }
-        }
-
-        if (!found) {
-          setError(
-            <>
-              Picture is taking longer than expected to process. You will need to refresh manually
-              or contact support.
-            </>
-          );
-          return;
-        }
-
-        setNewPicture(null);
       }
 
       if (newDeleted !== (instructor.deletedAt !== null)) {
@@ -221,10 +132,9 @@ export const InstructorBlock = ({
     } catch (e) {
       setError(<>Failed to connect to server. Check your internet connection</>);
     } finally {
-      setUploadHandler(null);
       setSaving(false);
     }
-  }, [newName, instructor, loginContextRaw, setInstructor, newPicture, newDeleted, newBias]);
+  }, [newName, instructor, loginContextRaw, setInstructor, newDeleted, newBias]);
 
   useEffect(() => {
     if (saving) {
@@ -234,7 +144,6 @@ export const InstructorBlock = ({
     setNewName(instructor.name);
     setNewBias({ parsed: instructor.bias, str: instructor.bias.toString() });
     setNewDeleted(instructor.deletedAt !== null);
-    setNewPicture(null);
   }, [instructor, saving]);
 
   return (
@@ -294,9 +203,9 @@ export const InstructorBlock = ({
           />
           <CrudFormElement title="Picture">
             <div className={styles.editPictureContainer}>
-              {instructor.picture === null && newPicture === null ? (
+              {instructor.picture === null ? (
                 <p>No picture</p>
-              ) : newPicture === null ? (
+              ) : (
                 <OsehImage
                   uid={instructor.picture!.uid}
                   jwt={instructor.picture!.jwt}
@@ -305,22 +214,52 @@ export const InstructorBlock = ({
                   alt="Instructor"
                   handler={imageHandler}
                 />
-              ) : (
-                <img src={URL.createObjectURL(newPicture)} width={60} height={60} alt="New" />
               )}
-              {uploadHandler}
-              <input
-                className={styles.editPictureInput}
-                type="file"
-                accept="image/png, image/jpeg, image/svg"
-                name="picture"
-                onChange={(e) => {
-                  if (e.target.files !== null && e.target.files.length > 0) {
-                    setNewPicture(e.target.files[0]);
-                  } else {
-                    setNewPicture(null);
+              <Button
+                type="button"
+                variant="outlined"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  const newInstructor = await showUploader({
+                    modals: modalContext.modals,
+                    content: {
+                      description: (
+                        <>
+                          <p>
+                            Choose the new profile image for {instructor.name}.{' '}
+                            <em>This change will take place immediately.</em>
+                          </p>
+                          <p>
+                            Currently, these images are exported at various sizes between 38x38 and
+                            512x512. At least 512x512 is recommended, but 90x90 is the minimum
+                            accepted.
+                          </p>
+                        </>
+                      ),
+                      startEndpoint: {
+                        type: 'path',
+                        path: '/api/1/instructors/pictures/',
+                        additionalBodyParameters: { uid: instructor.uid },
+                      },
+                      accept: 'image/*',
+                      poller: createUploadPoller(
+                        '/api/1/instructors/search',
+                        keyMap,
+                        loginContextRaw,
+                        {
+                          sha512Key: null,
+                          additionalFilters: { uid: { operator: 'eq', value: instructor.uid } },
+                          predicate: (item) => item.picture?.uid !== instructor.picture?.uid,
+                        }
+                      ),
+                    },
+                  }).promise;
+                  if (newInstructor !== undefined) {
+                    setInstructor(newInstructor);
                   }
-                }}></input>
+                }}>
+                Change
+              </Button>
             </div>
           </CrudFormElement>
           <Checkbox label="Deleted" value={newDeleted} setValue={setNewDeleted} disabled={false} />

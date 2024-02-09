@@ -1,10 +1,6 @@
 import { ReactElement, useCallback, useContext, useState } from 'react';
 import { JourneyAudioContent } from './audio_contents/JourneyAudioContent';
-import {
-  FileUploadHandler,
-  parseUploadInfoFromResponse,
-  UploadInfo,
-} from '../../shared/upload/FileUploadHandler';
+import { FileUploadHandler } from '../../shared/upload/FileUploadHandler';
 import styles from './CreateJourneyUploadAudioContent.module.css';
 import {
   describeError,
@@ -17,6 +13,7 @@ import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap as journeyAudioContentKeyMap } from './audio_contents/JourneyAudioContents';
 import { computeFileSha512 } from '../../shared/computeFileSha512';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { UploadInfo, parseUploadInfoFromResponse } from '../../shared/upload/UploadInfo';
 
 type CreateJourneyUploadAudioContentProps = {
   /**

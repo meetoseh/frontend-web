@@ -1,8 +1,9 @@
-import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { ReactElement, useCallback, useContext, useState } from 'react';
 import { apiFetch } from '../shared/ApiConstants';
 import { LoginContext } from '../shared/contexts/LoginContext';
-import { FileUploadHandler, parseUploadInfoFromResponse } from '../shared/upload/FileUploadHandler';
+import { FileUploadHandler } from '../shared/upload/FileUploadHandler';
 import { useValueWithCallbacksEffect } from '../shared/hooks/useValueWithCallbacksEffect';
+import { parseUploadInfoFromResponse } from '../shared/upload/UploadInfo';
 
 /**
  * Shows a file selector. When they select a file, it starts a journey audio

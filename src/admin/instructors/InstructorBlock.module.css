@@ -6,16 +6,8 @@
 
 .editPictureContainer {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.editPictureInput {
-  font-family: 'Open Sans', sans-serif;
-  font-size: 14px;
-  line-height: 22px;
-  font-weight: 400;
-  color: #171717;
+  flex-flow: row wrap;
+  gap: 24px;
 }
 
 .picturesContainer {

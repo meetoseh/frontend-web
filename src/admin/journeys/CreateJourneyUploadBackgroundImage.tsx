@@ -7,16 +7,13 @@ import {
   ErrorBlock,
 } from '../../shared/forms/ErrorBlock';
 import { LoginContext, LoginContextValueLoggedIn } from '../../shared/contexts/LoginContext';
-import {
-  FileUploadHandler,
-  parseUploadInfoFromResponse,
-  UploadInfo,
-} from '../../shared/upload/FileUploadHandler';
+import { FileUploadHandler } from '../../shared/upload/FileUploadHandler';
 import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { JourneyBackgroundImage } from './background_images/JourneyBackgroundImage';
 import { keyMap as journeyBackgroundImageKeyMap } from './background_images/JourneyBackgroundImages';
 import styles from './CreateJourneyUploadAudioContent.module.css';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { UploadInfo, parseUploadInfoFromResponse } from '../../shared/upload/UploadInfo';
 
 type CreateJourneyUploadBackgroundImageProps = {
   /**
