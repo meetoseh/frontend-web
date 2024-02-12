@@ -11,11 +11,14 @@ import { setVWC } from './lib/setVWC';
  * @param file The file to hash
  * @param progress If specified, we write how many bytes have been processed
  *   so far to this value.
+ * @param signal If specified, the hash will be aborted if this signal is
+ *  aborted.
  * @returns The SHA512 hash of the file
  */
 export const computeFileSha512 = (
   file: File,
-  progress?: WritableValueWithCallbacks<number>
+  progress?: WritableValueWithCallbacks<number>,
+  signal?: AbortSignal
 ): Promise<string> => {
   return new Promise<string>(async (resolve, reject) => {
     const hasher = sha512.create();
@@ -32,6 +35,8 @@ export const computeFileSha512 = (
 
     const reader = stream.getReader();
     while (true) {
+      signal?.throwIfAborted();
+
       let done: boolean;
       let value: Uint8Array | undefined;
       try {

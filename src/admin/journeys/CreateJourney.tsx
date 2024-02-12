@@ -18,8 +18,6 @@ import { CrudFormElement } from '../crud/CrudFormElement';
 import { JourneyAudioContent } from './audio_contents/JourneyAudioContent';
 import { JourneyBackgroundImage } from './background_images/JourneyBackgroundImage';
 import styles from './CreateJourney.module.css';
-import { CreateJourneyUploadAudioContent } from './CreateJourneyUploadAudioContent';
-import { CreateJourneyUploadBackgroundImage } from './CreateJourneyUploadBackgroundImage';
 import { Journey } from './Journey';
 import { JourneySubcategory } from './subcategories/JourneySubcategory';
 import { Instructor } from '../instructors/Instructor';
@@ -38,6 +36,8 @@ import { CompactJourney } from './CompactJourney';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { showJourneyBackgroundImageSelector } from './background_images/showJourneyBackgroundImageSelector';
 import { showJourneyAudioContentSelector } from './audio_contents/showJourneyAudioContentSelector';
+import { showJourneyBackgroundImageUploader } from './background_images/showJourneyBackgroundImageUploader';
+import { showJourneyAudioContentUploader } from './audio_contents/showJourneyAudioContentUploader';
 
 type CreateJourneyProps = {
   /**
@@ -59,9 +59,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [audioContent, setAudioContent] = useState<JourneyAudioContent | null>(null);
-  const [showAddAudioContentModal, setShowAddAudioContentModal] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<JourneyBackgroundImage | null>(null);
-  const [showAddBackgroundImageModal, setShowAddBackgroundImageModal] = useState(false);
   const [backgroundImagePreviewType, setBackgroundImagePreviewType] = useState<
     'original' | 'darkened' | 'blurred'
   >('darkened');
@@ -79,37 +77,6 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
   const [error, setError] = useState<ReactElement | null>(null);
   const [saving, setSaving] = useState(false);
   const [createErrorCollapsed, setCreateErrorCollapsed] = useState(true);
-
-  useValueWithCallbacksEffect(
-    loginContextRaw.value,
-    useCallback(
-      (loginContext) => {
-        if (showAddAudioContentModal && loginContext.state !== 'logged-in') {
-          setShowAddAudioContentModal(false);
-        }
-        return undefined;
-      },
-      [showAddAudioContentModal]
-    )
-  );
-
-  useEffect(() => {
-    if (!showAddAudioContentModal) {
-      return;
-    }
-
-    return addModalWithCallbackToRemove(
-      modalContext.modals,
-      <ModalWrapper onClosed={() => setShowAddAudioContentModal(false)}>
-        <CreateJourneyUploadAudioContent
-          onUploaded={(content) => {
-            setAudioContent(content);
-            setShowAddAudioContentModal(false);
-          }}
-        />
-      </ModalWrapper>
-    );
-  }, [modalContext.modals, showAddAudioContentModal]);
 
   const create = useCallback(
     async (e: MouseEvent<HTMLButtonElement>) => {
@@ -186,24 +153,6 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
       variationOfJourney,
     ]
   );
-
-  useEffect(() => {
-    if (!showAddBackgroundImageModal) {
-      return;
-    }
-
-    return addModalWithCallbackToRemove(
-      modalContext.modals,
-      <ModalWrapper onClosed={() => setShowAddBackgroundImageModal(false)}>
-        <CreateJourneyUploadBackgroundImage
-          onUploaded={(image) => {
-            setBackgroundImage(image);
-            setShowAddBackgroundImageModal(false);
-          }}
-        />
-      </ModalWrapper>
-    );
-  }, [showAddBackgroundImageModal, modalContext.modals]);
 
   const onBackgroundImagePreviewTypeChanged = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -318,7 +267,17 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
                 <Button
                   type="button"
                   variant="filled"
-                  onClick={() => setShowAddAudioContentModal(true)}>
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    const choice = await showJourneyAudioContentUploader(
+                      modalContext.modals,
+                      loginContextRaw
+                    ).promise;
+
+                    if (choice !== undefined) {
+                      setAudioContent(choice);
+                    }
+                  }}>
                   Upload
                 </Button>
               </div>
@@ -398,7 +357,18 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
                 <Button
                   type="button"
                   variant="filled"
-                  onClick={() => setShowAddBackgroundImageModal(true)}>
+                  onClick={async (e) => {
+                    e.preventDefault();
+
+                    const choice = await showJourneyBackgroundImageUploader(
+                      modalContext.modals,
+                      loginContextRaw
+                    ).promise;
+
+                    if (choice !== undefined) {
+                      setBackgroundImage(choice);
+                    }
+                  }}>
                   Upload
                 </Button>
               </div>

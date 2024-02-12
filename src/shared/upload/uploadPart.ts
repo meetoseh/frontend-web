@@ -9,6 +9,8 @@ import { apiFetch } from '../ApiConstants';
  * @param endByte The end byte of the part, exclusive
  * @param uid The file upload uid
  * @param jwt The file upload JWT for the file upload with the given uid
+ * @param signal If specified, the upload will be aborted if this signal is
+ *  aborted
  * @returns A promise which resolves when the part is uploaded successfully
  *   or when the part was determined to be a duplicate, and rejects if there
  *   is a network issue or the server returns an error besides a duplicate
@@ -19,8 +21,11 @@ export const uploadPart = async (
   startByte: number,
   endByte: number,
   uid: string,
-  jwt: string
+  jwt: string,
+  signal?: AbortSignal
 ) => {
+  signal?.throwIfAborted();
+
   const formData = new FormData();
   formData.append('file', file.slice(startByte, endByte, 'application/octet-stream'), file.name);
   const response = await apiFetch(
@@ -31,6 +36,7 @@ export const uploadPart = async (
         Authorization: `bearer ${jwt}`,
       },
       body: formData,
+      signal,
     },
     null
   );

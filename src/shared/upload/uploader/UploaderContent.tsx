@@ -99,6 +99,11 @@ export type UploaderContentProps<T extends object> = {
    * @param result The result of the upload
    */
   onUploaded: (result: T) => void;
+
+  /**
+   * If specified, used to abort uploads early.
+   */
+  signal?: AbortSignal;
 };
 
 type IndicatorSpinner = { type: 'spinner' };
@@ -112,7 +117,7 @@ type Progress = {
 
 type UploadContext<T extends object> = Pick<
   UploaderContentProps<T>,
-  'startEndpoint' | 'poller' | 'onUploaded'
+  'startEndpoint' | 'poller' | 'onUploaded' | 'signal'
 > & {
   loginContextRaw: LoginContextValue;
   progress: WritableValueWithCallbacks<Progress>;
@@ -149,6 +154,12 @@ const transitionFromPick = async <T extends object>(
       error: <>not logged in</>,
     };
   }
+  if (ctx.signal?.aborted) {
+    return {
+      type: 'error',
+      error: <>aborted</>,
+    };
+  }
   return { type: 'hash', file };
 };
 
@@ -167,7 +178,7 @@ const transitionFromHash = async <T extends object>(
   hashed.callbacks.call(undefined);
 
   try {
-    const sha512 = await computeFileSha512(state.file, hashed);
+    const sha512 = await computeFileSha512(state.file, hashed, ctx.signal);
     return { type: 'dedup', file: state.file, sha512 };
   } catch (e) {
     return { type: 'error', error: <>Error hashing file: {`${e}`}</> };
@@ -183,13 +194,30 @@ const transitionFromDedup = async <T extends object>(
     indicator: { type: 'spinner' },
   });
   try {
-    const polled = await ctx.poller(state.sha512).promise;
+    const polledCancelable = ctx.poller(state.sha512);
+
+    ctx.signal?.addEventListener('abort', polledCancelable.cancel);
+    if (ctx.signal?.aborted) {
+      polledCancelable.cancel();
+    }
+
+    let polled: T | null;
+    try {
+      polled = await polledCancelable.promise;
+    } finally {
+      ctx.signal?.removeEventListener('abort', polledCancelable.cancel);
+    }
+
     if (polled === null) {
       return { type: 'start', file: state.file, sha512: state.sha512 };
     } else {
       return { type: 'complete', item: polled };
     }
   } catch (e) {
+    if (ctx.signal?.aborted) {
+      return { type: 'error', error: <>aborted</> };
+    }
+
     return { type: 'error', error: await describeError(e) };
   }
 };
@@ -207,6 +235,7 @@ const transitionFromStart = async <T extends object>(
   setVWC(ctx.progress, { message: 'initializing upload', indicator: { type: 'spinner' } });
   let info: UploadInfo;
   try {
+    ctx.signal?.throwIfAborted();
     if (ctx.startEndpoint.type === 'path') {
       const response = await apiFetch(
         ctx.startEndpoint.path,
@@ -217,6 +246,7 @@ const transitionFromStart = async <T extends object>(
             ...(ctx.startEndpoint.additionalBodyParameters ?? {}),
             file_size: state.file.size,
           }),
+          signal: ctx.signal,
         },
         loginContext
       );
@@ -225,6 +255,7 @@ const transitionFromStart = async <T extends object>(
         throw response;
       }
 
+      ctx.signal?.throwIfAborted();
       const rawInfo = await response.json();
       info = parseUploadInfoFromResponse(rawInfo);
     } else {
@@ -232,6 +263,10 @@ const transitionFromStart = async <T extends object>(
     }
     return { type: 'upload', file: state.file, sha512: state.sha512, info };
   } catch (e) {
+    if (ctx.signal?.aborted) {
+      return { type: 'error', error: <>aborted</> };
+    }
+
     return { type: 'error', error: await describeError(e) };
   }
 };
@@ -268,13 +303,32 @@ const transitionFromUpload = async <T extends object>(
       part.startByte,
       part.endByte,
       state.info.uid,
-      state.info.jwt
+      state.info.jwt,
+      ctx.signal
     );
     numFinishedBytes += part.endByte - part.startByte;
     uploading.delete(partNumber);
   };
 
+  let resolveAborted = () => {};
+  const abortedPromise = new Promise<void>((resolve, reject) => {
+    const doResolve = () => {
+      ctx.signal?.removeEventListener('abort', doResolve);
+      resolve();
+    };
+
+    resolveAborted = doResolve;
+    ctx.signal?.addEventListener('abort', doResolve);
+    if (ctx.signal?.aborted) {
+      doResolve();
+    }
+  });
+
   while (nextPartNumber <= endPartNumber || uploading.size > 0) {
+    if (ctx.signal?.aborted) {
+      break;
+    }
+
     if (reportedFinishedBytes !== numFinishedBytes) {
       reportedFinishedBytes = numFinishedBytes;
       setVWC(ctx.progress, {
@@ -290,17 +344,38 @@ const transitionFromUpload = async <T extends object>(
     }
 
     try {
-      await Promise.race(uploading.values());
+      const promises = [abortedPromise];
+
+      const iter = uploading.values();
+      let next = iter.next();
+      while (!next.done) {
+        promises.push(next.value);
+        next = iter.next();
+      }
+
+      await Promise.race(promises);
     } catch (e) {
+      resolveAborted();
       setVWC(ctx.progress, {
         message: 'upload failed, waiting for in-progress uploads to settle',
         indicator: { type: 'spinner' },
       });
       await Promise.allSettled(uploading.values());
+
+      if (ctx.signal?.aborted) {
+        return { type: 'error', error: <>aborted</> };
+      }
+
       return { type: 'error', error: await describeError(e) };
     }
   }
 
+  if (ctx.signal?.aborted) {
+    await Promise.allSettled(uploading.values());
+    return { type: 'error', error: <>aborted</> };
+  }
+
+  resolveAborted();
   if (state.info.progress !== undefined) {
     return { type: 'process', sha512: state.sha512, job: state.info.progress };
   } else {
@@ -323,6 +398,30 @@ const transitionFromProcess = async <T extends object>(
 
   const manageSocket = async () => {
     const socket = new WebSocket(`${HTTP_WEBSOCKET_URL}/api/2/jobs/live`);
+
+    const abortHandler = () => {
+      socket.close();
+      ctx.signal?.removeEventListener('abort', abortHandler);
+    };
+    ctx.signal?.addEventListener('abort', abortHandler);
+    if (ctx.signal?.aborted) {
+      abortHandler();
+      throw new Error('aborted');
+    }
+
+    try {
+      await manageSocketInner(socket);
+    } catch (e) {
+      if (ctx.signal?.aborted) {
+        return;
+      }
+      throw e;
+    } finally {
+      ctx.signal?.removeEventListener('abort', abortHandler);
+    }
+  };
+
+  const manageSocketInner = async (socket: WebSocket) => {
     let packetQueue: string[] = [];
     const onReceivedPacket = new Callbacks<undefined>();
     socket.addEventListener('message', (e) => {
@@ -450,13 +549,24 @@ const transitionFromProcess = async <T extends object>(
   };
 
   while (true) {
+    if (ctx.signal?.aborted) {
+      return { type: 'error', error: <>aborted</> };
+    }
+
     try {
       await manageSocket();
+      if (ctx.signal?.aborted) {
+        return { type: 'error', error: <>aborted</> };
+      }
       if (failureDetected) {
         return { type: 'error', error: <>processing job failed</> };
       }
       return { type: 'poll', sha512: state.sha512, startedAt: new Date(), timeoutSeconds: 30 };
     } catch (e) {
+      if (ctx.signal?.aborted) {
+        return { type: 'error', error: <>aborted</> };
+      }
+
       console.error('websocket error:', e);
       const now = new Date();
       const timeSinceLastMS = lastFailedAt === null ? null : now.getTime() - lastFailedAt.getTime();
@@ -501,9 +611,25 @@ const transitionFromPoll = async <T extends object>(
   const endTimeMS = state.startedAt.getTime() + state.timeoutSeconds * 1000;
 
   while (true) {
+    if (ctx.signal?.aborted) {
+      return { type: 'error', error: <>aborted</> };
+    }
+
     pollTimes++;
     try {
-      const response = await ctx.poller(state.sha512).promise;
+      const responseCancelable = ctx.poller(state.sha512);
+      ctx.signal?.addEventListener('abort', responseCancelable.cancel);
+      if (ctx.signal?.aborted) {
+        responseCancelable.cancel();
+      }
+
+      let response: T | null;
+      try {
+        response = await responseCancelable.promise;
+      } finally {
+        ctx.signal?.removeEventListener('abort', responseCancelable.cancel);
+      }
+
       consecutiveErrors = 0;
       if (response !== null) {
         setVWC(ctx.progress, {
@@ -513,6 +639,10 @@ const transitionFromPoll = async <T extends object>(
         return { type: 'complete', item: response };
       }
     } catch (e) {
+      if (ctx.signal?.aborted) {
+        return { type: 'error', error: <>aborted</> };
+      }
+
       consecutiveErrors++;
       if (consecutiveErrors > 5) {
         return { type: 'error', error: await describeError(e) };
@@ -579,6 +709,7 @@ export const UploaderContent = <T extends object>({
   accept,
   poller,
   onUploaded,
+  signal,
 }: UploaderContentProps<T>): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const managing = useWritableValueWithCallbacks<boolean>(() => false);
@@ -630,6 +761,7 @@ export const UploaderContent = <T extends object>({
                         onUploaded,
                         loginContextRaw,
                         progress,
+                        signal,
                       },
                       file
                     );

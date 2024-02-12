@@ -10,9 +10,7 @@ import iconStyles from '../crud/icons.module.css';
 import { Button } from '../../shared/forms/Button';
 import { JourneyBackgroundImage } from './background_images/JourneyBackgroundImage';
 import { LoginContext } from '../../shared/contexts/LoginContext';
-import { ModalContext, addModalWithCallbackToRemove } from '../../shared/contexts/ModalContext';
-import { CreateJourneyUploadBackgroundImage } from './CreateJourneyUploadBackgroundImage';
-import { ModalWrapper } from '../../shared/ModalWrapper';
+import { ModalContext } from '../../shared/contexts/ModalContext';
 import { JourneySubcategory } from './subcategories/JourneySubcategory';
 import { Instructor } from '../instructors/Instructor';
 import { TextInput } from '../../shared/forms/TextInput';
@@ -28,6 +26,7 @@ import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageSt
 import { CompactJourney } from './CompactJourney';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { showJourneyBackgroundImageSelector } from './background_images/showJourneyBackgroundImageSelector';
+import { showJourneyBackgroundImageUploader } from './background_images/showJourneyBackgroundImageUploader';
 
 type JourneyBlockProps = {
   /**
@@ -62,7 +61,6 @@ export const JourneyBlock = ({
   const [saving, setSaving] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newBackgroundImage, setNewBackgroundImage] = useState<JourneyBackgroundImage | null>(null);
-  const [showUploadImage, setShowUploadImage] = useState(false);
   const [newSubcategory, setNewSubcategory] = useState<JourneySubcategory | null>(null);
   const [subcategoryQuery, setSubcategoryQuery] = useState('');
   const [newInstructor, setNewInstructor] = useState<Instructor | null>(null);
@@ -226,24 +224,6 @@ export const JourneyBlock = ({
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-
-  useEffect(() => {
-    if (!showUploadImage) {
-      return;
-    }
-
-    return addModalWithCallbackToRemove(
-      modalContext.modals,
-      <ModalWrapper onClosed={() => setShowUploadImage(false)}>
-        <CreateJourneyUploadBackgroundImage
-          onUploaded={(image) => {
-            setNewBackgroundImage(image);
-            setShowUploadImage(false);
-          }}
-        />
-      </ModalWrapper>
-    );
-  }, [showUploadImage, modalContext.modals]);
 
   const save = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
@@ -477,7 +457,18 @@ export const JourneyBlock = ({
                   type="button"
                   variant="outlined"
                   disabled={saving}
-                  onClick={() => setShowUploadImage(true)}>
+                  onClick={async (e) => {
+                    e.preventDefault();
+
+                    const choice = await showJourneyBackgroundImageUploader(
+                      modalContext.modals,
+                      loginContextRaw
+                    ).promise;
+
+                    if (choice !== undefined) {
+                      setNewBackgroundImage(choice);
+                    }
+                  }}>
                   Upload
                 </Button>
                 <Button

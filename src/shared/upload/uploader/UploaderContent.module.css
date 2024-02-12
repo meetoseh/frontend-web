@@ -19,6 +19,12 @@
   margin-bottom: 24px;
 }
 
+.description ul,
+.description ol {
+  margin-left: 1.5em;
+  margin-bottom: 24px;
+}
+
 .fileInputContainer {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;

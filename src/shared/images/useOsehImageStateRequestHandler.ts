@@ -17,6 +17,8 @@ import { USES_WEBP } from './usesWebp';
 import { downloadItem } from './downloadItem';
 import { cropImage } from './cropImage';
 import { USES_SVG } from './usesSvg';
+import { getJwtExpiration } from '../lib/getJwtExpiration';
+import { getCurrentServerTimeMS } from '../lib/getCurrentServerTimeMS';
 
 /**
  * Describes a manually ref-counted reference to a given OsehImageState. While
@@ -304,7 +306,7 @@ export const useOsehImageStateRequestHandler = ({
         req.releasedCallbacks.call(undefined);
       };
 
-      const playlistPromise = getPlaylist(req.props);
+      let playlistPromise = getPlaylist(req.props);
       let playlistReleased = false;
       const releasePlaylist = () => {
         if (!playlistReleased) {
@@ -325,6 +327,22 @@ export const useOsehImageStateRequestHandler = ({
       }
       if (!active || req.released) {
         return;
+      }
+
+      const jwtExpiration = getJwtExpiration(playlist.jwt);
+      const nowServerTime = await getCurrentServerTimeMS();
+      if (jwtExpiration <= nowServerTime - 5000) {
+        playlistsByImageFileUID.reduceRefCount(req.props.uid);
+        playlistPromise = getPlaylist(req.props, true);
+        try {
+          playlist = await playlistPromise;
+        } catch (e) {
+          handleError(e);
+          return;
+        }
+        if (!active || req.released) {
+          return;
+        }
       }
 
       const bestItem = selectBestItemUsingPixelRatio({
@@ -423,23 +441,27 @@ export const useOsehImageStateRequestHandler = ({
       req.requested.stateChanged.call(req.requested.state);
     }
 
-    async function getPlaylist(props: OsehImagePropsLoadable): Promise<PlaylistWithJWT> {
+    async function getPlaylist(
+      props: OsehImagePropsLoadable,
+      skipCache: boolean = false
+    ): Promise<PlaylistWithJWT> {
       const reused = playlistsByImageFileUID.get(props.uid);
       const replacing = reused !== undefined;
-      if (replacing) {
-        // checking for jwt means yielding, and there is no safe way to yield here
+      if (replacing && !skipCache) {
         return reused.promise;
       }
 
-      const cached = playlistsByImageFileUIDCache.get(props.uid);
-      if (cached !== undefined) {
-        playlistsByImageFileUIDCache.remove(props.uid);
-        playlistsByImageFileUID.set(props.uid, {
-          promise: cached,
-          cancel: () => undefined,
-          done: () => true,
-        });
-        return cached;
+      if (!skipCache) {
+        const cached = playlistsByImageFileUIDCache.get(props.uid);
+        if (cached !== undefined) {
+          playlistsByImageFileUIDCache.remove(props.uid);
+          playlistsByImageFileUID.set(props.uid, {
+            promise: cached,
+            cancel: () => undefined,
+            done: () => true,
+          });
+          return cached;
+        }
       }
 
       let done = false;

@@ -17,10 +17,15 @@ export const showUploader = <T extends object>({
   content,
 }: {
   modals: WritableValueWithCallbacks<Modals>;
-  content: Omit<UploaderContentProps<T>, 'onUploaded'>;
+  content: Omit<UploaderContentProps<T>, 'onUploaded' | 'signal'>;
 }): CancelablePromise<T | undefined> => {
   return constructCancelablePromise({
     body: async (state, resolve, reject) => {
+      const controller = window.AbortController ? new AbortController() : undefined;
+      const signal = controller ? controller.signal : undefined;
+      const doAbortUpload = controller !== undefined ? () => controller.abort() : () => {};
+      state.cancelers.add(doAbortUpload);
+
       if (state.finishing) {
         state.done = true;
         reject(new Error('canceled'));
@@ -36,6 +41,7 @@ export const showUploader = <T extends object>({
         state.cancelers.remove(onCanceled);
         canceled = true;
         requestClose.get()();
+        doAbortUpload();
       };
 
       let closedPromiseResolve: () => void = () => {};
@@ -75,6 +81,7 @@ export const showUploader = <T extends object>({
               uploadedItem = item;
               requestClose.get()();
             }}
+            signal={signal}
           />
         </SlideInModal>
       );
@@ -84,6 +91,7 @@ export const showUploader = <T extends object>({
         state.cancelers.remove(onCanceled);
         closeModal();
         closedPromiseResolve();
+        doAbortUpload();
         state.done = true;
         reject(new Error('canceled'));
       }
