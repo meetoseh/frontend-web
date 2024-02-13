@@ -18,13 +18,14 @@ import { CreateJourney } from './CreateJourney';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 
-const limit = 3;
+const limit = 8;
 const path = '/api/1/journeys/search';
 export const keyMap: CrudFetcherKeyMap<Journey> = {
   audio_content: 'audioContent',
   background_image: 'backgroundImage',
   blurred_background_image: 'blurredBackgroundImage',
   darkened_background_image: 'darkenedBackgroundImage',
+  duration_seconds: 'durationSeconds',
   subcategory: (_, val) => ({
     key: 'subcategory',
     value: convertUsingKeymap(val, journeySubcategoryKeyMap),
@@ -115,6 +116,7 @@ export const Journeys = (): ReactElement => {
           loading={loading}
           haveMore={haveMore}
           onMore={onMore}
+          smallItems
         />
       }
       create={<CreateJourney onCreated={onItemCreated} imageHandler={imageHandler} />}

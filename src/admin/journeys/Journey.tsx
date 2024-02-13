@@ -66,6 +66,11 @@ export type Journey = {
   description: string;
 
   /**
+   * The duration of the audio content for the journey in seconds
+   */
+  durationSeconds: number;
+
+  /**
    * The prompt information for the journey. See the API docs for more information
    */
   prompt: any & { style: 'numeric' | 'press' | 'color' | 'word' };

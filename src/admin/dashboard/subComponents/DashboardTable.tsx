@@ -5,6 +5,7 @@ import styles from './DashboardTable.module.css';
 export type DashboardTableProps = {
   columnHeaders: string[];
   rows: (string | { csv: string; display: ReactElement })[][];
+  minWidth?: number;
 };
 
 /**
@@ -32,7 +33,11 @@ const quoteForCsv = (item: string | { csv: string; display: ReactElement }): str
 /**
  * A reasonably styled table for use in the admin dashboard
  */
-export const DashboardTable = ({ columnHeaders, rows }: DashboardTableProps): ReactElement => {
+export const DashboardTable = ({
+  columnHeaders,
+  rows,
+  minWidth,
+}: DashboardTableProps): ReactElement => {
   const downloadCSV = useCallback(async () => {
     const csv =
       columnHeaders.map(quoteForCsv).join(',') +
@@ -54,7 +59,9 @@ export const DashboardTable = ({ columnHeaders, rows }: DashboardTableProps): Re
       <Button type="button" variant="link-small" onClick={downloadCSV}>
         Download CSV
       </Button>
-      <table className={styles.table}>
+      <table
+        className={styles.table}
+        style={minWidth === undefined ? undefined : { minWidth: `${minWidth}px` }}>
         <thead>
           <tr>
             {columnHeaders.map((header, index) => (

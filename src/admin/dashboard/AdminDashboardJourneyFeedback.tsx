@@ -207,7 +207,7 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
             <div className={styles.tableHeader}>
               <CompactJourney journey={props.journey} imageHandler={imageHandler} />
             </div>
-            <DashboardTable {...props.table} />
+            <DashboardTable {...props.table} minWidth={342} />
           </div>
         ))}
       </div>

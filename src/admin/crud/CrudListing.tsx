@@ -1,5 +1,6 @@
 import { ReactElement } from 'react';
 import styles from './CrudListing.module.css';
+import { combineClasses } from '../../shared/lib/combineClasses';
 
 type CrudListingProps<T> = {
   /**
@@ -28,6 +29,11 @@ type CrudListingProps<T> = {
    * Called when the more button is clicked
    */
   onMore: () => void;
+
+  /**
+   * If true, switches to a row wrap layout instead of a column layout
+   */
+  smallItems?: boolean;
 };
 
 /**
@@ -42,12 +48,16 @@ export function CrudListing<T>({
   loading,
   haveMore,
   onMore,
+  smallItems,
 }: CrudListingProps<T>): ReactElement {
   return (
     <div
-      className={`${styles.container} ${
-        loading && styles.loadingContainer ? styles.loadingContainer : ''
-      } ${haveMore && styles.haveMoreContainer ? styles.haveMoreContainer : ''}`.trimEnd()}>
+      className={combineClasses(
+        styles.container,
+        loading ? styles.loadingContainer : undefined,
+        haveMore ? styles.haveMoreContainer : undefined,
+        smallItems ? styles.smallItemsContainer : undefined
+      )}>
       {loading && items.length === 0 ? (
         <div className={styles.emptyLoadingContainer}>
           <div className={styles.emptyLoadingText}>Loading...</div>

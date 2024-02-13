@@ -1,66 +1,128 @@
 .container {
+  display: grid;
+  width: 342px;
+}
+
+.background {
+  grid-area: 1 / 1 / 1 / 1;
+}
+
+.background img {
+  border-radius: 10px;
+}
+
+.foreground {
+  grid-area: 1 / 1 / 1 / 1;
+  overflow-y: auto;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.foregroundInner {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+  padding: 12px;
+}
+
+.header {
   display: flex;
   flex-flow: row wrap;
+  justify-content: space-between;
   align-items: center;
+}
+
+.title {
   font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
   font-size: 16px;
-  line-height: 100%;
+  line-height: 24px;
+  color: #eaeaeb;
 }
 
-.journeyIconContainer {
-  margin-right: 0.5em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.deleted .title {
+  text-decoration: line-through;
 }
 
-.journeyByContainer {
-  margin: 0 0.5em 0 0.25em;
-}
-
-.journeyInstructorContainer {
+.headerRight {
   display: flex;
   flex-flow: row nowrap;
-  align-items: center;
-}
-
-.journeyInstructorIconContainer {
-  margin-right: 0.5em;
-  border-radius: 50%;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
 }
 
-.journeyViewsContainer {
-  margin-left: 0.25em;
+.headerRight > *:not(:first-child) {
+  margin-left: 8px;
 }
 
-.journeyViewsContainer::before {
-  content: '(';
+.views {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 19px;
+  color: #c8cdd0;
 }
 
-.journeyViewsContainer::after {
-  content: ')';
+.duration {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #eaeaeb;
+  padding: 2px 4px;
+  background: #191c1d80;
+  border-radius: 4px;
 }
 
-.right {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-}
-
-.rightRow {
+.subheader {
   display: flex;
   flex-flow: row wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 8px;
+}
+
+.instructor {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
   align-items: center;
 }
 
-.deletedNote {
-  font-size: 12px;
-  line-height: 12px;
-  color: #666060;
-  font-style: italic;
+.instructorImage {
+  margin-right: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.instructorImage img {
+  border-radius: 50%;
+}
+
+.instructorName {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #c8cdd0;
+}
+
+.feedback {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.feedbackCount {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #eaeaeb;
 }

@@ -61,6 +61,10 @@
 
 .listingContainer {
   display: flex;
-  flex-direction: column;
+  flex-flow: column nowrap;
   gap: 20px;
+}
+
+.smallItemsContainer .listingContainer {
+  flex-flow: row wrap;
 }
