@@ -24,11 +24,6 @@ export type Course = {
   title: string;
 
   /**
-   * The title of the course to be used mid-sentence.
-   */
-  titleShort: string;
-
-  /**
    * An up to 250 character description of the course
    */
   description: string;
@@ -37,15 +32,8 @@ export type Course = {
    * The full-bleed background image
    */
   backgroundImage: OsehImageRef;
-
-  /**
-   * The square image intended to be cropped to a circle
-   */
-  circleImage: OsehImageRef | null;
 };
 
 export const courseKeyMap: CrudFetcherKeyMap<Course> = {
-  title_short: 'titleShort',
   background_image: 'backgroundImage',
-  circle_image: 'circleImage',
 };
