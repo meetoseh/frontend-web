@@ -1,16 +1,7 @@
-import {
-  MouseEvent,
-  ReactElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { MouseEvent, ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import { Button } from '../../shared/forms/Button';
 import { LoginContext } from '../../shared/contexts/LoginContext';
-import { ModalContext, addModalWithCallbackToRemove } from '../../shared/contexts/ModalContext';
-import { ModalWrapper } from '../../shared/ModalWrapper';
+import { ModalContext } from '../../shared/contexts/ModalContext';
 import { OsehContent } from '../../shared/content/OsehContent';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { CrudCreateBlock } from '../crud/CrudCreateBlock';
@@ -33,7 +24,6 @@ import { InstructorPicker } from '../instructors/InstructorPicker';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { JourneyPicker } from './JourneyPicker';
 import { CompactJourney } from './CompactJourney';
-import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { showJourneyBackgroundImageSelector } from './background_images/showJourneyBackgroundImageSelector';
 import { showJourneyAudioContentSelector } from './audio_contents/showJourneyAudioContentSelector';
 import { showJourneyBackgroundImageUploader } from './background_images/showJourneyBackgroundImageUploader';
