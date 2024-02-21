@@ -16,6 +16,7 @@ export const useOsehContentTarget = ({
   jwt,
   showAs = 'audio',
   presign = true,
+  comparer,
 }: OsehContentProps): OsehContentTarget => {
   const [webExport, setWebExport] = useState<ContentFileWebExport | null>(null);
   const [error, setError] = useState<ReactElement | null>(null);
@@ -35,7 +36,7 @@ export const useOsehContentTarget = ({
       }
 
       try {
-        const webExport = await fetchWebExport(uid, jwt, presign);
+        const webExport = await fetchWebExport(uid, jwt, presign, comparer);
         if (!active) {
           return;
         }
@@ -44,7 +45,7 @@ export const useOsehContentTarget = ({
         setError(e as ReactElement);
       }
     }
-  }, [uid, jwt, presign]);
+  }, [uid, jwt, presign, comparer]);
 
   return useMemo<OsehContentTarget>(() => {
     if (jwt === null || (webExport === null && error === null)) {
@@ -90,8 +91,12 @@ export const useOsehContentTarget = ({
 export const fetchWebExport = async (
   uid: string,
   jwt: string,
-  presign: boolean
+  presign: boolean,
+  comparer?: (a: ContentFileWebExport, b: ContentFileWebExport) => number
 ): Promise<ContentFileWebExport> => {
+  const realComparer =
+    comparer ?? ((a: ContentFileWebExport, b: ContentFileWebExport) => b.bandwidth - a.bandwidth);
+
   try {
     const response = await fetch(
       `${HTTP_API_URL}/api/1/content_files/${uid}/web.json?${new URLSearchParams({
@@ -115,26 +120,29 @@ export const fetchWebExport = async (
         codecs: string[];
         file_size: number;
         quality_parameters: any;
+        format_parameters: any;
       }[];
       duration_seconds: number;
     } = await response.json();
 
     let bestExport: ContentFileWebExport | null = null;
-    let bestBandwidth = 0;
     for (const exportData of data.exports) {
       if (exportData.format !== 'mp4') {
         continue;
       }
-      if (exportData.bandwidth > bestBandwidth) {
-        bestExport = {
-          url: exportData.url,
-          format: exportData.format,
-          bandwidth: exportData.bandwidth,
-          codecs: exportData.codecs as Array<'aac'>,
-          fileSize: exportData.file_size,
-          qualityParameters: exportData.quality_parameters,
-        };
-        bestBandwidth = exportData.bandwidth;
+
+      const option: ContentFileWebExport = {
+        url: exportData.url,
+        format: exportData.format,
+        bandwidth: exportData.bandwidth,
+        codecs: exportData.codecs,
+        fileSize: exportData.file_size,
+        qualityParameters: exportData.quality_parameters,
+        formatParameters: exportData.format_parameters,
+      };
+
+      if (bestExport === null || realComparer(option, bestExport) < 0) {
+        bestExport = option;
       }
     }
 

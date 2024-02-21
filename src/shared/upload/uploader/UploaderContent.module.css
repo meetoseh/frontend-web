@@ -33,12 +33,40 @@
   color: #eaeaeb;
 }
 
+.progressesContainer {
+  display: flex;
+  flex-flow: column;
+  align-items: stretch;
+  justify-content: center;
+}
+
 .progressContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 40px;
+}
+
+.progressItem {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.progressItem:not(:first-child) {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #3a3a3b;
+}
+
+.progressItemJobName {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #eaeaeb;
 }
 
 .progressContainerNoIndicator {

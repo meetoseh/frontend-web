@@ -1,3 +1,5 @@
+import { LogicalSize } from './LogicalSize';
+
 /**
  * Gets how many useful pixels there are if you have an image
  * of the given width and height, and you want to display it
@@ -117,10 +119,14 @@ export const compareSizes = (
  * @return negative if a is better, positive if b is better, 0 if they are equal
  */
 export const compareVectorSizes = (
-  want: { width: number; height: number },
+  want: LogicalSize,
   a: { width: number; height: number },
   b: { width: number; height: number }
 ): number => {
+  if (want.width === null || want.height === null) {
+    return want.compareAspectRatios(a, b);
+  }
+
   // a logical way to write this function would be to define the
   // aspect ratio as W/H, and return the aspect ratio which is closest
   // to the desired aspect ratio. But this leads to a problem:
@@ -257,7 +263,7 @@ export const compareVectorSizes = (
 
 const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
 
-function reduceImageSizeExactly(size: { width: number; height: number }) {
+export function reduceImageSizeExactly(size: { width: number; height: number }) {
   const divisor = gcd(size.width, size.height);
   return {
     width: size.width / divisor,

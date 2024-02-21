@@ -32,6 +32,11 @@ type InstructorPickerProps = {
    * The handler for fetching images
    */
   imageHandler: OsehImageStateRequestHandler;
+
+  /**
+   * If the component is disabled
+   */
+  disabled?: boolean;
 };
 
 /**
@@ -98,6 +103,7 @@ export const InstructorPicker = ({
   setQuery,
   setSelected,
   imageHandler,
+  disabled,
 }: InstructorPickerProps): ReactElement => {
   const boundMakeComponent = useMemo(
     () => makeInstructorPickerComponent.bind(undefined, imageHandler),
@@ -113,6 +119,8 @@ export const InstructorPicker = ({
       query={query}
       setQuery={setQuery}
       setSelected={setSelected}
+      disabled={disabled ?? false}
+      variant="up"
     />
   );
 };

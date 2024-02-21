@@ -2,6 +2,9 @@ import { sha512 } from 'js-sha512';
 import { WritableValueWithCallbacks } from './lib/Callbacks';
 import { setVWC } from './lib/setVWC';
 
+const MAX_WORK_MS_PER_FRAME = 100; // 10fps loading bar
+const MAX_HASH_CHUNK = 64 * 1024;
+
 /**
  * Calculates the sha512 hash as a hex string of the given file. This is
  * done using the streaming API of the File interface, so the file is
@@ -31,11 +34,24 @@ export const computeFileSha512 = (
           };
 
     let bytesRead = 0;
+    let frameStartedAt = performance.now();
+
+    const maybeYield = async () => {
+      const timeSinceFrameStart = performance.now() - frameStartedAt;
+      if (timeSinceFrameStart < MAX_WORK_MS_PER_FRAME) {
+        return;
+      }
+
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      frameStartedAt = performance.now();
+    };
+
     setProgress(0);
 
     const reader = stream.getReader();
     while (true) {
       signal?.throwIfAborted();
+      await maybeYield();
 
       let done: boolean;
       let value: Uint8Array | undefined;
@@ -59,9 +75,19 @@ export const computeFileSha512 = (
         throw new Error('Unexpected undefined value from file stream');
       }
 
-      hasher.update(value);
-      bytesRead += value.length;
-      setProgress(bytesRead);
+      if (value.length < MAX_HASH_CHUNK) {
+        hasher.update(value);
+        bytesRead += value.length;
+        setProgress(bytesRead);
+      } else {
+        for (let i = 0; i < value.length; i += MAX_HASH_CHUNK) {
+          signal?.throwIfAborted();
+          await maybeYield();
+          hasher.update(value.slice(i, i + MAX_HASH_CHUNK));
+          bytesRead += MAX_HASH_CHUNK;
+          setProgress(bytesRead);
+        }
+      }
     }
   });
 };

@@ -410,6 +410,15 @@ export class OrderedDictionary<T, LookupKey extends keyof T, SortKey extends key
     }
     return removed;
   }
+
+  /**
+   * Deletes all values.
+   */
+  clear(): void {
+    this.head = null;
+    this.tail = null;
+    this.lookup.clear();
+  }
 }
 
 type Node<T> = {

@@ -63,6 +63,15 @@
   letter-spacing: 0.15px;
 }
 
+.success .label,
+.success .help {
+  color: #2e7d32;
+}
+
+.success .input {
+  border-color: #2e7d32;
+}
+
 .white .label,
 .white .help {
   color: white;

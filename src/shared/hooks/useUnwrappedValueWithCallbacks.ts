@@ -21,16 +21,22 @@ const notSet = Symbol();
  * @param equalityFn The equality function to use to determine if the value has changed.
  *   By default this is the defaultEqualityFn for useMappedValueWithCallbacks, which is
  *   like === but always false for objects.
+ * @param applyInstantly If true we apply this change via setState immediately, rather than on
+ *  the next frame. This is NOT how react native works, and should only be
+ *  used if necessary as it will increase debugging complexity.
  * @returns The unwrapped value
  */
 export const useUnwrappedValueWithCallbacks = <T>(
   original: ValueWithCallbacks<T>,
-  equalityFn?: (a: T, b: T) => boolean
+  equalityFn?: (a: T, b: T) => boolean,
+  applyInstantly?: boolean
 ): T => {
   const equalityFnRef = useRef(equalityFn ?? defaultEqualityFn);
   equalityFnRef.current = equalityFn ?? defaultEqualityFn;
 
   const [value, setValue] = useState<T>(original.get());
+  const setRerenderCounter = useState(0)[1];
+
   let currentValue = useRef<T>(notSet as any) as MutableRefObject<T>;
   if (currentValue.current === notSet) {
     currentValue.current = value;
@@ -53,18 +59,25 @@ export const useUnwrappedValueWithCallbacks = <T>(
       }
 
       if (!equalityFnRef.current(newValue, currentValue.current)) {
-        settingValueTo = newValue;
-        requestAnimationFrame(() => {
-          const setTo = settingValueTo;
-          settingValueTo = notSet;
-          if (setTo !== notSet && !equalityFnRef.current(setTo, currentValue.current)) {
-            currentValue.current = setTo;
-            setValue(setTo);
-          }
-        });
+        if (applyInstantly) {
+          setValue(newValue);
+          setRerenderCounter((c) => c + 1);
+          currentValue.current = newValue;
+        } else {
+          settingValueTo = newValue;
+          requestAnimationFrame(() => {
+            const setTo = settingValueTo;
+            settingValueTo = notSet;
+            if (setTo !== notSet && !equalityFnRef.current(setTo, currentValue.current)) {
+              currentValue.current = setTo;
+              setValue(setTo);
+              setRerenderCounter((c) => c + 1);
+            }
+          });
+        }
       }
     }
-  }, [original]);
+  }, [original, applyInstantly, setRerenderCounter]);
 
   return value;
 };

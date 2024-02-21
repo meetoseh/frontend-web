@@ -2,7 +2,6 @@ import { ReactElement, useContext } from 'react';
 import { CancelablePromise } from '../../lib/CancelablePromise';
 import styles from './UploaderContent.module.css';
 import {
-  Callbacks,
   WritableValueWithCallbacks,
   createWritableValueWithCallbacks,
   useWritableValueWithCallbacks,
@@ -19,12 +18,13 @@ import { ErrorBlock, describeError } from '../../forms/ErrorBlock';
 import { combineClasses } from '../../lib/combineClasses';
 import { InlineOsehSpinner } from '../../components/InlineOsehSpinner';
 import { computeFileSha512 } from '../../computeFileSha512';
-import { HTTP_WEBSOCKET_URL, apiFetch } from '../../ApiConstants';
+import { apiFetch } from '../../ApiConstants';
 import { UploadInfo, parseUploadInfoFromResponse } from '../UploadInfo';
 import { getSimpleUploadParts } from '../SimpleUploadParts';
 import { uploadPart } from '../uploadPart';
-import { createCancelablePromiseFromCallbacks } from '../../lib/createCancelablePromiseFromCallbacks';
 import { useValueWithCallbacksEffect } from '../../hooks/useValueWithCallbacksEffect';
+import { OrderedDictionary } from '../../lib/OrderedDictionary';
+import { Job, JobProgress, Progress, trackJobProgress } from '../../jobProgress/trackJobProgress';
 
 export type UploaderContentProps<T extends object> = {
   /**
@@ -106,21 +106,23 @@ export type UploaderContentProps<T extends object> = {
   signal?: AbortSignal;
 };
 
-type IndicatorSpinner = { type: 'spinner' };
-type IndicatorBar = { type: 'bar'; at: number; of: number };
-type Indicator = IndicatorSpinner | IndicatorBar;
-
-type Progress = {
-  message: string;
-  indicator: Indicator | null;
-};
-
 type UploadContext<T extends object> = Pick<
   UploaderContentProps<T>,
   'startEndpoint' | 'poller' | 'onUploaded' | 'signal'
 > & {
   loginContextRaw: LoginContextValue;
-  progress: WritableValueWithCallbacks<Progress>;
+  /**
+   * A client-side generated uid for the main upload job.
+   */
+  uploadJobUid: string;
+  /**
+   * The jobs which are currently processing this file. Theres the main upload
+   * job which corresponds both to the work done client-side and, if the upload
+   * endpoint supports progress reporting, the immediate progress job. However,
+   * if t he endpoint supports progress reporting, we support cascading jobs
+   * that
+   */
+  jobs: WritableValueWithCallbacks<JobProgress>;
 };
 
 // uploading is naturally represented via a finite state machine
@@ -143,6 +145,32 @@ type UploadState<T extends object> =
   | UploadStatePoll
   | UploadStateError
   | UploadStateComplete<T>;
+
+const setJobMsg = <T extends object>(
+  ctx: UploadContext<T>,
+  jobUid: string,
+  name: string,
+  progress: Progress
+) => {
+  const map = ctx.jobs.get();
+  const job = map.get(jobUid);
+  if (job === undefined) {
+    map.push({
+      uid: jobUid,
+      name,
+      progress: progress,
+      startedAt: Date.now(),
+      result: null,
+    });
+  } else {
+    job.progress = progress;
+  }
+  ctx.jobs.callbacks.call(undefined);
+};
+
+const setMainJobMsg = <T extends object>(ctx: UploadContext<T>, progress: Progress): void => {
+  setJobMsg(ctx, ctx.uploadJobUid, 'overall', progress);
+};
 
 const transitionFromPick = async <T extends object>(
   ctx: UploadContext<T>,
@@ -170,7 +198,7 @@ const transitionFromHash = async <T extends object>(
   const fileSize = state.file.size;
   const hashed = createWritableValueWithCallbacks(0);
   hashed.callbacks.add(() => {
-    setVWC(ctx.progress, {
+    setMainJobMsg(ctx, {
       message: 'hashing file locally',
       indicator: { type: 'bar', at: hashed.get(), of: fileSize },
     });
@@ -189,7 +217,7 @@ const transitionFromDedup = async <T extends object>(
   ctx: UploadContext<T>,
   state: UploadStateDedup
 ): Promise<UploadStateStart | UploadStateComplete<T> | UploadStateError> => {
-  setVWC(ctx.progress, {
+  setMainJobMsg(ctx, {
     message: 'checking if the file has already been processed',
     indicator: { type: 'spinner' },
   });
@@ -232,7 +260,7 @@ const transitionFromStart = async <T extends object>(
   }
   const loginContext = loginContextUnch;
 
-  setVWC(ctx.progress, { message: 'initializing upload', indicator: { type: 'spinner' } });
+  setMainJobMsg(ctx, { message: 'initializing upload', indicator: { type: 'spinner' } });
   let info: UploadInfo;
   try {
     ctx.signal?.throwIfAborted();
@@ -284,7 +312,7 @@ const transitionFromUpload = async <T extends object>(
     parallel === 1 ? '' : 's'
   } at a time`;
 
-  setVWC(ctx.progress, {
+  setMainJobMsg(ctx, {
     message: message,
     indicator: { type: 'bar', at: 0, of: parts.totalBytes },
   });
@@ -331,7 +359,7 @@ const transitionFromUpload = async <T extends object>(
 
     if (reportedFinishedBytes !== numFinishedBytes) {
       reportedFinishedBytes = numFinishedBytes;
-      setVWC(ctx.progress, {
+      setMainJobMsg(ctx, {
         message: message,
         indicator: { type: 'bar', at: numFinishedBytes, of: parts.totalBytes },
       });
@@ -356,7 +384,7 @@ const transitionFromUpload = async <T extends object>(
       await Promise.race(promises);
     } catch (e) {
       resolveAborted();
-      setVWC(ctx.progress, {
+      setMainJobMsg(ctx, {
         message: 'upload failed, waiting for in-progress uploads to settle',
         indicator: { type: 'spinner' },
       });
@@ -387,206 +415,34 @@ const transitionFromProcess = async <T extends object>(
   ctx: UploadContext<T>,
   state: UploadStateProcess
 ): Promise<UploadStatePoll | UploadStateError> => {
-  setVWC(ctx.progress, {
-    message: 'connecting to processing job progress report',
-    indicator: { type: 'spinner' },
+  setMainJobMsg(ctx, {
+    message: 'waiting for processing to complete',
+    indicator: null,
   });
 
-  let lastFailedAt: Date | null = null;
-  let recentFailures = 0;
-  let failureDetected = false;
+  const prog = trackJobProgress([{ name: 'processing', job: state.job }], ctx.jobs);
+  ctx.signal?.addEventListener('abort', prog.cancel);
+  if (ctx.signal?.aborted) {
+    prog.cancel();
+  }
 
-  const manageSocket = async () => {
-    const socket = new WebSocket(`${HTTP_WEBSOCKET_URL}/api/2/jobs/live`);
+  try {
+    await prog.promise;
 
-    const abortHandler = () => {
-      socket.close();
-      ctx.signal?.removeEventListener('abort', abortHandler);
-    };
-    ctx.signal?.addEventListener('abort', abortHandler);
-    if (ctx.signal?.aborted) {
-      abortHandler();
-      throw new Error('aborted');
-    }
-
-    try {
-      await manageSocketInner(socket);
-    } catch (e) {
-      if (ctx.signal?.aborted) {
-        return;
-      }
-      throw e;
-    } finally {
-      ctx.signal?.removeEventListener('abort', abortHandler);
-    }
-  };
-
-  const manageSocketInner = async (socket: WebSocket) => {
-    let packetQueue: string[] = [];
-    const onReceivedPacket = new Callbacks<undefined>();
-    socket.addEventListener('message', (e) => {
-      const data = e.data;
-      if (typeof data !== 'string') {
-        throw new Error(`WebSocket message was not a string: ${data}`);
-      }
-      packetQueue.push(data);
-      onReceivedPacket.call(undefined);
-    });
-
-    const erroredOrClosed = new Promise<void>((resolve) => {
-      const doResolve = () => {
-        resolve();
-        socket.removeEventListener('error', doResolve);
-        socket.removeEventListener('close', doResolve);
-      };
-
-      socket.addEventListener('error', doResolve);
-      socket.addEventListener('close', doResolve);
-    });
-
-    const readPacketOrClose = async (): Promise<string | undefined> => {
-      const result = packetQueue.shift();
-      if (result !== undefined) {
-        return result;
-      }
-      const readPromise = createCancelablePromiseFromCallbacks(onReceivedPacket);
-      readPromise.promise.catch(() => {});
-      await Promise.race([readPromise.promise, erroredOrClosed]);
-      readPromise.cancel();
-
-      return packetQueue.shift();
-    };
-
-    await new Promise<void>((resolve, reject) => {
-      const doResolve = () => {
-        resolve();
-        socket.removeEventListener('open', doResolve);
-        socket.removeEventListener('error', doReject);
-        socket.removeEventListener('close', doReject);
-      };
-      const doReject = (e: Event) => {
-        reject(new Error(`WebSocket error: ${e}`));
-        socket.removeEventListener('open', doResolve);
-        socket.removeEventListener('error', doReject);
-        socket.removeEventListener('close', doReject);
-      };
-
-      socket.addEventListener('open', doResolve);
-      socket.addEventListener('error', doReject);
-      socket.addEventListener('close', doReject);
-    });
-
-    socket.send(
-      JSON.stringify({
-        type: 'authorize',
-        data: {
-          job_uid: state.job.uid,
-          jwt: state.job.jwt,
-        },
-      })
-    );
-
-    const authResponseRaw = await readPacketOrClose();
-    if (authResponseRaw === undefined) {
-      throw new Error('WebSocket closed before auth response');
-    }
-
-    const authResponse = JSON.parse(authResponseRaw);
-    if (authResponse.type !== 'auth_response' || authResponse.success !== true) {
-      throw new Error(`WebSocket auth failed: ${authResponseRaw}`);
-    }
-
-    const finalEventTypes = new Set(['failed', 'succeeded']);
-
-    while (true) {
-      const packetRaw = await readPacketOrClose();
-      if (packetRaw === undefined) {
-        throw new Error('connection closed');
-      }
-
-      const packet = JSON.parse(packetRaw);
-      if (packet.type !== 'event_batch') {
-        throw new Error(`Unexpected packet type: ${packet.type}`);
-      }
-
-      if (packet.success !== true) {
-        throw new Error(`Event batch failed: ${packetRaw}`);
-      }
-
-      const events: {
-        type: string;
-        message: string;
-        indicator: Indicator | { type: 'final' } | null;
-      }[] = packet.data.events;
-      let seenFinal = false;
-      for (const event of events) {
-        if (
-          finalEventTypes.has(event.type) ||
-          (event.indicator !== null && event.indicator.type === 'final')
-        ) {
-          seenFinal = true;
-          failureDetected = event.type === 'failed';
-          break;
-        }
-      }
-
-      if (events.length > 0) {
-        const lastEvent = events[events.length - 1];
-        setVWC(ctx.progress, {
-          message: lastEvent.message,
-          indicator:
-            lastEvent.indicator === null || lastEvent.indicator.type === 'final'
-              ? null
-              : lastEvent.indicator,
-        });
-      }
-
-      if (seenFinal) {
-        socket.close();
-        return;
+    for (const job of ctx.jobs.get().valuesList()) {
+      if (job.result === false) {
+        return { type: 'error', error: <>processing failed (job {job.name})</> };
       }
     }
-  };
-
-  while (true) {
+    return { type: 'poll', sha512: state.sha512, startedAt: new Date(), timeoutSeconds: 600 };
+  } catch (e) {
     if (ctx.signal?.aborted) {
       return { type: 'error', error: <>aborted</> };
     }
 
-    try {
-      await manageSocket();
-      if (ctx.signal?.aborted) {
-        return { type: 'error', error: <>aborted</> };
-      }
-      if (failureDetected) {
-        return { type: 'error', error: <>processing job failed</> };
-      }
-      return { type: 'poll', sha512: state.sha512, startedAt: new Date(), timeoutSeconds: 30 };
-    } catch (e) {
-      if (ctx.signal?.aborted) {
-        return { type: 'error', error: <>aborted</> };
-      }
-
-      console.error('websocket error:', e);
-      const now = new Date();
-      const timeSinceLastMS = lastFailedAt === null ? null : now.getTime() - lastFailedAt.getTime();
-      lastFailedAt = now;
-
-      if (timeSinceLastMS !== null && timeSinceLastMS > 15000) {
-        recentFailures = 0;
-      } else {
-        recentFailures++;
-      }
-
-      if (recentFailures > 5 || (timeSinceLastMS !== null && timeSinceLastMS < 1000)) {
-        return { type: 'poll', sha512: state.sha512, startedAt: new Date(), timeoutSeconds: 600 };
-      }
-
-      setVWC(ctx.progress, {
-        message: 'reconnecting to processing job progress report',
-        indicator: { type: 'spinner' },
-      });
-    }
+    return { type: 'error', error: await describeError(e) };
+  } finally {
+    ctx.signal?.removeEventListener('abort', prog.cancel);
   }
 };
 
@@ -603,7 +459,7 @@ const transitionFromPoll = async <T extends object>(
     return `polling every ${pollIntervalSeconds}s (${pollTimes}${errMess})`;
   };
 
-  setVWC(ctx.progress, {
+  setMainJobMsg(ctx, {
     message: message(),
     indicator: { type: 'spinner' },
   });
@@ -632,7 +488,7 @@ const transitionFromPoll = async <T extends object>(
 
       consecutiveErrors = 0;
       if (response !== null) {
-        setVWC(ctx.progress, {
+        setMainJobMsg(ctx, {
           message: 'complete',
           indicator: null,
         });
@@ -653,7 +509,7 @@ const transitionFromPoll = async <T extends object>(
       return { type: 'error', error: <>poll timeout</> };
     }
 
-    setVWC(ctx.progress, {
+    setMainJobMsg(ctx, {
       message: message(),
       indicator: { type: 'spinner' },
     });
@@ -714,13 +570,17 @@ export const UploaderContent = <T extends object>({
   const loginContextRaw = useContext(LoginContext);
   const managing = useWritableValueWithCallbacks<boolean>(() => false);
   const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  const progress = useWritableValueWithCallbacks<Progress>(() => ({
-    message: 'setting up',
-    indicator: null,
-  }));
+  const progress = useWritableValueWithCallbacks<JobProgress>(
+    () => new OrderedDictionary<Job, 'uid', 'startedAt'>('uid', 'startedAt')
+  );
+  const uploadJobUid = 'upload';
 
   useValueWithCallbacksEffect(progress, (prog) => {
-    console.log('progress:', prog);
+    const progressParts: string[] = [];
+    for (const { name, progress } of prog.valuesList()) {
+      progressParts.push(`  ${name}: ${progress.message} (${JSON.stringify(progress.indicator)})`);
+    }
+    console.log('progress:\n' + progressParts.join('\n'));
     return undefined;
   });
 
@@ -760,7 +620,8 @@ export const UploaderContent = <T extends object>({
                         poller,
                         onUploaded,
                         loginContextRaw,
-                        progress,
+                        uploadJobUid,
+                        jobs: progress,
                         signal,
                       },
                       file
@@ -772,7 +633,8 @@ export const UploaderContent = <T extends object>({
                     }
                   } finally {
                     setVWC(managing, false);
-                    setVWC(progress, { message: 'setting up', indicator: null });
+                    progress.get().clear();
+                    progress.callbacks.call(undefined);
                   }
                 }}
               />
@@ -797,39 +659,46 @@ export const UploaderContent = <T extends object>({
 const ProgressDisplay = ({
   progress,
 }: {
-  progress: WritableValueWithCallbacks<Progress>;
+  progress: WritableValueWithCallbacks<JobProgress>;
 }): ReactElement => {
   return (
     <RenderGuardedComponent
       props={progress}
-      component={(prog) => (
-        <div
-          className={combineClasses(
-            styles.progressContainer,
-            prog.indicator === null ? styles.progressContainerNoIndicator : undefined,
-            prog.indicator?.type === 'spinner'
-              ? styles.progressContainerSpinnerIndicator
-              : undefined,
-            prog.indicator?.type === 'bar' ? styles.progressContainerBarIndicator : undefined
-          )}>
-          <div className={styles.progressMessage}>{prog.message}</div>
-          {prog.indicator?.type === 'spinner' ? (
-            <div className={styles.progressSpinnerContainer}>
-              <InlineOsehSpinner
-                size={{
-                  type: 'react-rerender',
-                  props: {
-                    height: 32,
-                  },
-                }}
-              />
+      component={(jobs) => (
+        <div className={styles.progressesContainer}>
+          {jobs.valuesList().map(({ uid, name, progress: prog }) => (
+            <div className={styles.progressItem} key={uid}>
+              <div className={styles.progressItemJobName}>{name}</div>
+              <div
+                className={combineClasses(
+                  styles.progressContainer,
+                  prog.indicator === null ? styles.progressContainerNoIndicator : undefined,
+                  prog.indicator?.type === 'spinner'
+                    ? styles.progressContainerSpinnerIndicator
+                    : undefined,
+                  prog.indicator?.type === 'bar' ? styles.progressContainerBarIndicator : undefined
+                )}>
+                <div className={styles.progressMessage}>{prog.message}</div>
+                {prog.indicator?.type === 'spinner' ? (
+                  <div className={styles.progressSpinnerContainer}>
+                    <InlineOsehSpinner
+                      size={{
+                        type: 'react-rerender',
+                        props: {
+                          height: 32,
+                        },
+                      }}
+                    />
+                  </div>
+                ) : undefined}
+                {prog.indicator?.type === 'bar' ? (
+                  <div className={styles.progressBarContainer}>
+                    <progress value={prog.indicator.at} max={prog.indicator.of} />
+                  </div>
+                ) : undefined}
+              </div>
             </div>
-          ) : undefined}
-          {prog.indicator?.type === 'bar' ? (
-            <div className={styles.progressBarContainer}>
-              <progress value={prog.indicator.at} max={prog.indicator.of} />
-            </div>
-          ) : undefined}
+          ))}
         </div>
       )}
     />

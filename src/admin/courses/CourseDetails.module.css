@@ -1,0 +1,114 @@
+.container {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  color: #232323;
+  width: 800px;
+  max-width: calc(100% - 40px);
+}
+
+.journeys {
+  display: flex;
+  flex-flow: column;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.backgrounds,
+.logos {
+  padding-top: 8px;
+  display: flex;
+  flex-flow: row wrap;
+  gap: 24px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.background,
+.logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo {
+  background-color: #232323;
+  padding: 8px;
+}
+
+.previewTypeContainer {
+  margin: 4px 0;
+  width: 100%;
+}
+
+.previewType {
+  composes: sortSelect from '../crud/standard.module.css';
+  max-width: 200px;
+}
+
+.chooseOrAddContainer {
+  margin-top: 16px;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 24px;
+}
+
+.flags {
+  margin-top: 8px;
+  padding-left: 2em;
+}
+
+.editFlags {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.instructorContainer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.instructorPictureContainer > *,
+.instructorPictureContainer img {
+  border-radius: 50%;
+}
+
+.journey {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+}
+
+.journeyPriority {
+  margin-left: 12px;
+}
+
+.journeysEditControls {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 20px;
+  max-width: 390px;
+}
+
+.journeysAddContainer {
+  margin-top: 9px;
+}
+
+.workingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.25);
+}

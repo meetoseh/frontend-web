@@ -2,6 +2,7 @@ import { CSSProperties, ReactElement, useEffect, useRef } from 'react';
 import { OsehContentProps } from './OsehContentProps';
 import { useOsehContentTarget } from './useOsehContentTarget';
 import { ErrorBlock } from '../forms/ErrorBlock';
+import { ContentFileWebExport } from './OsehContentTarget';
 
 /**
  * Shows an audio file from Oseh, with controls and error handling
@@ -11,8 +12,12 @@ export const OsehContent = ({
   jwt,
   showAs = 'audio',
   playerStyle = undefined,
-}: OsehContentProps & { playerStyle?: CSSProperties | undefined }): ReactElement => {
-  const target = useOsehContentTarget({ uid, jwt });
+  targetComparer = undefined,
+}: OsehContentProps & {
+  playerStyle?: CSSProperties | undefined;
+  targetComparer?: (a: ContentFileWebExport, b: ContentFileWebExport) => number;
+}): ReactElement => {
+  const target = useOsehContentTarget({ uid, jwt, comparer: targetComparer });
   const ref = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {

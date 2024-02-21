@@ -10,9 +10,10 @@ type ContentFileWebExport = {
   url: string;
   format: 'mp4';
   bandwidth: number;
-  codecs: Array<'aac'>;
+  codecs: string[];
   fileSize: number;
   qualityParameters: any;
+  formatParameters: any;
 };
 
 export const AdminViewContentFile = (): ReactElement => {
@@ -102,7 +103,15 @@ export const AdminViewContentFile = (): ReactElement => {
       if (!active) {
         return;
       }
-      const exports: Array<ContentFileWebExport> = data.exports;
+      const exports: Array<ContentFileWebExport> = (data.exports as any[]).map((v) => ({
+        url: v.url,
+        format: v.format,
+        bandwidth: v.bandwidth,
+        codecs: v.codecs,
+        fileSize: v.file_size,
+        qualityParameters: v.quality_parameters,
+        formatParameters: v.format_parameters,
+      }));
 
       const biggestExport = exports.reduce((a, b) => {
         return a.fileSize > b.fileSize ? a : b;

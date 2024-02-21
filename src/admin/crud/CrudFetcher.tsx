@@ -10,6 +10,16 @@ type MappedKey<T> = {
 export type CrudFetcherKeyMap<T> = {
   [key: string]: (string & keyof T) | ((key: string, value: any) => MappedKey<T>);
 };
+
+export type CrudFetcherMapper<T> = CrudFetcherKeyMap<T> | ((v: any) => T);
+
+export const convertUsingMapper = (raw: any, mapper: CrudFetcherMapper<any>) => {
+  if (typeof mapper === 'function') {
+    return mapper(raw);
+  }
+  return convertUsingKeymap(raw, mapper);
+};
+
 type SortItem = {
   key: string;
   dir: 'asc' | 'desc';
@@ -19,10 +29,27 @@ type SortItem = {
 
 export type CrudFetcherSort = SortItem[];
 
-type FilterItem = {
+export type SimpleFilterItem = {
   operator: string;
   value: any;
 };
+
+export type BitwiseFilterItem = {
+  /** bit flag fields mutation */
+  mutation: {
+    operator: string;
+    value: number;
+  };
+  /** bit flag fields comparison */
+  comparison: {
+    operator: string;
+    value: number;
+  };
+  value?: undefined;
+  operator?: undefined;
+};
+
+export type FilterItem = SimpleFilterItem | BitwiseFilterItem;
 
 export type CrudFetcherFilter = { [key: string]: FilterItem };
 
@@ -117,7 +144,7 @@ export class CrudFetcher<T> {
    * May instead be a function which takes the raw object and returns the
    * converted object.
    */
-  private readonly keyMap: CrudFetcherKeyMap<T> | ((v: any) => T);
+  private readonly keyMap: CrudFetcherMapper<T>;
 
   /**
    * The dispatch function to set the items

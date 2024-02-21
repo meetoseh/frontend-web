@@ -190,6 +190,7 @@ export const CourseJourneyItem = ({
             codecs: string[];
             file_size: number;
             quality_parameters: any;
+            format_parameters: any;
           }[];
           duration_seconds: number;
         } = await response.json();
@@ -205,9 +206,10 @@ export const CourseJourneyItem = ({
               url: exportData.url,
               format: exportData.format,
               bandwidth: exportData.bandwidth,
-              codecs: exportData.codecs as Array<'aac'>,
+              codecs: exportData.codecs,
               fileSize: exportData.file_size,
               qualityParameters: exportData.quality_parameters,
+              formatParameters: exportData.format_parameters,
             };
             bestBandwidth = exportData.bandwidth;
           }

@@ -6,6 +6,14 @@ type RenderGuardedComponentProps<T> = {
   props: ValueWithCallbacks<T>;
   component: (current: T) => ReactElement;
   equalityFn?: (a: T, b: T) => boolean;
+  /**
+   * If true we apply this change via setState immediately, rather than on
+   * the next frame. This is NOT how react native works, and should only be
+   * used if necessary as it will increase debugging complexity.
+   *
+   * Generally, this only needs to be done for managed input fields.
+   */
+  applyInstantly?: boolean;
 };
 
 /**
@@ -27,8 +35,9 @@ export function RenderGuardedComponent<T>({
   props,
   component,
   equalityFn,
+  applyInstantly,
 }: RenderGuardedComponentProps<T>): ReactElement {
-  const realProps = useUnwrappedValueWithCallbacks(props, equalityFn);
+  const realProps = useUnwrappedValueWithCallbacks(props, equalityFn, applyInstantly);
 
   return component(realProps);
 }

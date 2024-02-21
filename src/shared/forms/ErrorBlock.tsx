@@ -40,7 +40,14 @@ export const describeErrorFromResponse = async (response: Response): Promise<Rea
   }
 
   if (body?.message) {
-    return <p>{body?.message}</p>;
+    const msg = body.message;
+    return (
+      <>
+        {msg.split('\n').map((line: string, i: number) => (
+          <p key={i}>{line}</p>
+        ))}
+      </>
+    );
   }
 
   return (

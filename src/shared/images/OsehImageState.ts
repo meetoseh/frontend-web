@@ -14,14 +14,10 @@ export type OsehImageState = {
    */
   thumbhash: string | null;
 
-  /**
-   * The width we want to display the image at. The URL will be selected based on this.
-   */
+  /** The width in pixels to render the image at */
   displayWidth: number;
 
-  /**
-   * The height we want to display the image at. The URL will be selected based on this.
-   */
+  /** The height in pixels to render the image at */
   displayHeight: number;
 
   /**

@@ -29,6 +29,7 @@ import { AdminDailyRemindersDashboard } from './daily_reminders_dashboard/AdminD
 import { AdminSignInWithOsehDashboard } from './sign_in_with_oseh_dashboard/AdminSignInWithOsehDashboard';
 import { AdminSharingDashboard } from './sharing_dashboard/SharingDashboard';
 import { FlowChartExamples } from './flow_chart_examples/FlowChartExamples';
+import { Courses } from './courses/Courses';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -49,6 +50,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="daily_reminders_dashboard" element={<AdminDailyRemindersDashboard />} />
       <Route path="sign_in_with_oseh_dashboard" element={<AdminSignInWithOsehDashboard />} />
       <Route path="flow_chart_examples" element={<FlowChartExamples />} />
+      <Route path="series" element={<Courses />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />
