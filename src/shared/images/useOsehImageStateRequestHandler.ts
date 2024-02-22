@@ -450,8 +450,8 @@ export const useOsehImageStateRequestHandler = ({
           devicePixelRatio >=
           1
       ) {
-        reqDangerous.requested.displaySize = {
-          ...reqDangerous.requested.displaySize,
+        reqDangerous.requested.state = {
+          ...reqDangerous.requested.state,
           displayWidth: actualDisplayWidth,
         };
         req.requested.stateChanged.call(reqDangerous.requested.state);
@@ -463,8 +463,8 @@ export const useOsehImageStateRequestHandler = ({
           devicePixelRatio >=
           1
       ) {
-        reqDangerous.requested.displaySize = {
-          ...reqDangerous.requested.displaySize,
+        reqDangerous.requested.state = {
+          ...reqDangerous.requested.state,
           displayHeight: actualDisplayHeight,
         };
         req.requested.stateChanged.call(reqDangerous.requested.state);
