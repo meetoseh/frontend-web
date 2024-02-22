@@ -418,7 +418,7 @@ export const selectBestItemUsingPixelRatio = ({
 
       if (logical.height === null) {
         return {
-          width: logical.width,
+          width: logical.width * preferredPixelRatio,
           height:
             (bestVectorItem.height / bestVectorItem.width) * logical.width * preferredPixelRatio,
         };

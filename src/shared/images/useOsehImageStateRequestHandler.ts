@@ -428,13 +428,16 @@ export const useOsehImageStateRequestHandler = ({
       req.releasedCallbacks.add(releaseItem);
       canceledCallbacks.add(releaseItem);
 
-      const actualDisplayWidth = bestItem.cropTo?.width ?? bestItem.item.width;
-      const actualDisplayHeight = bestItem.cropTo?.height ?? bestItem.item.height;
+      const actualDisplayWidth = (bestItem.cropTo?.width ?? bestItem.item.width) / devicePixelRatio;
+      const actualDisplayHeight =
+        (bestItem.cropTo?.height ?? bestItem.item.height) / devicePixelRatio;
 
       if (
         req.requested.state.thumbhash !== bestItem.item.thumbhash ||
-        reqDangerous.requested.state.displayWidth !== actualDisplayWidth ||
-        reqDangerous.requested.state.displayHeight !== actualDisplayHeight
+        Math.abs(reqDangerous.requested.state.displayWidth - actualDisplayWidth) >=
+          devicePixelRatio ||
+        Math.abs(reqDangerous.requested.state.displayHeight - actualDisplayHeight) >=
+          devicePixelRatio
       ) {
         reqDangerous.requested.state = {
           ...reqDangerous.requested.state,
