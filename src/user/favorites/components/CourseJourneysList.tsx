@@ -50,7 +50,12 @@ export const CourseJourneysList = ({
       Math.min(numVisible * 2 + 10, 150),
       numVisible,
       10,
-      {},
+      {
+        joined_course_at: {
+          operator: 'neq',
+          value: null,
+        },
+      },
       [
         {
           key: 'joined_course_at',
