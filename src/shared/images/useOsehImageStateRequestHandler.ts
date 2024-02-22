@@ -428,21 +428,9 @@ export const useOsehImageStateRequestHandler = ({
       req.releasedCallbacks.add(releaseItem);
       canceledCallbacks.add(releaseItem);
 
-      const actualDisplayWidth = (bestItem.cropTo?.width ?? bestItem.item.width) / devicePixelRatio;
-      const actualDisplayHeight =
-        (bestItem.cropTo?.height ?? bestItem.item.height) / devicePixelRatio;
-
-      if (
-        req.requested.state.thumbhash !== bestItem.item.thumbhash ||
-        Math.abs(reqDangerous.requested.state.displayWidth - actualDisplayWidth) >=
-          devicePixelRatio ||
-        Math.abs(reqDangerous.requested.state.displayHeight - actualDisplayHeight) >=
-          devicePixelRatio
-      ) {
+      if (req.requested.state.thumbhash !== bestItem.item.thumbhash) {
         reqDangerous.requested.state = {
           ...reqDangerous.requested.state,
-          displayWidth: actualDisplayWidth,
-          displayHeight: actualDisplayHeight,
           thumbhash: bestItem.item.thumbhash,
         };
         req.requested.stateChanged.call(reqDangerous.requested.state);
@@ -450,6 +438,36 @@ export const useOsehImageStateRequestHandler = ({
         if (!active || req.released) {
           return;
         }
+      }
+
+      const actualDisplayWidth = (bestItem.cropTo?.width ?? bestItem.item.width) / devicePixelRatio;
+      const actualDisplayHeight =
+        (bestItem.cropTo?.height ?? bestItem.item.height) / devicePixelRatio;
+
+      if (
+        req.props.displayWidth === null &&
+        Math.abs(actualDisplayWidth - reqDangerous.requested.state.displayWidth) *
+          devicePixelRatio >=
+          1
+      ) {
+        reqDangerous.requested.displaySize = {
+          ...reqDangerous.requested.displaySize,
+          displayWidth: actualDisplayWidth,
+        };
+        req.requested.stateChanged.call(reqDangerous.requested.state);
+      }
+
+      if (
+        req.props.displayHeight === null &&
+        Math.abs(actualDisplayHeight - reqDangerous.requested.state.displayHeight) *
+          devicePixelRatio >=
+          1
+      ) {
+        reqDangerous.requested.displaySize = {
+          ...reqDangerous.requested.displaySize,
+          displayHeight: actualDisplayHeight,
+        };
+        req.requested.stateChanged.call(reqDangerous.requested.state);
       }
 
       let item: DownloadedItem;
