@@ -655,7 +655,7 @@ export const CreateCourse = ({ onCreated }: CreateCourseProps): ReactElement => 
     const parsed = convertUsingMapper(raw, courseKeyMap);
     onCreated(parsed);
     setVWC(slugVWC, '');
-    setVWC(flagsVWC, 0);
+    setVWC(flagsVWC, COURSE_FLAG_PRESETS_REVERSE_MAP.get('Premium') ?? 0);
     setVWC(revenueCatEntitlementVWC, 'pro');
     setVWC(titleVWC, '');
     setVWC(descriptionVWC, '');

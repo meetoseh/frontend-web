@@ -31,6 +31,7 @@ import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { DefaultProfilePicture } from '../../../../shared/components/MyProfilePicture';
+import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
 
 /**
  * Ensures we display at least 12 options, faking the rest if necessary.
@@ -335,6 +336,8 @@ export const PickEmotion = ({
     };
   });
 
+  const navbarVWC = useMappedValueWithCallbacks(resources, (r) => r.navbar);
+
   const layoutVWC = useMappedValueWithCallbacks(
     selectedInfoVWC,
     (si): 'horizontal' | 'vertical' => {
@@ -411,6 +414,24 @@ export const PickEmotion = ({
           </Button>
         </div>
       </div>
+      <RenderGuardedComponent
+        props={navbarVWC}
+        component={(enabled) =>
+          enabled ? (
+            <div className={styles.bottomNav}>
+              <BottomNavBar
+                active="home"
+                clickHandlers={{
+                  series: () => resources.get().gotoSeries(),
+                  account: () => resources.get().gotoSettings(),
+                }}
+              />
+            </div>
+          ) : (
+            <></>
+          )
+        }
+      />
     </div>
   );
 };

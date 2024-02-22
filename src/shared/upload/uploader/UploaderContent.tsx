@@ -431,7 +431,14 @@ const transitionFromProcess = async <T extends object>(
 
     for (const job of ctx.jobs.get().valuesList()) {
       if (job.result === false) {
-        return { type: 'error', error: <>processing failed (job {job.name})</> };
+        return {
+          type: 'error',
+          error: (
+            <>
+              processing failed (job {job.name}, last message: {job.progress.message})
+            </>
+          ),
+        };
       }
     }
     return { type: 'poll', sha512: state.sha512, startedAt: new Date(), timeoutSeconds: 600 };

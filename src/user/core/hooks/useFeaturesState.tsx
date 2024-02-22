@@ -21,6 +21,7 @@ import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWit
 import { MergeAccountFeature } from '../features/mergeAccount/MergeAccountFeature';
 import { ConfirmMergeAccountFeature } from '../features/confirmMergeAccount/ConfirmMergeAccountFeature';
 import { ShareJourneyFeature } from '../features/shareJourney/ShareJourneyFeature';
+import { SeriesListFeature } from '../features/seriesList/SeriesListFeature';
 
 export const features = [
   TouchLinkFeature,
@@ -37,6 +38,7 @@ export const features = [
   GoalDaysPerWeekFeature,
   IsaiahCourseFeature,
   FavoritesFeature,
+  SeriesListFeature,
   SettingsFeature,
   PickEmotionJourneyFeature,
 ];

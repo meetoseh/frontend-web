@@ -1,0 +1,86 @@
+.container {
+  width: 100%;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+  background: #191c1d;
+  min-height: 67px;
+}
+
+.itemWrapper {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.item {
+  composes: unstyled from '../../shared/buttons.module.css';
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+
+.icon {
+  composes: icon from '../../shared/icons.module.css';
+  width: 18px;
+  height: 18px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.label {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 13px;
+  text-align: center;
+  color: white;
+}
+
+.iconHome {
+  background-image: url('./assets/home.svg');
+  width: 18px;
+  height: 20px;
+}
+
+.itemWrapperActive .iconHome {
+  background-image: url('./assets/home-active.svg');
+  width: 50px;
+  height: 36px;
+}
+
+.iconSeries {
+  background-image: url('./assets/series.svg');
+  width: 16px;
+  height: 18px;
+}
+
+.itemWrapperActive .iconSeries {
+  background-image: url('./assets/series-active.svg');
+  width: 48px;
+  height: 36px;
+}
+
+.iconAccount {
+  background-image: url('./assets/account.svg');
+  width: 20px;
+  height: 20px;
+}
+
+.itemWrapperActive .iconAccount {
+  background-image: url('./assets/account-active.svg');
+  width: 52px;
+  height: 36px;
+}

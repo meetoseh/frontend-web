@@ -15,6 +15,10 @@
   justify-content: center;
 }
 
+.containerWithNavbar .contentContainer {
+  padding-bottom: 80px;
+}
+
 .closeButtonContainer {
   position: absolute;
   top: 16px;
@@ -63,4 +67,10 @@
   line-height: 19px;
   color: #c8cdd0;
   margin-top: 16px;
+}
+
+.bottomNav {
+  position: fixed;
+  width: 100%;
+  bottom: 0;
 }

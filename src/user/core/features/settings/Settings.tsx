@@ -20,6 +20,9 @@ import { SettingLink, SettingsLinks } from './components/SettingLinks';
 import { SettingSection } from './components/SettingSection';
 import { useManageConnectWithProvider } from './hooks/useManageConnectWithProvider';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
+import { combineClasses } from '../../../../shared/lib/combineClasses';
 
 /**
  * Shows a basic settings screen for the user. Requires a login context and a modal
@@ -205,11 +208,31 @@ export const Settings = ({
 
   return (
     <RenderGuardedComponent
-      props={useMappedValueWithCallbacks(resources, (r) => r.loadError)}
-      component={(loadError) => {
+      props={useMappedValueWithCallbacks(resources, (r) => ({
+        loadError: r.loadError,
+        navbar: r.navbar,
+      }))}
+      component={({ loadError, navbar }) => {
+        const navbarEle = navbar ? (
+          <div className={styles.bottomNav}>
+            <BottomNavBar
+              active="account"
+              clickHandlers={{
+                home: () => state.get().setShow(false, true),
+                series: () => resources.get().gotoSeries(),
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        );
+        const containerClass = combineClasses(
+          styles.container,
+          navbar ? styles.containerWithNavbar : undefined
+        );
         if (loadError !== null) {
           return (
-            <div className={styles.container}>
+            <div className={containerClass}>
               <FullHeightDiv className={styles.background} />
               <div className={styles.contentContainer}>
                 <div className={styles.closeButtonContainer}>
@@ -219,12 +242,13 @@ export const Settings = ({
                   <ErrorBlock>{loadError}</ErrorBlock>
                 </div>
               </div>
+              {navbarEle}
             </div>
           );
         }
 
         return (
-          <div className={styles.container}>
+          <div className={containerClass}>
             <FullHeightDiv className={styles.background} />
             <div className={styles.contentContainer}>
               <div className={styles.closeButtonContainer}>
@@ -253,6 +277,7 @@ export const Settings = ({
                 </div>
               </div>
             </div>
+            {navbarEle}
           </div>
         );
       }}

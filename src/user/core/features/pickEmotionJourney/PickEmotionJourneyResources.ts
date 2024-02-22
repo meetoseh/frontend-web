@@ -97,6 +97,12 @@ export type PickEmotionJourneyResources = {
   isOnboarding: boolean;
 
   /**
+   * True if a navigation bar should be shown to go to series/account,
+   * false if it should not be shown.
+   */
+  navbar: boolean;
+
+  /**
    * Should be called when the user selects a word from a set of words.
    * This should be called instead of state.onSelection, as it will
    * call state.onSelection if it successfully loads the journey.
@@ -125,4 +131,9 @@ export type PickEmotionJourneyResources = {
    * Should be called if the user wants to go to the settings screen.
    */
   gotoSettings: () => void;
+
+  /**
+   * Should be called if the user wants to go to the series list screen.
+   */
+  gotoSeries: () => void;
 };

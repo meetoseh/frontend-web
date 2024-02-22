@@ -1,5 +1,10 @@
 .container {
+  composes: unstyled from '../../../shared/buttons.module.css';
+}
+
+.buttonInner {
   display: grid;
+  grid-template: 1fr / 1fr;
 }
 
 .background {
@@ -17,18 +22,18 @@
 .content {
   grid-area: 1 / 1 / 1 / 1;
   display: flex;
-  flex-flow: column nowrap;
   justify-content: center;
   align-items: center;
 }
 
-.logo {
+.contentInner {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
 }
 
-.logoText {
+.logoFallback {
   font-family: 'Open Sans', sans-serif;
   font-size: 28px;
   line-height: 33.6px;
@@ -45,4 +50,10 @@
   font-weight: 400;
   color: #eaeaeb;
   margin-top: 4px;
+}
+
+.wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

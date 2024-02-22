@@ -1,0 +1,19 @@
+.container {
+  display: grid;
+}
+
+.background {
+  grid-area: 1 / 1 / 1 / 1;
+  background: linear-gradient(0deg, #010101 0%, #273136 37%, #2d2e2e 100%);
+}
+
+.contentContainer {
+  grid-area: 1 / 1 / 1 / 1;
+  padding-top: 24px;
+}
+
+.bottomNav {
+  position: fixed;
+  width: 100%;
+  bottom: 0;
+}
