@@ -85,14 +85,13 @@ export const useOsehContentTarget = ({
 /**
  * Fetches the best web export for a content file with the given uid and jwt,
  * presigning as requested.
- *
- * If this rejects, the rejection will be a ReactElement describing the error.
  */
 export const fetchWebExport = async (
   uid: string,
   jwt: string,
   presign: boolean,
-  comparer?: (a: ContentFileWebExport, b: ContentFileWebExport) => number
+  comparer?: (a: ContentFileWebExport, b: ContentFileWebExport) => number,
+  signal?: AbortSignal
 ): Promise<ContentFileWebExport> => {
   const realComparer =
     comparer ?? ((a: ContentFileWebExport, b: ContentFileWebExport) => b.bandwidth - a.bandwidth);
@@ -107,6 +106,7 @@ export const fetchWebExport = async (
         headers: {
           Authorization: `bearer ${jwt}`,
         },
+        signal,
       }
     );
     if (!response.ok) {
@@ -141,7 +141,7 @@ export const fetchWebExport = async (
         formatParameters: exportData.format_parameters,
       };
 
-      if (bestExport === null || realComparer(option, bestExport) < 0) {
+      if (bestExport === null || realComparer(bestExport, option) > 0) {
         bestExport = option;
       }
     }

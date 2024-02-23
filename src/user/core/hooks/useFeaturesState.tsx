@@ -22,6 +22,7 @@ import { MergeAccountFeature } from '../features/mergeAccount/MergeAccountFeatur
 import { ConfirmMergeAccountFeature } from '../features/confirmMergeAccount/ConfirmMergeAccountFeature';
 import { ShareJourneyFeature } from '../features/shareJourney/ShareJourneyFeature';
 import { SeriesListFeature } from '../features/seriesList/SeriesListFeature';
+import { SeriesPreviewFeature } from '../features/seriesPreview/SeriesPreviewFeature';
 
 export const features = [
   TouchLinkFeature,
@@ -37,6 +38,7 @@ export const features = [
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
   IsaiahCourseFeature,
+  SeriesPreviewFeature,
   FavoritesFeature,
   SeriesListFeature,
   SettingsFeature,

@@ -1,12 +1,4 @@
-import {
-  AnchorHTMLAttributes,
-  MutableRefObject,
-  PropsWithChildren,
-  ReactElement,
-  useCallback,
-  useEffect,
-  useRef,
-} from 'react';
+import { AnchorHTMLAttributes, PropsWithChildren, ReactElement, useCallback } from 'react';
 import styles from './Button.module.css';
 import { combineClasses } from '../lib/combineClasses';
 import { InlineOsehSpinner } from '../components/InlineOsehSpinner';
@@ -37,6 +29,7 @@ export type ButtonProps = {
     | 'filled-white'
     | 'outlined'
     | 'outlined-white'
+    | 'outlined-white-thin'
     | 'link'
     | 'link-small'
     | 'link-white'
@@ -189,6 +182,7 @@ const ButtonSpinner = ({
           'filled-white': 'black',
           outlined: 'white',
           'outlined-white': 'white',
+          'outlined-white-thin': 'white',
           link: 'white',
           'link-small': 'white',
           'link-white': 'white',

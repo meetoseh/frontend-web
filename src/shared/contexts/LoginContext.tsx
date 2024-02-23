@@ -397,7 +397,7 @@ const getVisibilityKeys = (): {
  *
  * @returns True if we can check if we're in the foreground, false otherwise
  */
-const canCheckForegrounded = async () => {
+export const canCheckForegrounded = async () => {
   return getVisibilityKeys() !== null;
 };
 
@@ -407,7 +407,7 @@ const canCheckForegrounded = async () => {
  *
  * @returns True if we're foregrounded, false otherwise
  */
-const isForegrounded = async () => {
+export const isForegrounded = async () => {
   const keys = getVisibilityKeys();
   if (keys === null) {
     throw new Error('Cannot check foregrounded state');
@@ -416,7 +416,7 @@ const isForegrounded = async () => {
   return !document[keys.hidden];
 };
 
-type ForegroundChangedIdentifier = () => void;
+export type ForegroundChangedIdentifier = () => void;
 
 /**
  * Adds the given listener to be called when the foregrounded state changes.
@@ -426,7 +426,7 @@ type ForegroundChangedIdentifier = () => void;
  * @param listener The listener to add
  * @returns The thing to pass to removeForegroundChangedListener to remove
  */
-const addForegroundChangedListener = async (
+export const addForegroundChangedListener = async (
   listener: () => void
 ): Promise<ForegroundChangedIdentifier> => {
   const keys = getVisibilityKeys();
@@ -445,7 +445,7 @@ const addForegroundChangedListener = async (
  *
  * @param listener The listener to remove
  */
-const removeForegroundChangedListener = async (listener: ForegroundChangedIdentifier) => {
+export const removeForegroundChangedListener = async (listener: ForegroundChangedIdentifier) => {
   const keys = getVisibilityKeys();
   if (keys === null) {
     throw new Error('Cannot check foregrounded state');

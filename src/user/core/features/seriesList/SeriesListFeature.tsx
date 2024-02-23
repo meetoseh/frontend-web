@@ -6,6 +6,7 @@ import { SeriesListState } from './SeriesListState';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { SeriesList } from './SeriesList';
+import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 
 export const SeriesListFeature: Feature<SeriesListState, SeriesListResources> = {
   identifier: 'seriesList',
@@ -52,11 +53,17 @@ export const SeriesListFeature: Feature<SeriesListState, SeriesListResources> = 
     return state.show;
   },
   useResources(state, required, allStates) {
+    const imageHandler = useOsehImageStateRequestHandler({});
+
     return useWritableValueWithCallbacks(() => ({
       loading: false,
+      imageHandler,
       gotoSettings: () => {
         state.get().setShow(false, false);
         allStates.get().settings.setShow(true, true);
+      },
+      gotoCoursePreview: (course) => {
+        allStates.get().seriesPreview.setShow(course, true);
       },
     }));
   },

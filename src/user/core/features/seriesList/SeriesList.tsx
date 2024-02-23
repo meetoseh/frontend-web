@@ -8,7 +8,7 @@ import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
 import { CourseCoverItemsList } from '../../../series/components/CourseCoverItemsList';
 import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { getPreviewableCourse } from '../../../series/lib/ExternalCourse';
 
 /**
  * The top-level component to show the series list screen, which
@@ -19,7 +19,6 @@ export const SeriesList = ({
   state: stateVWC,
   resources: resourcesVWC,
 }: FeatureComponentProps<SeriesListState, SeriesListResources>): ReactElement => {
-  const imageHandler = useOsehImageStateRequestHandler({});
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
   const listHeight = useMappedValueWithCallbacks(windowSizeVWC, (size) => size.height - 100);
 
@@ -29,9 +28,16 @@ export const SeriesList = ({
       <div className={styles.contentContainer}>
         <div className={styles.items}>
           <CourseCoverItemsList
-            showCourse={() => {}}
+            showCourse={(course) => {
+              const previewable = getPreviewableCourse(course);
+              if (previewable !== null) {
+                resourcesVWC.get().gotoCoursePreview(previewable);
+              } else {
+                console.log('not previewable');
+              }
+            }}
             listHeight={listHeight}
-            imageHandler={imageHandler}
+            imageHandler={resourcesVWC.get().imageHandler}
           />
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { CrudFetcherMapper, convertUsingMapper } from '../../../admin/crud/CrudFetcher';
 import { OsehContentRef } from '../../../shared/content/OsehContentRef';
 import { OsehImageRef } from '../../../shared/images/OsehImageRef';
+import { MakePropsNotNull } from '../../../shared/lib/MakePropsNotNull';
 import { OsehTranscriptRef } from '../../../shared/transcripts/OsehTranscriptRef';
 import {
   ExternalCourseInstructor,
@@ -42,6 +43,8 @@ export type ExternalCourse = {
   introVideoTranscript: OsehTranscriptRef | null;
   /** The cover image / thumbnail for the video, if available, otherwise null */
   introVideoThumbnail: OsehImageRef | null;
+  /** The thumbhash of the intro video at a typical resolution, so we don't have to wait for the playlist of the intro video */
+  introVideoThumbhash: string | null;
 };
 
 export const externalCourseKeyMap: CrudFetcherMapper<ExternalCourse> = {
@@ -60,4 +63,24 @@ export const externalCourseKeyMap: CrudFetcherMapper<ExternalCourse> = {
   intro_video_duration: 'introVideoDuration',
   intro_video_transcript: 'introVideoTranscript',
   intro_video_thumbnail: 'introVideoThumbnail',
+  intro_video_thumbhash: 'introVideoThumbhash',
+};
+
+export type ExternalCoursePreviewable = MakePropsNotNull<
+  ExternalCourse,
+  'introVideo' | 'introVideoDuration' | 'introVideoThumbnail'
+>;
+
+/**
+ * If the given course is previewable, returns it, otherwise returns null.
+ */
+export const getPreviewableCourse = (course: ExternalCourse): ExternalCoursePreviewable | null => {
+  if (
+    course.introVideo === null ||
+    course.introVideoDuration === null ||
+    course.introVideoThumbnail === null
+  ) {
+    return null;
+  }
+  return course as ExternalCoursePreviewable;
 };

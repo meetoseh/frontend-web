@@ -12,6 +12,7 @@ import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/
 import { CourseCoverItem } from './CourseCoverItem';
 import { useWindowSizeValueWithCallbacks } from '../../../shared/hooks/useWindowSize';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { useRefreshedExternalCourse } from '../hooks/useRefreshedExternalCourse';
 
 export type CourseCoverItemsListProps = {
   /**
@@ -119,6 +120,8 @@ const CourseCoverItemComponent = ({
   ) => void;
   imageHandler: OsehImageStateRequestHandler;
 }): ReactElement => {
+  useRefreshedExternalCourse(itemVWC, setItem, 'list');
+
   const gotoCourse = useCallback(() => {
     gotoCourseOuter(itemVWC.get());
   }, [gotoCourseOuter, itemVWC]);
