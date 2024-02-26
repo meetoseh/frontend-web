@@ -848,7 +848,7 @@ export const CreateCourse = ({ onCreated }: CreateCourseProps): ReactElement => 
             </div>
           </div>
         </CrudFormElement>
-        <CrudFormElement title="Hero Image">
+        <CrudFormElement title="Share Page Image">
           <div className={styles.imageContainer}>
             <RenderGuardedComponent
               props={heroImageVWC}

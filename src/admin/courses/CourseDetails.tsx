@@ -1122,7 +1122,7 @@ const CourseHero = ({
   );
 
   return (
-    <CrudFormElement title="Hero">
+    <CrudFormElement title="Share Page Image">
       <div className={styles.backgrounds}>
         <RenderGuardedComponent
           props={previewImagesVWC}
