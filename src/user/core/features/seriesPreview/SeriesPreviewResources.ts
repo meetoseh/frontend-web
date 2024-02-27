@@ -1,4 +1,5 @@
 import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { ExternalCourse } from '../../../series/lib/ExternalCourse';
 
 export type SeriesPreviewResources = {
   /**
@@ -12,4 +13,11 @@ export type SeriesPreviewResources = {
    * we can more quickly load the page when the user navigates back to it.
    */
   imageHandler: OsehImageStateRequestHandler;
+
+  /**
+   * Can be called to display the series details on the given series,
+   * presumably because they asked for it
+   * @param series The series to show details for
+   */
+  gotoDetails: (series: ExternalCourse) => void;
 };

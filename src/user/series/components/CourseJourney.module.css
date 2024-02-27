@@ -1,0 +1,103 @@
+.container {
+  display: grid;
+}
+
+.background {
+  grid-area: 1 / 1 / 1 / 1;
+}
+
+.background img {
+  border-radius: 10px;
+}
+
+.foreground {
+  grid-area: 1 / 1 / 1 / 1;
+  overflow-y: auto;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.foregroundInner {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+  padding: 16px 12px;
+}
+
+.header {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerLeft {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.iconCheck {
+  composes: icon from '../../../shared/icons.module.css';
+  width: 20px;
+  height: 20px;
+  background-image: url('../assets/check.svg');
+}
+
+.index,
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.index::after {
+  content: '.';
+  margin-right: 0.25em;
+}
+
+.headerRight {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.headerRight > *:not(:first-child) {
+  margin-left: 8px;
+}
+
+.played {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  letter-spacing: 0.25px;
+  color: #c8cdd0;
+}
+
+.duration {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #eaeaeb;
+  padding: 2px 4px;
+  background: #191c1d80;
+  border-radius: 4px;
+}
+
+.description {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 17px;
+  color: #eaeaeb;
+  margin-top: 7px;
+}

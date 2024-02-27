@@ -8,8 +8,7 @@ import {
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { useTimezone } from '../../shared/hooks/useTimezone';
-import { Course, courseKeyMap } from './models/Course';
-import { convertUsingKeymap } from '../../admin/crud/CrudFetcher';
+import { convertUsingMapper } from '../../admin/crud/CrudFetcher';
 import styles from './CourseActivateScreen.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { SplashScreen } from '../splash/SplashScreen';
@@ -31,6 +30,7 @@ import { ModalContext } from '../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { setLoginRedirect } from '../login/lib/LoginRedirectStore';
+import { ExternalCourse, externalCourseKeyMap } from '../series/lib/ExternalCourse';
 
 /**
  * The activation screen for a course, which should be the first screen after a
@@ -58,7 +58,7 @@ export const CourseActivateScreen = (): ReactElement => {
     const params = new URLSearchParams(window.location.search);
     return params.get('session');
   }, []);
-  const [course, setCourse] = useState<Course | null>(null);
+  const [course, setCourse] = useState<ExternalCourse | null>(null);
 
   const associatedUTMWithVisitorUID = useRef<string | null>(null);
 
@@ -211,7 +211,7 @@ export const CourseActivateScreen = (): ReactElement => {
             });
           }
 
-          const newCourse = convertUsingKeymap(data.course, courseKeyMap);
+          const newCourse = convertUsingMapper(data.course, externalCourseKeyMap);
           setCourse(newCourse);
         }
 

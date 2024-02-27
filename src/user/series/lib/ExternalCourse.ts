@@ -11,6 +11,8 @@ import {
 export type ExternalCourse = {
   /** Primary stable external identifier */
   uid: string;
+  /** A JWT allowing access to the course; the amount of access may vary */
+  jwt: string;
   /** Primary human-selected URL-friendly identifier */
   slug: string;
   /** Title; usually rendered via the logo */

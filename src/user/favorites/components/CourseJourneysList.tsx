@@ -88,7 +88,7 @@ export const CourseJourneysList = ({
             key: 'joined_course_at',
             dir: dir === 'before' ? 'asc' : 'desc',
             before: null,
-            after: item.joinedCourseAt.toLocaleString(),
+            after: item.joinedCourseAt?.toLocaleString() ?? null,
           },
           {
             key: 'course_uid',

@@ -48,6 +48,13 @@
   color: white;
 }
 
+.filled-premium {
+  background: linear-gradient(90deg, #5ad6ad 0%, #2f95c1 55.21%, #4362a9 92.19%);
+  color: white;
+  border: none;
+  padding: 16px 29px;
+}
+
 .filled-white {
   background: white;
   color: #191c1d;
@@ -85,6 +92,11 @@
   background: #708f94;
 }
 
+.filled-premium:hover {
+  background: linear-gradient(90deg, #30c392 0%, #26779a 55.21%, #364e87 92.19%);
+  border: none;
+}
+
 .filled-white:hover {
   background: #fafdfd;
   border: 3px solid transparent;
@@ -120,6 +132,11 @@
   background: #1a383c;
 }
 
+.filled-premium:active {
+  background: linear-gradient(90deg, #24926e 0%, #1c5974 55.21%, #283b65 92.19%);
+  border: none;
+}
+
 .filled-white:active {
   background: #c8cdd0;
 }
@@ -148,6 +165,11 @@
   outline: 3px solid #708f94;
 }
 
+.filled-premium:focus-visible {
+  border: none;
+  outline: 3px solid black;
+}
+
 .outlined-white-thin:focus-visible {
   border: 1px solid transparent;
   outline: 3px solid white;
@@ -159,7 +181,8 @@
   cursor: not-allowed;
 }
 
-.filled:disabled {
+.filled:disabled,
+.filled-premium:disabled {
   background: #c8cdd0;
 }
 

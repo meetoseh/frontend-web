@@ -63,6 +63,12 @@ export const useDebugHistoryList = (
         return {
           uid: `uid-${index}`,
           title: `Title ${index}`,
+          description: `Description ${index}`,
+          durationSeconds: 63,
+          darkenedBackground: {
+            uid: `oseh_if_hH68hcmVBYHanoivLMgstg`,
+            jwt: null,
+          },
           instructor: {
             name: 'Instructor',
             image: {

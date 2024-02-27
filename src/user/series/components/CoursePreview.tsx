@@ -306,6 +306,7 @@ export const CoursePreview = ({
           }
         />
       </div>
+      <div className={styles.backgroundOverlay} />
       <div className={styles.content} ref={(v) => setVWC(contentRef, v)}>
         <div className={styles.closeButtonContainer}>
           <div className={styles.closeButtonInnerContainer}>

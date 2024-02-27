@@ -27,6 +27,7 @@ export type ButtonProps = {
   variant?:
     | 'filled'
     | 'filled-white'
+    | 'filled-premium'
     | 'outlined'
     | 'outlined-white'
     | 'outlined-white-thin'
@@ -180,6 +181,7 @@ const ButtonSpinner = ({
         {
           filled: 'black',
           'filled-white': 'black',
+          'filled-premium': 'white',
           outlined: 'white',
           'outlined-white': 'white',
           'outlined-white-thin': 'white',

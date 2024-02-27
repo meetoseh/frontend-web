@@ -288,24 +288,48 @@ type CallbackNode<T> = {
  * This provides a particularly simple interface, which is preferable
  * in almost all circumstances.
  */
-export type ValueWithCallbacks<T> = {
+export type ValueWithTypedCallbacks<T, U> = {
   /**
    * A function which retrieves the current value
+   * @returns the current value
    */
   get: () => T;
+
   /**
-   * The callbacks that must be invoked whenever the value changes.
+   * Callbacks which are invoked whenever the value changes.
+   * For most use cases, the value the callbacks are invoked
+   * with do not matter.
    */
-  callbacks: Callbacks<undefined>;
+  callbacks: Callbacks<U>;
 };
 
-export type WritableValueWithCallbacks<T> = ValueWithCallbacks<T> & {
+/**
+ * Describes an object which can be provided as a react prop to
+ * give a value which can be changed without the prop changing.
+ *
+ * This provides a particularly simple interface, which is preferable
+ * in almost all circumstances.
+ */
+export type ValueWithCallbacks<T> = ValueWithTypedCallbacks<T, undefined>;
+
+/**
+ * Downgrades a typed value-with-callbacks to a standard "untyped" (undefined)
+ * variant. This is 'downgrading' since the reverse operation is generally not
+ * safe.
+ */
+export const downgradeTypedVWC = <T, U>(
+  vwc: ValueWithTypedCallbacks<T, U | undefined> | ValueWithCallbacks<T>
+): ValueWithCallbacks<T> => vwc as ValueWithCallbacks<T>;
+
+export type WritableValueWithTypedCallbacks<T, U> = ValueWithTypedCallbacks<T, U> & {
   /**
    * Sets the current value without invoking the callbacks. The
    * callbacks should be invoked separately.
    */
   set: (t: T) => void;
 };
+
+export type WritableValueWithCallbacks<T> = WritableValueWithTypedCallbacks<T, undefined>;
 
 /**
  * A simple react hook for creating a new writable value with

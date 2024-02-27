@@ -116,6 +116,7 @@ function App() {
         <Route path="/settings" element={<UserApp />} />
         <Route path="/series" element={<UserApp />} />
         <Route path="/series/preview/*" element={<UserApp />} />
+        <Route path="/series/details/*" element={<UserApp />} />
         <Route path="/admin" element={<AdminApp />}>
           {AdminRoutes()}
         </Route>
