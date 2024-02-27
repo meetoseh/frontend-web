@@ -129,6 +129,28 @@ export const JourneyFilterAndSortBlock = ({
           inputStyle="normal"
           html5Validation={null}
         />
+        <TextInput
+          label="Instructor"
+          value={makeInputFromILike(filter.instructor_name?.value)}
+          onChange={(newVal) => {
+            setFilter((oldFilter) => {
+              const newFilter = { ...oldFilter };
+              if (newVal === '') {
+                delete newFilter.instructor_name;
+              } else {
+                newFilter.instructor_name = {
+                  operator: 'ilike',
+                  value: makeILikeFromInput(newVal),
+                };
+              }
+              return newFilter;
+            });
+          }}
+          help={null}
+          disabled={false}
+          inputStyle="normal"
+          html5Validation={null}
+        />
         <CrudFormElement title="Show Deleted">
           <select
             className={styles.select}
