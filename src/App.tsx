@@ -13,7 +13,6 @@ import {
 } from './shared/contexts/LoginContext';
 import { TestLogin } from './shared/TestLogin';
 import { LoginApp } from './user/login/LoginApp';
-import { OsehPlusUpgradePrompt } from './user/payment/OsehPlusUpgradePrompt';
 import { SplashScreen } from './user/splash/SplashScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 import { CourseActivateScreen } from './user/courses/CourseActivateScreen';
@@ -103,16 +102,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<UserApp />} />
-        <Route
-          path="/upgrade"
-          element={
-            <LoginProvider>
-              <InterestsAutoProvider>
-                <OsehPlusUpgradePrompt />
-              </InterestsAutoProvider>
-            </LoginProvider>
-          }
-        />
+        <Route path="/upgrade" element={<UserApp />} />
         <Route path="/settings" element={<UserApp />} />
         <Route path="/series" element={<UserApp />} />
         <Route path="/series/preview/*" element={<UserApp />} />

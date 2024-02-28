@@ -35,6 +35,7 @@ is in the following format:
   ]
 }
 """
+
 import argparse
 from pydantic import BaseModel, Field
 from typing import Dict, List, Set, Union, Literal, Tuple
@@ -371,10 +372,10 @@ async def wait_job_done(itgs: Itgs, job_uid: str, timeout: float) -> None:
     timeout_at = time.time() + timeout
     while (await pubsub.get_message(ignore_subscribe_messages=True, timeout=5)) is None:
         if time.time() > timeout_at:
-            await pubsub.close()
+            await pubsub.aclose()
             raise Exception(f"timed out waiting for {job_uid=} to finish")
 
-    await pubsub.close()
+    await pubsub.aclose()
 
 
 if __name__ == "__main__":

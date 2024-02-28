@@ -24,6 +24,7 @@ import { ShareJourneyFeature } from '../features/shareJourney/ShareJourneyFeatur
 import { SeriesListFeature } from '../features/seriesList/SeriesListFeature';
 import { SeriesPreviewFeature } from '../features/seriesPreview/SeriesPreviewFeature';
 import { SeriesDetailsFeature } from '../features/seriesDetails/SeriesDetailsFeature';
+import { UpgradeFeature } from '../features/upgrade/UpgradeFeature';
 
 export const features = [
   TouchLinkFeature,
@@ -39,6 +40,7 @@ export const features = [
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
   IsaiahCourseFeature,
+  UpgradeFeature,
   SeriesDetailsFeature,
   SeriesPreviewFeature,
   FavoritesFeature,

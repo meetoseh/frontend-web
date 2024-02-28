@@ -118,7 +118,13 @@ export const SeriesDetails = ({
                 <></>
               ) : (
                 <div className={styles.upgradeContainer}>
-                  <Button type="button" variant="filled-premium" onClick={() => {}}>
+                  <Button
+                    type="button"
+                    variant="filled-premium"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      resources.get().gotoUpgrade();
+                    }}>
                     Unlock with OSEH+
                   </Button>
                 </div>

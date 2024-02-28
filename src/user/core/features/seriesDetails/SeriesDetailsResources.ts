@@ -44,4 +44,10 @@ export type SeriesDetailsResources = {
    * @param course The course that the journey is in
    */
   gotoJourney: (journey: JourneyRef, course: MinimalCourse) => void;
+
+  /**
+   * Goes to the upgrade screen, presumably because the user clicked on
+   * the Unlock with Oseh+ button
+   */
+  gotoUpgrade: () => void;
 };

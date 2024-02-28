@@ -16,6 +16,7 @@ import { SettingsState } from '../features/settings/SettingsState';
 import { ShareJourneyState } from '../features/shareJourney/ShareJourneyState';
 import { SignupRewardState } from '../features/signupReward/SignupRewardState';
 import { TouchLinkState } from '../features/touchLink/TouchLinkState';
+import { UpgradeState } from '../features/upgrade/UpgradeState';
 import { VipChatRequestState } from '../features/vipChatRequest/VipChatRequestState';
 
 export type FeatureAllStates = {
@@ -38,4 +39,5 @@ export type FeatureAllStates = {
   seriesList: SeriesListState;
   seriesPreview: SeriesPreviewState;
   seriesDetails: SeriesDetailsState;
+  upgrade: UpgradeState;
 };

@@ -312,6 +312,16 @@ export const SeriesDetailsFeature: Feature<SeriesDetailsState, SeriesDetailsReso
         gotoJourney(journey, course) {
           // TODO: implement
         },
+        gotoUpgrade() {
+          const course = courseVWC.get();
+          allStates
+            .get()
+            .upgrade.setContext(
+              course !== undefined ? { type: 'series', course } : { type: 'generic' },
+              true
+            );
+          state.get().setShow(null, false);
+        },
       };
     });
   },
