@@ -122,6 +122,10 @@ const JourneyBlockExpanded = ({
                 operator: 'eq',
                 value: null,
               },
+              within_any_course: {
+                operator: 'eq',
+                value: true,
+              },
             },
             limit: 3,
           }),
@@ -141,7 +145,7 @@ const JourneyBlockExpanded = ({
       const confirmation = await showYesNoModal(modalContext.modals, {
         title: 'Reuse background?',
         body:
-          'That background is already in use by the following journeys: ' +
+          'That background is already in use by the following journeys in series: ' +
           items.map((item) => `${item.title} by ${item.instructor.name}`).join(', ') +
           (raw.next_page_sort !== undefined && raw.next_page_sort !== null ? ', and more' : ''),
         cta1: 'Reuse',

@@ -96,6 +96,10 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
                 operator: 'eq',
                 value: null,
               },
+              within_any_course: {
+                operator: 'eq',
+                value: true,
+              },
             },
             limit: 3,
           }),
@@ -115,7 +119,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
       const confirmation = await showYesNoModal(modalContext.modals, {
         title: 'Reuse background?',
         body:
-          'That background is already in use by the following journeys: ' +
+          'That background is already in use by the following journeys in series: ' +
           items.map((item) => `${item.title} by ${item.instructor.name}`).join(', ') +
           (raw.next_page_sort !== undefined && raw.next_page_sort !== null ? ', and more' : ''),
         cta1: 'Reuse',
@@ -202,6 +206,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
       title,
       onCreated,
       variationOfJourney,
+      setBackgroundImage,
     ]
   );
 
