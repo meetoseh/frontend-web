@@ -17,7 +17,7 @@ import { Instructor } from '../instructors/Instructor';
 import { TextInput } from '../../shared/forms/TextInput';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
-import { convertUsingKeymap } from '../crud/CrudFetcher';
+import { convertUsingKeymap, convertUsingMapper } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
 import { Checkbox } from '../../shared/forms/Checkbox';
 import { InstructorPicker } from '../instructors/InstructorPicker';
@@ -40,6 +40,7 @@ import { CancelablePromise } from '../../shared/lib/CancelablePromise';
 import { constructCancelablePromise } from '../../shared/lib/CancelablePromiseConstructor';
 import { YesNoModal } from '../../shared/components/YesNoModal';
 import { createCancelablePromiseFromCallbacks } from '../../shared/lib/createCancelablePromiseFromCallbacks';
+import { showYesNoModal } from '../../shared/lib/showYesNoModal';
 
 type JourneyBlockProps = {
   /**
@@ -77,7 +78,9 @@ const JourneyBlockExpanded = ({
   const [error, setError] = useState<ReactElement | null>(null);
   const [saving, setSaving] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const [newBackgroundImage, setNewBackgroundImage] = useState<JourneyBackgroundImage | null>(null);
+  const [newBackgroundImage, setNewBackgroundImageReal] = useState<JourneyBackgroundImage | null>(
+    null
+  );
   const [newSubcategory, setNewSubcategory] = useState<JourneySubcategory | null>(null);
   const [subcategoryQuery, setSubcategoryQuery] = useState('');
   const [newInstructor, setNewInstructor] = useState<Instructor | null>(null);
@@ -87,6 +90,70 @@ const JourneyBlockExpanded = ({
   const [newDeleted, setNewDeleted] = useState(false);
   const [currentVariationOfJourney, setCurrentVariationOfJourney] = useState<Journey | null>(null);
   const [variations, setVariations] = useState<Journey[]>([]);
+
+  const setNewBackgroundImage = useCallback(
+    async (choice: JourneyBackgroundImage | null): Promise<void> => {
+      if (choice === null) {
+        setNewBackgroundImageReal(null);
+        return;
+      }
+
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        throw new Error('Not logged in');
+      }
+      const loginContext = loginContextUnch;
+      const response = await apiFetch(
+        '/api/1/journeys/search',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            filters: {
+              uid: {
+                operator: 'neq',
+                value: journey.uid,
+              },
+              background_image_file_uid: {
+                operator: 'eq',
+                value: choice.imageFile.uid,
+              },
+              deleted_at: {
+                operator: 'eq',
+                value: null,
+              },
+            },
+            limit: 3,
+          }),
+        },
+        loginContext
+      );
+      if (!response.ok) {
+        throw response;
+      }
+      const raw: { items: any[]; next_page_sort?: any } = await response.json();
+      if (raw.items.length === 0) {
+        setNewBackgroundImageReal(choice);
+        return;
+      }
+
+      const items = raw.items.map((item) => convertUsingMapper(item, journeyKeyMap));
+      const confirmation = await showYesNoModal(modalContext.modals, {
+        title: 'Reuse background?',
+        body:
+          'That background is already in use by the following journeys: ' +
+          items.map((item) => `${item.title} by ${item.instructor.name}`).join(', ') +
+          (raw.next_page_sort !== undefined && raw.next_page_sort !== null ? ', and more' : ''),
+        cta1: 'Reuse',
+        cta2: 'Cancel',
+        emphasize: 2,
+      }).promise;
+      if (confirmation) {
+        setNewBackgroundImageReal(choice);
+      }
+    },
+    [journey.uid, loginContextRaw.value, modalContext.modals]
+  );
 
   useEffect(() => {
     setNewTitle(journey.title);

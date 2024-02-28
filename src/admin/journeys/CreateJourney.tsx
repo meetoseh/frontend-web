@@ -17,7 +17,7 @@ import { AdminJourneyPrompt } from './prompts/AdminJourneyPrompt';
 import { AdminJourneyPromptPicker, defaultPrompt } from './prompts/AdminJourneyPromptPicker';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
-import { convertUsingKeymap } from '../crud/CrudFetcher';
+import { convertUsingKeymap, convertUsingMapper } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
 import { JourneySubcategoryPicker } from './subcategories/JourneySubcategoryPicker';
 import { InstructorPicker } from '../instructors/InstructorPicker';
@@ -28,6 +28,7 @@ import { showJourneyBackgroundImageSelector } from './background_images/showJour
 import { showJourneyAudioContentSelector } from './audio_contents/showJourneyAudioContentSelector';
 import { showJourneyBackgroundImageUploader } from './background_images/showJourneyBackgroundImageUploader';
 import { showJourneyAudioContentUploader } from './audio_contents/showJourneyAudioContentUploader';
+import { showYesNoModal } from '../../shared/lib/showYesNoModal';
 
 type CreateJourneyProps = {
   /**
@@ -49,7 +50,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [audioContent, setAudioContent] = useState<JourneyAudioContent | null>(null);
-  const [backgroundImage, setBackgroundImage] = useState<JourneyBackgroundImage | null>(null);
+  const [backgroundImage, setBackgroundImageReal] = useState<JourneyBackgroundImage | null>(null);
   const [backgroundImagePreviewType, setBackgroundImagePreviewType] = useState<
     'original' | 'darkened' | 'blurred'
   >('darkened');
@@ -67,6 +68,66 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
   const [error, setError] = useState<ReactElement | null>(null);
   const [saving, setSaving] = useState(false);
   const [createErrorCollapsed, setCreateErrorCollapsed] = useState(true);
+
+  const setBackgroundImage = useCallback(
+    async (choice: JourneyBackgroundImage | null): Promise<void> => {
+      if (choice === null) {
+        setBackgroundImageReal(null);
+        return;
+      }
+
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        throw new Error('Not logged in');
+      }
+      const loginContext = loginContextUnch;
+      const response = await apiFetch(
+        '/api/1/journeys/search',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            filters: {
+              background_image_file_uid: {
+                operator: 'eq',
+                value: choice.imageFile.uid,
+              },
+              deleted_at: {
+                operator: 'eq',
+                value: null,
+              },
+            },
+            limit: 3,
+          }),
+        },
+        loginContext
+      );
+      if (!response.ok) {
+        throw response;
+      }
+      const raw: { items: any[]; next_page_sort?: any } = await response.json();
+      if (raw.items.length === 0) {
+        setBackgroundImageReal(choice);
+        return;
+      }
+
+      const items = raw.items.map((item) => convertUsingMapper(item, journeyKeyMap));
+      const confirmation = await showYesNoModal(modalContext.modals, {
+        title: 'Reuse background?',
+        body:
+          'That background is already in use by the following journeys: ' +
+          items.map((item) => `${item.title} by ${item.instructor.name}`).join(', ') +
+          (raw.next_page_sort !== undefined && raw.next_page_sort !== null ? ', and more' : ''),
+        cta1: 'Reuse',
+        cta2: 'Cancel',
+        emphasize: 2,
+      }).promise;
+      if (confirmation) {
+        setBackgroundImageReal(choice);
+      }
+    },
+    [loginContextRaw.value, modalContext.modals]
+  );
 
   const create = useCallback(
     async (e: MouseEvent<HTMLButtonElement>) => {

@@ -13,7 +13,7 @@ export type CrudFetcherKeyMap<T> = {
 
 export type CrudFetcherMapper<T> = CrudFetcherKeyMap<T> | ((v: any) => T);
 
-export const convertUsingMapper = (raw: any, mapper: CrudFetcherMapper<any>) => {
+export const convertUsingMapper = <T extends object>(raw: any, mapper: CrudFetcherMapper<T>) => {
   if (typeof mapper === 'function') {
     return mapper(raw);
   }
