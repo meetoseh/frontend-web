@@ -9,7 +9,6 @@ import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/u
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import styles from './Upgrade.module.css';
 import {
-  ValueWithCallbacks,
   WritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
@@ -212,7 +211,14 @@ export const Upgrade = ({
     } finally {
       setVWC(redirectingVWC, false);
     }
-  }, []);
+  }, [
+    activePackageIdxVWC,
+    loginContextRaw.value,
+    offerVWC,
+    redirectingVWC,
+    resources,
+    subscribeErrorVWC,
+  ]);
 
   return (
     <div className={styles.container}>
