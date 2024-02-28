@@ -35,8 +35,8 @@ export const showCourseLogoUploader = (
           </p>
           <p>
             We may show the logo on a dark background with padding in the admin preview so it's
-            legible, however, the logo itself should have a transparent background and be clipped
-            fairly tight.
+            legible, however, the logo itself should have a transparent background and be set in a
+            310px width viewbox.
           </p>
         </>
       ),
