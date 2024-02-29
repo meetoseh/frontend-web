@@ -38,26 +38,33 @@
 }
 
 .detail {
-  margin-top: 3px;
+  margin-top: 4px;
   font-family: 'Open Sans', sans-serif;
-  font-size: 12px;
-  line-height: 16px;
-  letter-spacing: 0.25px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 17px;
+
   color: #c8cdd0;
 }
 
 .text {
   font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
   font-weight: 400;
-  font-size: 14px;
-  line-height: 19px;
-  letter-spacing: 0.25px;
+  line-height: 24px;
 }
 
 .text-normal {
   color: white;
 }
 
+.actionContainer {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 .arrow {
   composes: icon from '../../../../../shared/icons.module.css';
   width: 9px;

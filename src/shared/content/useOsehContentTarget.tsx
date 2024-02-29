@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useMemo, useState } from 'react';
+import { ReactElement, isValidElement, useEffect, useMemo, useState } from 'react';
 import { OsehContentProps } from './OsehContentProps';
 import { ContentFileWebExport, OsehContentTarget } from './OsehContentTarget';
 import { HTTP_API_URL } from '../ApiConstants';
@@ -42,7 +42,19 @@ export const useOsehContentTarget = ({
         }
         setWebExport(webExport);
       } catch (e) {
-        setError(e as ReactElement);
+        if (!active) {
+          return;
+        }
+
+        if (isValidElement(e)) {
+          setError(e as ReactElement);
+          return;
+        }
+        const err = await describeError(e);
+        if (!active) {
+          return;
+        }
+        setError(err);
       }
     }
   }, [uid, jwt, presign, comparer]);
@@ -96,64 +108,60 @@ export const fetchWebExport = async (
   const realComparer =
     comparer ?? ((a: ContentFileWebExport, b: ContentFileWebExport) => b.bandwidth - a.bandwidth);
 
-  try {
-    const response = await fetch(
-      `${HTTP_API_URL}/api/1/content_files/${uid}/web.json?${new URLSearchParams({
-        presign: presign ? '1' : '0',
-      })}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `bearer ${jwt}`,
-        },
-        signal,
-      }
-    );
-    if (!response.ok) {
-      throw response;
+  const response = await fetch(
+    `${HTTP_API_URL}/api/1/content_files/${uid}/web.json?${new URLSearchParams({
+      presign: presign ? '1' : '0',
+    })}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `bearer ${jwt}`,
+      },
+      signal,
     }
-    const data: {
-      exports: {
-        url: string;
-        format: string;
-        bandwidth: number;
-        codecs: string[];
-        file_size: number;
-        quality_parameters: any;
-        format_parameters: any;
-      }[];
-      duration_seconds: number;
-    } = await response.json();
-
-    let bestExport: ContentFileWebExport | null = null;
-    for (const exportData of data.exports) {
-      if (exportData.format !== 'mp4') {
-        continue;
-      }
-
-      const option: ContentFileWebExport = {
-        url: exportData.url,
-        format: exportData.format,
-        bandwidth: exportData.bandwidth,
-        codecs: exportData.codecs,
-        fileSize: exportData.file_size,
-        qualityParameters: exportData.quality_parameters,
-        formatParameters: exportData.format_parameters,
-      };
-
-      if (bestExport === null || realComparer(bestExport, option) > 0) {
-        bestExport = option;
-      }
-    }
-
-    if (bestExport === null) {
-      return Promise.reject(
-        <>No suitable export found for this audio file. Please contact the site administrator.</>
-      );
-    }
-
-    return bestExport;
-  } catch (e) {
-    return Promise.reject(await describeError(e));
+  );
+  if (!response.ok) {
+    throw response;
   }
+  const data: {
+    exports: {
+      url: string;
+      format: string;
+      bandwidth: number;
+      codecs: string[];
+      file_size: number;
+      quality_parameters: any;
+      format_parameters: any;
+    }[];
+    duration_seconds: number;
+  } = await response.json();
+
+  let bestExport: ContentFileWebExport | null = null;
+  for (const exportData of data.exports) {
+    if (exportData.format !== 'mp4') {
+      continue;
+    }
+
+    const option: ContentFileWebExport = {
+      url: exportData.url,
+      format: exportData.format,
+      bandwidth: exportData.bandwidth,
+      codecs: exportData.codecs,
+      fileSize: exportData.file_size,
+      qualityParameters: exportData.quality_parameters,
+      formatParameters: exportData.format_parameters,
+    };
+
+    if (bestExport === null || realComparer(bestExport, option) > 0) {
+      bestExport = option;
+    }
+  }
+
+  if (bestExport === null) {
+    return Promise.reject(
+      <>No suitable export found for this audio file. Please contact the site administrator.</>
+    );
+  }
+
+  return bestExport;
 };

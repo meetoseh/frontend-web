@@ -67,7 +67,7 @@ export const describeError = async (e: any): Promise<ReactElement> => {
     return describeErrorFromResponse(e);
   } else {
     if (process.env.REACT_APP_ENVIRONMENT === 'dev') {
-      console.log(`Unknown error:`, e);
+      console.trace(`Unknown error:`, e);
     }
 
     return <>Unknown error. Contact support at hi@oseh.com</>;

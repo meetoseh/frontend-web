@@ -1,0 +1,43 @@
+.container {
+  position: fixed;
+  top: 24px;
+  left: 40px;
+  width: calc(100% - 80px);
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.innerContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background: #ffffff;
+  border-radius: 58px;
+}
+
+.icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 14px;
+  margin-right: 0.25em;
+}
+.icon::before {
+  content: '🎉';
+}
+
+.text {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  color: #1a383c;
+}

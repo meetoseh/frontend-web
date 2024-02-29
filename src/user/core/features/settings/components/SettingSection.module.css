@@ -8,11 +8,12 @@
 
 .title {
   font-family: 'Open Sans', sans-serif;
+  font-size: 22px;
   font-weight: 400;
-  font-size: 24px;
-  line-height: 32px;
-  color: #f9f9f9;
-  margin-bottom: 8px;
+  line-height: 29px;
+  text-align: left;
+  color: #eaeaeb;
+  margin-bottom: 12px;
 }
 
 .subtitle {

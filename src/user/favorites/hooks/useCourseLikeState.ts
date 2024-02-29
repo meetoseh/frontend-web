@@ -300,8 +300,11 @@ export const useCourseLikeState = ({
             reject(new Error('canceled'));
             return;
           }
+          state.finishing = true;
           setVWC(error, null);
           setVWC(likedAtVWC, likedAt);
+          state.done = true;
+          resolve();
         },
       }),
     [getLikedAtFromServer, error, likedAtVWC, handleCancelableError]

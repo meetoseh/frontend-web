@@ -28,7 +28,6 @@ export const SeriesPreview = ({
           <CoursePreview
             course={course}
             onViewDetails={() => {
-              console.log('onViewDetails');
               resourcesVWC.get().gotoDetails(course);
             }}
             onBack={() => stateVWC.get().setShow(null, true)}

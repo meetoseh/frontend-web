@@ -14,6 +14,8 @@ import { setVWC } from '../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../shared/hooks/useMappedValuesWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../shared/hooks/useValuesWithCallbacksEffect';
 import { useValueWithCallbacksEffect } from '../shared/hooks/useValueWithCallbacksEffect';
+import { usePurchaseSuccessfulModal } from './core/features/upgrade/hooks/usePurchaseSuccessfulModal';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 
 export default function UserApp(): ReactElement {
   return (
@@ -53,6 +55,9 @@ const UserAppInner = (): ReactElement => {
   const flashWhiteInsteadOfSplashVWC = useTimedValueWithCallbacks(true, false, 250);
   const beenLoadedVWC = useWritableValueWithCallbacks<boolean>(() => false);
   const handlingCheckoutVWC = useWritableValueWithCallbacks<boolean>(() => true);
+  const showCheckoutSuccessfulUntilVWC = useWritableValueWithCallbacks<number | undefined>(
+    () => undefined
+  );
 
   useValueWithCallbacksEffect(
     loginContextRaw.value,
@@ -84,7 +89,7 @@ const UserAppInner = (): ReactElement => {
           try {
             const uid = searchParams.get('checkout_uid');
 
-            await apiFetch(
+            const response = await apiFetch(
               '/api/1/users/me/checkout/stripe/finish',
               {
                 method: 'POST',
@@ -107,6 +112,10 @@ const UserAppInner = (): ReactElement => {
               document.title,
               `${window.location.pathname}?${newParams.toString()}`
             );
+
+            if (response.ok) {
+              setVWC(showCheckoutSuccessfulUntilVWC, Date.now() + 15000);
+            }
           } finally {
             if (active) {
               setVWC(handlingCheckoutVWC, false);
@@ -135,6 +144,10 @@ const UserAppInner = (): ReactElement => {
       setVWC(beenLoadedVWC, true);
       setVWC(stateVWC, 'features');
     }, [loginContextRaw.value, fontsLoaded, handlingCheckoutVWC, features, beenLoadedVWC, stateVWC])
+  );
+
+  usePurchaseSuccessfulModal(
+    adaptValueWithCallbacksAsVariableStrategyProps(showCheckoutSuccessfulUntilVWC)
   );
 
   const splashTypeVWC = useMappedValuesWithCallbacks(
