@@ -34,7 +34,7 @@ export type SeriesDetailsResources = {
    * would be:
    *
    * - attach the series, if not already attached (`joinedCourseAt === null`,
-   *   `/api/1/courses/attach_via_entitlement`)
+   *   `/api/1/courses/attach_via_jwt`)
    * - fetch the journey ref `/api/1/courses/start_journey`
    *
    * If the user makes it to actually playing the audio of the class, this will

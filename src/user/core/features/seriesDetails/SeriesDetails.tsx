@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
@@ -13,6 +13,17 @@ import { SeriesDetailsState } from './SeriesDetailsState';
 import { useUnwrappedValueWithCallbacks } from '../../../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { Button } from '../../../../shared/forms/Button';
 import { CourseJourney } from '../../../series/components/CourseJourney';
+import { ModalContext } from '../../../../shared/contexts/ModalContext';
+import { useWorkingModal } from '../../../../shared/hooks/useWorkingModal';
+import { MinimalCourseJourney } from '../../../favorites/lib/MinimalCourseJourney';
+import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
+import { describeError } from '../../../../shared/forms/ErrorBlock';
+import { apiFetch } from '../../../../shared/ApiConstants';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
+import { JourneyRef, journeyRefKeyMap } from '../../../journey/models/JourneyRef';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { combineClasses } from '../../../../shared/lib/combineClasses';
+import { convertUsingMapper } from '../../../../admin/crud/CrudFetcher';
 
 export const SeriesDetails = ({
   state,
@@ -20,6 +31,8 @@ export const SeriesDetails = ({
 }: FeatureComponentProps<SeriesDetailsState, SeriesDetailsResources>) => {
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
   const backgroundRefVWC = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const modalContext = useContext(ModalContext);
+  const loginContextRaw = useContext(LoginContext);
 
   useValuesWithCallbacksEffect([windowSizeVWC, backgroundRefVWC], () => {
     const size = windowSizeVWC.get();
@@ -40,10 +53,89 @@ export const SeriesDetails = ({
     [state]
   );
 
+  const hasEntitlementVWC = useMappedValueWithCallbacks(state, (s) => !!s.show?.hasEntitlement);
+
   const likedAtVWC = useUnwrappedValueWithCallbacks(
     useMappedValueWithCallbacks(resources, (r) => r.courseLikeState.likedAt, {
       outputEqualityFn: Object.is,
     })
+  );
+
+  const goingToJourney = useWritableValueWithCallbacks(() => false);
+  useWorkingModal(modalContext.modals, goingToJourney);
+
+  const gotoJourneyError = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  useErrorModal(modalContext.modals, gotoJourneyError, 'going to journey');
+
+  const handleJourneyClick = useCallback(
+    async (association: MinimalCourseJourney): Promise<void> => {
+      const series = state.get().show;
+      if (series === null || series === undefined || !series.hasEntitlement) {
+        return;
+      }
+
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        return;
+      }
+      const loginContext = loginContextUnch;
+
+      if (goingToJourney.get()) {
+        return;
+      }
+
+      setVWC(goingToJourney, true);
+      setVWC(gotoJourneyError, null);
+      try {
+        if (series.joinedAt === null) {
+          const response = await apiFetch(
+            '/api/1/courses/attach_via_jwt',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+              },
+              body: JSON.stringify({
+                course_uid: series.uid,
+                course_jwt: series.jwt,
+              }),
+            },
+            loginContext
+          );
+          if (!response.ok) {
+            throw response;
+          }
+          state.get().setShow({ ...series, joinedAt: new Date() }, false);
+        }
+        const resp = await apiFetch(
+          '/api/1/courses/start_journey',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              journey_uid: association.journey.uid,
+              course_uid: series.uid,
+              course_jwt: series.jwt,
+            }),
+          },
+          loginContext
+        );
+        if (!resp.ok) {
+          throw resp;
+        }
+        const data = await resp.json();
+        const journey = convertUsingMapper(data, journeyRefKeyMap);
+        resources.get().gotoJourney(journey, series);
+      } catch (e) {
+        const err = await describeError(e);
+        setVWC(gotoJourneyError, err);
+      } finally {
+        setVWC(goingToJourney, false);
+      }
+    },
+    [goingToJourney, gotoJourneyError, loginContextRaw.value, resources, state]
   );
 
   return (
@@ -111,7 +203,11 @@ export const SeriesDetails = ({
           <RenderGuardedComponent
             props={useMappedValueWithCallbacks(
               showing,
-              (s) => s !== undefined && s !== null && !s.hasEntitlement
+              (s) =>
+                s !== undefined &&
+                s !== null &&
+                !s.hasEntitlement &&
+                s.revenueCatEntitlement === 'pro'
             )}
             component={(showUpgrade) =>
               !showUpgrade ? (
@@ -143,8 +239,11 @@ export const SeriesDetails = ({
             </div>
             <div className={styles.classList}>
               <RenderGuardedComponent
-                props={useMappedValueWithCallbacks(resources, (r) => r.journeys)}
-                component={(journeys) => (
+                props={useMappedValuesWithCallbacks([resources, hasEntitlementVWC], () => ({
+                  journeys: resources.get().journeys,
+                  hasEntitlement: hasEntitlementVWC.get(),
+                }))}
+                component={({ journeys, hasEntitlement }) => (
                   <>
                     {journeys === null ? (
                       <div className={styles.classesPlaceholder}>
@@ -156,12 +255,20 @@ export const SeriesDetails = ({
                       <div className={styles.classesPlaceholder}>No classes found</div>
                     ) : (
                       journeys.map((association, idx) => (
-                        <CourseJourney
-                          association={association}
-                          index={idx}
-                          imageHandler={resources.get().imageHandler}
+                        <button
                           key={association.priority}
-                        />
+                          className={styles.classButton}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleJourneyClick(association);
+                          }}
+                          disabled={!hasEntitlement}>
+                          <CourseJourney
+                            association={association}
+                            index={idx}
+                            imageHandler={resources.get().imageHandler}
+                          />
+                        </button>
                       ))
                     )}
                   </>

@@ -114,27 +114,11 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
             '/api/1/users/me/entitlements/pro',
             {
               method: 'GET',
-              headers: {
-                Pragma: 'no-cache',
-              },
             },
             loginContext
           );
           if (!active) {
             return;
-          }
-
-          if (response.status === 429) {
-            response = await apiFetch(
-              '/api/1/users/me/entitlements/pro',
-              {
-                method: 'GET',
-              },
-              loginContext
-            );
-            if (!active) {
-              return;
-            }
           }
 
           if (!response.ok) {
@@ -177,6 +161,7 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
             gotoEditReminderTimes: () => {},
             gotoMyLibrary: () => {},
             gotoSeries: () => {},
+            gotoManageMembership: () => {},
           };
         }
 
@@ -189,8 +174,12 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
           gotoEditReminderTimes: gotoEditTimesVWC.get(),
           gotoMyLibrary: gotoMyLibraryVWC.get(),
           gotoSeries: () => {
-            stateVWC.get().setShow(false, false);
             allStatesVWC.get().seriesList.setShow(true, true);
+            stateVWC.get().setShow(false, false);
+          },
+          gotoManageMembership: () => {
+            allStatesVWC.get().manageMembership.setShow(true, true);
+            stateVWC.get().setShow(false, false);
           },
         };
       }

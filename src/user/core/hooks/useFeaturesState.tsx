@@ -25,6 +25,8 @@ import { SeriesListFeature } from '../features/seriesList/SeriesListFeature';
 import { SeriesPreviewFeature } from '../features/seriesPreview/SeriesPreviewFeature';
 import { SeriesDetailsFeature } from '../features/seriesDetails/SeriesDetailsFeature';
 import { UpgradeFeature } from '../features/upgrade/UpgradeFeature';
+import { ManageMembershipFeature } from '../features/manageMembership/ManageMembershipFeature';
+import { SingleJourneyFeature } from '../features/singleJourney/SingleJourneyFeature';
 
 export const features = [
   TouchLinkFeature,
@@ -40,6 +42,8 @@ export const features = [
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
   IsaiahCourseFeature,
+  SingleJourneyFeature,
+  ManageMembershipFeature,
   UpgradeFeature,
   SeriesDetailsFeature,
   SeriesPreviewFeature,

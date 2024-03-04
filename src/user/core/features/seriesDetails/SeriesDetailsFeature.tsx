@@ -310,7 +310,9 @@ export const SeriesDetailsFeature: Feature<SeriesDetailsState, SeriesDetailsReso
         journeys,
         courseLikeState,
         gotoJourney(journey, course) {
-          // TODO: implement
+          console.log('going to journey', journey);
+          allStates.get().singleJourney.setShow({ type: 'generic', ref: journey });
+          state.get().setShow(null, true);
         },
         gotoUpgrade() {
           const course = courseVWC.get();

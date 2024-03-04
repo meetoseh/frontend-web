@@ -4,6 +4,7 @@ import { FavoritesState } from '../features/favorites/FavoritesState';
 import { GoalDaysPerWeekState } from '../features/goalDaysPerWeek/GoalDaysPerWeekState';
 import { IsaiahCourseState } from '../features/isaiahCourse/IsaiahCourseState';
 import { LoginState } from '../features/login/LoginState';
+import { ManageMembershipState } from '../features/manageMembership/ManageMembershipState';
 import { MergeAccountState } from '../features/mergeAccount/MergeAccountState';
 import { PickEmotionJourneyState } from '../features/pickEmotionJourney/PickEmotionJourneyState';
 import { RequestNameState } from '../features/requestName/RequestNameState';
@@ -15,6 +16,7 @@ import { SeriesPreviewState } from '../features/seriesPreview/SeriesPreviewState
 import { SettingsState } from '../features/settings/SettingsState';
 import { ShareJourneyState } from '../features/shareJourney/ShareJourneyState';
 import { SignupRewardState } from '../features/signupReward/SignupRewardState';
+import { SingleJourneyState } from '../features/singleJourney/SingleJourneyState';
 import { TouchLinkState } from '../features/touchLink/TouchLinkState';
 import { UpgradeState } from '../features/upgrade/UpgradeState';
 import { VipChatRequestState } from '../features/vipChatRequest/VipChatRequestState';
@@ -40,4 +42,6 @@ export type FeatureAllStates = {
   seriesPreview: SeriesPreviewState;
   seriesDetails: SeriesDetailsState;
   upgrade: UpgradeState;
+  manageMembership: ManageMembershipState;
+  singleJourney: SingleJourneyState;
 };

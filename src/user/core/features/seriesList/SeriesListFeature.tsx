@@ -59,11 +59,12 @@ export const SeriesListFeature: Feature<SeriesListState, SeriesListResources> = 
       loading: false,
       imageHandler,
       gotoSettings: () => {
-        state.get().setShow(false, false);
         allStates.get().settings.setShow(true, true);
+        state.get().setShow(false, false);
       },
       gotoCoursePreview: (course) => {
         allStates.get().seriesPreview.setShow(course, true);
+        state.get().setShow(false, false);
       },
     }));
   },

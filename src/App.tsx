@@ -104,6 +104,7 @@ function App() {
         <Route path="/" element={<UserApp />} />
         <Route path="/upgrade" element={<UserApp />} />
         <Route path="/settings" element={<UserApp />} />
+        <Route path="/settings/manage-membership" element={<UserApp />} />
         <Route path="/series" element={<UserApp />} />
         <Route path="/series/preview/*" element={<UserApp />} />
         <Route path="/series/details/*" element={<UserApp />} />

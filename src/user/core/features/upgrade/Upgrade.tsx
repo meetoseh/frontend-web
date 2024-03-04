@@ -426,6 +426,13 @@ export const valuePropsByContext = (typ: string): { icon: ReactElement; text: st
       { icon: <>❤️</>, text: 'Connect with yourself' },
       { icon: <>🌙</>, text: 'Improve sleep quality' },
     ];
+  } else if (typ === 'past') {
+    return [
+      { icon: <div className={styles.iconClock} />, text: 'Take longer classes' },
+      { icon: <div className={styles.iconSheet} />, text: 'Access the entire library' },
+      { icon: <div className={styles.iconSeries} />, text: 'Explore expert-led series' },
+      { icon: <>🧘</>, text: 'Reclaim your calm' },
+    ];
   } else {
     return [
       { icon: <div className={styles.iconClock} />, text: 'Unlock longer classes' },

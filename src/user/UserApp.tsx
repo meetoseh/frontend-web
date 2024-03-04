@@ -123,7 +123,7 @@ const UserAppInner = (): ReactElement => {
           }
         }
       },
-      [handlingCheckoutVWC]
+      [handlingCheckoutVWC, showCheckoutSuccessfulUntilVWC]
     )
   );
 

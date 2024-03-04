@@ -20,7 +20,6 @@ import { SettingLink, SettingsLinks } from './components/SettingLinks';
 import { SettingSection } from './components/SettingSection';
 import { useManageConnectWithProvider } from './hooks/useManageConnectWithProvider';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
-import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 
@@ -75,7 +74,26 @@ export const Settings = ({
     })
   );
 
-  const accountLinks = useMemo(() => [myLibraryLink, logoutLink], [myLibraryLink, logoutLink]);
+  const haveProVWC = useMappedValueWithCallbacks(resources, (r) => r.havePro);
+  const manageMembershipLink = useMappedValueWithCallbacks(
+    haveProVWC,
+    (havePro): SettingLink | null =>
+      havePro
+        ? {
+            text: 'Manage Membership',
+            key: 'manage-membership',
+            onClick: () => {
+              resources.get().gotoManageMembership();
+              return undefined;
+            },
+          }
+        : null
+  );
+
+  const accountLinks = useMemo(
+    () => [myLibraryLink, manageMembershipLink, logoutLink],
+    [myLibraryLink, manageMembershipLink, logoutLink]
+  );
 
   const remindersLink = useWritableValueWithCallbacks(
     (): SettingLink => ({

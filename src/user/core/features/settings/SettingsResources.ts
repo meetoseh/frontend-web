@@ -53,4 +53,9 @@ export type SettingsResources = {
    * Should be called if the user wants to go to the series list screen.
    */
   gotoSeries: () => void;
+
+  /**
+   * Should be called if the user wants to go to the manage membership screen.
+   */
+  gotoManageMembership: () => void;
 };
