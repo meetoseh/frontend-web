@@ -428,18 +428,6 @@ export const useOsehImageStateRequestHandler = ({
         preferredPixelRatio: largestPhysicalPerLogical,
       });
 
-      let bestItemReleased = false;
-      const releaseItem = () => {
-        if (!bestItemReleased) {
-          bestItemReleased = true;
-          req.releasedCallbacks.remove(releaseItem);
-          canceledCallbacks.remove(releaseItem);
-          imagesByURL.reduceRefCount(bestItem.item.url);
-        }
-      };
-      req.releasedCallbacks.add(releaseItem);
-      canceledCallbacks.add(releaseItem);
-
       if (req.requested.state.thumbhash !== bestItem.item.thumbhash) {
         reqDangerous.requested.state = {
           ...reqDangerous.requested.state,
@@ -482,6 +470,18 @@ export const useOsehImageStateRequestHandler = ({
           displayHeight: goingToUseLogicalHeight,
         };
       }
+
+      let bestItemReleased = false;
+      const releaseItem = () => {
+        if (!bestItemReleased) {
+          bestItemReleased = true;
+          req.releasedCallbacks.remove(releaseItem);
+          canceledCallbacks.remove(releaseItem);
+          imagesByURL.reduceRefCount(bestItem.item.url);
+        }
+      };
+      req.releasedCallbacks.add(releaseItem);
+      canceledCallbacks.add(releaseItem);
 
       let item: DownloadedItem;
       try {
