@@ -253,6 +253,51 @@ export function selectFormat<T extends Playlist>(
 }
 
 /**
+ * Determines if two aspect ratios are approximately equal. This is important
+ * over exact aspect ratio comparisons, since the true original aspect ratio was
+ * potentially lost when the image was exported, and larger resolutions might have
+ * resulted in better approximations of the true original aspect ratio than would
+ * be possible to represent using integers at the smaller resolutions. In other
+ * words, 2x of 100x50 may sometimes be 200x101, rather than 200x100, if the true
+ * original resolution is closer to 200x101 than 2x1, but closer to 2x1 than 100x51
+ */
+const areAspectRatiosApproximatelyEqual = (
+  a: { width: number; height: number },
+  b: { width: number; height: number }
+): boolean => {
+  if (a.width === b.width && a.height === b.height) {
+    return true;
+  }
+
+  if (a.height === 0) {
+    return b.height === 0;
+  }
+  if (b.height === 0) {
+    return false;
+  }
+  if (a.width === 0) {
+    return b.width === 0;
+  }
+  if (b.width === 0) {
+    return false;
+  }
+
+  const widthOverHeightA = a.width / a.height;
+  const widthOverHeightB = b.width / b.height;
+  const relativeDifferenceWoH =
+    Math.abs(widthOverHeightA - widthOverHeightB) / Math.max(widthOverHeightA, widthOverHeightB);
+  if (relativeDifferenceWoH < 0.05) {
+    return true;
+  }
+
+  const heightOverWidthA = a.height / a.width;
+  const heightOverWidthB = b.height / b.width;
+  const relativeDifferenceHoW =
+    Math.abs(heightOverWidthA - heightOverWidthB) / Math.max(heightOverWidthA, heightOverWidthB);
+  return relativeDifferenceHoW < 0.05;
+};
+
+/**
  * Selects the best item within the given list of options, given
  * that we want to render it at the given width and height. This
  * implicitly assumes rasterized items, and thus the comparison
@@ -301,10 +346,7 @@ const selectBestItemFromItems = (items: PlaylistItem[], want: LogicalSize): Play
 
   for (let i = 1; i < items.length; i++) {
     const aspectRatio = reduceImageSizeExactly(items[i]);
-    if (
-      aspectRatio.width !== bestAspectRatio.width ||
-      aspectRatio.height !== bestAspectRatio.height
-    ) {
+    if (!areAspectRatiosApproximatelyEqual(bestAspectRatio, aspectRatio)) {
       const compareResult = want.compareAspectRatios(bestAspectRatio, aspectRatio);
 
       if (compareResult < 0) {

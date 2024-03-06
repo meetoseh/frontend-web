@@ -779,11 +779,11 @@ export const CreateCourse = ({ onCreated }: CreateCourseProps): ReactElement => 
               inputStyle={valid === null ? 'normal' : valid ? 'success' : 'error'}
               onChange={adaptValueWithCallbacksAsSetState(descriptionVWC)}
               disabled={false}
-              help="About 250 characters describing the course. Write outside and paste in. Newlines are not supported."
+              help="About 400 characters describing the course. Write outside and paste in. Newlines are not supported."
               html5Validation={{
                 required: true,
                 minLength: 1,
-                maxLength: 100,
+                maxLength: 1024,
                 pattern: '[a-z0-9-]+',
               }}
             />

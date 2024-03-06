@@ -15,3 +15,5 @@ export type LogicalSize =
       height: number;
       compareAspectRatios: AspectRatioComparer;
     };
+
+export type UnderspecifiedPhysicalSize = LogicalSize;

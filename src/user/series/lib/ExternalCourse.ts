@@ -17,7 +17,7 @@ export type ExternalCourse = {
   slug: string;
   /** Title; usually rendered via the logo */
   title: string;
-  /** Approximately 250-character description */
+  /** Approximately 400-character description */
   description: string;
   /** The instructor */
   instructor: ExternalCourseInstructor;

@@ -29,7 +29,7 @@ export type Course = {
   title: string;
 
   /**
-   * The description of the course in around 250 characters
+   * The description of the course in around 400 characters
    */
   description: string;
 

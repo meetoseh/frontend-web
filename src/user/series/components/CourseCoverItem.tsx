@@ -12,6 +12,7 @@ import { RenderGuardedComponent } from '../../../shared/components/RenderGuarded
 import { areOsehImageStatesEqual } from '../../../shared/images/OsehImageState';
 import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { largestPhysicalPerLogical } from '../../../shared/images/DisplayRatioHelper';
 
 export type CourseCoverItemProps = {
   /**
@@ -69,7 +70,8 @@ export const CourseCoverItem = ({
       const windowSize = windowSizeVWC.get();
 
       const width = Math.min(342, windowSize.width - 48);
-      const height = Math.floor(width * (427 / 342) * devicePixelRatio) / devicePixelRatio;
+      const height =
+        Math.floor(width * (427 / 342) * largestPhysicalPerLogical) / largestPhysicalPerLogical;
 
       return {
         uid: itm.backgroundImage.uid,

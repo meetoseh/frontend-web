@@ -19,6 +19,8 @@ import { cropImage } from './cropImage';
 import { USES_SVG } from './usesSvg';
 import { getJwtExpiration } from '../lib/getJwtExpiration';
 import { getCurrentServerTimeMS } from '../lib/getCurrentServerTimeMS';
+import { largestPhysicalPerLogical } from './DisplayRatioHelper';
+import { scaleImage } from './scaleImage';
 
 /**
  * Describes a manually ref-counted reference to a given OsehImageState. While
@@ -104,30 +106,40 @@ export type OsehImageStateRequestHandler = {
 /** A crop id is always a safe filename identifier */
 type CropID = string;
 /** Provides a valid filename unique to the given crop */
-const getCropID = (url: string, width: number, height: number): CropID => {
+const getCropID = (
+  url: string,
+  width: number,
+  height: number,
+  isUnderspecified: boolean
+): CropID => {
   // if it includes query parameters, use fallback flow
   if (url.includes('?')) {
-    return getFallbackCropID(url, width, height);
+    return getFallbackCropID(url, width, height, isUnderspecified);
   }
 
   const lastSlashIdx = url.lastIndexOf('/');
   if (lastSlashIdx < 0) {
-    return getFallbackCropID(url, width, height);
+    return getFallbackCropID(url, width, height, isUnderspecified);
   }
 
   const lastPart = url.substring(lastSlashIdx + 1);
   if (!lastPart.startsWith('oseh_ife_')) {
-    return getFallbackCropID(url, width, height);
+    return getFallbackCropID(url, width, height, isUnderspecified);
   }
 
   const extensionIdx = lastPart.indexOf('.');
   const uid = extensionIdx < 0 ? lastPart : lastPart.substring(0, extensionIdx);
 
-  return `${uid}-${width}-${height}`;
+  return `${uid}-${width}-${height}${isUnderspecified ? '-us' : ''}`;
 };
 
-const getFallbackCropID = (url: string, width: number, height: number): CropID => {
-  return `${encodeAsFilename(url)}-${width}-${height}`;
+const getFallbackCropID = (
+  url: string,
+  width: number,
+  height: number,
+  isUnderspecified: boolean
+): CropID => {
+  return `${encodeAsFilename(url)}-${width}-${height}${isUnderspecified ? '-us' : ''}`;
 };
 
 const encodeAsFilename = (s: string): string => {
@@ -413,7 +425,7 @@ export const useOsehImageStateRequestHandler = ({
                 compareAspectRatios: req.props.compareAspectRatio,
               }
             : { width: req.props.displayWidth, height: req.props.displayHeight },
-        preferredPixelRatio: devicePixelRatio,
+        preferredPixelRatio: largestPhysicalPerLogical,
       });
 
       let bestItemReleased = false;
@@ -440,34 +452,35 @@ export const useOsehImageStateRequestHandler = ({
         }
       }
 
-      const actualDisplayWidth = (bestItem.cropTo?.width ?? bestItem.item.width) / devicePixelRatio;
-      const actualDisplayHeight =
-        (bestItem.cropTo?.height ?? bestItem.item.height) / devicePixelRatio;
+      // Now that we know the best item, we should update the state so it knows
+      // the actual display size while we're downloading the image
+      const isUnderspecified = req.props.displayWidth === null || req.props.displayHeight === null;
 
-      if (
-        req.props.displayWidth === null &&
-        Math.abs(actualDisplayWidth - reqDangerous.requested.state.displayWidth) *
-          devicePixelRatio >=
-          1
-      ) {
+      if (req.props.displayWidth === null) {
+        const requestedLogicalHeight = req.props.displayHeight;
+        const goingToUsePhysicalHeight = bestItem.cropTo?.height ?? bestItem.item.height;
+        const goingToUsePhysPixelsPerLogicalPixel =
+          goingToUsePhysicalHeight / requestedLogicalHeight;
+        const goingToUsePhysicalWidth = bestItem.cropTo?.width ?? bestItem.item.width;
+        const goingToUseLogicalWidth =
+          goingToUsePhysicalWidth / goingToUsePhysPixelsPerLogicalPixel;
         reqDangerous.requested.state = {
           ...reqDangerous.requested.state,
-          displayWidth: actualDisplayWidth,
+          displayWidth: goingToUseLogicalWidth,
         };
-        req.requested.stateChanged.call(reqDangerous.requested.state);
       }
 
-      if (
-        req.props.displayHeight === null &&
-        Math.abs(actualDisplayHeight - reqDangerous.requested.state.displayHeight) *
-          devicePixelRatio >=
-          1
-      ) {
+      if (req.props.displayHeight === null) {
+        const requestedLogicalWidth = req.props.displayWidth;
+        const goingToUsePhysicalWidth = bestItem.cropTo?.width ?? bestItem.item.width;
+        const goingToUsePhysPixelsPerLogicalPixel = goingToUsePhysicalWidth / requestedLogicalWidth;
+        const goingToUsePhysicalHeight = bestItem.cropTo?.height ?? bestItem.item.height;
+        const goingToUseLogicalHeight =
+          goingToUsePhysicalHeight / goingToUsePhysPixelsPerLogicalPixel;
         reqDangerous.requested.state = {
           ...reqDangerous.requested.state,
-          displayHeight: actualDisplayHeight,
+          displayHeight: goingToUseLogicalHeight,
         };
-        req.requested.stateChanged.call(reqDangerous.requested.state);
       }
 
       let item: DownloadedItem;
@@ -491,7 +504,12 @@ export const useOsehImageStateRequestHandler = ({
         req.requested.stateChanged.call(reqDangerous.requested.state);
         return;
       }
-      const cropID = getCropID(bestItem.item.url, bestItem.cropTo.width, bestItem.cropTo.height);
+      const cropID = getCropID(
+        bestItem.item.url,
+        bestItem.cropTo.width,
+        bestItem.cropTo.height,
+        isUnderspecified
+      );
 
       let cropReleased = false;
       const releaseCrop = () => {
@@ -511,7 +529,8 @@ export const useOsehImageStateRequestHandler = ({
           bestItem.item,
           bestItem.cropTo,
           cropID,
-          bestItem.item.format === 'svg'
+          bestItem.item.format === 'svg',
+          isUnderspecified
         );
       } catch (e) {
         handleError(e);
@@ -695,7 +714,8 @@ export const useOsehImageStateRequestHandler = ({
       srcSize: { width: number; height: number },
       cropTo: { width: number; height: number },
       cropID: string,
-      isVector: boolean
+      isVector: boolean,
+      isUnderspecified: boolean
     ): Promise<DownloadedItem> {
       const reused = cropsByCropID.get(cropID);
       if (reused !== undefined) {
@@ -723,7 +743,7 @@ export const useOsehImageStateRequestHandler = ({
           return;
         }
 
-        const croppedUrl = await cropImage(
+        const croppedUrl = await (isUnderspecified ? scaleImage : cropImage)(
           downloaded.originalLocalUrl,
           srcSize,
           cropTo,
