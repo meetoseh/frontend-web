@@ -20,9 +20,8 @@ import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { JourneyRef, journeyRefKeyMap } from '../../../journey/models/JourneyRef';
+import { journeyRefKeyMap } from '../../../journey/models/JourneyRef';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
-import { combineClasses } from '../../../../shared/lib/combineClasses';
 import { convertUsingMapper } from '../../../../admin/crud/CrudFetcher';
 
 export const SeriesDetails = ({
