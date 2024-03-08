@@ -92,6 +92,7 @@ export const useOsehImageStateValueWithCallbacks = (
         alt: props.alt,
         isPublic: props.isPublic,
         placeholderColor: props.placeholderColor,
+        thumbhashOnly: props.thumbhashOnly,
       };
 
       if (cpProps.uid === null) {

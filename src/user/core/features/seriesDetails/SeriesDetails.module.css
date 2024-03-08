@@ -1,11 +1,18 @@
 .container {
   display: grid;
   grid-template: 1fr / 1fr;
+  position: relative;
 }
 
 .background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -1;
+}
+
+.background > * {
   grid-area: 1 / 1 / 1 / 1;
-  background: linear-gradient(0deg, #010101 0%, #273136 37%, #2d2e2e 100%);
 }
 
 .content {

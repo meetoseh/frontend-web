@@ -20,6 +20,10 @@ import {
 } from '../../../favorites/lib/MinimalCourseJourney';
 import { useCourseLikeState } from '../../../favorites/hooks/useCourseLikeState';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
+import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
+import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
+import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 
 export const SeriesDetailsFeature: Feature<SeriesDetailsState, SeriesDetailsResources> = {
   identifier: 'seriesDetails',
@@ -200,6 +204,7 @@ export const SeriesDetailsFeature: Feature<SeriesDetailsState, SeriesDetailsReso
     const journeysVWC = useWritableValueWithCallbacks<MinimalCourseJourney[] | null | undefined>(
       () => undefined
     );
+    const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
     const courseVWC = useMappedValuesWithCallbacks([state, required], () => {
       const req = required.get();
@@ -302,29 +307,55 @@ export const SeriesDetailsFeature: Feature<SeriesDetailsState, SeriesDetailsReso
       }
     });
 
-    return useMappedValuesWithCallbacks([journeysVWC], (): SeriesDetailsResources => {
-      const journeys = journeysVWC.get();
-      return {
-        loading: journeys === undefined,
-        imageHandler,
-        journeys,
-        courseLikeState,
-        gotoJourney(journey, course) {
-          allStates.get().singleJourney.setShow({ type: 'generic', ref: journey });
-          state.get().setShow(null, true);
-        },
-        gotoUpgrade() {
-          const course = courseVWC.get();
-          allStates
-            .get()
-            .upgrade.setContext(
-              course !== undefined ? { type: 'series', course } : { type: 'generic' },
-              true
-            );
-          state.get().setShow(null, false);
-        },
-      };
-    });
+    const backgroundImagePropsVWC = useMappedValuesWithCallbacks(
+      [journeysVWC, windowSizeVWC, required],
+      (r): OsehImageProps => {
+        const imgRef = !required.get() ? null : journeysVWC.get()?.[0]?.journey?.darkenedBackground;
+        return {
+          uid: imgRef?.uid ?? null,
+          jwt: imgRef?.jwt ?? null,
+          displayWidth: windowSizeVWC.get().width,
+          displayHeight: windowSizeVWC.get().height,
+          alt: '',
+          placeholderColor: 'black',
+          thumbhashOnly: true,
+        };
+      }
+    );
+
+    const backgroundImageStateVWC = useOsehImageStateValueWithCallbacks(
+      adaptValueWithCallbacksAsVariableStrategyProps(backgroundImagePropsVWC),
+      imageHandler
+    );
+
+    return useMappedValuesWithCallbacks(
+      [journeysVWC, backgroundImageStateVWC],
+      (): SeriesDetailsResources => {
+        const journeys = journeysVWC.get();
+        const backgroundImage = backgroundImageStateVWC.get();
+        return {
+          loading: journeys === undefined || backgroundImage.thumbhash === null,
+          imageHandler,
+          journeys,
+          courseLikeState,
+          backgroundImage,
+          gotoJourney(journey, course) {
+            allStates.get().singleJourney.setShow({ type: 'generic', ref: journey });
+            state.get().setShow(null, true);
+          },
+          gotoUpgrade() {
+            const course = courseVWC.get();
+            allStates
+              .get()
+              .upgrade.setContext(
+                course !== undefined ? { type: 'series', course } : { type: 'generic' },
+                true
+              );
+            state.get().setShow(null, false);
+          },
+        };
+      }
+    );
   },
   component: (state, resources) => <SeriesDetails state={state} resources={resources} />,
 };

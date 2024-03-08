@@ -440,6 +440,10 @@ export const useOsehImageStateRequestHandler = ({
         }
       }
 
+      if (req.props.thumbhashOnly) {
+        return;
+      }
+
       // Now that we know the best item, we should update the state so it knows
       // the actual display size while we're downloading the image
       const isUnderspecified = req.props.displayWidth === null || req.props.displayHeight === null;

@@ -23,25 +23,15 @@ import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { journeyRefKeyMap } from '../../../journey/models/JourneyRef';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { convertUsingMapper } from '../../../../admin/crud/CrudFetcher';
+import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
 
 export const SeriesDetails = ({
   state,
   resources,
 }: FeatureComponentProps<SeriesDetailsState, SeriesDetailsResources>) => {
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
-  const backgroundRefVWC = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   const modalContext = useContext(ModalContext);
   const loginContextRaw = useContext(LoginContext);
-
-  useValuesWithCallbacksEffect([windowSizeVWC, backgroundRefVWC], () => {
-    const size = windowSizeVWC.get();
-    const bknd = backgroundRefVWC.get();
-
-    if (bknd !== null) {
-      bknd.style.minHeight = `${size.height}px`;
-    }
-    return undefined;
-  });
 
   const showing = useMappedValueWithCallbacks(state, (s) => s.show);
   const onCloseClick = useCallback(
@@ -137,10 +127,25 @@ export const SeriesDetails = ({
     [goingToJourney, gotoJourneyError, loginContextRaw.value, resources, state]
   );
 
+  const contentRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  useValuesWithCallbacksEffect([contentRef, windowSizeVWC], () => {
+    const ele = contentRef.get();
+    const height = windowSizeVWC.get().height;
+
+    if (ele !== null) {
+      ele.style.minHeight = `${height}px`;
+    }
+    return undefined;
+  });
+
   return (
     <div className={styles.container}>
-      <div className={styles.background} ref={(v) => setVWC(backgroundRefVWC, v)} />
-      <div className={styles.content}>
+      <div className={styles.background}>
+        <OsehImageFromStateValueWithCallbacks
+          state={useMappedValueWithCallbacks(resources, (r) => r.backgroundImage)}
+        />
+      </div>
+      <div className={styles.content} ref={(r) => setVWC(contentRef, r)}>
         <div className={styles.closeContainer}>
           <IconButton icon={styles.closeIcon} srOnlyName="Close" onClick={onCloseClick} />
         </div>

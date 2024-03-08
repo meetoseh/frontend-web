@@ -32,6 +32,12 @@ export type OsehImageProps = DisplaySize & {
    * is loading
    */
   placeholderColor?: string;
+
+  /**
+   * If specified and true, the thumbhash is desired, not the actual image. If rendered,
+   * only render the thumbhash.
+   */
+  thumbhashOnly?: boolean;
 };
 
 export type OsehImagePropsLoadable = OsehImageProps & { uid: string };
