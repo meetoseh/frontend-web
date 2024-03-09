@@ -54,8 +54,8 @@ export const defaultFilter: CrudFetcherFilter = {
       value: HomeScreenImageFlags.VISIBLE_IN_ADMIN,
     },
     comparison: {
-      operator: 'neq',
-      value: 0,
+      operator: 'eq',
+      value: HomeScreenImageFlags.VISIBLE_IN_ADMIN,
     },
   },
 };
@@ -313,7 +313,7 @@ export const HomeScreenImageFilterAndSortBlock = ({
                       ...currentFilter,
                       flags: {
                         mutation: { operator: 'and', value: parsed },
-                        comparison: { operator: 'neq', value: 0 },
+                        comparison: { operator: 'eq', value: parsed },
                       },
                     },
                     () => false
@@ -357,7 +357,7 @@ export const HomeScreenImageFilterAndSortBlock = ({
                             ...filterVWC.get(),
                             flags: {
                               mutation: { operator: 'and', value: newFlag },
-                              comparison: { operator: 'neq', value: 0 },
+                              comparison: { operator: 'eq', value: newFlag },
                             },
                           },
                           () => false
