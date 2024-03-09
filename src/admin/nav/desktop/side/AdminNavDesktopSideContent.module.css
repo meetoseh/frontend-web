@@ -24,6 +24,11 @@
   background-image: url('./icons/journeys.svg');
 }
 
+.iconHomeScreenImages {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/camera.svg');
+}
+
 .iconJourneySubcategories {
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/journey-subcategories.svg');

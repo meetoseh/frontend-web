@@ -30,6 +30,7 @@ import { AdminSignInWithOsehDashboard } from './sign_in_with_oseh_dashboard/Admi
 import { AdminSharingDashboard } from './sharing_dashboard/SharingDashboard';
 import { FlowChartExamples } from './flow_chart_examples/FlowChartExamples';
 import { Courses } from './courses/Courses';
+import { HomeScreenImages } from './home_screen_images/HomeScreenImages';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -51,6 +52,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="sign_in_with_oseh_dashboard" element={<AdminSignInWithOsehDashboard />} />
       <Route path="flow_chart_examples" element={<FlowChartExamples />} />
       <Route path="series" element={<Courses />} />
+      <Route path="home_screen_images" element={<HomeScreenImages />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />

@@ -1,0 +1,36 @@
+.edited {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 10px;
+  color: #232323;
+}
+
+.formItemTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.15px;
+  color: #232323;
+  margin-bottom: 13px;
+}
+
+.formItemInput {
+  outline: none;
+
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  color: #232323;
+  background-color: transparent;
+  padding: 0;
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent;
+  border-left-width: 0px;
+  border-right-width: 12px;
+  border-radius: 5px;
+  margin: 0;
+  color-scheme: light;
+}

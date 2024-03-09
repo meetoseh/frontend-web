@@ -9,6 +9,10 @@ import styles from './EditTimeRange.module.css';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { Button } from '../../../../shared/forms/Button';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
+import {
+  inputToSecondsOffset,
+  secondsOffsetToInput,
+} from '../../../../shared/lib/secondsOffsetUtils';
 
 /**
  * Describes a time range, e.g., 8am-10am. To avoid ambiguity on days
@@ -160,28 +164,4 @@ export const EditTimeRange = ({
       </form>
     </div>
   );
-};
-
-const secondsOffsetToInput = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds - hours * 3600) / 60);
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-};
-
-const inputToSecondsOffset = (input: string): number | null => {
-  if (input.length === 5 && input[2] === ':') {
-    try {
-      const hours = parseInt(input.slice(0, 2));
-      const minutes = parseInt(input.slice(3, 5));
-      const result = hours * 3600 + minutes * 60;
-      if (result < 0 || result >= 86400) {
-        return null;
-      }
-      return result;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  return null;
 };

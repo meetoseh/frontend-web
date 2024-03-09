@@ -10,7 +10,10 @@ import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
  */
 export const useWorkingModal = (
   modals: WritableValueWithCallbacks<Modals>,
-  working: ValueWithCallbacks<boolean>
+  working: ValueWithCallbacks<boolean>,
+  title?: string,
+  progressBarFraction?: ValueWithCallbacks<number>,
+  variant?: 'spinner' | 'nospinner'
 ) => {
   useValueWithCallbacksEffect(
     working,
@@ -20,7 +23,14 @@ export const useWorkingModal = (
           return;
         }
 
-        return addModalWithCallbackToRemove(modals, <WorkingOverlay />);
+        return addModalWithCallbackToRemove(
+          modals,
+          <WorkingOverlay
+            title={title}
+            progressBarFraction={progressBarFraction}
+            variant={variant}
+          />
+        );
       },
       [modals]
     )

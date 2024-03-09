@@ -54,6 +54,13 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/series"
             active={currentPath === '/admin/series'}
           />
+          <AdminNavDesktopSideSectionHeader text="Home" />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconHomeScreenImages}
+            text="Home Screen Images"
+            url="/admin/home_screen_images"
+            active={currentPath === '/admin/home_screen_images'}
+          />
           <AdminNavDesktopSideSectionHeader text="Advanced" />
           <AdminNavDesktopSideLink
             iconClass={styles.iconJourneySubcategories}
