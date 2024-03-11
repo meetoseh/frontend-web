@@ -15,6 +15,11 @@ export type SeriesPreviewResources = {
   imageHandler: OsehImageStateRequestHandler;
 
   /**
+   * Can be called to return to the previous screen
+   */
+  goBack: () => void;
+
+  /**
    * Can be called to display the series details on the given series,
    * presumably because they asked for it
    * @param series The series to show details for
