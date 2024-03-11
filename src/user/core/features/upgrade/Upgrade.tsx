@@ -191,7 +191,7 @@ export const Upgrade = ({
           },
           body: JSON.stringify({
             package_id: pkg.identifier,
-            cancel_path: '/',
+            cancel_path: '/upgrade',
             success_path: '/',
           }),
         },
