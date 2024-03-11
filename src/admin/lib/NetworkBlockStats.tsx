@@ -4,8 +4,8 @@ import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { fromSnakeToTitleCase } from './fromSnakeToTitleCase';
-import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
 import { ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { IconButton } from '../../shared/forms/IconButton';
 
 export type NetworkBlockStatsItem = {
   /**
@@ -98,27 +98,26 @@ export const NetworkBlockStats = ({
     )
   );
 
-  const unwrappedDataError = useUnwrappedValueWithCallbacks(data.error, Object.is);
-  const unwrappedDataResult = useUnwrappedValueWithCallbacks(data.result, Object.is);
+  const unwrappedData = useUnwrappedValueWithCallbacks(data, Object.is);
 
-  if (unwrappedDataError !== null) {
-    return <ErrorBlock>{unwrappedDataError}</ErrorBlock>;
+  if (unwrappedData.error !== null) {
+    return <ErrorBlock>{unwrappedData.error}</ErrorBlock>;
   }
 
-  if (typeof unwrappedDataResult === 'number') {
-    return specialStatusCodes?.[unwrappedDataResult]?.() ?? <ErrorBlock>Unknown error</ErrorBlock>;
+  if (typeof unwrappedData.result === 'number') {
+    return specialStatusCodes?.[unwrappedData.result]?.() ?? <ErrorBlock>Unknown error</ErrorBlock>;
   }
 
   return (
     <>
       {items.map((item, i) => {
         const value =
-          unwrappedDataResult === undefined
+          unwrappedData.result === undefined
             ? undefined
-            : unwrappedDataResult === null
+            : unwrappedData.result === null
             ? null
-            : (unwrappedDataResult as object).hasOwnProperty(item.key)
-            ? unwrappedDataResult[item.key]
+            : (unwrappedData.result as object).hasOwnProperty(item.key)
+            ? unwrappedData.result[item.key]
             : undefined;
 
         return (
@@ -132,11 +131,13 @@ export const NetworkBlockStats = ({
               </div>
               {i === 0 && (
                 <div className={styles.blockStatisticControls}>
-                  <IconButtonWithAutoDisable
+                  <IconButton
                     icon={styles.iconRefresh}
                     srOnlyName="refresh"
-                    onClick={data.refresh}
-                    spinWhileDisabled
+                    onClick={(e) => {
+                      e.preventDefault();
+                      data.get().refresh?.();
+                    }}
                   />
                 </div>
               )}

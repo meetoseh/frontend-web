@@ -1,6 +1,6 @@
 import { Fragment, ReactElement, useCallback } from 'react';
 import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
-import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import {
   AdminDashboardLargeChartItem,
   AdminDashboardLargeChartProps,
@@ -11,11 +11,11 @@ import { SectionGraphs, SectionStatsMultiday } from '../notifs_dashboard/AdminNo
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { formatNetworkDashboard, formatNetworkError } from '../../shared/lib/networkResponseUtils';
 import { setVWC } from '../../shared/lib/setVWC';
-import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 import styles from './NetworkChart.module.css';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
 import { fromSnakeToTitleCase } from './fromSnakeToTitleCase';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 
 type NetworkChartProps = {
   /**
@@ -90,9 +90,10 @@ export const NetworkChart = ({
 
   const predictedDays = useWritableValueWithCallbacks<number>(() => 2);
   useValueWithCallbacksEffect(
-    partialData.result,
+    partialData,
     useCallback(
-      (r) => {
+      (data) => {
+        const r = data.result;
         if (r === null || r === undefined) {
           return undefined;
         }
@@ -118,15 +119,23 @@ export const NetworkChart = ({
     setVWC(loadPrevented, false);
   }, [loadPrevented]);
 
+  const refreshPartialData = useMappedValueWithCallbacks(partialData, (v) => v.refresh);
+
   return (
     <div
       className={styles.sectionGraphsAndTodaysStats}
       style={marginBottom === undefined ? undefined : { marginBottom: `${marginBottom}px` }}>
       <SectionGraphs>
-        <RenderGuardedComponent props={historicalData.error} component={formatNetworkError} />
-        <RenderGuardedComponent props={partialData.error} component={formatNetworkError} />
         <RenderGuardedComponent
-          props={historicalData.result}
+          props={useMappedValueWithCallbacks(historicalData, (v) => v.error)}
+          component={formatNetworkError}
+        />
+        <RenderGuardedComponent
+          props={useMappedValueWithCallbacks(partialData, (v) => v.error)}
+          component={formatNetworkError}
+        />
+        <RenderGuardedComponent
+          props={useMappedValueWithCallbacks(historicalData, (v) => v.result)}
           component={(v) =>
             formatNetworkDashboard(v ?? undefined, {
               onVisible,
@@ -138,13 +147,15 @@ export const NetworkChart = ({
         props={predictedDays}
         component={(ndays) => (
           <SectionStatsMultiday
-            refresh={partialData.refresh}
+            refresh={refreshPartialData}
             days={[
               ...(ndays >= 3
                 ? [
                     {
                       name: 'Two Days Ago',
-                      content: <PartialStatsDisplay value={partialData} keyName="twoDaysAgo" />,
+                      content: (
+                        <PartialStatsDisplayFromVWC value={partialData} keyName="twoDaysAgo" />
+                      ),
                     },
                   ]
                 : []),
@@ -152,13 +163,15 @@ export const NetworkChart = ({
                 ? [
                     {
                       name: 'Yesterday',
-                      content: <PartialStatsDisplay value={partialData} keyName="yesterday" />,
+                      content: (
+                        <PartialStatsDisplayFromVWC value={partialData} keyName="yesterday" />
+                      ),
                     },
                   ]
                 : []),
               {
                 name: 'Today',
-                content: <PartialStatsDisplay value={partialData} keyName="today" />,
+                content: <PartialStatsDisplayFromVWC value={partialData} keyName="today" />,
               },
             ]}
           />
@@ -246,6 +259,19 @@ const parseChart = (data: any): AdminDashboardLargeChartProps => {
   };
 };
 
+export const PartialStatsDisplayFromVWC = ({
+  value,
+  keyName,
+}: {
+  value: ValueWithCallbacks<NetworkResponse<PartialStats>>;
+  keyName: 'twoDaysAgo' | 'yesterday' | 'today';
+}): ReactElement => (
+  <RenderGuardedComponent
+    props={value}
+    component={(v) => <PartialStatsDisplay value={v} keyName={keyName} />}
+  />
+);
+
 /**
  * Displays partial stats that were loaded from the network.
  */
@@ -256,8 +282,8 @@ export const PartialStatsDisplay = ({
   value: NetworkResponse<PartialStats>;
   keyName: 'twoDaysAgo' | 'yesterday' | 'today';
 }): ReactElement => {
-  const unwrapped = useUnwrappedValueWithCallbacks(value.result);
-  if (unwrapped === null) {
+  const unwrapped = value.result;
+  if (unwrapped === null || unwrapped === undefined) {
     return <div style={{ minHeight: '500px', minWidth: 'min(440px, 80vw)' }}></div>;
   }
   if (!unwrapped.hasOwnProperty(keyName)) {
@@ -285,7 +311,7 @@ export const PartialStatsDisplay = ({
             <div className={styles.sectionStatsTodayItem}>
               <div className={styles.sectionStatsTodayItemTitle}>{itemsByKey[key].label}</div>
               <div className={styles.sectionStatsTodayItemValue}>{item.data.toLocaleString()}</div>
-              <RenderGuardedComponent props={value.error} component={formatNetworkError} />
+              {formatNetworkError(value.error)}
             </div>
             {item.breakdown !== undefined && Object.keys(item.breakdown).length > 0 && (
               <div className={styles.sectionStatsTodayItemBreakdown}>

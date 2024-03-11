@@ -19,15 +19,12 @@ import { OsehImage } from '../../shared/images/OsehImage';
 import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import styles from './HomeScreenImageDetails.module.css';
-import { TextInput } from '../../shared/forms/TextInput';
 import { inputToSecondsOffset, secondsOffsetToInput } from '../../shared/lib/secondsOffsetUtils';
 import { useBeforeTime } from '../../shared/hooks/useBeforeTime';
 import { useDelayedValueWithCallbacks } from '../../shared/hooks/useDelayedValueWithCallbacks';
 import { Checkbox } from '../../shared/forms/Checkbox';
 import { HomeScreenImageFlags } from './flags/HomeScreenImageFlags';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
-import { SlideInModal } from '../../shared/components/SlideInModal';
-import { SmoothExpandable } from '../../shared/components/SmoothExpandable';
 import { Button } from '../../shared/forms/Button';
 import { showYesNoModal } from '../../shared/lib/showYesNoModal';
 
@@ -184,7 +181,7 @@ export const HomeScreenImageDetails = ({
         setVWC(savingVWC, false);
       }
     },
-    [homeScreenImage, setHomeScreenImage, savingVWC, loginContextRaw]
+    [homeScreenImage, setHomeScreenImage, savingVWC, loginContextRaw, errorVWC, saveAt]
   );
 
   useValuesWithCallbacksEffect([saveDueInverted, savingVWC, queuedPatchVWC], () => {

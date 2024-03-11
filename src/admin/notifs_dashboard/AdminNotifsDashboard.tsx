@@ -1,6 +1,6 @@
 import { PropsWithChildren, ReactElement, useCallback, useMemo } from 'react';
 import styles from './AdminNotifsDashboard.module.css';
-import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { setVWC } from '../../shared/lib/setVWC';
 import { SmoothExpandable } from '../../shared/components/SmoothExpandable';
@@ -11,7 +11,6 @@ import { combineClasses } from '../../shared/lib/combineClasses';
 import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../shared/ApiConstants';
 import { AdminDashboardLargeChartProps } from '../dashboard/AdminDashboardLargeChart';
-import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../crud/CrudFetcher';
 import {
   formatNetworkDashboard,
@@ -20,6 +19,8 @@ import {
   formatNetworkError,
   formatNetworkNumber,
 } from '../../shared/lib/networkResponseUtils';
+import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
+import { IconButton } from '../../shared/forms/IconButton';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 24 },
@@ -829,9 +830,12 @@ export const AdminNotifsDashboard = (): ReactElement => {
           </div>
           <div className={styles.sectionGraphsAndTodaysStats}>
             <SectionGraphs>
-              <RenderGuardedComponent props={pushTokenStats.error} component={formatNetworkError} />
               <RenderGuardedComponent
-                props={pushTokenStats.result}
+                props={useMappedValueWithCallbacks(pushTokenStats, (v) => v.error)}
+                component={formatNetworkError}
+              />
+              <RenderGuardedComponent
+                props={useMappedValueWithCallbacks(pushTokenStats, (v) => v.result)}
                 component={(v) =>
                   formatNetworkDashboard(v ?? undefined, {
                     onVisible: () => setVWC(pushTokenStatsLoadPrevented, false),
@@ -839,7 +843,8 @@ export const AdminNotifsDashboard = (): ReactElement => {
                 }
               />
             </SectionGraphs>
-            <SectionStatsToday refresh={pushTokenTodaysStats.refresh}>
+            <SectionStatsToday
+              refresh={useMappedValueWithCallbacks(pushTokenTodaysStats, (v) => v.refresh)}>
               <SectionStatsTodayItem
                 title={<>Created</>}
                 value={pushTokenTodaysStats}
@@ -1126,11 +1131,11 @@ export const AdminNotifsDashboard = (): ReactElement => {
           <div className={styles.sectionGraphsAndTodaysStats}>
             <SectionGraphs>
               <RenderGuardedComponent
-                props={pushTicketStats.error}
+                props={useMappedValueWithCallbacks(pushTicketStats, (v) => v.error)}
                 component={formatNetworkError}
               />
               <RenderGuardedComponent
-                props={pushTicketStats.result}
+                props={useMappedValueWithCallbacks(pushTicketStats, (v) => v.result)}
                 component={(v) =>
                   formatNetworkDashboard(v ?? undefined, {
                     onVisible: () => setVWC(pushTicketStatsLoadPrevented, false),
@@ -1139,7 +1144,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
               />
             </SectionGraphs>
             <SectionStatsMultiday
-              refresh={partialPushTicketStats.refresh}
+              refresh={useMappedValueWithCallbacks(partialPushTicketStats, (v) => v.refresh)}
               days={useMemo(
                 () => [
                   {
@@ -1352,11 +1357,11 @@ export const AdminNotifsDashboard = (): ReactElement => {
           <div className={styles.sectionGraphsAndTodaysStats}>
             <SectionGraphs>
               <RenderGuardedComponent
-                props={pushReceiptStats.error}
+                props={useMappedValueWithCallbacks(pushReceiptStats, (v) => v.error)}
                 component={formatNetworkError}
               />
               <RenderGuardedComponent
-                props={pushReceiptStats.result}
+                props={useMappedValueWithCallbacks(pushReceiptStats, (v) => v.result)}
                 component={(v) =>
                   formatNetworkDashboard(v ?? undefined, {
                     onVisible: () => setVWC(pushReceiptStatsLoadPrevented, false),
@@ -1365,7 +1370,7 @@ export const AdminNotifsDashboard = (): ReactElement => {
               />
             </SectionGraphs>
             <SectionStatsMultiday
-              refresh={partialPushReceiptStats.refresh}
+              refresh={useMappedValueWithCallbacks(partialPushReceiptStats, (v) => v.refresh)}
               days={useMemo(
                 () => [
                   {
@@ -1438,7 +1443,7 @@ export function BlockStatisticTitleRow<T>({
   valueComponent,
 }: {
   title: ReactElement;
-  value: NetworkResponse<T>;
+  value: ValueWithCallbacks<NetworkResponse<T>>;
   valueComponent: (value: T | null) => ReactElement;
 }): ReactElement {
   return (
@@ -1447,19 +1452,46 @@ export function BlockStatisticTitleRow<T>({
         <div className={styles.blockStatisticTitleAndValue}>
           <div className={styles.blockStatisticTitle}>{title}</div>
           <div className={styles.blockStatisticValue}>
-            <RenderGuardedComponent props={value.result} component={valueComponent} />
+            <RenderGuardedComponent
+              props={useMappedValueWithCallbacks(value, (v) =>
+                v.type === 'success' ? v.result : null
+              )}
+              component={valueComponent}
+            />
           </div>
         </div>
         <div className={styles.blockStatisticControls}>
-          <IconButtonWithAutoDisable
-            icon={styles.iconRefresh}
-            srOnlyName="refresh"
-            onClick={value.refresh}
-            spinWhileDisabled
+          <RenderGuardedComponent
+            props={useMappedValueWithCallbacks(
+              value,
+              (v) => ({
+                loading: v.type === 'loading',
+                refresh: v.refresh,
+              }),
+              {
+                outputEqualityFn: (a, b) =>
+                  a.loading === b.loading && Object.is(a.refresh, b.refresh),
+              }
+            )}
+            component={({ loading, refresh }) => (
+              <IconButton
+                icon={styles.iconRefresh}
+                srOnlyName="refresh"
+                onClick={(e) => {
+                  e.preventDefault();
+                  refresh?.();
+                }}
+                disabled={loading}
+                spinning={loading}
+              />
+            )}
           />
         </div>
       </div>
-      <RenderGuardedComponent props={value.error} component={formatNetworkError} />
+      <RenderGuardedComponent
+        props={useMappedValueWithCallbacks(value, (v) => v.error)}
+        component={formatNetworkError}
+      />
     </>
   );
 }
@@ -1490,17 +1522,19 @@ export const SectionGraphs = ({ children }: PropsWithChildren<object>): ReactEle
 export const SectionStatsToday = ({
   refresh,
   children,
-}: PropsWithChildren<{ refresh: () => Promise<void> }>): ReactElement => {
+}: PropsWithChildren<{ refresh: ValueWithCallbacks<null | (() => void)> }>): ReactElement => {
   return (
     <div className={styles.sectionStatsToday}>
       <div className={styles.sectionStatsTodayTitleAndControls}>
         <div className={styles.sectionStatsTodayTitle}>Today So Far</div>
         <div className={styles.sectionStatsTodayRefresh}>
-          <IconButtonWithAutoDisable
+          <IconButton
             icon={styles.iconRefresh}
             srOnlyName="Refresh"
-            onClick={refresh}
-            spinWhileDisabled
+            onClick={(e) => {
+              e.preventDefault();
+              refresh.get()?.();
+            }}
           />
         </div>
       </div>
@@ -1517,7 +1551,7 @@ export const SectionStatsMultiday = ({
   refresh,
   days,
 }: {
-  refresh: () => Promise<void>;
+  refresh: ValueWithCallbacks<null | (() => void)>;
   days: {
     name: string;
     content: ReactElement;
@@ -1559,11 +1593,13 @@ export const SectionStatsMultiday = ({
           />
         </div>
         <div className={styles.sectionStatsMultidayRefresh}>
-          <IconButtonWithAutoDisable
+          <IconButton
             icon={styles.iconRefresh}
             srOnlyName="Refresh"
-            onClick={refresh}
-            spinWhileDisabled
+            onClick={(e) => {
+              e.preventDefault();
+              refresh.get()?.();
+            }}
           />
         </div>
       </div>
@@ -1595,16 +1631,22 @@ export function SectionStatsTodayItem<T>({
   valueComponent,
 }: {
   title: ReactElement;
-  value: NetworkResponse<T>;
+  value: ValueWithCallbacks<NetworkResponse<T>>;
   valueComponent: (value: T | null) => ReactElement;
 }): ReactElement {
   return (
     <div className={styles.sectionStatsTodayItem}>
       <div className={styles.sectionStatsTodayItemTitle}>{title}</div>
       <div className={styles.sectionStatsTodayItemValue}>
-        <RenderGuardedComponent props={value.result} component={valueComponent} />
+        <RenderGuardedComponent
+          props={useMappedValueWithCallbacks(value, (v) => v.result ?? null)}
+          component={valueComponent}
+        />
       </div>
-      <RenderGuardedComponent props={value.error} component={formatNetworkError} />
+      <RenderGuardedComponent
+        props={useMappedValueWithCallbacks(value, (v) => v.error)}
+        component={formatNetworkError}
+      />
     </div>
   );
 }
@@ -1613,7 +1655,7 @@ const PartialPushTicketsStatsDisplay = ({
   value,
   keyName,
 }: {
-  value: NetworkResponse<PartialPushTicketStats>;
+  value: ValueWithCallbacks<NetworkResponse<PartialPushTicketStats>>;
   keyName: 'yesterday' | 'today';
 }): ReactElement => {
   return (
@@ -1716,7 +1758,7 @@ const PartialPushReceiptsStatsDisplay = ({
   value,
   keyName,
 }: {
-  value: NetworkResponse<PartialPushReceiptStats>;
+  value: ValueWithCallbacks<NetworkResponse<PartialPushReceiptStats>>;
   keyName: 'yesterday' | 'today';
 }): ReactElement => {
   return (

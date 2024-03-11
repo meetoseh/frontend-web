@@ -1,6 +1,5 @@
 import { ReactElement, useCallback } from 'react';
 import { User } from '../User';
-import { DayOfWeek } from './daily_reminder_settings_log/DailyReminderSettingsLog';
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../../crud/CrudFetcher';
 import { useNetworkResponse } from '../../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../../shared/ApiConstants';
@@ -15,6 +14,8 @@ import {
   makeDaysOfWeekPretty,
   makeTimeRangePretty,
 } from './daily_reminder_settings_log/DailyReminderSettingsLogBlock';
+import { DayOfWeek } from '../../../shared/models/DayOfWeek';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 type Reminder = {
   /** The channel that gets a reminder */
@@ -78,18 +79,18 @@ export const BigUserDailyReminders = ({ user }: { user: User }): ReactElement =>
             icon={icons.iconRefresh}
             onClick={(e) => {
               e.preventDefault();
-              reminders.refresh();
+              reminders.get().refresh?.();
             }}
             srOnlyName="Refresh"
           />
         </>
       }>
       <RenderGuardedComponent
-        props={reminders.error}
+        props={useMappedValueWithCallbacks(reminders, (v) => v.error)}
         component={(error) => <>{error && <ErrorBlock>{error}</ErrorBlock>}</>}
       />
       <RenderGuardedComponent
-        props={reminders.result}
+        props={useMappedValueWithCallbacks(reminders, (v) => v.result)}
         component={(reminders) => (
           <div className={styles.row}>
             {reminders === undefined && 'Not available'}

@@ -1,11 +1,8 @@
 import { ReactElement } from 'react';
-import {
-  DailyReminderSettingsLog,
-  DailyReminderTimeRange,
-  DayOfWeek,
-} from './DailyReminderSettingsLog';
+import { DailyReminderSettingsLog, DailyReminderTimeRange } from './DailyReminderSettingsLog';
 import { CrudItemBlock } from '../../../crud/CrudItemBlock';
 import { CrudFormElement } from '../../../crud/CrudFormElement';
+import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
 
 /**
  * Shows a single contact method log entry

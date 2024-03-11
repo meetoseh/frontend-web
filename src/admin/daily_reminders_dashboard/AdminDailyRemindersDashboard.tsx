@@ -19,6 +19,7 @@ import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../shared/ApiConstants';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
+import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 48 },
@@ -177,7 +178,7 @@ export const AdminDailyRemindersDashboard = (): ReactElement => {
                     />
                   </div>
                   <RenderGuardedComponent
-                    props={progressInfo.result}
+                    props={useMappedValueWithCallbacks(progressInfo, (v) => v.result)}
                     component={(info) => {
                       return (
                         <>

@@ -1,4 +1,4 @@
-import { DayOfWeek } from './RequestNotificationTimeResources';
+import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
 
 /**
  * The time range we use if we couldn't get a users existing settings from the server

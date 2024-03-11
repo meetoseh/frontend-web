@@ -1,14 +1,6 @@
 import { InappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
 import { Channel } from './RequestNotificationTimeState';
-
-export type DayOfWeek =
-  | 'Monday'
-  | 'Tuesday'
-  | 'Wednesday'
-  | 'Thursday'
-  | 'Friday'
-  | 'Saturday'
-  | 'Sunday';
 
 export type ChannelSettings = {
   /** The days of the week to receive reminders */

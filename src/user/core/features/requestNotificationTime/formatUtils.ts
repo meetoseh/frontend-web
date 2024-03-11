@@ -1,4 +1,4 @@
-import { DayOfWeek } from './RequestNotificationTimeResources';
+import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
 import { Channel } from './RequestNotificationTimeState';
 
 /**

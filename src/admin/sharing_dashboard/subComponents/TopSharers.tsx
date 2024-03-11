@@ -11,10 +11,10 @@ export const TopSharers = (): ReactElement => {
   const topSharersLast30Days = useTopSharers(30);
 
   const carouselItems = useMappedValuesWithCallbacks(
-    [topSharersAllTime.result, topSharersLast30Days.result],
+    [topSharersAllTime, topSharersLast30Days],
     () => {
-      const allTimeResult = topSharersAllTime.result.get();
-      const last30DaysResult = topSharersLast30Days.result.get();
+      const allTimeResult = topSharersAllTime.get().result;
+      const last30DaysResult = topSharersLast30Days.get().result;
 
       if (allTimeResult === undefined || last30DaysResult === undefined) {
         return undefined;

@@ -1,5 +1,6 @@
 import { apiFetch } from '../../../shared/ApiConstants';
 import { NetworkResponse, useNetworkResponse } from '../../../shared/hooks/useNetworkResponse';
+import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { TopSharers, topSharersKeyMap } from '../models/TopSharers';
 
@@ -7,7 +8,7 @@ import { TopSharers, topSharersKeyMap } from '../models/TopSharers';
  * Loads the top sharers, including views from the given number of days (or
  * all time if undefined).
  */
-export const useTopSharers = (days?: number): NetworkResponse<TopSharers> =>
+export const useTopSharers = (days?: number): ValueWithCallbacks<NetworkResponse<TopSharers>> =>
   useNetworkResponse(async (active, loginContext) => {
     const controller = window?.AbortController ? new AbortController() : undefined;
     const signal = controller?.signal;

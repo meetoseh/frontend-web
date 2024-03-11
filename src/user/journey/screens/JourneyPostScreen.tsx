@@ -18,32 +18,9 @@ import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../shared/contexts/ModalContext';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
-
-type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
-const DAYS_OF_WEEK: DayOfWeek[] = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
-
-type StreakInfo = {
-  /**
-   * The number of consecutive days the user has taken a class
-   */
-  streak: number;
-  /**
-   * The days of the week the user has taken a class
-   */
-  daysOfWeek: DayOfWeek[];
-  /**
-   * The number of days per week the user has taken a class
-   */
-  goalDaysPerWeek: number | null;
-};
+import { convertUsingMapper } from '../../../admin/crud/CrudFetcher';
+import { StreakInfo, streakInfoKeyMap } from '../models/StreakInfo';
+import { DAYS_OF_WEEK, DayOfWeek } from '../../../shared/models/DayOfWeek';
 
 export const JourneyPostScreen = ({
   journey,
@@ -103,19 +80,11 @@ export const JourneyPostScreen = ({
             if (!response.ok) {
               throw response;
             }
-            const data: {
-              streak: number;
-              days_of_week: DayOfWeek[];
-              goal_days_per_week: number | null;
-            } = await response.json();
+            const data = await response.json();
             if (!active) {
               return;
             }
-            setVWC(streakVWC, {
-              streak: data.streak,
-              daysOfWeek: data.days_of_week,
-              goalDaysPerWeek: data.goal_days_per_week,
-            });
+            setVWC(streakVWC, convertUsingMapper(data, streakInfoKeyMap));
           } catch (e) {
             if (!active) {
               return;

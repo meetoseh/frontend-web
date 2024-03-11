@@ -1,12 +1,12 @@
 import { ReactElement, useCallback } from 'react';
 import { ValueWithCallbacks, WritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import styles from './EditDays.module.css';
-import { DayOfWeek } from './RequestNotificationTimeResources';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { Checkbox } from '../../../../shared/forms/Checkbox';
 import { Button } from '../../../../shared/forms/Button';
+import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
 
 export type EditDaysProps = {
   /**

@@ -6,7 +6,6 @@ import {
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { EditTimeRange, TimeRange, areRangesEqual } from './EditTimeRange';
-import { DayOfWeek } from './RequestNotificationTimeResources';
 import styles from './EditReminderTime.module.css';
 import { ReactElement, useCallback, useContext, useRef } from 'react';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
@@ -20,6 +19,7 @@ import { RenderGuardedComponent } from '../../../../shared/components/RenderGuar
 import { EditDays } from './EditDays';
 import { makeDaysOfWeekPretty, makeTimeRangePretty, nameForChannel } from './formatUtils';
 import { Channel } from './RequestNotificationTimeState';
+import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
 
 export type EditReminderTimeProps = {
   /**

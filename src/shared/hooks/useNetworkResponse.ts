@@ -10,20 +10,54 @@ import { describeError } from '../forms/ErrorBlock';
 import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
 import { LoginContext, LoginContextValueLoggedIn } from '../contexts/LoginContext';
 
-export type NetworkResponse<T> = {
-  /**
-   * The last response from the network
-   */
-  result: ValueWithCallbacks<T | null>;
-  /**
-   * The last error from the network
-   */
-  error: ValueWithCallbacks<ReactElement | null>;
-  /**
-   * Refreshes the value from the network
-   */
-  refresh: () => Promise<void>;
+export type NetworkResponseError = {
+  /** For when the fetcher rejected */
+  type: 'error';
+  result: undefined;
+  error: ReactElement;
+  /** Switches to the loading state */
+  refresh: () => void;
 };
+
+export type NetworkResponseLoading = {
+  /** For when we are executing the fetcher */
+  type: 'loading';
+  result: undefined;
+  error: null;
+  refresh: null;
+};
+
+export type NetworkResponseLoadPrevented = {
+  /** For when the loadPrevented flag is set */
+  type: 'load-prevented';
+  result: undefined;
+  error: null;
+  refresh: null;
+};
+
+export type NetworkResponseSuccess<T> = {
+  /** For when the result from fetcher is not null */
+  type: 'success';
+  result: T;
+  error: null;
+  /** Switches to the loading state */
+  refresh: () => void;
+};
+
+export type NetworkResponseUnavailable = {
+  /** For when the result from fetcher is null */
+  type: 'unavailable';
+  result: null;
+  error: null;
+  refresh: () => void;
+};
+
+export type NetworkResponse<T> =
+  | NetworkResponseError
+  | NetworkResponseLoadPrevented
+  | NetworkResponseLoading
+  | NetworkResponseUnavailable
+  | NetworkResponseSuccess<T>;
 
 export type UseNetworkResponseOpts = {
   /**
@@ -57,10 +91,14 @@ export const useNetworkResponse = <T>(
     loginContext: LoginContextValueLoggedIn
   ) => Promise<T | null>,
   opts?: UseNetworkResponseOpts
-): NetworkResponse<T> => {
+): ValueWithCallbacks<NetworkResponse<T>> => {
   const loginContextRaw = useContext(LoginContext);
-  const result = useWritableValueWithCallbacks<T | null>(() => null);
-  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const result = useWritableValueWithCallbacks<NetworkResponse<T>>(() => ({
+    type: 'loading',
+    result: undefined,
+    error: null,
+    refresh: null,
+  }));
 
   const minRefreshTimeMS = opts?.minRefreshTimeMS ?? 500;
   const rawLoadPrevented = opts?.loadPrevented;
@@ -74,11 +112,74 @@ export const useNetworkResponse = <T>(
     return rawLoadPrevented;
   }, [rawLoadPrevented]);
 
+  const refresh = useCallback(async () => {
+    if (loadPrevented.get() || result.get().type === 'loading') {
+      return;
+    }
+
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+
+    setVWC(result, {
+      type: 'loading',
+      result: undefined,
+      error: null,
+      refresh: null,
+    });
+    try {
+      const minTime = new Promise((resolve) => setTimeout(resolve, minRefreshTimeMS));
+      const answer = await fetcher(createWritableValueWithCallbacks(true), loginContext);
+      await minTime;
+      if (result.get().type !== 'loading') {
+        return;
+      }
+      if (answer === null) {
+        setVWC(result, {
+          type: 'unavailable',
+          result: null,
+          error: null,
+          refresh,
+        });
+      } else {
+        setVWC(result, {
+          type: 'success',
+          result: answer,
+          error: null,
+          refresh,
+        });
+      }
+    } catch (e) {
+      const described = await describeError(e);
+      if (result.get().type !== 'loading') {
+        return;
+      }
+      setVWC(result, {
+        type: 'error',
+        result: undefined,
+        error: described,
+        refresh,
+      });
+    }
+  }, [result, fetcher, minRefreshTimeMS, loadPrevented, loginContextRaw]);
+
   useValueWithCallbacksEffect(
     loginContextRaw.value,
     useCallback(
       (loginContextUnch) => {
         if (loadPrevented.get()) {
+          setVWC(
+            result,
+            {
+              type: 'load-prevented',
+              result: undefined,
+              error: null,
+              refresh: null,
+            },
+            (a, b) => a.type === b.type
+          );
           return;
         }
 
@@ -97,8 +198,21 @@ export const useNetworkResponse = <T>(
           try {
             const answer = await fetcher(active, loginContext);
             if (active.get()) {
-              setVWC(error, null);
-              setVWC(result, answer);
+              if (answer === null) {
+                setVWC(result, {
+                  type: 'unavailable',
+                  result: null,
+                  error: null,
+                  refresh,
+                });
+              } else {
+                setVWC(result, {
+                  type: 'success',
+                  result: answer,
+                  error: null,
+                  refresh,
+                });
+              }
             }
           } catch (e) {
             if (!active.get()) {
@@ -107,55 +221,42 @@ export const useNetworkResponse = <T>(
 
             const described = await describeError(e);
             if (active.get()) {
-              setVWC(result, null);
-              setVWC(error, described);
+              setVWC(result, {
+                type: 'error',
+                result: undefined,
+                error: described,
+                refresh,
+              });
             }
           }
         }
       },
-      [error, result, fetcher, loadPrevented]
+      [result, fetcher, loadPrevented, refresh]
     )
   );
-
-  const refresh = useCallback(async () => {
-    if (loadPrevented.get()) {
-      return;
-    }
-
-    const loginContextUnch = loginContextRaw.value.get();
-    if (loginContextUnch.state !== 'logged-in') {
-      return;
-    }
-    const loginContext = loginContextUnch;
-
-    setVWC(result, null);
-    setVWC(error, null);
-    try {
-      const minTime = new Promise((resolve) => setTimeout(resolve, minRefreshTimeMS));
-      const answer = await fetcher(createWritableValueWithCallbacks(true), loginContext);
-      await minTime;
-      setVWC(result, answer);
-    } catch (e) {
-      const described = await describeError(e);
-      setVWC(error, described);
-    }
-  }, [result, error, fetcher, minRefreshTimeMS, loadPrevented, loginContextRaw]);
-
   useValueWithCallbacksEffect(
     loadPrevented,
     useCallback(
       (value) => {
         if (value) {
-          setVWC(result, null);
-          setVWC(error, null);
+          setVWC(
+            result,
+            {
+              type: 'load-prevented',
+              result: undefined,
+              error: null,
+              refresh: null,
+            },
+            (a, b) => a.type === b.type
+          );
         } else {
           refresh();
         }
         return undefined;
       },
-      [result, error, refresh]
+      [result, refresh]
     )
   );
 
-  return useMemo(() => ({ result, error, refresh }), [result, error, refresh]);
+  return result;
 };

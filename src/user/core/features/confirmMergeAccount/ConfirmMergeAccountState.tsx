@@ -1,6 +1,7 @@
 import { ReactElement } from 'react';
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../../../../admin/crud/CrudFetcher';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
+import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
 
 export type EmailForConflict = {
   /** The email address, e.g., anonymous@example.com */
@@ -47,24 +48,6 @@ export type PhoneForConflict = {
 export const phoneForConflictKeyMap: CrudFetcherKeyMap<PhoneForConflict> = {
   phone_number: 'phoneNumber',
 };
-
-export type DayOfWeek =
-  | 'Monday'
-  | 'Tuesday'
-  | 'Wednesday'
-  | 'Thursday'
-  | 'Friday'
-  | 'Saturday'
-  | 'Sunday';
-export const DAYS_OF_WEEK: DayOfWeek[] = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
 
 export type DailyReminderSettingsForConflict = {
   /** The days of the week they receive notifications on this channel */

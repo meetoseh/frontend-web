@@ -20,6 +20,7 @@ import {
   formatNetworkUnixTimestamp,
 } from '../../shared/lib/networkResponseUtils';
 import { NetworkChart } from '../lib/NetworkChart';
+import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * The admin sharing dashboard, which is intended to inspecting the effectiveness
@@ -70,10 +71,10 @@ export const AdminSharingDashboard = (): ReactElement => {
               <div className={dashboardStyles.centerRightContainer}>
                 <ShareViewsSmallChart linkViewStats={linkViewStats} />
                 <RenderGuardedComponent
-                  props={linkViewStats.result}
+                  props={useMappedValueWithCallbacks(linkViewStats, (v) => v.result)}
                   component={(result) => {
                     let value = 0;
-                    if (result !== null) {
+                    if (result !== null && result !== undefined) {
                       const now = Date.now();
                       const sevenDaysAgoIsoformat = new Date(now - 7 * 24 * 60 * 60 * 1000)
                         .toISOString()

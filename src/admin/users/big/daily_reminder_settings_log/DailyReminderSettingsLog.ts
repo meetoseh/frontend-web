@@ -1,13 +1,6 @@
+import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
 import { CrudFetcherKeyMap } from '../../../crud/CrudFetcher';
 
-export type DayOfWeek =
-  | 'Monday'
-  | 'Tuesday'
-  | 'Wednesday'
-  | 'Thursday'
-  | 'Friday'
-  | 'Saturday'
-  | 'Sunday';
 export type DailyReminderTimeRange =
   | {
       type: 'preset';

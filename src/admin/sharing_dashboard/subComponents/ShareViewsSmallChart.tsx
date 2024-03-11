@@ -3,23 +3,24 @@ import { NewUsersChart } from '../../dashboard/hooks/useNewUsersChart';
 import { AdminDashboardSmallChart } from '../../dashboard/AdminDashboardSmallChart';
 import { JourneyLinkViewStatsComplete } from '../models/JourneyLinkViewStats';
 import { NetworkResponse } from '../../../shared/hooks/useNetworkResponse';
-import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 type ShareViewsChart = NewUsersChart;
 
 export const ShareViewsSmallChart = ({
-  linkViewStats,
+  linkViewStats: linkViewStatsVWC,
 }: {
-  linkViewStats: NetworkResponse<JourneyLinkViewStatsComplete>;
+  linkViewStats: ValueWithCallbacks<NetworkResponse<JourneyLinkViewStatsComplete>>;
 }): ReactElement => {
-  const chartVWC = useMappedValuesWithCallbacks(
-    [linkViewStats.result, linkViewStats.error],
-    (): ShareViewsChart => {
-      const result = linkViewStats.result.get();
-      const error = linkViewStats.error.get();
+  const chartVWC = useMappedValueWithCallbacks(
+    linkViewStatsVWC,
+    (linkViewStats): ShareViewsChart => {
+      const result = linkViewStats.result;
+      const error = linkViewStats.error;
 
-      if (result === null) {
+      if (result === null || result === undefined) {
         return {
           loading: true,
           error,

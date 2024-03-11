@@ -4,7 +4,6 @@ import { ReactElement, useCallback, useContext } from 'react';
 import { Channel, RequestNotificationTimeState } from './RequestNotificationTimeState';
 import {
   ChannelSettings,
-  DayOfWeek,
   RequestNotificationTimeResources,
 } from './RequestNotificationTimeResources';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
@@ -36,6 +35,7 @@ import { EditReminderTime } from './EditReminderTime';
 import { DEFAULT_DAYS, DEFAULT_TIME_RANGE } from './constants';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { YesNoModal } from '../../../../shared/components/YesNoModal';
+import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
 
 /**
  * Asks the user what times they want to receive notifications on various

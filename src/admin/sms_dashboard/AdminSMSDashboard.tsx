@@ -7,7 +7,7 @@ import {
 } from '../notifs_dashboard/AdminNotifsDashboard';
 import { FlowChart, FlowChartProps } from '../../shared/components/FlowChart';
 import { TogglableSmoothExpandable } from '../../shared/components/TogglableSmoothExpandable';
-import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { combineClasses } from '../../shared/lib/combineClasses';
 import { Button } from '../../shared/forms/Button';
@@ -20,9 +20,10 @@ import {
   formatNetworkNumber,
   formatNetworkValue,
 } from '../../shared/lib/networkResponseUtils';
-import { IconButtonWithAutoDisable } from '../../shared/forms/IconButtonWithAutoDisable';
 import { PartialStats, parsePartialStats } from '../lib/PartialStats';
 import { NetworkChart, PartialStatsDisplay } from '../lib/NetworkChart';
+import { IconButton } from '../../shared/forms/IconButton';
+import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 
 const flowChartSettings: FlowChartProps = {
   columnGap: { type: 'react-rerender', props: 24 },
@@ -1181,7 +1182,7 @@ export const AdminSMSDashboard = (): ReactElement => {
 export const ReceiveWebhookBlockStatistics = ({
   webhookStats,
 }: {
-  webhookStats: NetworkResponse<PartialStats>;
+  webhookStats: ValueWithCallbacks<NetworkResponse<PartialStats>>;
 }): ReactElement => {
   const day = useWritableValueWithCallbacks<'today' | 'yesterday'>(() => 'today');
 
@@ -1230,18 +1231,23 @@ export const ReceiveWebhookBlockStatistics = ({
           />
         </div>
         <div className={styles.tabbedBlockStatisticsRefresh}>
-          <IconButtonWithAutoDisable
+          <IconButton
             icon={styles.iconRefresh}
             srOnlyName="Refresh"
-            onClick={webhookStats.refresh}
-            spinWhileDisabled
+            onClick={(e) => {
+              e.preventDefault();
+              webhookStats.get().refresh?.();
+            }}
           />
         </div>
       </div>
       <div className={customStyles.tabbedBlockStatisticsContent}>
         <RenderGuardedComponent
-          props={day}
-          component={(day) => <PartialStatsDisplay value={webhookStats} keyName={day} />}
+          props={useMappedValuesWithCallbacks([day, webhookStats], () => ({
+            day: day.get(),
+            stats: webhookStats.get(),
+          }))}
+          component={({ day, stats }) => <PartialStatsDisplay value={stats} keyName={day} />}
         />
       </div>
     </div>

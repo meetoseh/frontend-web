@@ -15,6 +15,7 @@ import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/Ose
 import { combineClasses } from '../../../shared/lib/combineClasses';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';
+import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 
 export const TopSharersCarousel = ({ items }: { items: TopSharerCarouselItem[] }): ReactElement => {
   const selected = useWritableValueWithCallbacks(() => 0);
@@ -166,15 +167,18 @@ const CarouselItem = ({
     )
   );
 
+  const userInfoError = useMappedValueWithCallbacks(userInfo, (v) => v.error);
+  const userInfoResult = useMappedValueWithCallbacks(userInfo, (v) => v.result);
+
   return (
     <RenderGuardedComponent
       props={selected}
       component={(sel) => (
         <div style={sel === index ? undefined : { display: 'none' }} className={styles.itemWrapper}>
-          <RenderGuardedComponent props={userInfo.error} component={(err) => err ?? <></>} />
+          <RenderGuardedComponent props={userInfoError} component={(err) => err ?? <></>} />
           <RenderGuardedComponent
-            props={userInfo.result}
-            component={(user) => <CarouselItemContent item={item} user={user} />}
+            props={userInfoResult}
+            component={(user) => <CarouselItemContent item={item} user={user ?? null} />}
           />
         </div>
       )}
