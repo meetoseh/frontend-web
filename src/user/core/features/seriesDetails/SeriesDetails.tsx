@@ -37,9 +37,9 @@ export const SeriesDetails = ({
   const onCloseClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      state.get().setShow(null, true);
+      resources.get().goBack();
     },
-    [state]
+    [resources]
   );
 
   const hasEntitlementVWC = useMappedValueWithCallbacks(state, (s) => !!s.show?.hasEntitlement);

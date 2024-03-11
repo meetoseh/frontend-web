@@ -328,16 +328,25 @@ export const SeriesDetailsFeature: Feature<SeriesDetailsState, SeriesDetailsReso
     );
 
     return useMappedValuesWithCallbacks(
-      [journeysVWC, backgroundImageStateVWC],
+      [courseVWC, journeysVWC, backgroundImageStateVWC],
       (): SeriesDetailsResources => {
+        const course = courseVWC.get();
         const journeys = journeysVWC.get();
         const backgroundImage = backgroundImageStateVWC.get();
         return {
-          loading: journeys === undefined || backgroundImage.thumbhash === null,
+          loading:
+            course === null ||
+            course === undefined ||
+            journeys === undefined ||
+            (course.detailsBackgroundImage !== null && backgroundImage.thumbhash === null),
           imageHandler,
           journeys,
           courseLikeState,
           backgroundImage,
+          goBack() {
+            allStates.get().seriesList.setShow(true, true);
+            state.get().setShow(null, false);
+          },
           gotoJourney(journey, course) {
             allStates.get().singleJourney.setShow({ type: 'generic', ref: journey });
             state.get().setShow(null, true);

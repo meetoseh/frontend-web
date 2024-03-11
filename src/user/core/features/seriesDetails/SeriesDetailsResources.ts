@@ -34,6 +34,11 @@ export type SeriesDetailsResources = {
   journeys: MinimalCourseJourney[] | null | undefined;
 
   /**
+   * Can be called to return to the "previous" screen
+   */
+  goBack: () => void;
+
+  /**
    * Can be called to show the course feature for the journey with
    * the given ref. This is presumably called when a user with the entitlement
    * clicks on a journey in the series details screen. The steps to get the ref
