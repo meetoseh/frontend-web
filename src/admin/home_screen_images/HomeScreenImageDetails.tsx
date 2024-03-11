@@ -26,6 +26,10 @@ import { useDelayedValueWithCallbacks } from '../../shared/hooks/useDelayedValue
 import { Checkbox } from '../../shared/forms/Checkbox';
 import { HomeScreenImageFlags } from './flags/HomeScreenImageFlags';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
+import { SlideInModal } from '../../shared/components/SlideInModal';
+import { SmoothExpandable } from '../../shared/components/SmoothExpandable';
+import { Button } from '../../shared/forms/Button';
+import { showYesNoModal } from '../../shared/lib/showYesNoModal';
 
 type HomeScreenImageDetailsProps = {
   /**
@@ -89,6 +93,8 @@ export const HomeScreenImageDetails = ({
   const startTimeVWC = useWritableValueWithCallbacks<number>(() => homeScreenImage.startTime);
   const endTimeVWC = useWritableValueWithCallbacks<number>(() => homeScreenImage.endTime);
   const newFlagsVWC = useWritableValueWithCallbacks<number>(() => homeScreenImage.flags);
+  const newDatesVWC = useWritableValueWithCallbacks<string[] | null>(() => homeScreenImage.dates);
+  const dateAddRef = useWritableValueWithCallbacks<HTMLInputElement | null>(() => null);
 
   const doPatch = useCallback(
     async (patch: HomeScreenImagePatch): Promise<void> => {
@@ -426,6 +432,117 @@ export const HomeScreenImageDetails = ({
             saveAt={saveAt}
           />
         </div>
+      </CrudFormElement>
+      <CrudFormElement title="Specific Dates">
+        <div className={styles.help}>
+          Can be used for holiday-specific imagery. Checking the box prevents the image from being
+          shown except on the indicated dates.
+        </div>
+        <RenderGuardedComponent
+          props={newDatesVWC}
+          component={(newDates) => (
+            <>
+              <Checkbox
+                value={newDates !== null}
+                setValue={async (v) => {
+                  if (v === (newDates !== null)) {
+                    return;
+                  }
+
+                  if (!v && newDates !== null && newDates.length > 0) {
+                    const result = await showYesNoModal(modalContext.modals, {
+                      title: 'Remove all dates?',
+                      body: 'Unchecking this will delete all the existing date restrictions on this image, then disable date restrictions. Are you sure?',
+                      cta1: 'Delete',
+                      cta2: 'Cancel',
+                      emphasize: 1,
+                    }).promise;
+                    if (!result) {
+                      return;
+                    }
+                  }
+
+                  setVWC(saveAt, Date.now() + 1000);
+                  const newValue = v ? [] : null;
+                  setVWC(
+                    queuedPatchVWC,
+                    Object.assign({}, queuedPatchVWC.get(), { dates: newValue })
+                  );
+                  setVWC(newDatesVWC, newValue);
+                }}
+                label="Enabled"
+              />
+              {newDates !== null && (
+                <>
+                  <div className={styles.dates}>
+                    <div className={styles.datesTitle}>Dates:</div>
+                    <div className={styles.datesList}>
+                      {newDates.map((d) => {
+                        const date = new Date(d + 'T00:00:00');
+
+                        return (
+                          <div className={styles.date} key={d}>
+                            <div className={styles.dateValue}>{date.toLocaleDateString()}</div>
+                            <Button
+                              type="button"
+                              variant="link-small"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setVWC(saveAt, Date.now() + 1000);
+                                const newValue = newDates.filter((v) => v !== d);
+                                setVWC(
+                                  queuedPatchVWC,
+                                  Object.assign({}, queuedPatchVWC.get(), { dates: newValue })
+                                );
+                                setVWC(newDatesVWC, newValue);
+                              }}>
+                              Remove
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className={styles.dateAdd}>
+                    <input type="date" ref={(r) => setVWC(dateAddRef, r)} />
+                    <Button
+                      type="button"
+                      variant="link-small"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const inp = dateAddRef.get();
+                        if (inp === null) {
+                          return;
+                        }
+
+                        const inpDate = inp.valueAsDate;
+                        if (!inpDate) {
+                          return;
+                        }
+
+                        const inpDateStr = inpDate.toISOString().split('T')[0];
+                        if (newDates.includes(inpDateStr)) {
+                          return;
+                        }
+
+                        setVWC(saveAt, Date.now() + 1000);
+                        const newValue = newDates.concat([inpDateStr]);
+                        newValue.sort();
+                        setVWC(
+                          queuedPatchVWC,
+                          Object.assign({}, queuedPatchVWC.get(), { dates: newValue })
+                        );
+                        setVWC(newDatesVWC, newValue);
+                      }}>
+                      Add
+                    </Button>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+          applyInstantly
+        />
       </CrudFormElement>
       <CrudFormElement title="Who" addChildrenTopMargin="4px">
         <div className={styles.flags}>

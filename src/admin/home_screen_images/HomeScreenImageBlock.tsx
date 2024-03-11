@@ -234,6 +234,45 @@ export const HomeScreenImageBlock = ({
                 })()}
               </div>
             </div>
+            {homeScreenImage.dates !== null && (
+              <div className={styles.row}>
+                <div className={styles.label}>Dates</div>
+                <div className={styles.value}>
+                  {homeScreenImage.dates.length === 0 ? 'None' : undefined}
+                  {(() => {
+                    const asDates = homeScreenImage.dates.map(
+                      (date) => new Date(date + 'T00:00:00')
+                    );
+
+                    if (homeScreenImage.dates.length < 3) {
+                      return asDates.map((d) => d.toLocaleDateString()).join(', ');
+                    }
+
+                    const first = asDates[0];
+                    let foundNonConsecutive = false;
+                    for (let i = 1; i < asDates.length; i++) {
+                      if (asDates[i].getTime() !== first.getTime() + i * 86_400_000) {
+                        foundNonConsecutive = true;
+                        break;
+                      }
+                    }
+
+                    if (!foundNonConsecutive) {
+                      return `${first.toLocaleDateString()} to ${asDates[
+                        asDates.length - 1
+                      ].toLocaleDateString()}`;
+                    }
+
+                    return (
+                      asDates[0].toLocaleDateString() +
+                      ' + ' +
+                      (homeScreenImage.dates.length - 1) +
+                      ' more'
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
             <div className={styles.row}>
               <div className={styles.label}>Free Users</div>
               <div className={styles.value}>

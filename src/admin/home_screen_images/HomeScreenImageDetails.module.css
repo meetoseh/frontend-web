@@ -34,3 +34,63 @@
   margin: 0;
   color-scheme: light;
 }
+
+.help {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  color: #383838;
+  max-width: 30em;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.dates {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.datesTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  color: #232323;
+  margin-top: 8px;
+}
+
+.datesList:empty::after {
+  content: 'No dates added';
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  color: #383838;
+}
+
+.date {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.dateValue {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 16px;
+  color: #232323;
+}
+
+.dateAdd {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.dateAdd input {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  margin-top: 8px;
+}
