@@ -23,6 +23,8 @@ export type ExternalCourse = {
   instructor: ExternalCourseInstructor;
   /** The darkened background image */
   backgroundImage: OsehImageRef;
+  /** The background image for the details screen, if available */
+  detailsBackgroundImage: OsehImageRef | null;
   /** The logo, if available, usually with a vectorized option */
   logo: OsehImageRef | null;
   /** The entitlement identifier required to attach/access this course */
@@ -55,6 +57,7 @@ export const externalCourseKeyMap: CrudFetcherMapper<ExternalCourse> = {
     value: convertUsingMapper(v, externalCourseInstructorKeyMap),
   }),
   background_image: 'backgroundImage',
+  details_background_image: 'detailsBackgroundImage',
   revenue_cat_entitlement: 'revenueCatEntitlement',
   has_entitlement: 'hasEntitlement',
   joined_at: (_, v) => ({ key: 'joinedAt', value: v !== null ? new Date(v * 1000) : null }),

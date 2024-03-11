@@ -308,9 +308,9 @@ export const SeriesDetailsFeature: Feature<SeriesDetailsState, SeriesDetailsReso
     });
 
     const backgroundImagePropsVWC = useMappedValuesWithCallbacks(
-      [journeysVWC, windowSizeVWC, required],
+      [courseVWC, windowSizeVWC, required],
       (r): OsehImageProps => {
-        const imgRef = !required.get() ? null : journeysVWC.get()?.[0]?.journey?.darkenedBackground;
+        const imgRef = !required.get() ? null : courseVWC.get()?.detailsBackgroundImage;
         return {
           uid: imgRef?.uid ?? null,
           jwt: imgRef?.jwt ?? null,
@@ -318,7 +318,6 @@ export const SeriesDetailsFeature: Feature<SeriesDetailsState, SeriesDetailsReso
           displayHeight: windowSizeVWC.get().height,
           alt: '',
           placeholderColor: 'black',
-          thumbhashOnly: true,
         };
       }
     );
