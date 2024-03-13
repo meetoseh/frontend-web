@@ -79,8 +79,15 @@ export const Journey = ({
       };
 
       if (audio.ended) {
-        handler();
-        return () => {};
+        let active = true;
+        requestAnimationFrame(() => {
+          if (active) {
+            handler();
+          }
+        });
+        return () => {
+          active = false;
+        };
       }
 
       audio.addEventListener('ended', handler);

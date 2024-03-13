@@ -41,6 +41,10 @@ export const SingleJourney = ({
           journey,
           shared: sharedVWC,
           setScreen: (screen, privileged) => {
+            if (screen === resources.get().step) {
+              return;
+            }
+
             const setScreen = resources.get().setStep;
             if (screen === 'journey') {
               if (!privileged) {
@@ -60,7 +64,6 @@ export const SingleJourney = ({
               setScreen('journey');
               return;
             }
-
             setScreen(screen);
           },
           onJourneyFinished: () => resources.get().onJourneyFinished(),
