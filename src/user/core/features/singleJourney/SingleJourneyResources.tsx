@@ -14,4 +14,7 @@ export type SingleJourneyResources = {
 
   /** Moves to a different step, without doing any of the necessary work to e.g. start audio */
   setStep(step: JourneyRouterScreenId): void;
+
+  /** Should be called to indicate the journey is complete and to stop showing this screen */
+  onJourneyFinished(): void;
 };

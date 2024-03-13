@@ -108,6 +108,7 @@ function App() {
         <Route path="/series" element={<UserApp />} />
         <Route path="/series/preview/*" element={<UserApp />} />
         <Route path="/series/details/*" element={<UserApp />} />
+        <Route path="/emotions/*" element={<UserApp />} />
         <Route path="/admin" element={<AdminApp />}>
           {AdminRoutes()}
         </Route>

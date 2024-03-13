@@ -21,7 +21,7 @@ export const SingleJourneyFeature: Feature<SingleJourneyState, SingleJourneyReso
     }));
   },
   isRequired: (state) => state.show !== null,
-  useResources: (stateVWC, requiredVWC) => {
+  useResources: (stateVWC, requiredVWC, allStatesVWC) => {
     const sharedVWC = useJourneyShared({
       type: 'callbacks',
       props: () => stateVWC.get().show?.ref ?? null,
@@ -45,6 +45,10 @@ export const SingleJourneyFeature: Feature<SingleJourneyState, SingleJourneyReso
           step: show !== null && show.ref.uid === step.uid ? step.screen : 'lobby',
           journeyShared: shared,
           setStep: (screen) => setVWC(stepVWC, { uid: show?.ref.uid ?? null, screen }),
+          onJourneyFinished: () => {
+            allStatesVWC.get().homeScreen.streakInfo.refresh?.();
+            stateVWC.get().setShow(null);
+          },
         };
       }
     );

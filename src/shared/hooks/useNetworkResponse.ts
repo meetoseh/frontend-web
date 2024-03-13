@@ -9,6 +9,7 @@ import { setVWC } from '../lib/setVWC';
 import { describeError } from '../forms/ErrorBlock';
 import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
 import { LoginContext, LoginContextValueLoggedIn } from '../contexts/LoginContext';
+import { useValuesWithCallbacksEffect } from './useValuesWithCallbacksEffect';
 
 export type NetworkResponseError = {
   /** For when the fetcher rejected */
@@ -73,6 +74,12 @@ export type UseNetworkResponseOpts = {
    * visible, for example.
    */
   loadPrevented?: ValueWithCallbacks<boolean>;
+
+  /**
+   * If specified, we will refresh if any of the callbacks are invoked
+   * on these vwcs.
+   */
+  dependsOn?: ValueWithCallbacks<unknown>[];
 };
 
 /**
@@ -165,74 +172,72 @@ export const useNetworkResponse = <T>(
     }
   }, [result, fetcher, minRefreshTimeMS, loadPrevented, loginContextRaw]);
 
-  useValueWithCallbacksEffect(
-    loginContextRaw.value,
-    useCallback(
-      (loginContextUnch) => {
-        if (loadPrevented.get()) {
-          setVWC(
-            result,
-            {
-              type: 'load-prevented',
-              result: undefined,
-              error: null,
-              refresh: null,
-            },
-            (a, b) => a.type === b.type
-          );
-          return;
-        }
+  useValuesWithCallbacksEffect(
+    [loginContextRaw.value, ...(opts?.dependsOn ?? [])],
+    useCallback(() => {
+      if (loadPrevented.get()) {
+        setVWC(
+          result,
+          {
+            type: 'load-prevented',
+            result: undefined,
+            error: null,
+            refresh: null,
+          },
+          (a, b) => a.type === b.type
+        );
+        return;
+      }
 
-        if (loginContextUnch.state !== 'logged-in') {
-          return;
-        }
-        const loginContext = loginContextUnch;
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        return;
+      }
+      const loginContext = loginContextUnch;
 
-        const active = createWritableValueWithCallbacks(true);
-        fetchWrapper();
-        return () => {
-          setVWC(active, false);
-        };
+      const active = createWritableValueWithCallbacks(true);
+      fetchWrapper();
+      return () => {
+        setVWC(active, false);
+      };
 
-        async function fetchWrapper() {
-          try {
-            const answer = await fetcher(active, loginContext);
-            if (active.get()) {
-              if (answer === null) {
-                setVWC(result, {
-                  type: 'unavailable',
-                  result: null,
-                  error: null,
-                  refresh,
-                });
-              } else {
-                setVWC(result, {
-                  type: 'success',
-                  result: answer,
-                  error: null,
-                  refresh,
-                });
-              }
-            }
-          } catch (e) {
-            if (!active.get()) {
-              return;
-            }
-
-            const described = await describeError(e);
-            if (active.get()) {
+      async function fetchWrapper() {
+        try {
+          const answer = await fetcher(active, loginContext);
+          if (active.get()) {
+            if (answer === null) {
               setVWC(result, {
-                type: 'error',
-                result: undefined,
-                error: described,
+                type: 'unavailable',
+                result: null,
+                error: null,
+                refresh,
+              });
+            } else {
+              setVWC(result, {
+                type: 'success',
+                result: answer,
+                error: null,
                 refresh,
               });
             }
           }
+        } catch (e) {
+          if (!active.get()) {
+            return;
+          }
+
+          const described = await describeError(e);
+          if (active.get()) {
+            setVWC(result, {
+              type: 'error',
+              result: undefined,
+              error: described,
+              refresh,
+            });
+          }
         }
-      },
-      [result, fetcher, loadPrevented, refresh]
-    )
+      }
+    }, [result, fetcher, loadPrevented, refresh])
   );
   useValueWithCallbacksEffect(
     loadPrevented,

@@ -76,7 +76,6 @@ export const UpgradeFeature: Feature<UpgradeState, UpgradeResources> = {
       }
 
       const path = new URL(window.location.href).pathname;
-      console.log('pathname=', path);
       setTimeout(() => state.get().setContext(null, path === '/upgrade'), 5);
     });
 

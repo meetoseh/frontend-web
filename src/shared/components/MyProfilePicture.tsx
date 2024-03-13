@@ -1,8 +1,12 @@
 import { ReactElement, useContext } from 'react';
 import { LoginContext } from '../contexts/LoginContext';
 import { OsehImageStateRequestHandler } from '../images/useOsehImageStateRequestHandler';
-import { useMyProfilePictureState } from '../hooks/useMyProfilePicture';
+import {
+  useMyProfilePictureState,
+  useMyProfilePictureStateValueWithCallbacks,
+} from '../hooks/useMyProfilePicture';
 import { OsehImageFromState } from '../images/OsehImageFromState';
+import { RenderGuardedComponent } from './RenderGuardedComponent';
 
 type MyProfilePictureProps = {
   /**
@@ -34,19 +38,34 @@ export const MyProfilePicture = ({
   imageHandler,
 }: MyProfilePictureProps): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
-  const profileImage = useMyProfilePictureState({
-    loginContext: loginContextRaw,
-    displayWidth,
-    displayHeight,
-    handler: imageHandler,
+  const profileImageVWC = useMyProfilePictureStateValueWithCallbacks({
+    type: 'react-rerender',
+    props: {
+      loginContext: loginContextRaw,
+      displayWidth,
+      displayHeight,
+      handler: imageHandler,
+      load: true,
+    },
   });
 
-  if (profileImage.state === 'unavailable') {
-    return <DefaultProfilePicture displayWidth={displayWidth} displayHeight={displayHeight} />;
-  }
-
   return (
-    <>{profileImage.state === 'available' && <OsehImageFromState {...profileImage.image} />}</>
+    <RenderGuardedComponent
+      props={profileImageVWC}
+      component={(profileImage) => {
+        if (profileImage.state === 'unavailable') {
+          return (
+            <DefaultProfilePicture displayWidth={displayWidth} displayHeight={displayHeight} />
+          );
+        }
+
+        return (
+          <>
+            {profileImage.state === 'available' && <OsehImageFromState {...profileImage.image} />}
+          </>
+        );
+      }}
+    />
   );
 };
 

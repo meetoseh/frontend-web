@@ -208,7 +208,7 @@ export const useMyProfilePictureStateValueWithCallbacks = (
       const loginContextRaw = props.loginContext;
 
       loginContextRaw.value.callbacks.add(onLoginContextChanged);
-
+      onLoginContextChanged();
       return () => {
         loginContextRaw.value.callbacks.remove(onLoginContextChanged);
       };

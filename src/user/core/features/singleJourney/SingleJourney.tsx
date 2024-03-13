@@ -63,7 +63,7 @@ export const SingleJourney = ({
 
             setScreen(screen);
           },
-          onJourneyFinished: () => state.get().setShow(null),
+          onJourneyFinished: () => resources.get().onJourneyFinished(),
           isOnboarding: false,
           takeAnother: null,
         };

@@ -27,6 +27,8 @@ import { SeriesDetailsFeature } from '../features/seriesDetails/SeriesDetailsFea
 import { UpgradeFeature } from '../features/upgrade/UpgradeFeature';
 import { ManageMembershipFeature } from '../features/manageMembership/ManageMembershipFeature';
 import { SingleJourneyFeature } from '../features/singleJourney/SingleJourneyFeature';
+import { HomeScreenFeature } from '../features/homeScreen/HomeScreenFeature';
+import { GotoEmotionFeature } from '../features/gotoEmotion/GotoEmotionFeature';
 
 export const features = [
   TouchLinkFeature,
@@ -50,6 +52,8 @@ export const features = [
   FavoritesFeature,
   SeriesListFeature,
   SettingsFeature,
+  GotoEmotionFeature,
+  HomeScreenFeature,
   PickEmotionJourneyFeature,
 ];
 

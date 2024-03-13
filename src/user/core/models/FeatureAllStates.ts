@@ -2,6 +2,8 @@ import { ConfirmMergeAccountState } from '../features/confirmMergeAccount/Confir
 import { FastUnsubscribeState } from '../features/fastUnsubscribe/FastUnsubscribeState';
 import { FavoritesState } from '../features/favorites/FavoritesState';
 import { GoalDaysPerWeekState } from '../features/goalDaysPerWeek/GoalDaysPerWeekState';
+import { GotoEmotionState } from '../features/gotoEmotion/GotoEmotionState';
+import { HomeScreenState } from '../features/homeScreen/HomeScreenState';
 import { IsaiahCourseState } from '../features/isaiahCourse/IsaiahCourseState';
 import { LoginState } from '../features/login/LoginState';
 import { ManageMembershipState } from '../features/manageMembership/ManageMembershipState';
@@ -44,4 +46,6 @@ export type FeatureAllStates = {
   upgrade: UpgradeState;
   manageMembership: ManageMembershipState;
   singleJourney: SingleJourneyState;
+  homeScreen: HomeScreenState;
+  gotoEmotion: GotoEmotionState;
 };

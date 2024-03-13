@@ -71,7 +71,6 @@ const _rasterizeUsingDevicePixels = async (
   containerSize: { width: number; height: number },
   superSample: number
 ): Promise<HTMLImageElement> => {
-  console.log('rendering svg in a container of ', containerSize, ' logical pixels');
   const svg = await _rasterizeDirectly(url, {
     width: svgRenderSize.width * superSample,
     height: svgRenderSize.height * superSample,

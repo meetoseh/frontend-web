@@ -16,6 +16,10 @@ export type HereSettings =
   | {
       type: 'floating';
       action: string;
+    }
+  | {
+      type: 'none';
+      action?: undefined;
     };
 
 /**
@@ -24,10 +28,15 @@ export type HereSettings =
 export const ProfilePictures = ({
   profilePictures,
   hereSettings,
+  center,
+  size: sizeRaw,
 }: {
   profilePictures: ValueWithCallbacks<ProfilePicturesState>;
   hereSettings?: HereSettings;
+  center?: boolean;
+  size?: string;
 }) => {
+  const size = sizeRaw ?? '38px';
   const containerRef = useRef<HTMLDivElement>(null);
   const bonusRef = useRef<HTMLDivElement>(null);
   const bonusAmountRef = useRef<HTMLDivElement>(null);
@@ -224,7 +233,12 @@ export const ProfilePictures = ({
   }, [profilePictures]);
 
   return (
-    <div className={styles.outerContainer}>
+    <div
+      className={combineClasses(
+        styles.outerContainer,
+        center ? styles.outerContainerCenter : undefined
+      )}
+      style={{ '--size': size } as any}>
       <div ref={containerRef} className={styles.container} />
       <div
         ref={bonusRef}
