@@ -352,7 +352,7 @@ export const GotoEmotionFeature: Feature<GotoEmotionState, GotoEmotionResources>
               return;
             }
 
-            if (!havePro) {
+            if (!havePro.result) {
               allStatesVWC.get().upgrade.setContext(
                 {
                   type: 'longerClasses',

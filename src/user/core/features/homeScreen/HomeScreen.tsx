@@ -43,15 +43,17 @@ export const HomeScreen = ({
   }, [currentDate]);
   const loginContextRaw = useContext(LoginContext);
   const nameVWC = useMappedValueWithCallbacks(loginContextRaw.value, (loginContextUnch) => {
-    if (
-      loginContextUnch.state !== 'logged-in' ||
-      loginContextUnch.userAttributes.givenName === null ||
-      loginContextUnch.userAttributes.givenName.toLowerCase() === 'anonymous' ||
-      loginContextUnch.userAttributes.givenName.toLowerCase() === 'there'
-    ) {
+    if (loginContextUnch.state !== 'logged-in') {
       return <></>;
     }
     const loginContext = loginContextUnch;
+    const name = loginContext.userAttributes.givenName;
+    if (name === null || name.toLowerCase() === 'anonymous' || name.toLowerCase() === 'there') {
+      return <></>;
+    }
+    if (name.startsWith('Guest-')) {
+      return <>, Guest</>;
+    }
     return <>, {loginContext.userAttributes.givenName}</>;
   });
 

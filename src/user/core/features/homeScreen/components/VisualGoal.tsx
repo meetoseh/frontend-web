@@ -122,14 +122,6 @@ export const VisualGoal = ({ state: stateVWC }: { state: ValueWithCallbacks<Visu
       const largeArcFlag = getAngleDistanceCW(startAngleStd, endAngleStd) > 180 ? 1 : 0;
       const sweepFlag = 1;
 
-      console.log(
-        `idx: ${idx}, startAngleStd: ${startAngleStd}, endAngleStd: ${endAngleStd}, largeArcFlag: ${largeArcFlag}, sweepFlag: ${sweepFlag}` +
-          `; getAngleDistance(startAngleStd, endAngleStd): ${getAngleDistanceCW(
-            startAngleStd,
-            endAngleStd
-          )}`
-      );
-
       paths.push({
         startAngleDegrees: startAngleStd,
         start: startPosition,
