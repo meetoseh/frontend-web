@@ -9,7 +9,6 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { MyProfilePicture } from '../../../../shared/components/MyProfilePicture';
-import { makeSVGNumber } from '../../../../shared/anim/svgUtils';
 import { Callbacks, useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
@@ -19,6 +18,10 @@ import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
 import { Emotion } from '../pickEmotionJourney/Emotion';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { DAYS_OF_WEEK } from '../../../../shared/models/DayOfWeek';
+import { VisualGoal, VisualGoalState } from './components/VisualGoal';
+import { useAnimationTargetAndRendered } from '../../../../shared/anim/useAnimationTargetAndRendered';
+import { ease } from '../../../../shared/lib/Bezier';
+import { BezierAnimator, TrivialAnimator } from '../../../../shared/anim/AnimationLoop';
 
 /**
  * Displays the home screen for the user
@@ -242,10 +245,37 @@ export const HomeScreen = ({
   });
 
   const streakInfoVWC = useMappedValueWithCallbacks(state, (s) => s.streakInfo);
+  const visualGoalStateVWC = useAnimationTargetAndRendered<VisualGoalState>(
+    () => ({
+      filled: 0,
+      goal: streakInfoVWC.get().result?.goalDaysPerWeek ?? 3,
+    }),
+    () => [
+      new BezierAnimator(
+        ease,
+        350,
+        (p) => p.filled,
+        (p, v) => (p.filled = v)
+      ),
+      new TrivialAnimator('goal'),
+    ]
+  );
 
   const handleEmotionClick = useCallback((emotion: Emotion) => {
     resources.get().startGotoEmotion(emotion)();
   }, []);
+
+  useValueWithCallbacksEffect(streakInfoVWC, (streakInfo) => {
+    setVWC(
+      visualGoalStateVWC.target,
+      {
+        filled: streakInfo.result?.daysOfWeek.length ?? 0,
+        goal: streakInfo.result?.goalDaysPerWeek ?? 3,
+      },
+      (a, b) => a.filled === b.filled && a.goal === b.goal
+    );
+    return undefined;
+  });
 
   return (
     <FullHeightDiv className={styles.container}>
@@ -328,121 +358,7 @@ export const HomeScreen = ({
                 <div className={styles.goal}>
                   <div className={styles.goalVisual}>
                     <div className={styles.goalVisualBackground}>
-                      {(() => {
-                        const filled = v.result?.daysOfWeek.length ?? 0;
-                        const radius = 45;
-                        const strokeWidth = 6;
-                        const viewBox = {
-                          w: radius * 2 + strokeWidth + 2,
-                          h: radius * 2 + strokeWidth + 2,
-                        };
-                        const cx = viewBox.w / 2;
-                        const cy = viewBox.h / 2;
-
-                        const cutAngleDegrees = 70;
-                        const spacerAngleDegrees = 2;
-                        const remainingAngleDegrees =
-                          360 - cutAngleDegrees - 6 * spacerAngleDegrees;
-                        const partAngleDegrees = remainingAngleDegrees / 7;
-                        const filledColor = '#EAEAEB';
-                        const filledOpacity = '1';
-                        const unfilledColor = '#FFFFFF';
-                        const unfilledOpacity = '0.35';
-
-                        const angleProportions = [0.9, 1, 1, 1.2, 1.1, 1, 0.9];
-                        const angleProportionsSum = angleProportions.reduce((a, b) => a + b, 0);
-                        const angleByPartIdx = angleProportions.map(
-                          (p) => (p / angleProportionsSum) * partAngleDegrees * 7
-                        );
-
-                        const paths: ReactElement[] = [];
-                        const svgn = makeSVGNumber;
-                        let nextStartAngleCWFromBottom = cutAngleDegrees / 2;
-                        for (let idx = 0; idx < 7; idx++) {
-                          const startAngleCWFromBottom = nextStartAngleCWFromBottom;
-                          nextStartAngleCWFromBottom += angleByPartIdx[idx] + spacerAngleDegrees;
-                          const startAngleStd = (startAngleCWFromBottom + 90) % 360;
-
-                          const startPosition = {
-                            x: cx + radius * Math.cos((startAngleStd * Math.PI) / 180),
-                            y: cy + radius * Math.sin((startAngleStd * Math.PI) / 180),
-                          };
-                          const endAngleStd = (startAngleStd + angleByPartIdx[idx]) % 360;
-                          const endPosition = {
-                            x: cx + radius * Math.cos((endAngleStd * Math.PI) / 180),
-                            y: cy + radius * Math.sin((endAngleStd * Math.PI) / 180),
-                          };
-                          const largeAngleFlag = 0;
-                          const sweepFlag = 1;
-                          const isFilled = idx < filled;
-                          const marker = isFilled
-                            ? { start: 'url(#roundFilled)', end: 'url(#roundFilled)' }
-                            : {
-                                start: 'url(#roundUnfilledStart)',
-                                end: 'url(#roundUnfilledEnd)',
-                              };
-
-                          paths.push(
-                            <path
-                              d={`M${svgn(startPosition.x)} ${svgn(startPosition.y)} A${svgn(
-                                radius
-                              )} ${svgn(radius)} 0 ${svgn(largeAngleFlag)} ${svgn(
-                                sweepFlag
-                              )} ${svgn(endPosition.x)} ${svgn(endPosition.y)}`}
-                              stroke={isFilled ? filledColor : unfilledColor}
-                              strokeOpacity={isFilled ? filledOpacity : unfilledOpacity}
-                              strokeWidth={svgn(strokeWidth)}
-                              fill="none"
-                              key={idx}
-                              markerStart={idx === 0 ? marker.start : undefined}
-                              markerEnd={idx === 6 ? marker.end : undefined}
-                            />
-                          );
-                        }
-
-                        return (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox={`0 0 ${viewBox.w} ${viewBox.h}`}
-                            width="64"
-                            height="64">
-                            <defs>
-                              <marker
-                                id="roundFilled"
-                                viewBox="-1 -1 2 2"
-                                markerWidth="1"
-                                orient="auto">
-                                <circle r="1" fill={filledColor} fillOpacity={filledOpacity} />
-                              </marker>
-                              <marker
-                                id="roundUnfilledStart"
-                                viewBox="-1 -1 2 2"
-                                markerWidth="1"
-                                orient="auto">
-                                <path
-                                  d="M0.002 -1A1 1 0 0 0 0.002 1Z"
-                                  fill={unfilledColor}
-                                  fillOpacity={unfilledOpacity}
-                                  stroke="none"
-                                />
-                              </marker>
-                              <marker
-                                id="roundUnfilledEnd"
-                                viewBox="-1 -1 2 2"
-                                markerWidth="1"
-                                orient="auto">
-                                <path
-                                  d="M-0.002 1A1 1 0 0 0 -0.002 -1Z"
-                                  fill={unfilledColor}
-                                  fillOpacity={unfilledOpacity}
-                                  stroke="none"
-                                />
-                              </marker>
-                            </defs>
-                            {paths}
-                          </svg>
-                        );
-                      })()}
+                      <VisualGoal state={visualGoalStateVWC.rendered} />
                     </div>
                     <div className={styles.goalVisualForeground}>
                       <div className={styles.goalVisualText}>
