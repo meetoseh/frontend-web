@@ -49,6 +49,15 @@ export const SingleJourneyFeature: Feature<SingleJourneyState, SingleJourneyReso
             allStatesVWC.get().homeScreen.streakInfo.refresh?.();
             stateVWC.get().setShow(null);
           },
+          onTakeAnother: () => {
+            allStatesVWC.get().homeScreen.streakInfo.refresh?.();
+            if (show?.type === 'emotion') {
+              allStatesVWC
+                .get()
+                .gotoEmotion.setShow({ emotion: show.emotion, anticipatory: false }, true);
+            }
+            stateVWC.get().setShow(null);
+          },
         };
       }
     );

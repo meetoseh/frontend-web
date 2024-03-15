@@ -17,4 +17,10 @@ export type SingleJourneyResources = {
 
   /** Should be called to indicate the journey is complete and to stop showing this screen */
   onJourneyFinished(): void;
+
+  /**
+   * Should be called to indicate that the journey is complete and the user wants to take
+   * another in the same emotion
+   */
+  onTakeAnother(): void;
 };
