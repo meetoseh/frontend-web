@@ -1,0 +1,25 @@
+.container {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  color: #232323;
+  width: 800px;
+  max-width: calc(100% - 40px);
+}
+
+.purposeSelect {
+  composes: sortSelect from '../crud/standard.module.css';
+}
+
+.content {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 24px;
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.active {
+  margin-top: 20px;
+}

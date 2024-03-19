@@ -29,6 +29,11 @@
   background-image: url('./icons/camera.svg');
 }
 
+.iconOnboardingVideos {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/video.svg');
+}
+
 .iconJourneySubcategories {
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/journey-subcategories.svg');

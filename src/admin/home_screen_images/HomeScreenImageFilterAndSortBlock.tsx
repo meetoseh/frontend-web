@@ -38,14 +38,14 @@ type HomeScreenImageFilterAndSortBlockProps = {
 };
 
 /**
- * The default sort for the course listing
+ * The default sort for the home screen image listing
  */
 export const defaultSort: CrudFetcherSort = [
   { key: 'created_at', dir: 'desc', after: null, before: null },
 ];
 
 /**
- * The default filter for the course listing
+ * The default filter for the home screen image listing
  */
 export const defaultFilter: CrudFetcherFilter = {
   flags: {

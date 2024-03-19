@@ -31,6 +31,7 @@ import { AdminSharingDashboard } from './sharing_dashboard/SharingDashboard';
 import { FlowChartExamples } from './flow_chart_examples/FlowChartExamples';
 import { Courses } from './courses/Courses';
 import { HomeScreenImages } from './home_screen_images/HomeScreenImages';
+import { OnboardingVideos } from './onboarding_videos/OnboardingVideos';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -53,6 +54,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="flow_chart_examples" element={<FlowChartExamples />} />
       <Route path="series" element={<Courses />} />
       <Route path="home_screen_images" element={<HomeScreenImages />} />
+      <Route path="onboarding_videos" element={<OnboardingVideos />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />

@@ -1,0 +1,28 @@
+.content {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 24px;
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.purpose {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.purpose > div {
+  margin-top: 0;
+}
+
+.purposeSelect {
+  composes: sortSelect from '../crud/standard.module.css';
+}
+
+.save {
+  margin-top: 20px;
+}

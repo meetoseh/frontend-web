@@ -1,33 +1,33 @@
 import { ReactElement, useCallback, useContext, useMemo } from 'react';
-import { LoginContext } from '../../shared/contexts/LoginContext';
-import { CrudFetcher, CrudFetcherFilter, CrudFetcherSort } from '../crud/CrudFetcher';
-import { Crud } from '../crud/Crud';
-import { CrudListing } from '../crud/CrudListing';
-import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
-import { adaptValueWithCallbacksAsSetState } from '../../shared/lib/adaptValueWithCallbacksAsSetState';
-import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
-import { setVWC } from '../../shared/lib/setVWC';
-import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
-import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
-import { HomeScreenImage, homeScreenImageKeyMap } from './HomeScreenImage';
+import { OnboardingVideo, onboardingVideoKeyMap } from './OnboardingVideo';
+import { CrudFetcher, CrudFetcherFilter, CrudFetcherSort } from '../crud/CrudFetcher';
 import {
-  HomeScreenImageFilterAndSortBlock,
+  OnboardingVideoFilterAndSortBlock,
   defaultFilter,
   defaultSort,
-} from './HomeScreenImageFilterAndSortBlock';
-import { HomeScreenImageBlock } from './HomeScreenImageBlock';
-import { CreateHomeScreenImage } from './CreateHomeScreenImage';
+} from './OnboardingVideoFilterAndSortBlock';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { adaptValueWithCallbacksAsSetState } from '../../shared/lib/adaptValueWithCallbacksAsSetState';
+import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
+import { LoginContext } from '../../shared/contexts/LoginContext';
+import { setVWC } from '../../shared/lib/setVWC';
+import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
+import { Crud } from '../crud/Crud';
+import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
+import { CrudListing } from '../crud/CrudListing';
+import { OnboardingVideoBlock } from './OnboardingVideoBlock';
+import { CreateOnboardingVideo } from './CreateOnboardingVideo';
 
 const limit = 8;
-const path = '/api/1/personalization/home/images/search';
+const path = '/api/1/onboarding/videos/search';
 
 /**
- * Shows the crud components for home screen images
+ * Shows the crud components for onboarding videos
  */
-export const HomeScreenImages = (): ReactElement => {
+export const OnboardingVideos = (): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
-  const itemsVWC = useWritableValueWithCallbacks<HomeScreenImage[]>(() => []);
+  const itemsVWC = useWritableValueWithCallbacks<OnboardingVideo[]>(() => []);
   const filtersVWC = useWritableValueWithCallbacks<CrudFetcherFilter>(() => defaultFilter);
   const sortVWC = useWritableValueWithCallbacks<CrudFetcherSort>(() => defaultSort);
   const loadingVWC = useWritableValueWithCallbacks<boolean>(() => true);
@@ -38,7 +38,7 @@ export const HomeScreenImages = (): ReactElement => {
     () =>
       new CrudFetcher(
         path,
-        homeScreenImageKeyMap,
+        onboardingVideoKeyMap,
         adaptValueWithCallbacksAsSetState(itemsVWC),
         adaptValueWithCallbacksAsSetState(loadingVWC),
         adaptValueWithCallbacksAsSetState(haveMoreVWC)
@@ -73,7 +73,7 @@ export const HomeScreenImages = (): ReactElement => {
   }, [fetcher, filtersVWC, loginContextRaw]);
 
   const onItemCreated = useCallback(
-    (item: HomeScreenImage) => {
+    (item: OnboardingVideo) => {
       const existing = itemsVWC.get();
       const existingIndex = existing.findIndex((i) => i.uid === item.uid);
       if (existingIndex !== -1) {
@@ -102,7 +102,7 @@ export const HomeScreenImages = (): ReactElement => {
 
   return (
     <Crud
-      title="Home Screen Images"
+      title="Onboarding Videos"
       listing={
         <RenderGuardedComponent
           props={listingInfoVWC}
@@ -110,10 +110,10 @@ export const HomeScreenImages = (): ReactElement => {
             <CrudListing
               items={items}
               component={(i) => (
-                <HomeScreenImageBlock
+                <OnboardingVideoBlock
                   key={i.uid}
-                  homeScreenImage={i}
-                  setHomeScreenImage={(i) => {
+                  onboardingVideo={i}
+                  setOnboardingVideo={(i) => {
                     const items = itemsVWC.get();
                     const index = items.findIndex((item) => item.uid === i.uid);
                     if (index === -1) {
@@ -134,8 +134,8 @@ export const HomeScreenImages = (): ReactElement => {
           )}
         />
       }
-      create={<CreateHomeScreenImage onCreated={onItemCreated} />}
-      filters={<HomeScreenImageFilterAndSortBlock sort={sortVWC} filter={filtersVWC} />}
+      create={<CreateOnboardingVideo onCreated={onItemCreated} imageHandler={imageHandler} />}
+      filters={<OnboardingVideoFilterAndSortBlock sort={sortVWC} filter={filtersVWC} />}
     />
   );
 };

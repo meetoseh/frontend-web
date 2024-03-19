@@ -126,6 +126,12 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/sign_in_with_oseh_dashboard"
             active={currentPath === '/admin/sign_in_with_oseh_dashboard'}
           />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconOnboardingVideos}
+            text="Onboarding Videos"
+            url="/admin/onboarding_videos"
+            active={currentPath === '/admin/onboarding_videos'}
+          />
           <AdminNavDesktopSideSectionHeader text="Misc" />
           <AdminNavDesktopSideLink
             iconClass={styles.iconFlowChartExamples}
