@@ -14,3 +14,20 @@
   justify-content: flex-start;
   align-items: center;
 }
+
+.gender {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.gender code {
+  max-width: 250px;
+  overflow-x: auto;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: #232323;
+}

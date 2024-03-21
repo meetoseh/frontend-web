@@ -37,4 +37,7 @@ export type HomeScreenResources = {
 
   /** Changes to the account tab */
   gotoAccount: () => void;
+
+  /** Changes to the update goal screen */
+  gotoUpdateGoal: () => void;
 };

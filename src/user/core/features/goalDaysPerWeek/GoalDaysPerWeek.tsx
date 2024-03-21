@@ -37,7 +37,7 @@ export const GoalDaysPerWeek = ({
   const loginContextRaw = useContext(LoginContext);
   const interests = useContext(InterestsContext);
   const modalContext = useContext(ModalContext);
-  const goal = useWritableValueWithCallbacks<number>(() => 3);
+  const goal = useWritableValueWithCallbacks<number>(() => resources.get().initialGoal);
   const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
 
   const boundSetGoals = useMemo<(() => void)[]>(() => {
@@ -81,8 +81,10 @@ export const GoalDaysPerWeek = ({
         throw response;
       }
 
-      resources.get().session?.reset?.call(undefined);
-      state.get().ian?.onShown?.call(undefined);
+      resources.get().session?.reset?.();
+      state.get().ian?.onShown?.();
+
+      resources.get().onGoalSet(selected);
     } catch (e) {
       const err = await describeError(e);
       setVWC(error, err);

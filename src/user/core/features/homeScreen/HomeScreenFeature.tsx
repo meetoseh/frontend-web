@@ -11,7 +11,7 @@ import { StreakInfo, streakInfoKeyMap } from '../../../journey/models/StreakInfo
 import { Feature } from '../../models/Feature';
 import { homeScreenImageMapper } from './HomeScreenImage';
 import { HomeScreenResources } from './HomeScreenResources';
-import { HomeScreenState } from './HomeScreenState';
+import { HomeScreenSessionInfo, HomeScreenState } from './HomeScreenState';
 import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
 import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
@@ -21,6 +21,8 @@ import { areOsehImageStatesEqual } from '../../../../shared/images/OsehImageStat
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 import { HomeScreen } from './HomeScreen';
 import { Emotion } from '../pickEmotionJourney/Emotion';
+import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { setVWC } from '../../../../shared/lib/setVWC';
 
 export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = {
   identifier: 'homeScreen',
@@ -55,10 +57,21 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
         minRefreshTimeMS: 0,
       }
     );
+    const sessionInfoVWC = useWritableValueWithCallbacks<HomeScreenSessionInfo>(() => ({
+      classesTaken: 0,
+    }));
 
-    return useMappedValuesWithCallbacks([enabledVWC, streakInfoVWC], () => ({
+    return useMappedValuesWithCallbacks([enabledVWC, streakInfoVWC, sessionInfoVWC], () => ({
       enabled: !!enabledVWC.get(),
       streakInfo: streakInfoVWC.get(),
+      sessionInfo: sessionInfoVWC.get(),
+      onClassTaken: () => {
+        const info = sessionInfoVWC.get();
+        setVWC(sessionInfoVWC, {
+          ...info,
+          classesTaken: info.classesTaken + 1,
+        });
+      },
     }));
   },
   isRequired: (worldState) => worldState.enabled,
@@ -196,6 +209,9 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
           },
           gotoAccount: () => {
             allStatesVWC.get().settings.setShow(true, true);
+          },
+          gotoUpdateGoal: () => {
+            allStatesVWC.get().goalDaysPerWeek.setForced(true);
           },
         };
       }

@@ -29,6 +29,7 @@ import { ManageMembershipFeature } from '../features/manageMembership/ManageMemb
 import { SingleJourneyFeature } from '../features/singleJourney/SingleJourneyFeature';
 import { HomeScreenFeature } from '../features/homeScreen/HomeScreenFeature';
 import { GotoEmotionFeature } from '../features/gotoEmotion/GotoEmotionFeature';
+import { WelcomeVideoFeature } from '../features/welcomeVideo/WelcomeVideoFeature';
 
 export const features = [
   TouchLinkFeature,
@@ -38,6 +39,7 @@ export const features = [
   RequestNameFeature,
   ConfirmMergeAccountFeature,
   MergeAccountFeature,
+  WelcomeVideoFeature,
   SignupRewardFeature,
   RequestPhoneFeature,
   RequestNotificationTimeFeature,

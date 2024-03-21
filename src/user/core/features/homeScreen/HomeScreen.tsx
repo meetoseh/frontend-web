@@ -22,6 +22,7 @@ import { VisualGoal, VisualGoalState } from './components/VisualGoal';
 import { useAnimationTargetAndRendered } from '../../../../shared/anim/useAnimationTargetAndRendered';
 import { ease } from '../../../../shared/lib/Bezier';
 import { BezierAnimator, TrivialAnimator } from '../../../../shared/anim/AnimationLoop';
+import { combineClasses } from '../../../../shared/lib/combineClasses';
 
 /**
  * Displays the home screen for the user
@@ -368,16 +369,22 @@ export const HomeScreen = ({
                       </div>
                     </div>
                   </div>
-                  <div className={styles.goalSection}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      resources.get().gotoUpdateGoal();
+                    }}
+                    className={combineClasses(styles.goalSection, styles.goalSectionGoal)}>
                     <div className={styles.goalSectionTitle}>Goal</div>
                     <div className={styles.goalSectionValue}>
                       {v.type === 'success'
                         ? v.result.goalDaysPerWeek === null
-                          ? 'Unset'
+                          ? 'TBD'
                           : `${v.result.daysOfWeek.length} of ${v.result.goalDaysPerWeek}`
                         : '?'}
                     </div>
-                  </div>
+                  </button>
                   <div className={styles.goalSection}>
                     <div className={styles.goalSectionTitle}>Streak</div>
                     <div className={styles.goalSectionValue}>

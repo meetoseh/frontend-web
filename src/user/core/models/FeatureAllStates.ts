@@ -22,6 +22,7 @@ import { SingleJourneyState } from '../features/singleJourney/SingleJourneyState
 import { TouchLinkState } from '../features/touchLink/TouchLinkState';
 import { UpgradeState } from '../features/upgrade/UpgradeState';
 import { VipChatRequestState } from '../features/vipChatRequest/VipChatRequestState';
+import { WelcomeVideoState } from '../features/welcomeVideo/WelcomeVideoState';
 
 export type FeatureAllStates = {
   requestName: RequestNameState;
@@ -48,4 +49,5 @@ export type FeatureAllStates = {
   singleJourney: SingleJourneyState;
   homeScreen: HomeScreenState;
   gotoEmotion: GotoEmotionState;
+  welcomeVideo: WelcomeVideoState;
 };

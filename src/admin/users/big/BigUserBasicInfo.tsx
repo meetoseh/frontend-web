@@ -5,6 +5,7 @@ import styles from './BigUserBasicInfo.module.css';
 import { OsehImage } from '../../../shared/images/OsehImage';
 import { CrudFormElement } from '../../crud/CrudFormElement';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { TogglableSmoothExpandable } from '../../../shared/components/TogglableSmoothExpandable';
 
 /**
  * A standard block that provides basic information on the user;
@@ -55,6 +56,20 @@ export const BigUserBasicInfo = ({
           {rcid}
         </CrudFormElement>
       ))}
+      <CrudFormElement title="Gender">
+        {user.gender === null ? (
+          'Not checked'
+        ) : (
+          <div className={styles.gender}>
+            <div className={styles.genderValue}>{user.gender.gender}</div>
+            <TogglableSmoothExpandable>
+              <code>
+                <pre>{JSON.stringify(user.gender.source, undefined, 1)}</pre>
+              </code>
+            </TogglableSmoothExpandable>
+          </div>
+        )}
+      </CrudFormElement>
       <CrudFormElement title="Created At">{user.createdAt.toLocaleString()}</CrudFormElement>
       <CrudFormElement title="Last Seen At">{user.lastSeenAt.toLocaleString()}</CrudFormElement>
     </CrudItemBlock>

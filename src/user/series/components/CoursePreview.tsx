@@ -30,6 +30,7 @@ import { combineClasses } from '../../../shared/lib/combineClasses';
 import { useCurrentTranscriptPhrases } from '../../../shared/transcripts/useCurrentTranscriptPhrases';
 import { TranscriptContainer } from '../../../shared/transcripts/TranscriptContainer';
 import { Button } from '../../../shared/forms/Button';
+import { useVideoInfo } from '../../../shared/hooks/useVideoInfo';
 
 export type CoursePreviewProps = {
   course: ExternalCoursePreviewable;
@@ -167,114 +168,27 @@ export const CoursePreview = ({
 
   useErrorModal(modalContext.modals, videoErrorVWC, 'loading video');
 
-  const videoLoadedVWC = useMappedValueWithCallbacks(videoVWC, (v) => v.loaded);
-  const videoPlayingVWC = useWritableValueWithCallbacks(() => false);
-  const videoMutedVWC = useWritableValueWithCallbacks(() => false);
-  const videoCurrentTimeVWC = useWritableValueWithCallbacks(() => 0);
-
-  useValueWithCallbacksEffect(
-    videoVWC,
-    useCallback(
-      (v) => {
-        if (v.state !== 'loaded') {
-          return;
-        }
-        const vid = v.video;
-        vid.addEventListener('play', handlePausedChanged);
-        vid.addEventListener('pause', handlePausedChanged);
-        vid.addEventListener('ended', handlePausedChanged);
-        vid.addEventListener('volumechange', handleMutedChanged);
-        vid.addEventListener('timeupdate', handleTimeChanged);
-        handlePausedChanged();
-        handleMutedChanged();
-        return () => {
-          vid.removeEventListener('play', handlePausedChanged);
-          vid.removeEventListener('pause', handlePausedChanged);
-          vid.removeEventListener('ended', handlePausedChanged);
-          vid.removeEventListener('volumechange', handleMutedChanged);
-          vid.removeEventListener('timeupdate', handleTimeChanged);
-        };
-
-        function handlePausedChanged() {
-          setVWC(videoPlayingVWC, !vid.paused && !vid.ended);
-        }
-
-        function handleMutedChanged() {
-          setVWC(videoMutedVWC, vid.muted);
-        }
-
-        function handleTimeChanged() {
-          setVWC(videoCurrentTimeVWC, vid.currentTime);
-        }
-      },
-      [videoPlayingVWC, videoCurrentTimeVWC, videoMutedVWC]
-    )
-  );
-
-  const videoPlayPauseStateVWC = useMappedValuesWithCallbacks(
-    [videoLoadedVWC, videoPlayingVWC],
-    (): 'loading' | 'playing' | 'paused' => {
-      if (!videoLoadedVWC.get()) {
-        return 'loading';
-      }
-      if (videoPlayingVWC.get()) {
-        return 'playing';
-      }
-      return 'paused';
-    }
-  );
-
-  const currentTranscriptPhrasesVWC = useCurrentTranscriptPhrases({
-    transcriptRef: useReactManagedValueAsValueWithCallbacks(course.introVideoTranscript),
-    currentTime: videoCurrentTimeVWC,
-  });
-  const closedCaptioningPhrasesVWC = useMappedValueWithCallbacks(
-    currentTranscriptPhrasesVWC,
-    (v) => v.phrases
-  );
-  const closedCaptioningAvailableVWC = useMappedValueWithCallbacks(
-    currentTranscriptPhrasesVWC,
-    useCallback(
-      (v) => {
-        return course.introVideoTranscript !== null && v.error === null;
-      },
-      [course]
-    )
-  );
-  const closedCaptioningEnabledVWC = useWritableValueWithCallbacks(() => true);
-
-  const closedCaptioningStateVWC = useMappedValuesWithCallbacks(
-    [closedCaptioningAvailableVWC, closedCaptioningEnabledVWC],
-    () => ({
-      available: closedCaptioningAvailableVWC.get(),
-      enabled: closedCaptioningEnabledVWC.get(),
+  const videoInfo = useVideoInfo({
+    videoVWC: videoVWC,
+    currentTranscriptPhrasesVWC: useCurrentTranscriptPhrases({
+      transcriptRef: useReactManagedValueAsValueWithCallbacks(course.introVideoTranscript),
     }),
-    {
-      outputEqualityFn: (a, b) => a.available === b.available && a.enabled === b.enabled,
-    }
-  );
-
-  const totalTime = ((durationSeconds) => {
-    const minutes = Math.floor(durationSeconds / 60);
-    const seconds = Math.floor(durationSeconds % 60);
-
-    return `${minutes}:${seconds < 10 ? `0${seconds}` : seconds}`;
-  })(course.introVideoDuration);
+  });
 
   const progressFullRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   useValuesWithCallbacksEffect(
-    [progressFullRef, videoCurrentTimeVWC],
+    [progressFullRef, videoInfo.currentTime],
     useCallback(() => {
       const ele = progressFullRef.get();
       if (ele === null) {
         return undefined;
       }
 
-      const currentTime = videoCurrentTimeVWC.get();
+      const currentTime = videoInfo.currentTime.get();
       const progress = currentTime / course.introVideoDuration;
       ele.style.width = `${progress * 100}%`;
       return undefined;
-    }, [progressFullRef, videoCurrentTimeVWC, course.introVideoDuration])
+    }, [progressFullRef, videoInfo.currentTime, course.introVideoDuration])
   );
 
   const onProgressContainerClick = useCallback(
@@ -300,7 +214,7 @@ export const CoursePreview = ({
     <div className={styles.container}>
       <div className={styles.background} ref={(v) => setVWC(videoSinkVWC, v)}>
         <RenderGuardedComponent
-          props={videoLoadedVWC}
+          props={videoInfo.loaded}
           component={(loaded) =>
             !loaded ? <OsehImageFromStateValueWithCallbacks state={coverImageState} /> : <></>
           }
@@ -322,7 +236,7 @@ export const CoursePreview = ({
         </div>
         <div className={styles.pausePlayControlContainer}>
           <RenderGuardedComponent
-            props={videoPlayPauseStateVWC}
+            props={videoInfo.playPauseState}
             component={(state) =>
               state === 'loading' ? (
                 <div
@@ -365,15 +279,15 @@ export const CoursePreview = ({
         <div className={styles.footer}>
           <div className={styles.footerInnerContainer}>
             <RenderGuardedComponent
-              props={closedCaptioningStateVWC}
+              props={videoInfo.closedCaptioning.state}
               component={(state) =>
                 !state.enabled || !state.available ? (
                   <></>
                 ) : (
                   <div className={styles.transcript}>
                     <TranscriptContainer
-                      currentTime={videoCurrentTimeVWC}
-                      currentTranscriptPhrases={closedCaptioningPhrasesVWC}
+                      currentTime={videoInfo.currentTime}
+                      currentTranscriptPhrases={videoInfo.closedCaptioning.phrases}
                     />
                   </div>
                 )
@@ -390,7 +304,7 @@ export const CoursePreview = ({
               <div className={styles.actions}>
                 <div className={styles.actionIconsRow}>
                   <RenderGuardedComponent
-                    props={videoMutedVWC}
+                    props={videoInfo.muted}
                     component={(muted) => (
                       <IconButton
                         icon={muted ? styles.mutedIcon : styles.unmutedIcon}
@@ -407,7 +321,7 @@ export const CoursePreview = ({
                     )}
                   />
                   <RenderGuardedComponent
-                    props={closedCaptioningStateVWC}
+                    props={videoInfo.closedCaptioning.state}
                     component={(state) =>
                       !state.available ? (
                         <></>
@@ -419,7 +333,7 @@ export const CoursePreview = ({
                           }
                           onClick={(e) => {
                             e.preventDefault();
-                            setVWC(closedCaptioningEnabledVWC, !state.enabled);
+                            setVWC(videoInfo.closedCaptioning.enabled, !state.enabled);
                           }}
                         />
                       )
@@ -457,7 +371,7 @@ export const CoursePreview = ({
             <div className={styles.durationContainer}>
               <div className={styles.currentTime}>
                 <RenderGuardedComponent
-                  props={videoCurrentTimeVWC}
+                  props={videoInfo.currentTime}
                   component={(inFractionalSeconds) => {
                     const inSeconds = Math.floor(inFractionalSeconds);
                     const minutes = Math.floor(inSeconds / 60);
@@ -472,7 +386,12 @@ export const CoursePreview = ({
                   }}
                 />
               </div>
-              <div className={styles.totalTime}>{totalTime}</div>
+              <div className={styles.totalTime}>
+                <RenderGuardedComponent
+                  props={videoInfo.totalTime}
+                  component={(totalTime) => <>{totalTime.formatted}</>}
+                />
+              </div>
             </div>
           </div>
         </div>

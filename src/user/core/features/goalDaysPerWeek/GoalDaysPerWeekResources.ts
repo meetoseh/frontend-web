@@ -21,4 +21,16 @@ export type GoalDaysPerWeekResources = {
    * ready to present.
    */
   loading: boolean;
+
+  /**
+   * The initial value to load for the goal, if doing so won't change the
+   * users already seen option
+   */
+  initialGoal: number;
+
+  /**
+   * Should be called when the goal is changed to the given value to update
+   * our local state immediately and mark this screen unforced.
+   */
+  onGoalSet: (goal: number) => void;
 };

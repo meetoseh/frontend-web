@@ -148,6 +148,16 @@
   align-items: flex-start;
 }
 
+.goalSectionGoal {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 10px; /* easier to click */
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+}
+
 .goalSectionTitle {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;

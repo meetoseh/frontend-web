@@ -1,5 +1,10 @@
 import { OsehImageRef } from '../../shared/images/OsehImageRef';
-import { CrudFetcherKeyMap } from '../crud/CrudFetcher';
+import {
+  CrudFetcher,
+  CrudFetcherKeyMap,
+  CrudFetcherMapper,
+  convertUsingMapper,
+} from '../crud/CrudFetcher';
 
 export type UserEmail = {
   /**
@@ -52,6 +57,70 @@ export type UserPhone = {
    */
   suppressed: boolean;
 };
+
+type GenderGuessSource<T extends string, P extends object, R extends object> = {
+  type: T;
+  url: string;
+  payload: P;
+  response: R;
+};
+
+type GenderGuessDetails = {
+  credits_used: number | null;
+  samples: number | null;
+  country: string | null;
+  first_name_sanitized: string | null;
+  duration: string | null;
+};
+
+type GenderGuessResponse<I extends object> = {
+  input: I | null;
+  details: GenderGuessDetails;
+  result_found: boolean;
+  first_name: string | null;
+  probability: number | null;
+  gender: 'male' | 'female' | 'unknown';
+};
+
+export type GenderByFirstNameSource = GenderGuessSource<
+  'by-first-name',
+  { locale: string | null; first_name: string },
+  GenderGuessResponse<{ first_name: string }>
+>;
+export type GenderByFullNameSource = GenderGuessSource<
+  'by-full-name',
+  { locale: string | null; full_name: string },
+  GenderGuessResponse<{ full_name: string }>
+>;
+export type GenderByEmailAddressSource = GenderGuessSource<
+  'by-email-address',
+  { locale: string | null; email: string },
+  GenderGuessResponse<{ email: string }>
+>;
+export type GenderByUserEntrySource = { type: 'by-user-entry' };
+export type GenderByAdminEntrySource = { type: 'by-admin-entry'; admin_sub: string };
+export type GenderByFallbackSource = { type: 'by-fallback' };
+
+export type GenderSource =
+  | GenderByFirstNameSource
+  | GenderByFullNameSource
+  | GenderByEmailAddressSource
+  | GenderByUserEntrySource
+  | GenderByAdminEntrySource
+  | GenderByFallbackSource;
+
+export const genderSourceKeyMap: CrudFetcherMapper<GenderSource> = (raw: any) =>
+  raw as GenderSource;
+
+export type GenderWithSource = {
+  gender: 'male' | 'female' | 'nonbinary' | 'unknown';
+  source: GenderSource;
+};
+
+export const genderWithSourceKeyMap: CrudFetcherMapper<GenderWithSource> = (raw: any) => ({
+  gender: raw.gender,
+  source: convertUsingMapper(raw.source, genderSourceKeyMap),
+});
 
 /**
  * A user as returned from detailed admin endpoints. Most of the time, you'll
@@ -113,6 +182,12 @@ export type User = {
    * background and thus can still be a few minutes behind.
    */
   lastSeenAt: Date;
+
+  /**
+   * The users gender, if we have a value we are using, null if we would have
+   * to guess it if it were needed.
+   */
+  gender: GenderWithSource | null;
 };
 
 /**
@@ -125,4 +200,8 @@ export const userKeyMap: CrudFetcherKeyMap<User> | ((raw: any) => User) = {
   profile_picture: 'profilePicture',
   created_at: (_, v) => ({ key: 'createdAt', value: new Date(v * 1000) }),
   last_seen_at: (_, v) => ({ key: 'lastSeenAt', value: new Date(v * 1000) }),
+  gender: (_, v) => ({
+    key: 'gender',
+    value: v === null || v === undefined ? null : convertUsingMapper(v, genderWithSourceKeyMap),
+  }),
 };
