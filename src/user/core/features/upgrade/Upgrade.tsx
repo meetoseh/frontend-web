@@ -220,6 +220,7 @@ export const Upgrade = ({
     redirectingVWC,
     resources,
     subscribeErrorVWC,
+    state,
   ]);
 
   return (
