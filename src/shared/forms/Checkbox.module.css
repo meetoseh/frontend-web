@@ -20,7 +20,8 @@
   }
 }
 
-.style_whiteWide {
+.style_whiteWide,
+.style_whiteWideRound {
   display: flex;
   flex-flow: row-reverse wrap;
   align-items: center;
@@ -49,8 +50,16 @@
   background-image: url('./icons/checkbox-checked.svg');
 }
 
+.style_whiteWideRound .input:checked {
+  background-image: url('./icons/checkbox-checked-round.svg');
+}
+
 .input:not(:checked) {
   background-image: url('./icons/checkbox-unchecked.svg');
+}
+
+.style_whiteWideRound .input:not(:checked) {
+  background-image: url('./icons/checkbox-unchecked-round.svg');
 }
 
 .input:disabled {
@@ -75,7 +84,8 @@
   margin: 0 0 0 12px;
 }
 
-.style_whiteWide .label {
+.style_whiteWide .label,
+.style_whiteWideRound .label {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   color: white;

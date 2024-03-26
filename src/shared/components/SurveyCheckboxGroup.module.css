@@ -1,0 +1,16 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  background-color: #232323;
+  border-radius: 10px;
+}
+
+.item > * {
+  padding: 12px;
+}
+
+.item:not(:last-child) {
+  border-bottom: 1px solid #383838;
+}

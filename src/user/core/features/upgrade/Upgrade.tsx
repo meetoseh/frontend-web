@@ -204,6 +204,8 @@ export const Upgrade = ({
 
       const data: { url: string } = await response.json();
       await res.session?.storeAction('purchase_screen_shown', null);
+      resources.get().session?.reset();
+      state.get().ian?.onShown();
       window.location.assign(data.url);
     } catch (e) {
       const err = await describeError(e);
@@ -234,6 +236,8 @@ export const Upgrade = ({
             onClick={(e) => {
               e.preventDefault();
               resources.get().session?.storeAction('close', null);
+              resources.get().session?.reset();
+              state.get().ian?.onShown();
               state.get().setContext(null, true);
             }}
           />

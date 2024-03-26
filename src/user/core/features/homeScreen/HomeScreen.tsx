@@ -9,7 +9,11 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { MyProfilePicture } from '../../../../shared/components/MyProfilePicture';
-import { Callbacks, useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import {
+  Callbacks,
+  ValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
@@ -30,7 +34,13 @@ import { combineClasses } from '../../../../shared/lib/combineClasses';
 export const HomeScreen = ({
   state,
   resources,
-}: FeatureComponentProps<HomeScreenState, HomeScreenResources>): ReactElement => {
+  tutorial,
+}: FeatureComponentProps<HomeScreenState, HomeScreenResources> & {
+  tutorial?: {
+    step: ValueWithCallbacks<'explain_top' | 'explain_bottom'>;
+    onNextStep: () => void;
+  };
+}): ReactElement => {
   const currentDate = useMemo(() => new Date(), []);
   const greeting = useMemo(() => {
     const hour = currentDate.getHours();
@@ -268,6 +278,16 @@ export const HomeScreen = ({
     resources.get().startGotoEmotion(emotion)();
   }, []);
 
+  const bottomNavRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const bottomNavHeightVWC = useWritableValueWithCallbacks<number>(() => 67);
+
+  useValueWithCallbacksEffect(bottomNavRef, (ele) => {
+    if (ele !== null) {
+      setVWC(bottomNavHeightVWC, ele.offsetHeight);
+    }
+    return undefined;
+  });
+
   useValueWithCallbacksEffect(streakInfoVWC, (streakInfo) => {
     setVWC(
       visualGoalStateVWC.target,
@@ -277,6 +297,43 @@ export const HomeScreen = ({
       },
       (a, b) => a.filled === b.filled && a.goal === b.goal
     );
+    return undefined;
+  });
+  const overlayVWC = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const overlayStyleVWC = useMappedValuesWithCallbacks(
+    [...(tutorial === undefined ? [] : [tutorial.step]), backgroundImageVWC, bottomNavHeightVWC],
+    () => {
+      const step = tutorial?.step?.get();
+      if (step === undefined) {
+        return;
+      }
+
+      const imgHeight = backgroundImageVWC.get();
+      const botNavHeight = bottomNavHeightVWC.get();
+
+      if (step === 'explain_bottom') {
+        return { top: '0', bottom: 'unset', height: `${imgHeight.displayHeight}px` };
+      } else {
+        return {
+          top: `${imgHeight.displayHeight}px`,
+          bottom: `${botNavHeight}px`,
+          height: 'unset',
+        };
+      }
+    }
+  );
+
+  useValuesWithCallbacksEffect([overlayVWC, overlayStyleVWC], () => {
+    const overlay = overlayVWC.get();
+    if (overlay === null) {
+      return undefined;
+    }
+    const style = overlayStyleVWC.get();
+    if (style === undefined) {
+      return undefined;
+    }
+
+    Object.assign(overlay.style, style);
     return undefined;
   });
 
@@ -294,13 +351,19 @@ export const HomeScreen = ({
                 {greeting}
                 <RenderGuardedComponent props={nameVWC} component={(v) => v} />! 👋
               </div>
-              <div className={styles.headerProfilePicture}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  resources.get().gotoAccount();
+                }}
+                className={styles.headerProfilePicture}>
                 <MyProfilePicture
                   displayWidth={32}
                   displayHeight={32}
-                  imageHandler={resources.get().imageHandler}
+                  imageHandler={state.get().imageHandler}
                 />
-              </div>
+              </button>
             </div>
             <div className={styles.headerBody}>
               <RenderGuardedComponent
@@ -430,7 +493,7 @@ export const HomeScreen = ({
             />
           </div>
         </div>
-        <div className={styles.bottomNav}>
+        <div className={styles.bottomNav} ref={(r) => setVWC(bottomNavRef, r)}>
           <BottomNavBar
             active="home"
             clickHandlers={{
@@ -440,6 +503,55 @@ export const HomeScreen = ({
           />
         </div>
       </div>
+      {tutorial !== undefined && (
+        <div className={styles.overlay} ref={(r) => setVWC(overlayVWC, r)}>
+          <RenderGuardedComponent
+            props={tutorial.step}
+            component={(step) =>
+              step === 'explain_top' ? (
+                <div className={combineClasses(styles.tutorial, styles.tutorial1)}>
+                  <div className={styles.tutorialTitle}>Celebrate your journey</div>
+                  <div className={styles.tutorialText}>
+                    Track your progress and celebrate milestones &mdash; we&rsquo;re here to cheer
+                    you on 🎉
+                  </div>
+                  <div className={styles.tutorialControls}>
+                    <div className={styles.tutorialProgress}>1/2</div>
+                    <button
+                      type="button"
+                      className={styles.tutorialButton}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        tutorial?.onNextStep();
+                      }}>
+                      Next
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className={combineClasses(styles.tutorial, styles.tutorial2)}>
+                  <div className={styles.tutorialTitle}>Your perfect class is waiting</div>
+                  <div className={styles.tutorialText}>
+                    Select a mood and get a tailored class just for you.
+                  </div>
+                  <div className={styles.tutorialControls}>
+                    <div className={styles.tutorialProgress}>2/2</div>
+                    <button
+                      type="button"
+                      className={styles.tutorialButton}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        tutorial?.onNextStep();
+                      }}>
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )
+            }
+          />
+        </div>
+      )}
     </FullHeightDiv>
   );
 };

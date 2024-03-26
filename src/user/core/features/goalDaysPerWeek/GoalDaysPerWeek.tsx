@@ -1,153 +1,177 @@
-import { ReactElement, useCallback, useContext, useMemo } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
-import { GoalDaysPerWeekState } from './GoalDaysPerWeekState';
-import { GoalDaysPerWeekResources } from './GoalDaysPerWeekResources';
-import styles from './GoalDaysPerWeek.module.css';
-import { Button } from '../../../../shared/forms/Button';
-import { combineClasses } from '../../../../shared/lib/combineClasses';
-import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
-import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { apiFetch } from '../../../../shared/ApiConstants';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
+import { ReactElement, useCallback, useContext, useEffect } from 'react';
 import {
-  InterestsContext,
-  InterestsContextValue,
-} from '../../../../shared/contexts/InterestsContext';
-import {
-  ValueWithCallbacks,
-  createWritableValueWithCallbacks,
+  WritableValueWithTypedCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
-import { setVWC } from '../../../../shared/lib/setVWC';
-import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
-import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
-import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
+import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
+import { SurveyScreen } from '../../../../shared/components/SurveyScreen';
+import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
+import { GoalDaysPerWeekState } from './GoalDaysPerWeekState';
+import { GoalDaysPerWeekResources } from './GoalDaysPerWeekResources';
+import { apiFetch } from '../../../../shared/ApiConstants';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
+import { useWorkingModal } from '../../../../shared/hooks/useWorkingModal';
+import { useDelayedValueWithCallbacks } from '../../../../shared/hooks/useDelayedValueWithCallbacks';
+import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
+import { setVWC } from '../../../../shared/lib/setVWC';
+import { describeError } from '../../../../shared/forms/ErrorBlock';
 
+const _CHOICES = [
+  { slug: '1', text: '1 day', element: <>1 day</> },
+  { slug: '2', text: '2 days', element: <>2 days</> },
+  { slug: '3', text: '3 days', element: <>3 days</> },
+  { slug: '4', text: '4 days', element: <>4 days</> },
+  { slug: '5', text: '5 days', element: <>5 days</> },
+  { slug: '6', text: '6 days', element: <>6 days</> },
+  { slug: '7', text: '7 days', element: <>7 days</> },
+] as const;
+
+type ChoiceSlug = (typeof _CHOICES)[number]['slug'];
+const CHOICES = _CHOICES as readonly { slug: ChoiceSlug; text: string; element: ReactElement }[];
+
+/**
+ * Shows the actual goal days per week question
+ */
 export const GoalDaysPerWeek = ({
   state,
   resources,
-}: FeatureComponentProps<GoalDaysPerWeekState, GoalDaysPerWeekResources>): ReactElement => {
-  useStartSession({
-    type: 'callbacks',
-    props: () => resources.get().session,
-    callbacks: resources.callbacks,
-  });
+}: FeatureComponentProps<GoalDaysPerWeekState, GoalDaysPerWeekResources>) => {
   const loginContextRaw = useContext(LoginContext);
-  const interests = useContext(InterestsContext);
   const modalContext = useContext(ModalContext);
-  const goal = useWritableValueWithCallbacks<number>(() => resources.get().initialGoal);
-  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const checkedVWC = useWritableValueWithCallbacks<ChoiceSlug[]>(() => [
+    resources.get().initialGoal.toString() as ChoiceSlug,
+  ]) as WritableValueWithTypedCallbacks<
+    ChoiceSlug[],
+    { action: 'checked' | 'unchecked'; changed: ChoiceSlug } | undefined
+  >;
+  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const savingVWC = useWritableValueWithCallbacks<boolean>(() => false);
 
-  const boundSetGoals = useMemo<(() => void)[]>(() => {
-    return [1, 2, 3, 4, 5, 6, 7].map((i) => () => setVWC(goal, i));
-  }, [goal]);
+  useErrorModal(modalContext.modals, errorVWC, 'saving goal');
 
-  const goalIsActive = useMemo<ValueWithCallbacks<boolean>[]>(() => {
-    return [1, 2, 3, 4, 5, 6, 7].map((i) => {
-      const result = createWritableValueWithCallbacks(goal.get() === i);
-      goal.callbacks.add(() => setVWC(result, goal.get() === i));
-      return result;
-    });
-  }, [goal]);
+  useWorkingModal(modalContext.modals, useDelayedValueWithCallbacks(savingVWC, 200));
 
-  const onFinish = useCallback(async () => {
-    const loginContextUnch = loginContextRaw.value.get();
-    if (loginContextUnch.state !== 'logged-in') {
-      setVWC(error, <>You need to login again to do that.</>);
-      return;
+  useStartSession(
+    {
+      type: 'callbacks',
+      props: () => resources.get().session,
+      callbacks: resources.callbacks,
+    },
+    {
+      onStart: () => {
+        resources.get().session?.storeAction('open', {
+          choice: parseInt(checkedVWC.get()[0], 10),
+          back: state.get().forced?.back ?? null,
+        });
+      },
     }
+  );
 
-    const loginContext = loginContextUnch;
+  useEffect(() => {
+    checkedVWC.callbacks.add(handleEvent);
+    return () => {
+      checkedVWC.callbacks.remove(handleEvent);
+    };
 
-    const selected = goal.get();
-    resources.get().session?.storeAction?.call(undefined, 'set_goal', { days_per_week: selected });
-    state.get().ian?.onShown?.call(undefined, true);
-    try {
-      const response = await apiFetch(
-        '/api/1/users/me/goal',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            days_per_week: selected,
-          }),
-        },
-        loginContext
-      );
-
-      if (!response.ok) {
-        throw response;
+    function handleEvent(
+      event: { action: 'checked' | 'unchecked'; changed: ChoiceSlug } | undefined
+    ) {
+      if (event === undefined || event.action !== 'checked') {
+        return;
       }
 
-      resources.get().session?.reset?.();
-      state.get().ian?.onShown?.();
-
-      resources.get().onGoalSet(selected);
-    } catch (e) {
-      const err = await describeError(e);
-      setVWC(error, err);
-      throw new Error('Failed to store goal');
+      resources.get().session?.storeAction('check', {
+        value: parseInt(event.changed, 10),
+      });
     }
-  }, [state, resources, error, goal, loginContextRaw]);
+  }, [checkedVWC, resources]);
 
-  const title = useMemo(() => getTitle(interests), [interests]);
-  useErrorModal(modalContext.modals, error, 'Set Goal');
+  const trySave = useCallback(async () => {
+    const loginContextUnch = loginContextRaw.value.get();
+    if (loginContextUnch.state !== 'logged-in') {
+      return;
+    }
+    const loginContext = loginContextUnch;
+    const value = parseInt(checkedVWC.get()[0], 10);
+
+    const response = await apiFetch(
+      '/api/1/users/me/goal',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ days_per_week: value }),
+        keepalive: true,
+      },
+      loginContext
+    );
+    if (response.ok) {
+      resources.get().session?.storeAction('stored', { choice: value });
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+
+    function handleBeforeUnload() {
+      const value = parseInt(checkedVWC.get()[0], 10);
+      resources.get().session?.storeAction('close', {
+        choice: value,
+      });
+      trySave();
+    }
+  }, [resources]);
+
+  const handleAction = useCallback(
+    async (action: 'continue' | 'back') => {
+      const choice = parseInt(checkedVWC.get()[0], 10);
+      resources.get().session?.storeAction(action, {
+        choice,
+      });
+      setVWC(errorVWC, null);
+      try {
+        await trySave();
+      } catch (e) {
+        setVWC(errorVWC, await describeError(e));
+        return;
+      }
+      resources.get().session?.reset();
+      state.get().ian?.onShown();
+      resources.get().onGoalSet(choice, action);
+    },
+    [resources, state]
+  );
 
   return (
-    <div className={styles.container}>
-      <div className={styles.imageContainer}>
-        <OsehImageFromStateValueWithCallbacks
-          state={useMappedValueWithCallbacks(resources, (r) => r.background)}
-        />
-      </div>
-      <div className={styles.content}>
-        <div className={styles.title}>{title}</div>
-        <div className={styles.days}>
-          {boundSetGoals.map((setGoal, i) => (
-            <RenderGuardedComponent
-              key={i}
-              props={goalIsActive[i]}
-              component={(isActive) => (
-                <button
-                  type="button"
-                  onClick={setGoal}
-                  className={combineClasses(styles.day, isActive ? styles.dayActive : undefined)}>
-                  {i + 1}
-                </button>
-              )}
-            />
-          ))}
-        </div>
-        <div className={styles.submitContainer}>
-          <Button type="button" variant="filled-white" fullWidth onClick={onFinish}>
-            Set Goal
-          </Button>
-        </div>
-      </div>
-    </div>
+    <SurveyScreen
+      title={{
+        type: 'react-rerender',
+        props: <>How many days a week would you like to practice each week?</>,
+      }}
+      subtitle={{
+        type: 'react-rerender',
+        props: <>We&rsquo;ll keep you motivated along the way</>,
+      }}
+      onBack={{
+        type: 'callbacks',
+        props: () => {
+          const forced = state.get().forced;
+          if (forced === null || forced.back === null) {
+            return null;
+          }
+          return () => handleAction('back');
+        },
+        callbacks: state.callbacks,
+      }}
+      onContinue={{
+        type: 'react-rerender',
+        props: () => handleAction('continue'),
+      }}>
+      <SurveyCheckboxGroup choices={CHOICES} checked={checkedVWC} variant="round" />
+    </SurveyScreen>
   );
-};
-
-const getTitle = (interests: InterestsContextValue): ReactElement => {
-  const defaultCopy = (
-    <>
-      Let&rsquo;s set a goal, how many days a week do you want to{' '}
-      <span style={{ whiteSpace: 'nowrap' }}>check-in?</span>
-    </>
-  );
-
-  if (interests.state !== 'loaded') {
-    return defaultCopy;
-  } else if (interests.primaryInterest === 'sleep') {
-    return (
-      <>
-        Regular sleep starts with a regular schedule: how many days a week do you want to{' '}
-        <span style={{ whiteSpace: 'nowrap' }}>check-in?</span>
-      </>
-    );
-  } else {
-    return defaultCopy;
-  }
 };

@@ -17,9 +17,6 @@ export type HomeScreenResources = {
   /** True if this feature is ready to display its component, false otherwise */
   loading: boolean;
 
-  /** The image handler for loading images on the home screen */
-  imageHandler: OsehImageStateRequestHandler;
-
   /** The background image for the top of the screen */
   backgroundImage: OsehImageState;
 

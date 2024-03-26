@@ -1,4 +1,5 @@
 import { NetworkResponse } from '../../../../shared/hooks/useNetworkResponse';
+import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { StreakInfo } from '../../../journey/models/StreakInfo';
 
 export type HomeScreenSessionInfo = {
@@ -17,6 +18,13 @@ export type HomeScreenState = {
    * This will be removed once the new home screen is fully launched.
    */
   enabled: boolean;
+
+  /**
+   * The image handler, which we expose here for the home screen tutorial
+   * since it will essentially load the same assets, and this allows them
+   * to be reused here.
+   */
+  imageHandler: OsehImageStateRequestHandler;
 
   /**
    * The users current streak info

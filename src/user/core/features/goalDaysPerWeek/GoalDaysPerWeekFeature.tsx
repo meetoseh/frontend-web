@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { useInappNotificationValueWithCallbacks } from '../../../../shared/hooks/useInappNotification';
 import { Feature } from '../../models/Feature';
 import { GoalDaysPerWeekResources } from './GoalDaysPerWeekResources';
-import { GoalDaysPerWeekState } from './GoalDaysPerWeekState';
+import { GoalDaysPerWeekForced, GoalDaysPerWeekState } from './GoalDaysPerWeekState';
 import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
 import { useInappNotificationSessionValueWithCallbacks } from '../../../../shared/hooks/useInappNotificationSession';
 import { GoalDaysPerWeek } from './GoalDaysPerWeek';
@@ -16,6 +16,7 @@ import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/u
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../shared/lib/setVWC';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 
@@ -24,9 +25,16 @@ export const GoalDaysPerWeekFeature: Feature<GoalDaysPerWeekState, GoalDaysPerWe
   useWorldState: () => {
     const ianVWC = useInappNotificationValueWithCallbacks({
       type: 'react-rerender',
-      props: { uid: 'oseh_ian_onUsRRweMgFGAg_ZHorM2A', suppress: false },
+      props: { uid: 'oseh_ian_IGPEKaUU10jd53raAKfhxg', suppress: false },
     });
-    const forcedVWC = useWritableValueWithCallbacks<boolean>(() => false);
+    const forcedVWC = useWritableValueWithCallbacks<GoalDaysPerWeekForced | null>(() => null);
+    useValueWithCallbacksEffect(ianVWC, (ian) => {
+      if (ian !== null && ian.showNow && forcedVWC.get() === null) {
+        setVWC(forcedVWC, { back: null });
+      }
+      return undefined;
+    });
+
     return useMappedValuesWithCallbacks([ianVWC, forcedVWC], () => ({
       ian: ianVWC.get(),
       forced: forcedVWC.get(),
@@ -34,31 +42,6 @@ export const GoalDaysPerWeekFeature: Feature<GoalDaysPerWeekState, GoalDaysPerWe
     }));
   },
   useResources: (stateVWC, requiredVWC, allStatesVWC) => {
-    const windowSizeVWC = useWindowSizeValueWithCallbacks();
-    const interestsRaw = useContext(InterestsContext);
-    const interestsVWC = useReactManagedValueAsValueWithCallbacks(interestsRaw);
-    const imageHandler = useOsehImageStateRequestHandler({});
-    const backgroundProps = useMappedValuesWithCallbacks(
-      [requiredVWC, windowSizeVWC],
-      (): OsehImageProps => ({
-        uid: requiredVWC.get() ? backgroundUid : null,
-        jwt: null,
-        displayWidth: windowSizeVWC.get().width,
-        displayHeight: windowSizeVWC.get().height,
-        alt: '',
-        isPublic: true,
-      })
-    );
-    const background = useStaleOsehImageOnSwap(
-      useOsehImageStateValueWithCallbacks(
-        {
-          type: 'callbacks',
-          props: () => backgroundProps.get(),
-          callbacks: backgroundProps.callbacks,
-        },
-        imageHandler
-      )
-    );
     const ianUID = useMappedValuesWithCallbacks([requiredVWC, stateVWC], () =>
       requiredVWC.get() ? stateVWC.get().ian?.uid ?? null : null
     );
@@ -74,28 +57,30 @@ export const GoalDaysPerWeekFeature: Feature<GoalDaysPerWeekState, GoalDaysPerWe
     );
 
     return useMappedValuesWithCallbacks(
-      [background, session, interestsVWC, initialGoalVWC],
+      [session, initialGoalVWC],
       (): GoalDaysPerWeekResources => ({
-        background: background.get(),
         session: session.get(),
-        loading:
-          background.get().loading ||
-          session.get() === null ||
-          interestsVWC.get().state === 'loading',
+        loading: session.get() === null,
         initialGoal: initialGoalVWC.get(),
-        onGoalSet: (goal) => {
+        onGoalSet: (goal, action) => {
           const info = allStatesVWC.get().homeScreen.streakInfo;
           if (info.type === 'success') {
             info.replace({ ...info.result, goalDaysPerWeek: goal });
           }
 
-          stateVWC.get().setForced(false);
+          const forced = stateVWC.get().forced;
+          if (forced !== null) {
+            if (action === 'back' && forced.back === 'age') {
+              allStatesVWC.get().age.setForced(true);
+            }
+            stateVWC.get().setForced(null);
+          }
         },
       })
     );
   },
-  isRequired: (state, allStates) => {
-    if (state.forced) {
+  isRequired: (state) => {
+    if (state.forced !== null) {
       return true;
     }
 
@@ -103,11 +88,7 @@ export const GoalDaysPerWeekFeature: Feature<GoalDaysPerWeekState, GoalDaysPerWe
       return undefined;
     }
 
-    return (
-      state.ian.showNow &&
-      (allStates.pickEmotionJourney.classesTakenThisSession > 0 ||
-        allStates.homeScreen.sessionInfo.classesTaken > 0)
-    );
+    return state.ian.showNow;
   },
   component: (state, resources) => <GoalDaysPerWeek state={state} resources={resources} />,
 };

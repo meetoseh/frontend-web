@@ -1,9 +1,12 @@
+import { AgeState } from '../features/age/AgeState';
 import { ConfirmMergeAccountState } from '../features/confirmMergeAccount/ConfirmMergeAccountState';
 import { FastUnsubscribeState } from '../features/fastUnsubscribe/FastUnsubscribeState';
 import { FavoritesState } from '../features/favorites/FavoritesState';
+import { GoalCategoriesState } from '../features/goalCategories/GoalCategoriesState';
 import { GoalDaysPerWeekState } from '../features/goalDaysPerWeek/GoalDaysPerWeekState';
 import { GotoEmotionState } from '../features/gotoEmotion/GotoEmotionState';
 import { HomeScreenState } from '../features/homeScreen/HomeScreenState';
+import { HomeScreenTutorialState } from '../features/homeScreenTutorial/HomeScreenTutorialState';
 import { IsaiahCourseState } from '../features/isaiahCourse/IsaiahCourseState';
 import { LoginState } from '../features/login/LoginState';
 import { ManageMembershipState } from '../features/manageMembership/ManageMembershipState';
@@ -50,4 +53,7 @@ export type FeatureAllStates = {
   homeScreen: HomeScreenState;
   gotoEmotion: GotoEmotionState;
   welcomeVideo: WelcomeVideoState;
+  goalCategories: GoalCategoriesState;
+  age: AgeState;
+  homeScreenTutorial: HomeScreenTutorialState;
 };

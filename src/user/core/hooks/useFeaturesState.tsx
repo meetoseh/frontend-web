@@ -30,6 +30,9 @@ import { SingleJourneyFeature } from '../features/singleJourney/SingleJourneyFea
 import { HomeScreenFeature } from '../features/homeScreen/HomeScreenFeature';
 import { GotoEmotionFeature } from '../features/gotoEmotion/GotoEmotionFeature';
 import { WelcomeVideoFeature } from '../features/welcomeVideo/WelcomeVideoFeature';
+import { GoalCategoriesFeature } from '../features/goalCategories/GoalCategoriesFeature';
+import { AgeFeature } from '../features/age/AgeFeature';
+import { HomeScreenTutorialFeature } from '../features/homeScreenTutorial/HomeScreenTutorialFeature';
 
 export const features = [
   TouchLinkFeature,
@@ -40,15 +43,18 @@ export const features = [
   ConfirmMergeAccountFeature,
   MergeAccountFeature,
   WelcomeVideoFeature,
+  GoalCategoriesFeature,
+  AgeFeature,
   SignupRewardFeature,
   RequestPhoneFeature,
   RequestNotificationTimeFeature,
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
   IsaiahCourseFeature,
+  UpgradeFeature,
+  HomeScreenTutorialFeature,
   SingleJourneyFeature,
   ManageMembershipFeature,
-  UpgradeFeature,
   SeriesDetailsFeature,
   SeriesPreviewFeature,
   FavoritesFeature,

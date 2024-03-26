@@ -1,0 +1,10 @@
+.container {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.container > * {
+  flex-basis: calc(50% - 8px);
+}

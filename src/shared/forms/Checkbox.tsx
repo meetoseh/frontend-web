@@ -16,7 +16,7 @@ type CheckboxProps = {
   /**
    * The label to display next to the checkbox.
    */
-  label: string;
+  label: string | ReactElement;
 
   /**
    * Whether the checkbox is disabled
@@ -28,7 +28,7 @@ type CheckboxProps = {
    * The style of the checkbox
    * @default 'normal'
    */
-  checkboxStyle?: 'white' | 'normal' | 'whiteSmallText' | 'whiteWide';
+  checkboxStyle?: 'white' | 'normal' | 'whiteSmallText' | 'whiteWide' | 'whiteWideRound';
 };
 
 /**

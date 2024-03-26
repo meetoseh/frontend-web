@@ -1,5 +1,7 @@
+import { useInappNotificationValueWithCallbacks } from '../../../../shared/hooks/useInappNotification';
 import { useInappNotificationSessionValueWithCallbacks } from '../../../../shared/hooks/useInappNotificationSession';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
@@ -24,12 +26,24 @@ export const UpgradeFeature: Feature<UpgradeState, UpgradeResources> = {
       }
       return { type: 'generic' };
     });
+    const ianVWC = useInappNotificationValueWithCallbacks({
+      type: 'react-rerender',
+      props: { uid: 'oseh_ian_UWqxuftHMXtUnzn9kxnTOA', suppress: false },
+    });
 
-    return useMappedValuesWithCallbacks([contextVWC], (): UpgradeState => {
+    useValueWithCallbacksEffect(ianVWC, (ian) => {
+      if (ian?.showNow && contextVWC.get() === null) {
+        setVWC(contextVWC, { type: 'onboarding' });
+      }
+      return undefined;
+    });
+
+    return useMappedValuesWithCallbacks([contextVWC, ianVWC], (): UpgradeState => {
       const context = contextVWC.get();
 
       return {
         context,
+        ian: ianVWC.get(),
         setContext: (ctx, updateWindowHistory: boolean) => {
           if (contextVWC.get() === undefined) {
             throw new Error('Cannot set context when it is undefined');
@@ -49,6 +63,9 @@ export const UpgradeFeature: Feature<UpgradeState, UpgradeResources> = {
   },
   isRequired: (state) => {
     if (state.context === undefined) {
+      return undefined;
+    }
+    if (state.ian === null) {
       return undefined;
     }
     return state.context !== null;
