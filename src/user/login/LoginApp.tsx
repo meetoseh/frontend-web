@@ -56,7 +56,7 @@ export const LoginApp = (): ReactElement => {
               alt=""
               isPublic={true}
               handler={imageHandler}
-              placeholderColor={windowSize.width < 450 ? '#aaaaaa' : '#011419'}
+              placeholderColor="#040b17"
             />
           )}
         />

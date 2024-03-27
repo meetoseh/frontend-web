@@ -56,13 +56,13 @@ export const FactWithTitleScreen = ({
   const imageHandler = useOsehImageStateRequestHandler({});
   const background = useOsehImageState(
     {
-      uid: 'oseh_if_hH68hcmVBYHanoivLMgstg',
+      uid: 'oseh_if_NOA1u2xYanYQlA8rdpPEQQ',
       jwt: null,
       displayWidth: windowSize.width,
       displayHeight: windowSize.height,
       alt: '',
       isPublic: true,
-      placeholderColor: '#021a1e',
+      placeholderColor: '#040b17',
     },
     imageHandler
   );

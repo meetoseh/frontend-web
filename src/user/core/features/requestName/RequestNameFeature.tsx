@@ -12,7 +12,7 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
 import { OsehImageProps } from '../../../../shared/images/OsehImageProps';
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 
-const backgroundImageUid = 'oseh_if_hH68hcmVBYHanoivLMgstg';
+const backgroundImageUid = 'oseh_if_NOA1u2xYanYQlA8rdpPEQQ';
 
 /**
  * Glue code surrounding requesting a users name if we don't know their name.
@@ -45,6 +45,7 @@ export const RequestNameFeature: Feature<RequestNameState, RequestNameResources>
         displayHeight: windowSize.get().height,
         alt: '',
         isPublic: true,
+        placeholderColor: '#040b17',
       })
     );
     const background = useStaleOsehImageOnSwap(

@@ -223,12 +223,74 @@ export const Upgrade = ({
     state,
   ]);
 
+  const contentInnerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const contentInnerHeightVWC = useWritableValueWithCallbacks<number>(() => 0);
+
+  useValueWithCallbacksEffect(contentInnerRef, (eleUnch) => {
+    if (eleUnch === null) {
+      return undefined;
+    }
+    const ele = eleUnch;
+    setVWC(contentInnerHeightVWC, ele.clientHeight);
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        handleResize();
+      });
+      ro.observe(ele);
+      return () => {
+        ro.disconnect();
+      };
+    } else {
+      window.addEventListener('resize', handleResize);
+      return () => {
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+
+    function handleResize() {
+      setVWC(contentInnerHeightVWC, ele.clientHeight);
+    }
+  });
+
+  const backgroundOverlayStyle = useMappedValuesWithCallbacks(
+    [backgroundImageState, contentInnerHeightVWC, windowSizeVWC],
+    () => {
+      const topUsingDisplayHeight = backgroundImageState.get().displayHeight - 100;
+      const topUsingContentHeight = windowSizeVWC.get().height - contentInnerHeightVWC.get() - 20;
+      const top = Math.min(topUsingDisplayHeight, topUsingContentHeight);
+      const height = backgroundImageState.get().displayHeight - top;
+      return {
+        top,
+        height,
+      };
+    },
+    {
+      outputEqualityFn: (a, b) => a.top === b.top && a.height === b.height,
+    }
+  );
+
+  const backgroundOverlayRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  useValuesWithCallbacksEffect([backgroundOverlayRef, backgroundOverlayStyle], () => {
+    const ele = backgroundOverlayRef.get();
+    const style = backgroundOverlayStyle.get();
+    if (ele !== null) {
+      ele.style.top = `${style.top}px`;
+      ele.style.height = `${style.height}px`;
+    }
+    return undefined;
+  });
+
   return (
     <div className={styles.container}>
       <div className={styles.background} ref={(v) => setVWC(backgroundRefVWC, v)}>
         <OsehImageFromStateValueWithCallbacks state={backgroundImageState} />
+        <div className={styles.belowImageBackground} />
       </div>
-      <div className={styles.backgroundOverlay} />
+      <div
+        className={styles.backgroundOverlay}
+        style={Object.assign({}, backgroundOverlayStyle.get())}
+        ref={(r) => setVWC(backgroundOverlayRef, r)}
+      />
       <div className={styles.content}>
         <div className={styles.closeButtonContainer}>
           <IconButton
@@ -243,7 +305,7 @@ export const Upgrade = ({
             }}
           />
         </div>
-        <div className={styles.contentInner}>
+        <div className={styles.contentInner} ref={(r) => setVWC(contentInnerRef, r)}>
           <RenderGuardedComponent
             props={useMappedValueWithCallbacks(state, (s) => s.context)}
             component={(ctx) => (

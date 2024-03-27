@@ -66,7 +66,7 @@ export const useDebugHistoryList = (
           description: `Description ${index}`,
           durationSeconds: 63,
           darkenedBackground: {
-            uid: `oseh_if_hH68hcmVBYHanoivLMgstg`,
+            uid: 'oseh_if_NOA1u2xYanYQlA8rdpPEQQ',
             jwt: null,
           },
           instructor: {

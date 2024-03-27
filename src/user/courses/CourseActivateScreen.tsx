@@ -285,17 +285,14 @@ export const CourseActivateScreen = (): ReactElement => {
             props={windowSizeVWC}
             component={(windowSize) => (
               <OsehImage
-                uid={
-                  windowSize.width < 450
-                    ? 'oseh_if_ds8R1NIo4ch3pD7vBRT2cg'
-                    : 'oseh_if_hH68hcmVBYHanoivLMgstg'
-                }
+                uid="oseh_if_NOA1u2xYanYQlA8rdpPEQQ"
                 jwt={null}
                 displayWidth={windowSize.width}
                 displayHeight={windowSize.height}
                 alt=""
                 isPublic={true}
                 handler={imageHandler}
+                placeholderColor="#040b17"
               />
             )}
           />

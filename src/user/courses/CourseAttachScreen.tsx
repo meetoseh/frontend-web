@@ -118,13 +118,13 @@ export const CourseAttachScreen = (): ReactElement => {
     <div className={styles.container}>
       <div className={styles.imageContainer}>
         <OsehImage
-          uid="oseh_if_hH68hcmVBYHanoivLMgstg"
+          uid="oseh_if_NOA1u2xYanYQlA8rdpPEQQ"
           jwt={null}
           displayWidth={windowSize.width}
           displayHeight={windowSize.height}
           alt=""
           isPublic={true}
-          placeholderColor="#01181e"
+          placeholderColor="#040b17"
           handler={imageHandler}
         />
       </div>

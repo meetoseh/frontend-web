@@ -7,19 +7,20 @@
   grid-area: 1 / 1 / 1 / 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-start;
+  z-index: -2;
+}
+.belowImageBackground {
+  flex-grow: 1;
+  background: linear-gradient(180deg, #14191c 0%, #010101 100%);
 }
 
 .backgroundOverlay {
+  z-index: -1;
+  position: relative;
   grid-area: 1 / 1 / 1 / 1;
-  background: linear-gradient(
-    180deg,
-    #14191c00 0%,
-    #14191c00 15%,
-    #14191cff 29.69%,
-    #010101ff 100%
-  );
+  background: linear-gradient(180deg, #14191c00 0%, #14191c80 30%, #14191cff 100%);
 }
 
 .content {
