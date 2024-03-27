@@ -1,14 +1,12 @@
-import { ReactElement, useCallback, useContext, useState } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import styles from './RequestName.module.css';
 import { TextInput } from '../../../../shared/forms/TextInput';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
-import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
+import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { RequestNameResources } from './RequestNameResources';
 import { RequestNameState } from './RequestNameState';
 import { FeatureComponentProps } from '../../models/Feature';
-import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
-import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
