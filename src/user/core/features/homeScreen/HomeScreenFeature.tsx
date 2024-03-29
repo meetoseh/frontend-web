@@ -120,8 +120,10 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
           emotions,
           startGotoEmotion: (emotion) => {
             allStatesVWC.get().gotoEmotion.setShow({ emotion, anticipatory: true }, false);
-            return () => {
-              allStatesVWC.get().gotoEmotion.setShow({ emotion, anticipatory: false }, true);
+            return (animationHints) => {
+              allStatesVWC
+                .get()
+                .gotoEmotion.setShow({ emotion, anticipatory: false, animationHints }, true);
             };
           },
           gotoSeries: () => {

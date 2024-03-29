@@ -299,11 +299,7 @@ export const GotoEmotionFeature: Feature<GotoEmotionState, GotoEmotionResources>
         const socialProofPictures = socialProofPicturesVWC.get();
 
         return {
-          loading:
-            !req ||
-            freeEmotionJourney.type !== 'success' ||
-            havePro.type !== 'success' ||
-            (havePro.result && premiumEmotionJourney.type !== 'success'),
+          loading: !req,
           freeEmotionJourney,
           havePro,
           premiumEmotionJourney,

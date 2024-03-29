@@ -1,6 +1,10 @@
 .container {
   display: grid;
   grid-template: 1fr / 1fr;
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
 }
 
 .background {
@@ -9,6 +13,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+}
+
+.backgroundImageWrapper {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  overflow-y: hidden;
 }
 
 .bottomBackground {
@@ -23,6 +34,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+}
+
+.headerAndGoalOuterWrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.headerAndGoalWrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow-y: hidden;
 }
 
 .headerAndGoal {
@@ -259,6 +283,21 @@
   text-transform: capitalize;
 }
 
+.bottomNavOuterWrapper {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.bottomNavWrapper {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 100%;
+  overflow-y: hidden;
+}
+
 .bottomNav {
   display: flex;
   flex-direction: column;
@@ -345,4 +384,15 @@
   font-size: 14px;
   line-height: 16.8px;
   text-align: center;
+}
+
+.selectEmotionSwapIn {
+  position: absolute;
+  font-family: 'Open Sans', sans-serif;
+  padding: 18px 24px;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  color: #eaeaeb;
+  text-transform: capitalize;
 }

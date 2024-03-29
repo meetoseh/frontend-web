@@ -1,6 +1,7 @@
 import { NetworkResponse } from '../../../../shared/hooks/useNetworkResponse';
 import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { ShowEmotion } from '../gotoEmotion/GotoEmotionState';
 import { Emotion } from '../pickEmotionJourney/Emotion';
 
 /**
@@ -27,7 +28,7 @@ export type HomeScreenResources = {
    * Starts preparing to go to the given emotion and returns a callback
    * to actually switch to that screen.
    */
-  startGotoEmotion: (emotion: Emotion) => () => void;
+  startGotoEmotion: (emotion: Emotion) => (animationHints?: ShowEmotion['animationHints']) => void;
 
   /** Changes to the series listing tab */
   gotoSeries: () => void;
