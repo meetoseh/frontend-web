@@ -10,7 +10,7 @@ import { Feature } from '../../models/Feature';
 import { HomeScreenResources } from './HomeScreenResources';
 import { HomeScreenSessionInfo, HomeScreenState } from './HomeScreenState';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import { HomeScreen } from './HomeScreen';
+import { HomeScreen, HomeScreenTransition } from './HomeScreen';
 import { Emotion } from '../pickEmotionJourney/Emotion';
 import {
   createWritableValueWithCallbacks,
@@ -56,20 +56,30 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
       classesTaken: 0,
     }));
     const imageHandler = useOsehImageStateRequestHandler({});
+    const nextEnterTransition = useWritableValueWithCallbacks<HomeScreenTransition | undefined>(
+      () => undefined
+    );
 
-    return useMappedValuesWithCallbacks([enabledVWC, streakInfoVWC, sessionInfoVWC], () => ({
-      enabled: !!enabledVWC.get(),
-      streakInfo: streakInfoVWC.get(),
-      sessionInfo: sessionInfoVWC.get(),
-      imageHandler,
-      onClassTaken: () => {
-        const info = sessionInfoVWC.get();
-        setVWC(sessionInfoVWC, {
-          ...info,
-          classesTaken: info.classesTaken + 1,
-        });
-      },
-    }));
+    return useMappedValuesWithCallbacks(
+      [enabledVWC, streakInfoVWC, sessionInfoVWC, nextEnterTransition],
+      (): HomeScreenState => ({
+        enabled: !!enabledVWC.get(),
+        streakInfo: streakInfoVWC.get(),
+        sessionInfo: sessionInfoVWC.get(),
+        nextEnterTransition: nextEnterTransition.get(),
+        imageHandler,
+        onClassTaken: () => {
+          const info = sessionInfoVWC.get();
+          setVWC(sessionInfoVWC, {
+            ...info,
+            classesTaken: info.classesTaken + 1,
+          });
+        },
+        setNextEnterTransition: (transition) => {
+          setVWC(nextEnterTransition, transition);
+        },
+      })
+    );
   },
   isRequired: (worldState) => worldState.enabled,
   useResources: (stateVWC, requiredVWC, allStatesVWC) => {

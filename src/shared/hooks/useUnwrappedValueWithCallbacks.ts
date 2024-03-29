@@ -6,10 +6,7 @@ const notSet = Symbol();
 
 /**
  * Unwraps the given ValueWithCallbacks and returns the value; when the
- * value changes, a react rerender is used to update the component. This
- * triggers the react rerender on the next frame; for the web I don't think
- * this is necessary, but for react native it prevents certain very difficult
- * to unravel callback loops.
+ * value changes, a react rerender is used to update the component.
  *
  * Note that it is not a no-op to use ValueWithCallbacks and then unwrap
  * it later: this will skip the rerender on the parent component. If the
@@ -34,12 +31,12 @@ export const useUnwrappedValueWithCallbacks = <T>(
   const equalityFnRef = useRef(equalityFn ?? defaultEqualityFn);
   equalityFnRef.current = equalityFn ?? defaultEqualityFn;
 
-  const [value, setValue] = useState<T>(() => original.get());
+  const valueRef = useRef<T>(original.get());
   const setRerenderCounter = useState(0)[1];
 
   let currentValue = useRef<T>(notSet as any) as MutableRefObject<T>;
   if (currentValue.current === notSet) {
-    currentValue.current = value;
+    currentValue.current = valueRef.current;
   }
 
   useEffect(() => {
@@ -60,7 +57,7 @@ export const useUnwrappedValueWithCallbacks = <T>(
 
       if (!equalityFnRef.current(newValue, currentValue.current)) {
         if (applyInstantly) {
-          setValue(() => newValue);
+          valueRef.current = newValue;
           setRerenderCounter((c) => c + 1);
           currentValue.current = newValue;
         } else {
@@ -70,7 +67,7 @@ export const useUnwrappedValueWithCallbacks = <T>(
             settingValueTo = notSet;
             if (setTo !== notSet && !equalityFnRef.current(setTo, currentValue.current)) {
               currentValue.current = setTo;
-              setValue(() => setTo);
+              valueRef.current = setTo;
               setRerenderCounter((c) => c + 1);
             }
           });
@@ -79,5 +76,5 @@ export const useUnwrappedValueWithCallbacks = <T>(
     }
   }, [original, applyInstantly, setRerenderCounter]);
 
-  return value;
+  return valueRef.current;
 };

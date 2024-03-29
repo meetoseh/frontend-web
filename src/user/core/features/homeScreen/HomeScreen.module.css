@@ -395,3 +395,7 @@
   color: #eaeaeb;
   text-transform: capitalize;
 }
+
+.stdGradientOverlay {
+  background: linear-gradient(0deg, #010101 0%, #14191c 100%);
+}

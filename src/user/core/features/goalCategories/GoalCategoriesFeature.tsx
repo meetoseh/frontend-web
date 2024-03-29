@@ -8,13 +8,13 @@ import { useFeatureFlag } from '../../../../shared/lib/useFeatureFlag';
 import { Feature } from '../../models/Feature';
 import { GoalCategories } from './GoalCategories';
 import { GoalCategoriesResources } from './GoalCategoriesResources';
-import { GoalCategoriesState } from './GoalCategoriesState';
+import { GoalCategoriesForced, GoalCategoriesState } from './GoalCategoriesState';
 
 export const GoalCategoriesFeature: Feature<GoalCategoriesState, GoalCategoriesResources> = {
   identifier: 'goalCategories',
   useWorldState: () => {
     const enabledVWC = useFeatureFlag('series');
-    const forcedVWC = useWritableValueWithCallbacks(() => false);
+    const forcedVWC = useWritableValueWithCallbacks<GoalCategoriesForced | null>(() => null);
     const ian = useInappNotificationValueWithCallbacks({
       type: 'callbacks',
       props: () => ({ uid: 'oseh_ian_8SptGFOfn3GfFOqA_dHsjA', suppress: !enabledVWC.get() }),
@@ -24,7 +24,11 @@ export const GoalCategoriesFeature: Feature<GoalCategoriesState, GoalCategoriesR
     // prevents us from flashing the screen under certain network errors
     useValueWithCallbacksEffect(ian, (ian) => {
       if (ian !== null && enabledVWC.get() && ian.showNow) {
-        setVWC(forcedVWC, true);
+        setVWC(
+          forcedVWC,
+          { enter: 'fade' } as GoalCategoriesForced,
+          (a, b) => (a !== null) === (b !== null)
+        );
       }
       return undefined;
     });
@@ -46,7 +50,7 @@ export const GoalCategoriesFeature: Feature<GoalCategoriesState, GoalCategoriesR
     if (!state.enabled) {
       return false;
     }
-    return state.forced || state.ian?.showNow;
+    return state.forced !== null || state.ian?.showNow;
   },
   useResources: (stateVWC, requiredVWC, allStatesVWC) => {
     const sessionVWC = useInappNotificationSessionValueWithCallbacks({
@@ -59,8 +63,8 @@ export const GoalCategoriesFeature: Feature<GoalCategoriesState, GoalCategoriesR
       loading: sessionVWC.get() === null,
       session: sessionVWC.get(),
       onContinue: () => {
-        allStatesVWC.get().age.setForced(true);
-        stateVWC.get().setForced(false);
+        allStatesVWC.get().age.setForced({ enter: 'swipe-left' });
+        stateVWC.get().setForced(null);
       },
     }));
   },

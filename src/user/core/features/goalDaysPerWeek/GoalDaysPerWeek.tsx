@@ -5,7 +5,7 @@ import {
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
-import { SurveyScreen } from '../../../../shared/components/SurveyScreen';
+import { SurveyScreen, SurveyScreenTransition } from '../../../../shared/components/SurveyScreen';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { GoalDaysPerWeekState } from './GoalDaysPerWeekState';
 import { GoalDaysPerWeekResources } from './GoalDaysPerWeekResources';
@@ -17,6 +17,12 @@ import { useDelayedValueWithCallbacks } from '../../../../shared/hooks/useDelaye
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
+import {
+  playEntranceTransition,
+  playExitTransition,
+  useEntranceTransition,
+  useTransitionProp,
+} from '../../../../shared/lib/TransitionProp';
 
 const _CHOICES = [
   { slug: '1', text: '1 day', element: <>1 day</> },
@@ -38,6 +44,14 @@ export const GoalDaysPerWeek = ({
   state,
   resources,
 }: FeatureComponentProps<GoalDaysPerWeekState, GoalDaysPerWeekResources>) => {
+  const transition = useTransitionProp((): SurveyScreenTransition => {
+    const back = state.get().forced?.back ?? null;
+    if (back === null) {
+      return { type: 'fade', ms: 350 };
+    } else {
+      return { type: 'swipe', direction: 'to-left', ms: 350 };
+    }
+  });
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const checkedVWC = useWritableValueWithCallbacks<ChoiceSlug[]>(() => [
@@ -52,6 +66,8 @@ export const GoalDaysPerWeek = ({
   useErrorModal(modalContext.modals, errorVWC, 'saving goal');
 
   useWorkingModal(modalContext.modals, useDelayedValueWithCallbacks(savingVWC, 200));
+
+  useEntranceTransition(transition);
 
   useStartSession(
     {
@@ -132,11 +148,18 @@ export const GoalDaysPerWeek = ({
       resources.get().session?.storeAction(action, {
         choice,
       });
+      if (action === 'back') {
+        setVWC(transition.animation, { type: 'swipe', direction: 'to-right', ms: 350 });
+      } else {
+        setVWC(transition.animation, { type: 'fade', ms: 350 });
+      }
+      await playExitTransition(transition).promise;
       setVWC(errorVWC, null);
       try {
         await trySave();
       } catch (e) {
         setVWC(errorVWC, await describeError(e));
+        await playEntranceTransition(transition).promise;
         return;
       }
       resources.get().session?.reset();
@@ -170,7 +193,8 @@ export const GoalDaysPerWeek = ({
       onContinue={{
         type: 'react-rerender',
         props: () => handleAction('continue'),
-      }}>
+      }}
+      transition={transition}>
       <SurveyCheckboxGroup choices={CHOICES} checked={checkedVWC} variant="round" />
     </SurveyScreen>
   );

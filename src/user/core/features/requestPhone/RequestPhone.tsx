@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { CSSProperties, ReactElement, useCallback, useContext } from 'react';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { apiFetch } from '../../../../shared/ApiConstants';
@@ -23,7 +23,20 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
+import {
+  playEntranceTransition,
+  playExitTransition,
+  useAttachDynamicEngineToTransition,
+  useEntranceTransition,
+  useOsehTransition,
+  useSetTransitionReady,
+  useTransitionProp,
+} from '../../../../shared/lib/TransitionProp';
+import { useDynamicAnimationEngine } from '../../../../shared/anim/useDynamicAnimation';
+import { ease } from '../../../../shared/lib/Bezier';
+import { useStyleVWC } from '../../../../shared/hooks/useStyleVWC';
 
+type RequestPhoneTransition = { type: 'fade'; ms: number };
 /**
  * Prompts the user for their phone number, then verifies it.
  */
@@ -31,11 +44,16 @@ export const RequestPhone = ({
   state,
   resources,
 }: FeatureComponentProps<RequestPhoneState, RequestPhoneResources>): ReactElement => {
+  const transition = useTransitionProp<RequestPhoneTransition['type'], RequestPhoneTransition>(
+    () => ({ type: 'fade', ms: 350 })
+  );
+  useEntranceTransition(transition);
+
   const loginContextRaw = useContext(LoginContext);
   const interests = useContext(InterestsContext);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
-  const step = useWritableValueWithCallbacks<'number' | 'verify' | 'done'>(() => 'number');
+  const step = useWritableValueWithCallbacks<'number' | 'verify'>(() => 'number');
   const phone = useWritableValueWithCallbacks<string>(() => '');
   const receiveNotifs = true;
   const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
@@ -227,6 +245,7 @@ export const RequestPhone = ({
           throw response;
         }
 
+        await playExitTransition(transition).promise.catch(() => {});
         const latestContext = loginContextRaw.value.get();
         if (
           latestContext.state === 'logged-in' &&
@@ -237,13 +256,23 @@ export const RequestPhone = ({
             phoneNumber,
           });
         }
-        resources.get().session?.storeAction?.call(undefined, 'verify_success', null);
-        setVWC(step, 'done');
+        const res = resources.get();
+        const st = state.get();
+        if (res.session !== null) {
+          res.session.storeAction('verify_success', null);
+          res.session.reset();
+          if (res.session.inappNotificationUid === st.phoneNumberIAN?.uid) {
+            st.phoneNumberIAN.onShown();
+          } else if (res.session.inappNotificationUid === st.onboardingPhoneNumberIAN?.uid) {
+            st.onboardingPhoneNumberIAN.onShown();
+          }
+        }
       } catch (e) {
         resources.get().session?.storeAction?.call(undefined, 'verify_fail', null);
         console.error(e);
         const err = await describeError(e);
         setVWC(error, err);
+        await playEntranceTransition(transition).promise.catch(() => {});
       } finally {
         setVWC(saving, false);
       }
@@ -257,6 +286,7 @@ export const RequestPhone = ({
       const res = resources.get();
       const st = state.get();
 
+      await playExitTransition(transition).promise.catch(() => {});
       if (res.session !== null) {
         res.session.storeAction('skip', null);
         res.session.reset();
@@ -296,6 +326,58 @@ export const RequestPhone = ({
 
   useErrorModal(modalContext.modals, error, 'request or verify phone');
 
+  const opacityVWC = useWritableValueWithCallbacks<number>(() =>
+    transition.animation.get().type === 'fade' ? 0 : 1
+  );
+
+  const engine = useDynamicAnimationEngine();
+  useOsehTransition(
+    transition,
+    'fade',
+    (cfg) => {
+      const start = opacityVWC.get();
+      const end = 1;
+      const dx = end - start;
+      engine.play([
+        {
+          id: 'fade-in',
+          duration: cfg.ms,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(opacityVWC, start + dx * progress);
+          },
+        },
+      ]);
+    },
+    (cfg) => {
+      const start = opacityVWC.get();
+      const end = 0;
+      const dx = end - start;
+      engine.play([
+        {
+          id: 'fade-out',
+          duration: cfg.ms,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(opacityVWC, start + dx * progress);
+          },
+        },
+      ]);
+    }
+  );
+  useAttachDynamicEngineToTransition(transition, engine);
+  useSetTransitionReady(transition);
+
+  const contentRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const contentStyleVWC = useMappedValueWithCallbacks(opacityVWC, (opacity): CSSProperties => {
+    const opacityIsOne = opacity >= 0.999;
+    return {
+      opacity: opacityIsOne ? 1 : opacity,
+      pointerEvents: opacityIsOne ? 'auto' : 'none',
+    };
+  });
+  useStyleVWC(contentRef, contentStyleVWC);
+
   return (
     <div className={combineClasses(styles.container, styles[`container-${step}`])}>
       <div className={styles.imageContainer}>
@@ -309,7 +391,10 @@ export const RequestPhone = ({
           )}
         />
       </div>
-      <div className={styles.content}>
+      <div
+        className={styles.content}
+        style={contentStyleVWC.get()}
+        ref={(r) => setVWC(contentRef, r)}>
         <RenderGuardedComponent
           props={step}
           component={(step) => (

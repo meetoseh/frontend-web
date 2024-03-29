@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect } from 'react';
+import { CSSProperties, ReactElement, useCallback, useContext, useEffect } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
 import { UpgradeResources } from './UpgradeResources';
 import { UpgradeState } from './UpgradeState';
@@ -31,7 +31,19 @@ import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { InlineOsehSpinner } from '../../../../shared/components/InlineOsehSpinner';
+import {
+  playExitTransition,
+  useAttachDynamicEngineToTransition,
+  useEntranceTransition,
+  useOsehTransition,
+  useSetTransitionReady,
+  useTransitionProp,
+} from '../../../../shared/lib/TransitionProp';
+import { useStyleVWC } from '../../../../shared/hooks/useStyleVWC';
+import { useDynamicAnimationEngine } from '../../../../shared/anim/useDynamicAnimation';
+import { ease } from '../../../../shared/lib/Bezier';
 
+type UpgradeTransition = { type: 'fade'; ms: number };
 /**
  * Allows the user to upgrade to Oseh+, if they are eligible to do so
  */
@@ -39,6 +51,9 @@ export const Upgrade = ({
   state,
   resources,
 }: FeatureComponentProps<UpgradeState, UpgradeResources>): ReactElement => {
+  const transition = useTransitionProp((): UpgradeTransition => ({ type: 'fade', ms: 700 }));
+  useEntranceTransition(transition);
+
   const modalContext = useContext(ModalContext);
   const loginContextRaw = useContext(LoginContext);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
@@ -93,15 +108,11 @@ export const Upgrade = ({
     }
   );
 
-  const backgroundRefVWC = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
-  useValuesWithCallbacksEffect([windowSizeVWC, backgroundRefVWC], () => {
-    const size = windowSizeVWC.get();
-    const bknd = backgroundRefVWC.get();
-    if (bknd !== null) {
-      bknd.style.minHeight = `${size.height}px`;
-    }
-    return undefined;
-  });
+  const backgroundRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const backgroundStyleVWC = useMappedValueWithCallbacks(windowSizeVWC, (size) => ({
+    minHeight: `${size.height}px`,
+  }));
+  useStyleVWC(backgroundRef, backgroundStyleVWC);
 
   const offerVWC = useMappedValueWithCallbacks(resources, (r) => r.offer.offering);
   const activePackageIdxVWC = useWritableValueWithCallbacks<number>(() => 0);
@@ -252,53 +263,149 @@ export const Upgrade = ({
     }
   });
 
-  const backgroundOverlayStyle = useMappedValuesWithCallbacks(
+  const backgroundOverlayRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const backgroundOverlayStyleVWC = useMappedValuesWithCallbacks(
     [backgroundImageState, contentInnerHeightVWC, windowSizeVWC],
-    () => {
+    (): CSSProperties => {
       const topUsingDisplayHeight = backgroundImageState.get().displayHeight - 100;
       const topUsingContentHeight = windowSizeVWC.get().height - contentInnerHeightVWC.get() - 20;
       const top = Math.min(topUsingDisplayHeight, topUsingContentHeight);
       const height = backgroundImageState.get().displayHeight - top;
       return {
-        top,
-        height,
+        top: `${top}px`,
+        height: `${height}px`,
       };
     },
     {
       outputEqualityFn: (a, b) => a.top === b.top && a.height === b.height,
     }
   );
+  useStyleVWC(backgroundOverlayRef, backgroundOverlayStyleVWC);
 
-  const backgroundOverlayRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
-  useValuesWithCallbacksEffect([backgroundOverlayRef, backgroundOverlayStyle], () => {
-    const ele = backgroundOverlayRef.get();
-    const style = backgroundOverlayStyle.get();
-    if (ele !== null) {
-      ele.style.top = `${style.top}px`;
-      ele.style.height = `${style.height}px`;
+  const standardGradientOverlayOpacityVWC = useWritableValueWithCallbacks<number>(() => {
+    if (transition.animation.get().type === 'fade') {
+      return 1;
     }
-    return undefined;
+    return 0;
   });
+  const contentOpacityVWC = useWritableValueWithCallbacks<number>(() => {
+    if (transition.animation.get().type === 'fade') {
+      return 0;
+    }
+    return 1;
+  });
+
+  const engine = useDynamicAnimationEngine();
+  useOsehTransition(
+    transition,
+    'fade',
+    (cfg) => {
+      const startOverlayOpacity = standardGradientOverlayOpacityVWC.get();
+      const endOverlayOpacity = 0;
+      const dOverlayOpacity = endOverlayOpacity - startOverlayOpacity;
+
+      const startContentOpacity = contentOpacityVWC.get();
+      const endContentOpacity = 1;
+      const dContentOpacity = endContentOpacity - startContentOpacity;
+
+      engine.play([
+        {
+          id: 'fade-out-overlay',
+          duration: cfg.ms / 2,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(
+              standardGradientOverlayOpacityVWC,
+              startOverlayOpacity + dOverlayOpacity * progress
+            );
+          },
+        },
+        {
+          id: 'fade-in-content',
+          duration: cfg.ms / 2,
+          delayUntil: { type: 'relativeToEnd', id: 'fade-out-overlay', after: 0 },
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(contentOpacityVWC, startContentOpacity + dContentOpacity * progress);
+          },
+        },
+      ]);
+    },
+    (cfg) => {
+      const startOverlayOpacity = standardGradientOverlayOpacityVWC.get();
+      const endOverlayOpacity = 1;
+      const dOverlayOpacity = endOverlayOpacity - startOverlayOpacity;
+
+      engine.play([
+        {
+          id: 'fade-in-overlay',
+          duration: cfg.ms / 2,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(
+              standardGradientOverlayOpacityVWC,
+              startOverlayOpacity + dOverlayOpacity * progress
+            );
+          },
+        },
+      ]);
+    }
+  );
+  useAttachDynamicEngineToTransition(transition, engine);
+  useSetTransitionReady(transition);
+
+  const stdGradientOverlayRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const stdGradientOverlayStyleVWC = useMappedValuesWithCallbacks(
+    [standardGradientOverlayOpacityVWC, windowSizeVWC],
+    (): CSSProperties => {
+      const opacity = standardGradientOverlayOpacityVWC.get();
+      const size = windowSizeVWC.get();
+      const isZero = opacity < 1e-3;
+      return {
+        display: isZero ? 'none' : 'block',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
+        opacity,
+      };
+    }
+  );
+  useStyleVWC(stdGradientOverlayRef, stdGradientOverlayStyleVWC);
+
+  const contentRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const contentStyleVWC = useMappedValueWithCallbacks(contentOpacityVWC, (opacity) => ({
+    opacity,
+  }));
+  useStyleVWC(contentRef, contentStyleVWC);
 
   return (
     <div className={styles.container}>
-      <div className={styles.background} ref={(v) => setVWC(backgroundRefVWC, v)}>
+      <div
+        className={styles.background}
+        style={backgroundStyleVWC.get()}
+        ref={(v) => setVWC(backgroundRef, v)}>
         <OsehImageFromStateValueWithCallbacks state={backgroundImageState} />
         <div className={styles.belowImageBackground} />
       </div>
       <div
         className={styles.backgroundOverlay}
-        style={Object.assign({}, backgroundOverlayStyle.get())}
+        style={backgroundOverlayStyleVWC.get()}
         ref={(r) => setVWC(backgroundOverlayRef, r)}
       />
-      <div className={styles.content}>
+      <div
+        className={styles.content}
+        style={contentStyleVWC.get()}
+        ref={(r) => setVWC(contentRef, r)}>
         <div className={styles.closeButtonContainer}>
           <IconButton
             icon={styles.closeIcon}
             srOnlyName="Close"
-            onClick={(e) => {
+            onClick={async (e) => {
               e.preventDefault();
               resources.get().session?.storeAction('close', null);
+              await playExitTransition(transition).promise.catch(() => {});
               resources.get().session?.reset();
               state.get().ian?.onShown();
               state.get().setContext(null, true);
@@ -387,6 +494,11 @@ export const Upgrade = ({
           />
         </div>
       </div>
+      <div
+        className={styles.stdGradientOverlay}
+        style={stdGradientOverlayStyleVWC.get()}
+        ref={(r) => setVWC(stdGradientOverlayRef, r)}
+      />
       <RenderGuardedComponent
         props={redirectingVWC}
         component={(working) => {

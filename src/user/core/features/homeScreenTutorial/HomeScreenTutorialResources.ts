@@ -29,4 +29,7 @@ export type HomeScreenTutorialResources = {
 
   /** The background image for the top of the screen */
   backgroundImage: OsehImageState;
+
+  /** Performs any necessary setup on mounting the actual component */
+  onMount: () => void;
 };

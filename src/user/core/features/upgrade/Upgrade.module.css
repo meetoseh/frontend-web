@@ -10,6 +10,7 @@
   align-items: stretch;
   justify-content: flex-start;
   z-index: -2;
+  background-color: #14191c;
 }
 .belowImageBackground {
   flex-grow: 1;
@@ -238,4 +239,8 @@
   justify-content: center;
   align-items: center;
   background-color: #00000099;
+}
+
+.stdGradientOverlay {
+  background: linear-gradient(0deg, #010101 0%, #14191c 100%);
 }

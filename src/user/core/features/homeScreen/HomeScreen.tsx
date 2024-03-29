@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useMemo } from 'react';
+import { CSSProperties, ReactElement, useCallback, useContext, useMemo } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
 import { HomeScreenResources } from './HomeScreenResources';
 import { HomeScreenState } from './HomeScreenState';
@@ -29,6 +29,16 @@ import { BezierAnimator, TrivialAnimator } from '../../../../shared/anim/Animati
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 import { useDynamicAnimationEngine } from '../../../../shared/anim/useDynamicAnimation';
 import { useStyleVWC } from '../../../../shared/hooks/useStyleVWC';
+import {
+  useAttachDynamicEngineToTransition,
+  useEntranceTransition,
+  useOsehTransition,
+  useSetTransitionReady,
+  useTransitionProp,
+} from '../../../../shared/lib/TransitionProp';
+import { createCancelablePromiseFromCallbacks } from '../../../../shared/lib/createCancelablePromiseFromCallbacks';
+
+export type HomeScreenTransition = { type: 'fade'; ms: number } | { type: 'none'; ms: number };
 
 /**
  * Displays the home screen for the user
@@ -43,6 +53,17 @@ export const HomeScreen = ({
     onNextStep: () => void;
   };
 }): ReactElement => {
+  const transition = useTransitionProp((): HomeScreenTransition => {
+    if (tutorial === undefined) {
+      const req = state.get().nextEnterTransition;
+      if (req !== undefined) {
+        return req;
+      }
+    }
+    return { type: 'fade', ms: 700 };
+  });
+  useEntranceTransition(transition);
+
   const currentDate = useMemo(() => new Date(), []);
   const greeting = useMemo(() => {
     const hour = currentDate.getHours();
@@ -293,9 +314,24 @@ export const HomeScreen = ({
     );
     return undefined;
   });
+
   const overlayVWC = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+
+  const foregroundOpacityVWC = useWritableValueWithCallbacks<number>(() => {
+    if (transition.animation.get().type === 'fade') {
+      return 0;
+    }
+    return 1;
+  });
+  const tutorialOpacityVWC = useWritableValueWithCallbacks(() => 1);
   const overlayStyleVWC = useMappedValuesWithCallbacks(
-    [...(tutorial === undefined ? [] : [tutorial.step]), backgroundImageVWC, bottomNavHeightVWC],
+    [
+      ...(tutorial === undefined ? [] : [tutorial.step]),
+      backgroundImageVWC,
+      bottomNavHeightVWC,
+      foregroundOpacityVWC,
+      tutorialOpacityVWC,
+    ],
     () => {
       const step = tutorial?.step?.get();
       if (step === undefined) {
@@ -304,14 +340,16 @@ export const HomeScreen = ({
 
       const imgHeight = backgroundImageVWC.get();
       const botNavHeight = bottomNavHeightVWC.get();
+      const opacity = foregroundOpacityVWC.get() * tutorialOpacityVWC.get();
 
       if (step === 'explain_bottom') {
-        return { top: '0', bottom: 'unset', height: `${imgHeight.displayHeight}px` };
+        return { top: '0', bottom: 'unset', height: `${imgHeight.displayHeight}px`, opacity };
       } else {
         return {
           top: `${imgHeight.displayHeight}px`,
           bottom: `${botNavHeight}px`,
           height: 'unset',
+          opacity,
         };
       }
     }
@@ -332,6 +370,7 @@ export const HomeScreen = ({
     if (engine.playing.get()) {
       return;
     }
+    state.get().setNextEnterTransition(undefined);
     setVWC(selectingEmotionVWC, emotion);
 
     const finish = resources.get().startGotoEmotion(emotion);
@@ -485,6 +524,97 @@ export const HomeScreen = ({
   }));
   useStyleVWC(containerRef, containerStyleVWC);
 
+  const standardGradientOverlayOpacityVWC = useWritableValueWithCallbacks<number>(() => {
+    if (transition.animation.get().type === 'fade') {
+      return 1;
+    }
+    return 0;
+  });
+
+  useOsehTransition(
+    transition,
+    'fade',
+    (cfg) => {
+      const startOverlayOpacity = standardGradientOverlayOpacityVWC.get();
+      const endOverlayOpacity = 0;
+      const dOverlayOpacity = endOverlayOpacity - startOverlayOpacity;
+
+      const startContentOpacity = foregroundOpacityVWC.get();
+      const endContentOpacity = 1;
+      const dContentOpacity = endContentOpacity - startContentOpacity;
+
+      engine.play([
+        {
+          id: 'fade-out-overlay',
+          duration: cfg.ms / 2,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(
+              standardGradientOverlayOpacityVWC,
+              startOverlayOpacity + dOverlayOpacity * progress
+            );
+          },
+        },
+        {
+          id: 'fade-in-content',
+          duration: cfg.ms / 2,
+          delayUntil: { type: 'relativeToEnd', id: 'fade-out-overlay', after: 0 },
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(foregroundOpacityVWC, startContentOpacity + dContentOpacity * progress);
+          },
+        },
+      ]);
+    },
+    (cfg) => {
+      const startOverlayOpacity = standardGradientOverlayOpacityVWC.get();
+      const endOverlayOpacity = 1;
+      const dOverlayOpacity = endOverlayOpacity - startOverlayOpacity;
+
+      engine.play([
+        {
+          id: 'fade-in-overlay',
+          duration: cfg.ms / 2,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(
+              standardGradientOverlayOpacityVWC,
+              startOverlayOpacity + dOverlayOpacity * progress
+            );
+          },
+        },
+      ]);
+    }
+  );
+  useAttachDynamicEngineToTransition(transition, engine);
+  useSetTransitionReady(transition);
+
+  const stdGradientOverlayRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const stdGradientOverlayStyleVWC = useMappedValuesWithCallbacks(
+    [standardGradientOverlayOpacityVWC, windowSizeVWC],
+    (): CSSProperties => {
+      const opacity = standardGradientOverlayOpacityVWC.get();
+      const size = windowSizeVWC.get();
+      const isZero = opacity < 1e-3;
+      return {
+        display: isZero ? 'none' : 'block',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
+        opacity,
+      };
+    }
+  );
+  useStyleVWC(stdGradientOverlayRef, stdGradientOverlayStyleVWC);
+
+  const foregroundRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const foregroundStyleVWC = useMappedValueWithCallbacks(foregroundOpacityVWC, (opacity) => ({
+    opacity,
+  }));
+  useStyleVWC(foregroundRef, foregroundStyleVWC);
+
   return (
     <div
       className={styles.container}
@@ -499,7 +629,10 @@ export const HomeScreen = ({
         </div>
         <div className={styles.bottomBackground} />
       </div>
-      <div className={styles.foreground}>
+      <div
+        className={styles.foreground}
+        style={foregroundStyleVWC.get()}
+        ref={(r) => setVWC(foregroundRef, r)}>
         {/* outer wrapper prevents page shift */}
         <div
           className={styles.headerAndGoalOuterWrapper}
@@ -520,6 +653,7 @@ export const HomeScreen = ({
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
+                      state.get().setNextEnterTransition(undefined);
                       resources.get().gotoAccount();
                     }}
                     className={styles.headerProfilePicture}>
@@ -602,6 +736,7 @@ export const HomeScreen = ({
                         type="button"
                         onClick={(e) => {
                           e.preventDefault();
+                          state.get().setNextEnterTransition(undefined);
                           resources.get().gotoUpdateGoal();
                         }}
                         className={combineClasses(styles.goalSection, styles.goalSectionGoal)}>
@@ -681,12 +816,14 @@ export const HomeScreen = ({
                     if (engine.playing.get()) {
                       return;
                     }
+                    state.get().setNextEnterTransition(undefined);
                     resources.get().gotoSeries();
                   },
                   account: () => {
                     if (engine.playing.get()) {
                       return;
                     }
+                    state.get().setNextEnterTransition(undefined);
                     resources.get().gotoAccount();
                   },
                 }}
@@ -711,7 +848,10 @@ export const HomeScreen = ({
         }
       />
       {tutorial !== undefined && (
-        <div className={styles.overlay} ref={(r) => setVWC(overlayVWC, r)}>
+        <div
+          className={styles.overlay}
+          style={overlayStyleVWC.get()}
+          ref={(r) => setVWC(overlayVWC, r)}>
           <RenderGuardedComponent
             props={tutorial.step}
             component={(step) =>
@@ -727,9 +867,38 @@ export const HomeScreen = ({
                     <button
                       type="button"
                       className={styles.tutorialButton}
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.preventDefault();
+                        engine.play([
+                          {
+                            id: 'fade-out',
+                            duration: 350,
+                            progressEase: { type: 'bezier', bezier: ease },
+                            onFrame: (progress) => {
+                              setVWC(tutorialOpacityVWC, 1 - progress);
+                            },
+                          },
+                        ]);
+                        const playingChanged = createCancelablePromiseFromCallbacks(
+                          engine.playing.callbacks
+                        );
+                        if (!engine.playing.get()) {
+                          playingChanged.promise.catch(() => {});
+                          playingChanged.cancel();
+                        } else {
+                          await playingChanged.promise.catch(() => {});
+                        }
                         tutorial?.onNextStep();
+                        engine.play([
+                          {
+                            id: 'fade-in',
+                            duration: 350,
+                            progressEase: { type: 'bezier', bezier: ease },
+                            onFrame: (progress) => {
+                              setVWC(tutorialOpacityVWC, progress);
+                            },
+                          },
+                        ]);
                       }}>
                       Next
                     </button>
@@ -748,6 +917,25 @@ export const HomeScreen = ({
                       className={styles.tutorialButton}
                       onClick={async (e) => {
                         e.preventDefault();
+                        engine.play([
+                          {
+                            id: 'fade-out',
+                            duration: 350,
+                            progressEase: { type: 'bezier', bezier: ease },
+                            onFrame: (progress) => {
+                              setVWC(tutorialOpacityVWC, 1 - progress);
+                            },
+                          },
+                        ]);
+                        const playingChanged = createCancelablePromiseFromCallbacks(
+                          engine.playing.callbacks
+                        );
+                        if (!engine.playing.get()) {
+                          playingChanged.promise.catch(() => {});
+                          playingChanged.cancel();
+                        } else {
+                          await playingChanged.promise.catch(() => {});
+                        }
                         tutorial?.onNextStep();
                       }}>
                       Done
@@ -759,6 +947,11 @@ export const HomeScreen = ({
           />
         </div>
       )}
+      <div
+        className={styles.stdGradientOverlay}
+        style={stdGradientOverlayStyleVWC.get()}
+        ref={(r) => setVWC(stdGradientOverlayRef, r)}
+      />
     </div>
   );
 };

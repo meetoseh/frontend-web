@@ -7,8 +7,14 @@ import {
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
-import { SurveyScreen } from '../../../../shared/components/SurveyScreen';
+import { SurveyScreen, SurveyScreenTransition } from '../../../../shared/components/SurveyScreen';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
+import {
+  playExitTransition,
+  useEntranceTransition,
+  useTransitionProp,
+} from '../../../../shared/lib/TransitionProp';
+import { setVWC } from '../../../../shared/lib/setVWC';
 
 const _CHOICES = [
   { slug: 'sleep_better', text: 'Sleep Better', element: <>Sleep Better</> },
@@ -27,12 +33,24 @@ export const GoalCategories = ({
   state,
   resources,
 }: FeatureComponentProps<GoalCategoriesState, GoalCategoriesResources>) => {
+  const transition = useTransitionProp((): SurveyScreenTransition => {
+    const enter = state.get().forced?.enter ?? 'fade';
+    if (enter === 'fade') {
+      return { type: 'fade', ms: 350 };
+    } else if (enter === 'swipe-left') {
+      return { type: 'swipe', direction: 'to-left', ms: 350 };
+    } else {
+      return { type: 'swipe', direction: 'to-right', ms: 350 };
+    }
+  });
   const checkedVWC = useWritableValueWithCallbacks<ChoiceSlug[]>(
     () => []
   ) as WritableValueWithTypedCallbacks<
     ChoiceSlug[],
     { action: 'checked' | 'unchecked'; changed: ChoiceSlug } | undefined
   >;
+
+  useEntranceTransition(transition);
 
   useStartSession(
     {
@@ -82,10 +100,12 @@ export const GoalCategories = ({
     }
   }, [resources]);
 
-  const handleContinue = useCallback(() => {
+  const handleContinue = useCallback(async () => {
     resources.get().session?.storeAction('continue', {
       checked: checkedVWC.get(),
     });
+    setVWC(transition.animation, { type: 'swipe', direction: 'to-left', ms: 350 });
+    await playExitTransition(transition).promise;
     resources.get().session?.reset();
     state.get().ian?.onShown();
     resources.get().onContinue();
@@ -108,7 +128,8 @@ export const GoalCategories = ({
       onContinue={{
         type: 'react-rerender',
         props: handleContinue,
-      }}>
+      }}
+      transition={transition}>
       <SurveyCheckboxGroup
         choices={CHOICES}
         checked={checkedVWC}

@@ -69,6 +69,9 @@ export const HomeScreenTutorialFeature: Feature<
           sessionInfo: homeScreenState.sessionInfo,
           backgroundImage: backgroundImageStateVWC.get(),
           session: sessionVWC.get(),
+          onMount: () => {
+            allStatesVWC.get().homeScreen.setNextEnterTransition({ type: 'none', ms: 0 });
+          },
         };
       }
     );
