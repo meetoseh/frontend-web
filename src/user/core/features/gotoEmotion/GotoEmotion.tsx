@@ -10,7 +10,7 @@ import { ProfilePictures } from '../../../interactive_prompt/components/ProfileP
 import { Button } from '../../../../shared/forms/Button';
 import { useDynamicAnimationEngine } from '../../../../shared/anim/useDynamicAnimation';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { ease, easeInOutBack } from '../../../../shared/lib/Bezier';
+import { ease, easeOutBack } from '../../../../shared/lib/Bezier';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useStyleVWC } from '../../../../shared/hooks/useStyleVWC';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
@@ -70,14 +70,17 @@ export const GotoEmotion = ({
       {
         id: 'move',
         duration: 1500,
-        progressEase: { type: 'bezier', bezier: easeInOutBack },
+        progressEase: {
+          type: 'bezier',
+          bezier: easeOutBack,
+        },
         onFrame: (progress) => {
           setVWC(holdoverEmotionMoveProgressVWC, progress);
         },
       },
       {
         id: 'fadeIn',
-        duration: 500,
+        duration: 600,
         delayUntil: { type: 'relativeToEnd', id: 'move', after: 0 },
         progressEase: { type: 'bezier', bezier: ease },
         onFrame: (progress) => {
@@ -197,6 +200,12 @@ export const GotoEmotion = ({
 
       const start = hints.emotionStart;
 
+      const startPaddingHorizontal = 18;
+      const endPaddingHorizontal = 0;
+
+      const startPaddingVertical = 24;
+      const endPaddingVertical = 0;
+
       const endRect = realEmotionLocationVWC.get();
       if (endRect === null) {
         return {
@@ -204,6 +213,7 @@ export const GotoEmotion = ({
           opacity: `${opacity}`,
           left: `${start.left}px`,
           top: `${start.top}px`,
+          padding: `${startPaddingVertical}px ${startPaddingHorizontal}px`,
         };
       }
 
@@ -212,12 +222,6 @@ export const GotoEmotion = ({
 
       const startLineHeight = 24;
       const endLineHeight = 39;
-
-      const startPaddingHorizontal = 18;
-      const endPaddingHorizontal = 0;
-
-      const startPaddingVertical = 24;
-      const endPaddingVertical = 0;
 
       const endLeft = endRect.left;
       const endTop = endRect.top;
