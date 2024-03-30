@@ -133,7 +133,7 @@ export const VisualGoal = ({ state: stateVWC }: { state: ValueWithCallbacks<Visu
     }
     return paths;
   });
-  const filledVWC = useMappedValueWithCallbacks(stateVWC, (s) => s.filled);
+  const filledVWC = useMappedValueWithCallbacks(stateVWC, (s) => Math.min(s.filled, s.goal));
 
   return (
     <svg
