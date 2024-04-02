@@ -70,7 +70,7 @@ export const LoginApp = (): ReactElement => {
             </div>
             <div className={styles.info}>
               {(() => {
-                const defaultCopy = <>A better day is 60 seconds away.</>;
+                const defaultCopy = <>Reclaim your Calm</>;
                 if (interests.state !== 'loaded') {
                   return defaultCopy;
                 } else if (interests.primaryInterest === 'anxiety') {
