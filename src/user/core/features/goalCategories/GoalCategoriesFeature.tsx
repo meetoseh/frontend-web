@@ -4,7 +4,6 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../shared/lib/setVWC';
-import { useFeatureFlag } from '../../../../shared/lib/useFeatureFlag';
 import { Feature } from '../../models/Feature';
 import { GoalCategories } from './GoalCategories';
 import { GoalCategoriesResources } from './GoalCategoriesResources';
@@ -13,17 +12,15 @@ import { GoalCategoriesForced, GoalCategoriesState } from './GoalCategoriesState
 export const GoalCategoriesFeature: Feature<GoalCategoriesState, GoalCategoriesResources> = {
   identifier: 'goalCategories',
   useWorldState: () => {
-    const enabledVWC = useFeatureFlag('series');
     const forcedVWC = useWritableValueWithCallbacks<GoalCategoriesForced | null>(() => null);
     const ian = useInappNotificationValueWithCallbacks({
-      type: 'callbacks',
-      props: () => ({ uid: 'oseh_ian_8SptGFOfn3GfFOqA_dHsjA', suppress: !enabledVWC.get() }),
-      callbacks: enabledVWC.callbacks,
+      type: 'react-rerender',
+      props: { uid: 'oseh_ian_8SptGFOfn3GfFOqA_dHsjA', suppress: false },
     });
 
     // prevents us from flashing the screen under certain network errors
     useValueWithCallbacksEffect(ian, (ian) => {
-      if (ian !== null && enabledVWC.get() && ian.showNow) {
+      if (ian !== null && ian.showNow) {
         setVWC(
           forcedVWC,
           { enter: 'fade' } as GoalCategoriesForced,
@@ -33,10 +30,8 @@ export const GoalCategoriesFeature: Feature<GoalCategoriesState, GoalCategoriesR
       return undefined;
     });
 
-    return useMappedValuesWithCallbacks([enabledVWC, forcedVWC, ian], (): GoalCategoriesState => {
-      const enabled = enabledVWC.get();
+    return useMappedValuesWithCallbacks([forcedVWC, ian], (): GoalCategoriesState => {
       return {
-        enabled: enabled === undefined ? false : enabled,
         forced: forcedVWC.get(),
         ian: ian.get(),
         setForced: (v) => setVWC(forcedVWC, v),
@@ -44,12 +39,6 @@ export const GoalCategoriesFeature: Feature<GoalCategoriesState, GoalCategoriesR
     });
   },
   isRequired: (state) => {
-    if (state.enabled === null) {
-      return undefined;
-    }
-    if (!state.enabled) {
-      return false;
-    }
     return state.forced !== null || state.ian?.showNow;
   },
   useResources: (stateVWC, requiredVWC, allStatesVWC) => {

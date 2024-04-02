@@ -12,7 +12,6 @@ import { Settings } from './Settings';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useIdentities } from './hooks/useIdentities';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
-import { useFeatureFlag } from '../../../../shared/lib/useFeatureFlag';
 
 /**
  * Simple link page where the user can perform some key actions, like logging out.
@@ -146,10 +145,8 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
       }, [loginContextRaw, haveProVWC, loadErrorVWC, requiredVWC])
     );
 
-    const navbarVWC = useFeatureFlag('series');
-
     return useMappedValuesWithCallbacks(
-      [haveProVWC, loadErrorVWC, gotoEditTimesVWC, identitiesVWC, gotoMyLibraryVWC, navbarVWC],
+      [haveProVWC, loadErrorVWC, gotoEditTimesVWC, identitiesVWC, gotoMyLibraryVWC],
       (): SettingsResources => {
         if (loadErrorVWC.get() !== null) {
           return {
@@ -157,7 +154,6 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
             havePro: undefined,
             identities: { type: 'loading' },
             loadError: loadErrorVWC.get(),
-            navbar: !!navbarVWC.get(),
             gotoEditReminderTimes: () => {},
             gotoMyLibrary: () => {},
             gotoSeries: () => {},
@@ -170,7 +166,6 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
           havePro: haveProVWC.get(),
           loadError: null,
           identities: identitiesVWC.get(),
-          navbar: !!navbarVWC.get(),
           gotoEditReminderTimes: gotoEditTimesVWC.get(),
           gotoMyLibrary: gotoMyLibraryVWC.get(),
           gotoSeries: () => {

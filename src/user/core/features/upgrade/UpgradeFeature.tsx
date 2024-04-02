@@ -7,7 +7,6 @@ import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOs
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { setVWC } from '../../../../shared/lib/setVWC';
-import { useFeatureFlag } from '../../../../shared/lib/useFeatureFlag';
 import { Feature } from '../../models/Feature';
 import { Upgrade } from './Upgrade';
 import { UpgradeContext } from './UpgradeContext';
@@ -31,7 +30,6 @@ export const UpgradeFeature: Feature<UpgradeState, UpgradeResources> = {
       type: 'react-rerender',
       props: { uid: 'oseh_ian_UWqxuftHMXtUnzn9kxnTOA', suppress: false },
     });
-    const enabledVWC = useFeatureFlag('series');
 
     useValueWithCallbacksEffect(ianVWC, (ian) => {
       if (ian?.showNow && contextVWC.get() === null) {
@@ -40,13 +38,12 @@ export const UpgradeFeature: Feature<UpgradeState, UpgradeResources> = {
       return undefined;
     });
 
-    return useMappedValuesWithCallbacks([contextVWC, ianVWC, enabledVWC], (): UpgradeState => {
+    return useMappedValuesWithCallbacks([contextVWC, ianVWC], (): UpgradeState => {
       const context = contextVWC.get();
 
       return {
         context,
         ian: ianVWC.get(),
-        enabled: enabledVWC.get() === undefined ? null : !!enabledVWC.get(),
         setContext: (ctx, updateWindowHistory: boolean) => {
           if (contextVWC.get() === undefined) {
             throw new Error('Cannot set context when it is undefined');
@@ -65,9 +62,6 @@ export const UpgradeFeature: Feature<UpgradeState, UpgradeResources> = {
     });
   },
   isRequired: (state) => {
-    if (!state.enabled) {
-      return false;
-    }
     if (state.context === undefined) {
       return undefined;
     }

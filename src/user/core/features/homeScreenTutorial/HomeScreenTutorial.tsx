@@ -24,7 +24,7 @@ export const HomeScreenTutorial = ({
 
   useEffect(() => {
     resources.get().onMount();
-  }, []);
+  }, [resources]);
 
   useStartSession(
     {
@@ -59,7 +59,7 @@ export const HomeScreenTutorial = ({
         state.get().ian?.onShown();
       }
     }
-  }, [stepVWC]);
+  }, [stepVWC, resources, state]);
 
   useEffect(() => {
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -83,7 +83,6 @@ export const HomeScreenTutorial = ({
   const mappedState = useMappedValuesWithCallbacks(
     [resources],
     (): HomeScreenState => ({
-      enabled: true,
       imageHandler: resources.get().imageHandler,
       streakInfo: resources.get().streakInfo,
       sessionInfo: resources.get().sessionInfo,

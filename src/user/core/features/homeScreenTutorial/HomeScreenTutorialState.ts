@@ -7,13 +7,6 @@ import { InappNotification } from '../../../../shared/hooks/useInappNotification
  */
 export type HomeScreenTutorialState = {
   /**
-   * True if the feature flag for the new home screen is enabled, false otherwise.
-   * This will be removed once the new home screen is fully launched. null if
-   * still determining if the feature is enabled.
-   */
-  enabled: boolean | null;
-
-  /**
    * The in-app notification for this screen, or null if it hasn't been loaded yet
    */
   ian: InappNotification | null;

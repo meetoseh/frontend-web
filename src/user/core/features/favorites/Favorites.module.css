@@ -40,7 +40,7 @@
 
 .closeIcon {
   composes: icon from '../../../../shared/icons.module.css';
-  background-image: url('../pickEmotionJourney/icons/close.svg');
+  background-image: url('../settings/icons/close.svg');
 }
 
 .content {

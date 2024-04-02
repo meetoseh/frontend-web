@@ -19,7 +19,6 @@ import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValues
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWindowSize';
 import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
-import { Emotion } from '../pickEmotionJourney/Emotion';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { DAYS_OF_WEEK } from '../../../../shared/models/DayOfWeek';
 import { VisualGoal, VisualGoalState } from './components/VisualGoal';
@@ -37,6 +36,7 @@ import {
   useTransitionProp,
 } from '../../../../shared/lib/TransitionProp';
 import { createCancelablePromiseFromCallbacks } from '../../../../shared/lib/createCancelablePromiseFromCallbacks';
+import { Emotion } from '../../../../shared/models/Emotion';
 
 export type HomeScreenTransition = { type: 'fade'; ms: number } | { type: 'none'; ms: number };
 
@@ -365,68 +365,88 @@ export const HomeScreen = ({
 
   const engine = useDynamicAnimationEngine();
 
-  const handleEmotionClick = useCallback((emotion: Emotion) => {
-    /* need at least 2s to consistently hide spinner */
-    if (engine.playing.get()) {
-      return;
-    }
-    state.get().setNextEnterTransition(undefined);
-    setVWC(selectingEmotionVWC, emotion);
+  const swapInEmotionLocationVWC = useWritableValueWithCallbacks<{
+    top: number;
+    left: number;
+    bottom: number;
+    right: number;
+  } | null>(() => null);
 
-    const finish = resources.get().startGotoEmotion(emotion);
-    engine.play([
-      {
-        id: 'irrelevantFadeOut',
-        duration: 350,
-        progressEase: { type: 'bezier', bezier: ease },
-        onFrame: (progress) => {
-          setVWC(irrelevantOpacityVWC, 1 - progress);
-        },
-      },
-      {
-        id: 'selectingSwapIn',
-        duration: 350,
-        progressEase: { type: 'bezier', bezier: ease },
-        onFrame: (progress) => {
-          setVWC(selectingEmotionOpacityVWC, 1 - progress);
-        },
-      },
-      {
-        id: 'headerSlideUp',
-        duration: 350,
-        progressEase: { type: 'bezier', bezier: ease },
-        onFrame: (progress) => {
-          setVWC(bkndImageSlideOutProgressVWC, progress);
-        },
-      },
-      {
-        id: 'bottomNavSlideOut',
-        duration: 350,
-        progressEase: { type: 'bezier', bezier: ease },
-        onFrame: (progress) => {
-          setVWC(bottomNavSlideOutProgressVWC, progress);
-        },
-      },
-    ]);
-
-    const onEnginePlayingChanged = () => {
-      const v = engine.playing.get();
-      if (!v) {
-        engine.playing.callbacks.remove(onEnginePlayingChanged);
-
-        const loc = swapInEmotionLocationVWC.get();
-        finish(
-          loc === null
-            ? undefined
-            : {
-                emotionStart: { ...loc },
-              }
-        );
+  const handleEmotionClick = useCallback(
+    (emotion: Emotion) => {
+      /* need at least 2s to consistently hide spinner */
+      if (engine.playing.get()) {
+        return;
       }
-    };
+      state.get().setNextEnterTransition(undefined);
+      setVWC(selectingEmotionVWC, emotion);
 
-    engine.playing.callbacks.add(onEnginePlayingChanged);
-  }, []);
+      const finish = resources.get().startGotoEmotion(emotion);
+      engine.play([
+        {
+          id: 'irrelevantFadeOut',
+          duration: 350,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(irrelevantOpacityVWC, 1 - progress);
+          },
+        },
+        {
+          id: 'selectingSwapIn',
+          duration: 350,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(selectingEmotionOpacityVWC, 1 - progress);
+          },
+        },
+        {
+          id: 'headerSlideUp',
+          duration: 350,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(bkndImageSlideOutProgressVWC, progress);
+          },
+        },
+        {
+          id: 'bottomNavSlideOut',
+          duration: 350,
+          progressEase: { type: 'bezier', bezier: ease },
+          onFrame: (progress) => {
+            setVWC(bottomNavSlideOutProgressVWC, progress);
+          },
+        },
+      ]);
+
+      const onEnginePlayingChanged = () => {
+        const v = engine.playing.get();
+        if (!v) {
+          engine.playing.callbacks.remove(onEnginePlayingChanged);
+
+          const loc = swapInEmotionLocationVWC.get();
+          finish(
+            loc === null
+              ? undefined
+              : {
+                  emotionStart: { ...loc },
+                }
+          );
+        }
+      };
+
+      engine.playing.callbacks.add(onEnginePlayingChanged);
+    },
+    [
+      bkndImageSlideOutProgressVWC,
+      bottomNavSlideOutProgressVWC,
+      engine,
+      irrelevantOpacityVWC,
+      resources,
+      selectingEmotionOpacityVWC,
+      selectingEmotionVWC,
+      state,
+      swapInEmotionLocationVWC,
+    ]
+  );
 
   const backgroundImageVisibleHeightVWC = useMappedValuesWithCallbacks(
     [backgroundImageVWC, bkndImageSlideOutProgressVWC],
@@ -480,13 +500,6 @@ export const HomeScreen = ({
   );
 
   const selectingEmotionLocationVWC = useWritableValueWithCallbacks<{
-    top: number;
-    left: number;
-    bottom: number;
-    right: number;
-  } | null>(() => null);
-
-  const swapInEmotionLocationVWC = useWritableValueWithCallbacks<{
     top: number;
     left: number;
     bottom: number;

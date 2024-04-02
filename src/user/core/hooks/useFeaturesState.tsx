@@ -2,10 +2,8 @@ import { ReactElement } from 'react';
 import { RequestPhoneFeature } from '../features/requestPhone/RequestPhoneFeature';
 import { RequestNameFeature } from '../features/requestName/RequestNameFeature';
 import { FeatureAllStates } from '../models/FeatureAllStates';
-import { SignupRewardFeature } from '../features/signupReward/SignupRewardFeature';
 import { RequestNotificationTimeFeature } from '../features/requestNotificationTime/RequestNotificationTimeFeature';
 import { VipChatRequestFeature } from '../features/vipChatRequest/VipChatRequestFeature';
-import { PickEmotionJourneyFeature } from '../features/pickEmotionJourney/PickEmotionJourneyFeature';
 import { GoalDaysPerWeekFeature } from '../features/goalDaysPerWeek/GoalDaysPerWeekFeature';
 import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 import { ValueWithCallbacks, WritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
@@ -45,7 +43,6 @@ export const features = [
   WelcomeVideoFeature,
   GoalCategoriesFeature,
   AgeFeature,
-  SignupRewardFeature,
   VipChatRequestFeature,
   GoalDaysPerWeekFeature,
   RequestPhoneFeature,
@@ -62,7 +59,6 @@ export const features = [
   SettingsFeature,
   GotoEmotionFeature,
   HomeScreenFeature,
-  PickEmotionJourneyFeature,
 ];
 
 type UseFeaturesStateOptions = {

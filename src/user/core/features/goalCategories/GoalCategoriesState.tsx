@@ -10,12 +10,6 @@ export type GoalCategoriesForced = {
  */
 export type GoalCategoriesState = {
   /**
-   * True if this feature is enabled (by flag), false if disabled, null if unsure.
-   * This will be removed once the feature is fully launched.
-   */
-  enabled: boolean | null;
-
-  /**
    * True if we are forcing this screen to be visible, false otherwise
    */
   forced: GoalCategoriesForced | null;

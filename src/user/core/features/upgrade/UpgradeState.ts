@@ -19,12 +19,6 @@ export type UpgradeState = {
   ian: InappNotification | null;
 
   /**
-   * True if the upgrade screen is enabled, false if not, null if still
-   * being determined
-   */
-  enabled: boolean | null;
-
-  /**
    * Can be called to set the context for the upgrade screen if it's
    * not loading.
    * @param context The context to set

@@ -1,8 +1,7 @@
 import { NetworkResponse } from '../../../../shared/hooks/useNetworkResponse';
 import { OsehImageState } from '../../../../shared/images/OsehImageState';
-import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { Emotion } from '../../../../shared/models/Emotion';
 import { ShowEmotion } from '../gotoEmotion/GotoEmotionState';
-import { Emotion } from '../pickEmotionJourney/Emotion';
 
 /**
  * Contains the resources required to display the home screen, as well as an

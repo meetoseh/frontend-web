@@ -15,12 +15,6 @@ export type HomeScreenSessionInfo = {
  */
 export type HomeScreenState = {
   /**
-   * True if the feature flag for the new home screen is enabled, false otherwise.
-   * This will be removed once the new home screen is fully launched.
-   */
-  enabled: boolean;
-
-  /**
    * If specified, this is the transition that should be used when the user
    * enters the next time.
    */

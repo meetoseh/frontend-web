@@ -4,25 +4,20 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
 import { useNetworkResponse } from '../../../../shared/hooks/useNetworkResponse';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { adaptActiveVWCToAbortSignal } from '../../../../shared/lib/adaptActiveVWCToAbortSignal';
-import { useFeatureFlag } from '../../../../shared/lib/useFeatureFlag';
 import { StreakInfo, streakInfoKeyMap } from '../../../journey/models/StreakInfo';
 import { Feature } from '../../models/Feature';
 import { HomeScreenResources } from './HomeScreenResources';
 import { HomeScreenSessionInfo, HomeScreenState } from './HomeScreenState';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { HomeScreen, HomeScreenTransition } from './HomeScreen';
-import { Emotion } from '../pickEmotionJourney/Emotion';
-import {
-  createWritableValueWithCallbacks,
-  useWritableValueWithCallbacks,
-} from '../../../../shared/lib/Callbacks';
+import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useHomeScreenImage } from './hooks/useHomeScreenImage';
+import { Emotion } from '../../../../shared/models/Emotion';
 
 export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = {
   identifier: 'homeScreen',
   useWorldState: () => {
-    const enabledVWC = useFeatureFlag('series');
     const streakInfoVWC = useNetworkResponse<StreakInfo>(
       (active, loginContext) => {
         return adaptActiveVWCToAbortSignal(active, async (signal) => {
@@ -61,9 +56,8 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
     );
 
     return useMappedValuesWithCallbacks(
-      [enabledVWC, streakInfoVWC, sessionInfoVWC, nextEnterTransition],
+      [streakInfoVWC, sessionInfoVWC, nextEnterTransition],
       (): HomeScreenState => ({
-        enabled: !!enabledVWC.get(),
         streakInfo: streakInfoVWC.get(),
         sessionInfo: sessionInfoVWC.get(),
         nextEnterTransition: nextEnterTransition.get(),
@@ -81,7 +75,7 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
       })
     );
   },
-  isRequired: (worldState) => worldState.enabled,
+  isRequired: () => true,
   useResources: (stateVWC, requiredVWC, allStatesVWC) => {
     const imageHandler = stateVWC.get().imageHandler;
     const loadPrevented = useMappedValueWithCallbacks(requiredVWC, (r) => !r);

@@ -15,7 +15,6 @@ import { useOsehImageStateValueWithCallbacks } from '../../../../shared/images/u
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 import { adaptActiveVWCToAbortSignal } from '../../../../shared/lib/adaptActiveVWCToAbortSignal';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
-import { useFeatureFlag } from '../../../../shared/lib/useFeatureFlag';
 import { onboardingVideoKeyMap } from '../../../../shared/models/OnboardingVideo';
 import { Feature } from '../../models/Feature';
 import { WelcomeVideo } from './WelcomeVideo';
@@ -25,28 +24,18 @@ import { WelcomeVideoState } from './WelcomeVideoState';
 export const WelcomeVideoFeature: Feature<WelcomeVideoState, WelcomeVideoResources> = {
   identifier: 'welcomeVideo',
   useWorldState: () => {
-    const enabledVWC = useFeatureFlag('series');
     const ian = useInappNotificationValueWithCallbacks({
-      type: 'callbacks',
-      props: () => ({ uid: 'oseh_ian_Ua7cSqwMg3atEEG4sf1R5w', suppress: !enabledVWC.get() }),
-      callbacks: enabledVWC.callbacks,
+      type: 'react-rerender',
+      props: { uid: 'oseh_ian_Ua7cSqwMg3atEEG4sf1R5w', suppress: false },
     });
 
-    return useMappedValuesWithCallbacks([enabledVWC, ian], () => {
-      const enabled = enabledVWC.get();
+    return useMappedValuesWithCallbacks([ian], () => {
       return {
-        enabled: enabled === undefined ? false : enabled,
         ian: ian.get(),
       };
     });
   },
   isRequired: (state) => {
-    if (state.enabled === null) {
-      return undefined;
-    }
-    if (!state.enabled) {
-      return false;
-    }
     if (state.ian === null) {
       return undefined;
     }

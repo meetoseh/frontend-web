@@ -33,12 +33,6 @@ export type SettingsResources = {
   identities: IdentitiesState;
 
   /**
-   * True if a navigation bar should be shown to go to home/series,
-   * false if it should not be shown.
-   */
-  navbar: boolean;
-
-  /**
    * A function which can be called to change to the edit notification
    * times screen.
    */

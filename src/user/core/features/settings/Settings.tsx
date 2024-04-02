@@ -228,10 +228,9 @@ export const Settings = ({
     <RenderGuardedComponent
       props={useMappedValueWithCallbacks(resources, (r) => ({
         loadError: r.loadError,
-        navbar: r.navbar,
       }))}
-      component={({ loadError, navbar }) => {
-        const navbarEle = navbar ? (
+      component={({ loadError }) => {
+        const navbarEle = (
           <div className={styles.bottomNav}>
             <BottomNavBar
               active="account"
@@ -241,13 +240,8 @@ export const Settings = ({
               }}
             />
           </div>
-        ) : (
-          <></>
         );
-        const containerClass = combineClasses(
-          styles.container,
-          navbar ? styles.containerWithNavbar : undefined
-        );
+        const containerClass = combineClasses(styles.container, styles.containerWithNavbar);
         if (loadError !== null) {
           return (
             <div className={containerClass}>

@@ -145,7 +145,7 @@ export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResourc
     }
 
     return (
-      allStates.pickEmotionJourney.classesTakenThisSession > 0 &&
+      allStates.homeScreen.sessionInfo.classesTaken > 0 &&
       worldState.onboardingPhoneNumberIAN.showNow
     );
   },

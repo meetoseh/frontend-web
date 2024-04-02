@@ -10,7 +10,6 @@ import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { adaptActiveVWCToAbortSignal } from '../../../../shared/lib/adaptActiveVWCToAbortSignal';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { apiFetch } from '../../../../shared/ApiConstants';
-import { Emotion } from '../pickEmotionJourney/Emotion';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useNetworkResponse } from '../../../../shared/hooks/useNetworkResponse';
@@ -20,6 +19,7 @@ import { emotionJourneyKeyMap } from './EmotionJourney';
 import { GotoEmotion } from './GotoEmotion';
 import { OsehImageState } from '../../../../shared/images/OsehImageState';
 import { useOsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
+import { Emotion } from '../../../../shared/models/Emotion';
 
 export const GotoEmotionFeature: Feature<GotoEmotionState, GotoEmotionResources> = {
   identifier: 'gotoEmotion',

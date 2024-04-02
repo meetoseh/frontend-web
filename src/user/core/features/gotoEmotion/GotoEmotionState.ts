@@ -1,4 +1,4 @@
-import { Emotion } from '../pickEmotionJourney/Emotion';
+import { Emotion } from '../../../../shared/models/Emotion';
 
 export type ShowEmotion = {
   /** The emotion that the user will be able to see */
