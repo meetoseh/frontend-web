@@ -1,5 +1,5 @@
 import { OsehContentRef } from './OsehContentRef';
-import { ContentFileWebExport, OsehContentTarget } from './OsehContentTarget';
+import { ContentFileWebExport } from './OsehContentTarget';
 
 /**
  * The information required to select a download target for a oseh content.
