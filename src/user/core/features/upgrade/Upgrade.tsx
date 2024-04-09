@@ -103,6 +103,7 @@ export const Upgrade = ({
                   products: offer.offering.packages.map((p) => p.identifier),
                 },
           initial: offer?.offering?.packages?.[0]?.identifier ?? null,
+          layout: ctx?.type === 'onboarding' ? 'continue_for_free' : 'original',
         });
       },
     }
@@ -380,6 +381,16 @@ export const Upgrade = ({
   }));
   useStyleVWC(contentRef, contentStyleVWC);
 
+  const contextVWC = useMappedValueWithCallbacks(state, (s) => s.context);
+
+  const onClose = useCallback(async () => {
+    resources.get().session?.storeAction('close', null);
+    await playExitTransition(transition).promise.catch(() => {});
+    resources.get().session?.reset();
+    state.get().ian?.onShown();
+    state.get().setContext(null, true);
+  }, [resources, playExitTransition, state, transition]);
+
   return (
     <div className={styles.container}>
       <div
@@ -398,23 +409,28 @@ export const Upgrade = ({
         className={styles.content}
         style={contentStyleVWC.get()}
         ref={(r) => setVWC(contentRef, r)}>
-        <div className={styles.closeButtonContainer}>
-          <IconButton
-            icon={styles.closeIcon}
-            srOnlyName="Close"
-            onClick={async (e) => {
-              e.preventDefault();
-              resources.get().session?.storeAction('close', null);
-              await playExitTransition(transition).promise.catch(() => {});
-              resources.get().session?.reset();
-              state.get().ian?.onShown();
-              state.get().setContext(null, true);
-            }}
-          />
-        </div>
+        <RenderGuardedComponent
+          props={contextVWC}
+          component={(ctx) =>
+            ctx?.type !== 'onboarding' ? (
+              <div className={styles.closeButtonContainer}>
+                <IconButton
+                  icon={styles.closeIcon}
+                  srOnlyName="Close"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onClose();
+                  }}
+                />
+              </div>
+            ) : (
+              <div />
+            )
+          }
+        />
         <div className={styles.contentInner} ref={(r) => setVWC(contentInnerRef, r)}>
           <RenderGuardedComponent
-            props={useMappedValueWithCallbacks(state, (s) => s.context)}
+            props={contextVWC}
             component={(ctx) => (
               <>
                 <div className={styles.title}>
@@ -477,8 +493,26 @@ export const Upgrade = ({
             </Button>
           </div>
           <RenderGuardedComponent
-            props={activePriceVWC}
-            component={(activePrice) => {
+            props={useMappedValuesWithCallbacks([activePriceVWC, contextVWC], () => ({
+              activePrice: activePriceVWC.get(),
+              ctx: contextVWC.get(),
+            }))}
+            component={({ activePrice, ctx }) => {
+              if (ctx?.type === 'onboarding') {
+                return (
+                  <div className={styles.skipButton}>
+                    <Button
+                      type="button"
+                      variant="link-white"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onClose();
+                      }}>
+                      Continue for free
+                    </Button>
+                  </div>
+                );
+              }
               if (activePrice === undefined || activePrice.productCategory !== 'SUBSCRIPTION') {
                 return <></>;
               }

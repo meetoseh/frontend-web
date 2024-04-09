@@ -205,6 +205,14 @@
   margin-top: 24px;
 }
 
+.skipButton {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  margin-top: 6px;
+}
+
 .disclaimer {
   display: flex;
   flex-direction: column;
