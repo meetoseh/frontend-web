@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useRef } from 'react';
+import { ReactElement, useCallback, useEffect, useRef } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
 import { WelcomeVideoResources } from './WelcomeVideoResources';
 import { WelcomeVideoState } from './WelcomeVideoState';
@@ -12,7 +12,6 @@ import { useCurrentTranscriptPhrases } from '../../../../shared/transcripts/useC
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { OsehImageFromStateValueWithCallbacks } from '../../../../shared/images/OsehImageFromStateValueWithCallbacks';
-import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useAnimationTargetAndRendered } from '../../../../shared/anim/useAnimationTargetAndRendered';
 import { BezierAnimator } from '../../../../shared/anim/AnimationLoop';
 import { ease } from '../../../../shared/lib/Bezier';
@@ -21,6 +20,7 @@ import { TranscriptContainer } from '../../../../shared/transcripts/TranscriptCo
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
+import { Button } from '../../../../shared/forms/Button';
 
 /**
  * Displays the full screen welcome video
@@ -174,6 +174,8 @@ export const WelcomeVideo = ({
     }
   });
 
+  // TODO -> welcome video controls
+
   return (
     <div className={styles.container}>
       <div className={styles.background} ref={(v) => setVWC(videoSinkVWC, v)}>
@@ -224,11 +226,11 @@ export const WelcomeVideo = ({
           backgroundColor: `rgba(0, 0, 0, ${overlayVWC.rendered.get().opacity * 0.5})`,
           opacity: overlayVWC.rendered.get().opacity,
         }}>
-        <RenderGuardedComponent
-          props={videoInfo.loaded}
-          component={(loaded) => (
-            <div className={styles.overlayContent}>
-              {loaded ? (
+        <div className={styles.overlayContent}>
+          <RenderGuardedComponent
+            props={videoInfo.loaded}
+            component={(loaded) =>
+              loaded ? (
                 <>Press anywhere to play</>
               ) : (
                 <InlineOsehSpinner
@@ -239,10 +241,23 @@ export const WelcomeVideo = ({
                     },
                   }}
                 />
-              )}
-            </div>
-          )}
-        />
+              )
+            }
+          />
+          <div className={styles.skipButton}>
+            <Button
+              type="button"
+              variant="outlined-white"
+              onClick={() => {
+                resources.get().session?.storeAction('close', null);
+                resources.get().session?.reset();
+                state.get().ian?.onShown();
+              }}
+              fullWidth>
+              Skip
+            </Button>
+          </div>
+        </div>
       </button>
     </div>
   );
