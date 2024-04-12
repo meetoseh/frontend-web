@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect, useMemo } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo } from 'react';
 import { HomeScreenTutorialResources } from './HomeScreenTutorialResources';
 import { HomeScreenTutorialState } from './HomeScreenTutorialState';
 import { FeatureComponentProps } from '../../models/Feature';
@@ -9,6 +9,8 @@ import { HomeScreen } from '../homeScreen/HomeScreen';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { HomeScreenState } from '../homeScreen/HomeScreenState';
 import { HomeScreenResources } from '../homeScreen/HomeScreenResources';
+import { LoginContext } from '../../../../shared/contexts/LoginContext';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * Renders a two-step home screen tutorial; this looks similar to the home screen, except
@@ -92,8 +94,24 @@ export const HomeScreenTutorial = ({
     })
   );
 
+  const loginContextRaw = useContext(LoginContext);
+  const nameVWC = useMappedValueWithCallbacks(loginContextRaw.value, (loginContextUnch) => {
+    if (loginContextUnch.state !== 'logged-in') {
+      return '';
+    }
+    const loginContext = loginContextUnch;
+    const name = loginContext.userAttributes.givenName;
+    if (name === null || name.toLowerCase() === 'anonymous' || name.toLowerCase() === 'there') {
+      return '';
+    }
+    if (name.startsWith('Guest-')) {
+      return ', Guest';
+    }
+    return `, ${loginContext.userAttributes.givenName}`;
+  });
+  const currentDate = useMemo(() => new Date(), []);
   const mappedResources = useMappedValuesWithCallbacks(
-    [resources],
+    [resources, nameVWC],
     (): HomeScreenResources => ({
       loading: resources.get().loading,
       backgroundImage: resources.get().backgroundImage,
@@ -116,6 +134,26 @@ export const HomeScreenTutorial = ({
           'confident',
           'sleepy',
         ].map((word) => ({ word, antonym: '' })),
+        error: null,
+        refresh: () => {},
+        replace: () => {},
+      },
+      copy: {
+        type: 'success',
+        result: {
+          headline:
+            (() => {
+              const hour = currentDate.getHours();
+              if (hour >= 3 && hour < 12) {
+                return 'Good Morning';
+              } else if (hour >= 12 && hour < 17) {
+                return 'Good Afternoon';
+              } else {
+                return 'Good Evening';
+              }
+            })() + nameVWC.get(),
+          subheadline: '“A journey of a thousand miles begins with a single step” —Lao Tzu',
+        },
         error: null,
         refresh: () => {},
         replace: () => {},

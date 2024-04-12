@@ -14,6 +14,8 @@ import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks'
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useHomeScreenImage } from './hooks/useHomeScreenImage';
 import { Emotion } from '../../../../shared/models/Emotion';
+import { useTimezone } from '../../../../shared/hooks/useTimezone';
+import { HomeScreenCopy } from './HomeScreenCopy';
 
 export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = {
   identifier: 'homeScreen',
@@ -113,15 +115,50 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
       { loadPrevented }
     );
 
+    const copyVariantVWC = useMappedValueWithCallbacks(stateVWC, (s) =>
+      s.sessionInfo.classesTaken === 0 ? 'session_start' : 'session_end'
+    );
+    const timezone = useTimezone();
+    const copyNR = useNetworkResponse(
+      (active, loginContext) =>
+        adaptActiveVWCToAbortSignal(active, async (signal) => {
+          const now = new Date();
+          const response = await apiFetch(
+            '/api/1/users/me/home_copy?variant=' +
+              encodeURIComponent(copyVariantVWC.get()) +
+              '&tz=' +
+              encodeURIComponent(timezone) +
+              '&tzt=browser',
+            {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              signal,
+            },
+            loginContext
+          );
+          if (!response.ok) {
+            throw response;
+          }
+          const data = await response.json();
+          if (!active.get()) {
+            return null;
+          }
+          return data as HomeScreenCopy;
+        }),
+      { loadPrevented, dependsOn: [copyVariantVWC] }
+    );
+
     return useMappedValuesWithCallbacks(
-      [backgroundImageStateVWC, emotionsNR],
+      [backgroundImageStateVWC, emotionsNR, copyNR],
       (): HomeScreenResources => {
         const bknd = backgroundImageStateVWC.get();
         const emotions = emotionsNR.get();
+        const copy = copyNR.get();
         return {
           loading: bknd.loading,
           backgroundImage: bknd,
           emotions,
+          copy,
           startGotoEmotion: (emotion) => {
             allStatesVWC.get().gotoEmotion.setShow({ emotion, anticipatory: true }, false);
             return (animationHints) => {
