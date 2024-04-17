@@ -384,6 +384,13 @@ export const useOsehImageStateRequestHandler = ({
       try {
         playlist = await playlistPromise;
       } catch (e) {
+        if (e instanceof Response && e.status === 403 && !playlistReleased) {
+          releasePlaylist();
+          playlistPromise = getPlaylist(req.props, true);
+          playlistReleased = false;
+          req.releasedCallbacks.add(releasePlaylist);
+          canceledCallbacks.add(releasePlaylist);
+        }
         handleError(e);
         return;
       }

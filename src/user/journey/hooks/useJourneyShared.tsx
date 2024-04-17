@@ -12,7 +12,6 @@ import {
   VariableStrategyProps,
   useVariableStrategyPropsAsValueWithCallbacks,
 } from '../../../shared/anim/VariableStrategyProps';
-import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { OsehContentTarget } from '../../../shared/content/OsehContentTarget';
 
 /**
@@ -356,11 +355,10 @@ export const createLoadingJourneyShared = (windowSize: {
     thumbhash: null,
   },
   audio: {
-    play: null,
-    stop: null,
+    state: 'loading',
     loaded: false,
-    audio: null,
     error: null,
+    element: null,
   },
   favorited: null,
   setFavorited: () => {

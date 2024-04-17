@@ -1,0 +1,22 @@
+.outerContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.outerContainer * {
+  pointer-events: none;
+}
+
+.container {
+  position: absolute;
+  overflow: hidden;
+}
+
+.background {
+  background: linear-gradient(0deg, #010101 0%, #14191c 100%);
+}

@@ -7,7 +7,7 @@ import {
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
-import { SurveyScreen, SurveyScreenTransition } from '../../../../shared/components/SurveyScreen';
+import { SurveyScreen } from '../../../../shared/components/SurveyScreen';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import {
   playExitTransition,
@@ -15,6 +15,7 @@ import {
   useTransitionProp,
 } from '../../../../shared/lib/TransitionProp';
 import { setVWC } from '../../../../shared/lib/setVWC';
+import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
 
 const _CHOICES = [
   { slug: '18-24', text: '18-24', element: <>18&ndash;24</> },
@@ -32,7 +33,7 @@ const CHOICES = _CHOICES as readonly { slug: ChoiceSlug; text: string; element: 
  * Shows the actual age question
  */
 export const Age = ({ state, resources }: FeatureComponentProps<AgeState, AgeResources>) => {
-  const transition = useTransitionProp((): SurveyScreenTransition => {
+  const transition = useTransitionProp((): StandardScreenTransition => {
     const enter = state.get().forced?.enter ?? 'fade';
     if (enter === 'fade') {
       return { type: 'fade', ms: 350 };
@@ -97,7 +98,7 @@ export const Age = ({ state, resources }: FeatureComponentProps<AgeState, AgeRes
         checked: checkedVWC.get(),
       });
     }
-  }, [resources]);
+  }, [resources, checkedVWC]);
 
   const handleBack = useCallback(async () => {
     resources.get().session?.storeAction('back', {
@@ -108,17 +109,22 @@ export const Age = ({ state, resources }: FeatureComponentProps<AgeState, AgeRes
     resources.get().session?.reset();
     state.get().ian?.onShown();
     resources.get().onBack();
-  }, [resources, state]);
+  }, [resources, state, checkedVWC, transition]);
 
   const handleContinue = useCallback(async () => {
     resources.get().session?.storeAction('continue', {
       checked: checkedVWC.get(),
     });
+    setVWC(transition.animation, {
+      type: 'swipe',
+      direction: 'to-left',
+      ms: 350,
+    });
     await playExitTransition(transition).promise;
     resources.get().session?.reset();
     state.get().ian?.onShown();
     resources.get().onContinue();
-  }, [resources, state]);
+  }, [resources, state, checkedVWC, transition]);
 
   return (
     <SurveyScreen

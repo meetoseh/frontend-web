@@ -130,10 +130,7 @@ const JourneyPublicLinkInner = ({
     true
   );
   const audioLoading = useUnwrappedValueWithCallbacks(
-    useMappedValueWithCallbacks(
-      shared,
-      (s) => !s.audio.loaded || (!startedAudio && s.audio.play === null)
-    )
+    useMappedValueWithCallbacks(shared, (s) => !s.audio.loaded)
   );
   const settingUpVWC = useMappedValuesWithCallbacks([loginContextRaw.value, visitorVWC], () => {
     const loginContextUnch = loginContextRaw.value.get();
@@ -188,7 +185,7 @@ const JourneyPublicLinkInner = ({
 
       if (newScreen === 'journey') {
         if (!startedAudio) {
-          shared.get().audio.play?.call(undefined);
+          shared.get().audio.element?.play?.();
           setStartedAudio(true);
         }
         setScreen('journey');

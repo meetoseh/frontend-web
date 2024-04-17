@@ -5,7 +5,7 @@ import {
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
-import { SurveyScreen, SurveyScreenTransition } from '../../../../shared/components/SurveyScreen';
+import { SurveyScreen } from '../../../../shared/components/SurveyScreen';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { GoalDaysPerWeekState } from './GoalDaysPerWeekState';
 import { GoalDaysPerWeekResources } from './GoalDaysPerWeekResources';
@@ -13,7 +13,6 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useWorkingModal } from '../../../../shared/hooks/useWorkingModal';
-import { useDelayedValueWithCallbacks } from '../../../../shared/hooks/useDelayedValueWithCallbacks';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
@@ -23,6 +22,7 @@ import {
   useEntranceTransition,
   useTransitionProp,
 } from '../../../../shared/lib/TransitionProp';
+import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
 
 const _CHOICES = [
   { slug: '1', text: '1 day', element: <>1 day</> },
@@ -44,7 +44,7 @@ export const GoalDaysPerWeek = ({
   state,
   resources,
 }: FeatureComponentProps<GoalDaysPerWeekState, GoalDaysPerWeekResources>) => {
-  const transition = useTransitionProp((): SurveyScreenTransition => {
+  const transition = useTransitionProp((): StandardScreenTransition => {
     const back = state.get().forced?.back ?? null;
     if (back === null) {
       return { type: 'fade', ms: 350 };
@@ -65,7 +65,7 @@ export const GoalDaysPerWeek = ({
 
   useErrorModal(modalContext.modals, errorVWC, 'saving goal');
 
-  useWorkingModal(modalContext.modals, useDelayedValueWithCallbacks(savingVWC, 200));
+  useWorkingModal(modalContext.modals, savingVWC, { delayStartMs: 200 });
 
   useEntranceTransition(transition);
 
@@ -125,7 +125,7 @@ export const GoalDaysPerWeek = ({
     if (response.ok) {
       resources.get().session?.storeAction('stored', { choice: value });
     }
-  }, []);
+  }, [checkedVWC, loginContextRaw.value, resources]);
 
   useEffect(() => {
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -140,7 +140,7 @@ export const GoalDaysPerWeek = ({
       });
       trySave();
     }
-  }, [resources]);
+  }, [resources, checkedVWC, trySave]);
 
   const handleAction = useCallback(
     async (action: 'continue' | 'back') => {
@@ -166,7 +166,7 @@ export const GoalDaysPerWeek = ({
       state.get().ian?.onShown();
       resources.get().onGoalSet(choice, action);
     },
-    [resources, state]
+    [resources, state, checkedVWC, errorVWC, transition, trySave]
   );
 
   return (

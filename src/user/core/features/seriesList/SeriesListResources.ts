@@ -1,5 +1,5 @@
 import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
-import { ExternalCoursePreviewable } from '../../../series/lib/ExternalCourse';
+import { ExternalCourse, ExternalCoursePreviewable } from '../../../series/lib/ExternalCourse';
 
 export type SeriesListResources = {
   /**
@@ -24,4 +24,9 @@ export type SeriesListResources = {
    * course.
    */
   gotoCoursePreview: (course: ExternalCoursePreviewable) => void;
+
+  /**
+   * The function to call to the course details page for the given course
+   */
+  gotoCourseDetails: (course: ExternalCourse) => void;
 };

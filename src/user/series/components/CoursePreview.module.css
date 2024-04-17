@@ -1,14 +1,18 @@
 .container {
   display: grid;
   grid-template: 1fr / 1fr;
+  position: 'relative';
 }
 
 .background {
   grid-area: 1 / 1 / 1 / 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: grid;
+  grid-template: 1fr / 1fr;
   overflow: hidden;
+}
+
+.background > * {
+  grid-area: 1 / 1 / 1 / 1;
 }
 
 .background video {
@@ -31,8 +35,7 @@
 .content {
   grid-area: 1 / 1 / 1 / 1;
   display: grid;
-  grid-template: 1fr auto 1fr / 1fr;
-  position: relative;
+  grid-template: 1fr / 1fr;
 }
 
 .closeButtonContainer {

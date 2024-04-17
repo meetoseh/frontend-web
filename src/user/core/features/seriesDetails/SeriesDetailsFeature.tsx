@@ -344,12 +344,16 @@ export const SeriesDetailsFeature: Feature<SeriesDetailsState, SeriesDetailsReso
           courseLikeState,
           backgroundImage,
           goBack() {
-            allStates.get().seriesList.setShow(true, true);
+            allStates.get().seriesList.setForced({ enter: 'swipe-left' }, true);
             state.get().setShow(null, false);
           },
           gotoJourney(journey, course) {
             allStates.get().singleJourney.setShow({ type: 'generic', ref: journey });
             state.get().setShow(null, true);
+          },
+          gotoCoursePreview: (course) => {
+            allStates.get().seriesPreview.setShow({ enter: 'wipe-up', course }, true);
+            state.get().setShow(null, false);
           },
           gotoUpgrade() {
             const course = courseVWC.get();

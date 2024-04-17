@@ -1,5 +1,3 @@
-import { thumbHashToAverageRGBA } from 'thumbhash';
-import { IconButton } from '../../../shared/forms/IconButton';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { useWindowSizeValueWithCallbacks } from '../../../shared/hooks/useWindowSize';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
@@ -9,13 +7,11 @@ import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImag
 import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { useStaleOsehImageOnSwap } from '../../../shared/images/useStaleOsehImageOnSwap';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
-import { base64URLToByteArray } from '../../../shared/lib/colorUtils';
 import { ExternalCoursePreviewable } from '../lib/ExternalCourse';
 import styles from './CoursePreview.module.css';
 import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
 import { setVWC } from '../../../shared/lib/setVWC';
-import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 import { createVideoSizeComparerForTarget } from '../../../shared/content/createVideoSizeComparerForTarget';
 import { useOsehContentTargetValueWithCallbacks } from '../../../shared/content/useOsehContentTargetValueWithCallbacks';
 import { useReactManagedValueAsValueWithCallbacks } from '../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
@@ -25,18 +21,24 @@ import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../shared/contexts/ModalContext';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
-import { InlineOsehSpinner } from '../../../shared/components/InlineOsehSpinner';
-import { combineClasses } from '../../../shared/lib/combineClasses';
 import { useCurrentTranscriptPhrases } from '../../../shared/transcripts/useCurrentTranscriptPhrases';
-import { TranscriptContainer } from '../../../shared/transcripts/TranscriptContainer';
-import { Button } from '../../../shared/forms/Button';
-import { useVideoInfo } from '../../../shared/hooks/useVideoInfo';
+import { useMediaInfo } from '../../../shared/content/useMediaInfo';
+import { PlayerCTA, PlayerForeground } from '../../../shared/content/player/PlayerForeground';
+import {
+  StandardScreenTransitionProp,
+  useStandardTransitionsState,
+} from '../../../shared/hooks/useStandardTransitions';
+import { useInitializedTransitionProp } from '../../../shared/lib/TransitionProp';
+import { OpacityTransitionOverlay } from '../../../shared/components/OpacityTransitionOverlay';
+import { WipeTransitionOverlay } from '../../../shared/components/WipeTransitionOverlay';
+import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 
 export type CoursePreviewProps = {
   course: ExternalCoursePreviewable;
-  onViewDetails: () => void;
-  onBack: () => void;
+  onViewDetails: () => Promise<void>;
+  onBack: () => Promise<void>;
   imageHandler: OsehImageStateRequestHandler;
+  transition?: StandardScreenTransitionProp;
 };
 
 /**
@@ -48,7 +50,14 @@ export const CoursePreview = ({
   onViewDetails,
   onBack,
   imageHandler,
+  transition: transitionRaw,
 }: CoursePreviewProps) => {
+  const transition = useInitializedTransitionProp(transitionRaw, () => ({
+    type: 'none',
+    ms: 0,
+  }));
+  const transitionState = useStandardTransitionsState(transition);
+
   const modalContext = useContext(ModalContext);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
   const coverImageProps = useMappedValueWithCallbacks(
@@ -78,41 +87,6 @@ export const CoursePreview = ({
       outputEqualityFn: areOsehImageStatesEqual,
     }
   );
-
-  const coverAvgColor = useMappedValueWithCallbacks(
-    coverImageState,
-    (state) => {
-      if (state.thumbhash === null) {
-        return { r: 0, g: 0, b: 0, a: 1 };
-      }
-
-      return thumbHashToAverageRGBA(base64URLToByteArray(state.thumbhash));
-    },
-    {
-      outputEqualityFn: (a, b) => a.r === b.r && a.g === b.g && a.b === b.b && a.a === b.a,
-    }
-  );
-
-  const invertOverlayVWC = useMappedValueWithCallbacks(coverAvgColor, (color) => {
-    const avg = (color.r + color.g + color.b) / 3;
-    return avg < 128;
-  });
-
-  const contentRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
-  useValuesWithCallbacksEffect([invertOverlayVWC, contentRef], () => {
-    const invertOverlay = invertOverlayVWC.get();
-    const ele = contentRef.get();
-    if (ele === null) {
-      return;
-    }
-
-    if (invertOverlay) {
-      ele.classList.add(styles.invertOverlay);
-    } else {
-      ele.classList.remove(styles.invertOverlay);
-    }
-    return undefined;
-  });
 
   const videoTargetRefVWC = useReactManagedValueAsValueWithCallbacks(course.introVideo);
   const videoComparerVWC = useMappedValueWithCallbacks(windowSizeVWC, (size) =>
@@ -149,8 +123,8 @@ export const CoursePreview = ({
         return undefined;
       }
 
-      const vid = video.video;
-      sink.appendChild(vid);
+      const vid = video.element;
+      sink.insertAdjacentElement('afterbegin', vid);
       return () => {
         vid.remove();
       };
@@ -168,234 +142,58 @@ export const CoursePreview = ({
 
   useErrorModal(modalContext.modals, videoErrorVWC, 'loading video');
 
-  const videoInfo = useVideoInfo({
-    videoVWC: videoVWC,
-    currentTranscriptPhrasesVWC: useCurrentTranscriptPhrases({
-      transcriptRef: useReactManagedValueAsValueWithCallbacks(course.introVideoTranscript),
-    }),
+  const transcript = useCurrentTranscriptPhrases({
+    transcriptRef: useReactManagedValueAsValueWithCallbacks(course.introVideoTranscript),
   });
 
-  const progressFullRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
-  useValuesWithCallbacksEffect(
-    [progressFullRef, videoInfo.currentTime],
-    useCallback(() => {
-      const ele = progressFullRef.get();
-      if (ele === null) {
-        return undefined;
-      }
+  const videoInfo = useMediaInfo({
+    mediaVWC: videoVWC,
+    currentTranscriptPhrasesVWC: transcript,
+    durationSeconds: course.introVideoDuration,
+  });
 
-      const currentTime = videoInfo.currentTime.get();
-      const progress = currentTime / course.introVideoDuration;
-      ele.style.width = `${progress * 100}%`;
-      return undefined;
-    }, [progressFullRef, videoInfo.currentTime, course.introVideoDuration])
+  const title = useReactManagedValueAsValueWithCallbacks(course.title);
+  const subtitle = useReactManagedValueAsValueWithCallbacks(course.instructor.name);
+  const tag = useReactManagedValueAsValueWithCallbacks(
+    `${course.numJourneys.toLocaleString()} Classes`
   );
-
-  const onProgressContainerClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-
-      const content = videoVWC.get();
-      if (content.video === null) {
-        return;
-      }
-
-      const location = e.clientX;
-      const clickedButton = e.currentTarget;
-      const clickedButtonRects = clickedButton.getBoundingClientRect();
-      const progress = (location - clickedButtonRects.left) / clickedButtonRects.width;
-      const seekingTo = progress * content.video.duration;
-      content.video.currentTime = seekingTo;
-    },
-    [videoVWC]
-  );
+  const onClose = useReactManagedValueAsValueWithCallbacks(onBack);
+  const cta = useReactManagedValueAsValueWithCallbacks<PlayerCTA>({
+    title: 'View Series',
+    action: onViewDetails,
+  });
 
   return (
     <div className={styles.container}>
       <div className={styles.background} ref={(v) => setVWC(videoSinkVWC, v)}>
         <RenderGuardedComponent
-          props={videoInfo.loaded}
+          props={useMappedValuesWithCallbacks(
+            [videoInfo.loaded, videoInfo.playing, videoInfo.currentTime],
+            () =>
+              !videoInfo.loaded.get() ||
+              (!videoInfo.playing.get() && videoInfo.currentTime.get() === 0)
+          )}
           component={(loaded) =>
             !loaded ? <OsehImageFromStateValueWithCallbacks state={coverImageState} /> : <></>
           }
         />
       </div>
       <div className={styles.backgroundOverlay} />
-      <div className={styles.content} ref={(v) => setVWC(contentRef, v)}>
-        <div className={styles.closeButtonContainer}>
-          <div className={styles.closeButtonInnerContainer}>
-            <IconButton
-              icon={styles.closeIcon}
-              srOnlyName="Close"
-              onClick={(e) => {
-                e.preventDefault();
-                onBack();
-              }}
-            />
-          </div>
-        </div>
-        <div className={styles.pausePlayControlContainer}>
-          <RenderGuardedComponent
-            props={videoInfo.playPauseState}
-            component={(state) =>
-              state === 'loading' ? (
-                <div
-                  className={combineClasses(
-                    styles.pausePlayControl,
-                    styles.pausePlayControlLoading
-                  )}>
-                  <InlineOsehSpinner
-                    size={{
-                      type: 'react-rerender',
-                      props: {
-                        width: 25,
-                      },
-                    }}
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className={combineClasses(styles.pausePlayControl, styles.pausePlayControlLoaded)}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const vid = videoVWC.get();
-                    if (vid.state !== 'loaded') {
-                      return;
-                    }
-
-                    if (state === 'playing') {
-                      vid.stop();
-                    } else {
-                      vid.play();
-                    }
-                  }}>
-                  <div className={state === 'playing' ? styles.pauseIcon : styles.playIcon} />
-                </button>
-              )
-            }
-          />
-        </div>
-        <div className={styles.footer}>
-          <div className={styles.footerInnerContainer}>
-            <RenderGuardedComponent
-              props={videoInfo.closedCaptioning.state}
-              component={(state) =>
-                !state.enabled || !state.available ? (
-                  <></>
-                ) : (
-                  <div className={styles.transcript}>
-                    <TranscriptContainer
-                      currentTime={videoInfo.currentTime}
-                      currentTranscriptPhrases={videoInfo.closedCaptioning.phrases}
-                    />
-                  </div>
-                )
-              }
-            />
-            <div className={styles.infoAndActions}>
-              <div className={styles.info}>
-                <div className={styles.instructor}>{course.instructor.name}</div>
-                <div className={styles.title}>{course.title}</div>
-                <div className={styles.numClasses}>
-                  {course.numJourneys.toLocaleString()} Classes
-                </div>
-              </div>
-              <div className={styles.actions}>
-                <div className={styles.actionIconsRow}>
-                  <RenderGuardedComponent
-                    props={videoInfo.muted}
-                    component={(muted) => (
-                      <IconButton
-                        icon={muted ? styles.mutedIcon : styles.unmutedIcon}
-                        srOnlyName={muted ? 'Unmute' : 'Mute'}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const vid = videoVWC.get();
-                          if (vid.state !== 'loaded') {
-                            return;
-                          }
-                          vid.video.muted = !muted;
-                        }}
-                      />
-                    )}
-                  />
-                  <RenderGuardedComponent
-                    props={videoInfo.closedCaptioning.state}
-                    component={(state) =>
-                      !state.available ? (
-                        <></>
-                      ) : (
-                        <IconButton
-                          icon={state.enabled ? styles.ccEnabledIcon : styles.ccDisabledIcon}
-                          srOnlyName={
-                            state.enabled ? 'Disable closed captioning' : 'Enable closed captioning'
-                          }
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setVWC(videoInfo.closedCaptioning.enabled, !state.enabled);
-                          }}
-                        />
-                      )
-                    }
-                  />
-                </div>
-                <div className={styles.actionIconsRow}>
-                  <Button
-                    type="button"
-                    variant="outlined-white-thin"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onViewDetails();
-                    }}>
-                    <div className={styles.viewDetailsContent}>
-                      View Series
-                      <div className={styles.arrow} />
-                    </div>
-                  </Button>
-                </div>
-              </div>
-            </div>
-            <button
-              className={styles.progressContainer}
-              type="button"
-              onClick={onProgressContainerClick}>
-              <div
-                className={styles.progressFull}
-                style={{ width: '0' }}
-                ref={(v) => setVWC(progressFullRef, v)}
-              />
-              <div className={styles.progressDot} />
-              <div className={styles.progressEmpty} />
-            </button>
-            <div className={styles.durationContainer}>
-              <div className={styles.currentTime}>
-                <RenderGuardedComponent
-                  props={videoInfo.currentTime}
-                  component={(inFractionalSeconds) => {
-                    const inSeconds = Math.floor(inFractionalSeconds);
-                    const minutes = Math.floor(inSeconds / 60);
-                    const seconds = Math.floor(inSeconds) % 60;
-
-                    return (
-                      <>
-                        {minutes}:{seconds < 10 ? '0' : ''}
-                        {seconds}
-                      </>
-                    );
-                  }}
-                />
-              </div>
-              <div className={styles.totalTime}>
-                <RenderGuardedComponent
-                  props={videoInfo.totalTime}
-                  component={(totalTime) => <>{totalTime.formatted}</>}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className={styles.content}>
+        <PlayerForeground
+          size={windowSizeVWC}
+          content={videoVWC}
+          mediaInfo={videoInfo}
+          transcript={transcript}
+          title={title}
+          subtitle={subtitle}
+          tag={tag}
+          onClose={onClose}
+          cta={cta}
+        />
       </div>
+      <OpacityTransitionOverlay opacity={transitionState.opacity} />
+      <WipeTransitionOverlay wipe={transitionState.wipe} />
     </div>
   );
 };

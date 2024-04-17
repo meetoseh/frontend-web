@@ -122,7 +122,6 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
     const copyNR = useNetworkResponse(
       (active, loginContext) =>
         adaptActiveVWCToAbortSignal(active, async (signal) => {
-          const now = new Date();
           const response = await apiFetch(
             '/api/1/users/me/home_copy?variant=' +
               encodeURIComponent(copyVariantVWC.get()) +
@@ -168,7 +167,7 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
             };
           },
           gotoSeries: () => {
-            allStatesVWC.get().seriesList.setShow(true, true);
+            allStatesVWC.get().seriesList.setForced({ enter: 'fade' }, true);
           },
           gotoAccount: () => {
             allStatesVWC.get().settings.setShow(true, true);

@@ -7,38 +7,18 @@ import styles from './SurveyScreen.module.css';
 import { FullHeightDiv } from './FullHeightDiv';
 import { RenderGuardedComponent } from './RenderGuardedComponent';
 import { BackContinue } from './BackContinue';
-import {
-  TransitionProp,
-  useAttachDynamicEngineToTransition,
-  useInitializedTransitionProp,
-  useOsehTransition,
-  useSetTransitionReady,
-} from '../lib/TransitionProp';
-import { useDynamicAnimationEngine } from '../anim/useDynamicAnimation';
+import { useInitializedTransitionProp } from '../lib/TransitionProp';
 import { useWritableValueWithCallbacks } from '../lib/Callbacks';
 import { useWindowSizeValueWithCallbacks } from '../hooks/useWindowSize';
-import { ease } from '../lib/Bezier';
 import { setVWC } from '../lib/setVWC';
 import { convertLogicalWidthToPhysicalWidth } from '../images/DisplayRatioHelper';
 import { useStyleVWC } from '../hooks/useStyleVWC';
 import { useMappedValuesWithCallbacks } from '../hooks/useMappedValuesWithCallbacks';
 import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
-
-export type SurveyScreenTransition =
-  | {
-      type: 'swipe';
-      /** If someone swipes to the left, then we enter from the right and exit to the left */
-      direction: 'to-left' | 'to-right';
-      ms: number;
-    }
-  | {
-      type: 'fade';
-      ms: number;
-    }
-  | {
-      type: 'none';
-      ms: number;
-    };
+import {
+  StandardScreenTransitionProp,
+  useStandardTransitionsState,
+} from '../hooks/useStandardTransitions';
 
 export type SurveyScreenProps = {
   /** The title, usually the question */
@@ -50,7 +30,7 @@ export type SurveyScreenProps = {
   /** The handler for when the continue button is pressed */
   onContinue: VariableStrategyProps<() => void>;
   /** If specified, can be used to setup and trigger entrance/exit animations */
-  transition?: TransitionProp<SurveyScreenTransition['type'], SurveyScreenTransition>;
+  transition?: StandardScreenTransitionProp;
 };
 
 /**
@@ -70,98 +50,8 @@ export const SurveyScreen = ({
   const onContinueVWC = useVariableStrategyPropsAsValueWithCallbacks(onContinueVSP);
   const transition = useInitializedTransitionProp(transitionRaw, () => ({ type: 'none', ms: 0 }));
 
-  const engine = useDynamicAnimationEngine();
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
-  const foregroundLeftVWC = useWritableValueWithCallbacks(() => {
-    const cfg = transition.animation.get();
-    if (cfg.type !== 'swipe') {
-      return 0;
-    }
-    if (cfg.direction === 'to-left') {
-      return windowSizeVWC.get().width;
-    } else {
-      return -windowSizeVWC.get().width;
-    }
-  });
-  const foregroundOpacityVWC = useWritableValueWithCallbacks((): number => {
-    const cfg = transition.animation.get();
-    if (cfg.type !== 'fade') {
-      return 1;
-    }
-    return 0;
-  });
-
-  useOsehTransition(
-    transition,
-    'swipe',
-    (cfg) => {
-      const startX = foregroundLeftVWC.get();
-      const endX = 0;
-      const dx = endX - startX;
-      engine.play([
-        {
-          id: 'swipe-in',
-          duration: cfg.ms,
-          progressEase: { type: 'bezier', bezier: ease },
-          onFrame: (progress) => {
-            setVWC(foregroundLeftVWC, startX + dx * progress);
-          },
-        },
-      ]);
-    },
-    (cfg) => {
-      const startX = foregroundLeftVWC.get();
-      const endX =
-        cfg.direction === 'to-left' ? -windowSizeVWC.get().width : windowSizeVWC.get().width;
-      const dx = endX - startX;
-      engine.play([
-        {
-          id: 'swipe-out',
-          duration: cfg.ms,
-          progressEase: { type: 'bezier', bezier: ease },
-          onFrame: (progress) => {
-            setVWC(foregroundLeftVWC, startX + dx * progress);
-          },
-        },
-      ]);
-    }
-  );
-  useOsehTransition(
-    transition,
-    'fade',
-    (cfg) => {
-      const startOpacity = foregroundOpacityVWC.get();
-      const endOpacity = 1;
-      const dx = endOpacity - startOpacity;
-      engine.play([
-        {
-          id: 'fade-in',
-          duration: cfg.ms,
-          progressEase: { type: 'bezier', bezier: ease },
-          onFrame: (progress) => {
-            setVWC(foregroundOpacityVWC, startOpacity + dx * progress);
-          },
-        },
-      ]);
-    },
-    (cfg) => {
-      const startOpacity = foregroundOpacityVWC.get();
-      const endOpacity = 0;
-      const dx = endOpacity - startOpacity;
-      engine.play([
-        {
-          id: 'fade-out',
-          duration: cfg.ms,
-          progressEase: { type: 'bezier', bezier: ease },
-          onFrame: (progress) => {
-            setVWC(foregroundOpacityVWC, startOpacity + dx * progress);
-          },
-        },
-      ]);
-    }
-  );
-  useAttachDynamicEngineToTransition(transition, engine);
-  useSetTransitionReady(transition);
+  const transitionState = useStandardTransitionsState(transition);
 
   const containerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   const containerStyleVWC = useMappedValueWithCallbacks(windowSizeVWC, (windowSize) => ({
@@ -172,10 +62,10 @@ export const SurveyScreen = ({
 
   const foregroundRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   const foregroundStyleVWC = useMappedValuesWithCallbacks(
-    [foregroundLeftVWC, foregroundOpacityVWC],
+    [transitionState.left, transitionState.opacity],
     (): CSSProperties => {
-      const left = foregroundLeftVWC.get();
-      const opacity = foregroundOpacityVWC.get();
+      const left = transitionState.left.get();
+      const opacity = transitionState.opacity.get();
       const leftIsZero = convertLogicalWidthToPhysicalWidth(Math.abs(left)) < 1;
       const opacityIsOne = opacity > 0.999;
       return {

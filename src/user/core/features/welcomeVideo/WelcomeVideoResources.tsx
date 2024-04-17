@@ -1,4 +1,4 @@
-import { OsehVideoContentState } from '../../../../shared/content/OsehVideoContentState';
+import { OsehMediaContentState } from '../../../../shared/content/OsehMediaContentState';
 import { InappNotificationSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { NetworkResponse } from '../../../../shared/hooks/useNetworkResponse';
 import { OsehImageState } from '../../../../shared/images/OsehImageState';
@@ -34,5 +34,5 @@ export type WelcomeVideoResources = {
   /**
    * The video to play
    */
-  video: OsehVideoContentState;
+  video: OsehMediaContentState<HTMLVideoElement>;
 };

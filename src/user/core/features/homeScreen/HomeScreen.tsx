@@ -1,4 +1,4 @@
-import { CSSProperties, Fragment, ReactElement, useCallback, useContext, useMemo } from 'react';
+import { CSSProperties, Fragment, ReactElement, useCallback, useContext } from 'react';
 import { FeatureComponentProps } from '../../models/Feature';
 import { HomeScreenResources } from './HomeScreenResources';
 import { HomeScreenState } from './HomeScreenState';

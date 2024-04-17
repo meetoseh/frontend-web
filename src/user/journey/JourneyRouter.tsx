@@ -66,13 +66,13 @@ export const JourneyRouter = ({
           }
 
           const audio = sharedState.get().audio;
-          if (!audio.loaded || audio.play === null || audio.audio === null) {
+          if (!audio.loaded || audio.element === null) {
             console.warn('setScreen to journey, but audio not loaded. going to start');
             setScreen('start');
             return;
           }
 
-          audio.play();
+          audio.element.play();
           setScreen('journey');
           return;
         }

@@ -1,19 +1,18 @@
-import { MutableRefObject, useCallback, useMemo, useRef } from 'react';
-import { OsehVideoContentState } from '../content/OsehVideoContentState';
+import { useCallback, useMemo } from 'react';
 import {
-  Callbacks,
   ValueWithCallbacks,
   WritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../lib/Callbacks';
 import { OsehTranscriptPhrase } from '../transcripts/OsehTranscript';
-import { UseCurrentTranscriptPhrasesResult } from '../transcripts/useCurrentTranscriptPhrases';
-import { useMappedValueWithCallbacks } from './useMappedValueWithCallbacks';
-import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
 import { setVWC } from '../lib/setVWC';
-import { useMappedValuesWithCallbacks } from './useMappedValuesWithCallbacks';
+import { UseCurrentTranscriptPhrasesResult } from '../transcripts/useCurrentTranscriptPhrases';
+import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
+import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';
+import { OsehMediaContentState } from './OsehMediaContentState';
+import { useMappedValuesWithCallbacks } from '../hooks/useMappedValuesWithCallbacks';
 
-export type VideoInfo = {
+export type MediaInfo = {
   /** True if the video is ready to play, false otherwise */
   loaded: ValueWithCallbacks<boolean>;
   /** True if the video is currently playing, false if paused */
@@ -24,8 +23,10 @@ export type VideoInfo = {
   muted: ValueWithCallbacks<boolean>;
   /** The current playback time in seconds */
   currentTime: ValueWithCallbacks<number>;
+  /** The video progress, which is the current time over the total time in seconds, or 0 if duration is not loaded */
+  progress: ValueWithCallbacks<number>;
   /** The combination of loaded and playing as a string enum, usually for the play button */
-  playPauseState: ValueWithCallbacks<'playing' | 'paused' | 'loading'>;
+  playPauseState: ValueWithCallbacks<'playing' | 'paused' | 'loading' | 'errored'>;
   /** If the video is at the end and hasn't started again */
   ended: ValueWithCallbacks<boolean>;
   /** Closed captioning information */
@@ -50,37 +51,61 @@ export type VideoInfo = {
  * This will handle setting the current time for the current transcript
  * phrases.
  */
-export const useVideoInfo = ({
-  videoVWC,
+export const useMediaInfo = <T extends HTMLMediaElement>({
+  mediaVWC,
   currentTranscriptPhrasesVWC,
+  durationSeconds,
 }: {
-  videoVWC: ValueWithCallbacks<OsehVideoContentState>;
+  /**
+   * The media to load the video information from
+   */
+  mediaVWC: ValueWithCallbacks<OsehMediaContentState<T>>;
+
+  /**
+   * We sync the current video time with the transcript phrases, plus we
+   * use this for determining if closed captioning is available.
+   */
   currentTranscriptPhrasesVWC: ValueWithCallbacks<UseCurrentTranscriptPhrasesResult>;
-}): VideoInfo => {
-  const videoLoadedVWC = useMappedValueWithCallbacks(videoVWC, (v) => v.loaded);
+
+  /**
+   * If the duration of the media is known out of band, it can be provided
+   * and will be used when the medias metadata is not available.
+   */
+  durationSeconds?: number;
+}): MediaInfo => {
+  const videoLoadedVWC = useMappedValueWithCallbacks(mediaVWC, (v) => v.loaded);
   const videoPlayingVWC = useWritableValueWithCallbacks(() => false);
   const videoPausedVWC = useMappedValueWithCallbacks(videoPlayingVWC, (v) => !v);
   const videoMutedVWC = useWritableValueWithCallbacks(() => false);
   const videoCurrentTimeVWC = useWritableValueWithCallbacks(() => 0);
   const videoTotalTimeVWC = useWritableValueWithCallbacks<{ seconds?: number; formatted: string }>(
-    () => ({ formatted: '?:??' })
+    () =>
+      durationSeconds === undefined
+        ? { formatted: '?:??' }
+        : {
+            seconds: durationSeconds,
+            formatted: formatSeconds(durationSeconds),
+          }
   );
   const videoEndedVWC = useWritableValueWithCallbacks(() => false);
+  const videoErroredVWC = useWritableValueWithCallbacks(() => false);
 
   useValueWithCallbacksEffect(
-    videoVWC,
+    mediaVWC,
     useCallback(
       (v) => {
         if (v.state !== 'loaded') {
           return;
         }
-        const vid = v.video;
+        const vid = v.element;
         vid.addEventListener('play', handlePausedChanged);
         vid.addEventListener('pause', handlePausedChanged);
         vid.addEventListener('ended', handleEnded);
         vid.addEventListener('volumechange', handleMutedChanged);
         vid.addEventListener('timeupdate', handleTimeChanged);
         vid.addEventListener('loadedmetadata', handleMetadataChanged);
+        vid.addEventListener('durationchange', handleMetadataChanged);
+        vid.addEventListener('error', handleError);
         handlePausedChanged();
         handleMutedChanged();
         handleMetadataChanged();
@@ -91,6 +116,8 @@ export const useVideoInfo = ({
           vid.removeEventListener('volumechange', handleMutedChanged);
           vid.removeEventListener('timeupdate', handleTimeChanged);
           vid.removeEventListener('loadedmetadata', handleMetadataChanged);
+          vid.removeEventListener('durationchange', handleMetadataChanged);
+          vid.removeEventListener('error', handleError);
         };
 
         function handlePausedChanged() {
@@ -106,6 +133,7 @@ export const useVideoInfo = ({
           if (playing) {
             setVWC(videoEndedVWC, false);
           }
+          setVWC(videoErroredVWC, vid.error !== null);
         }
 
         function handleEnded() {
@@ -122,8 +150,15 @@ export const useVideoInfo = ({
         }
 
         function handleMetadataChanged() {
-          const duration = vid.duration;
-          if (isNaN(duration)) {
+          const durationRaw = vid.duration;
+          const duration =
+            durationRaw === undefined ||
+            isNaN(durationRaw) ||
+            !isFinite(durationRaw) ||
+            durationRaw <= 0
+              ? durationSeconds
+              : durationRaw;
+          if (duration === undefined) {
             setVWC(
               videoTotalTimeVWC,
               { formatted: '?:??' },
@@ -139,19 +174,36 @@ export const useVideoInfo = ({
             },
             (a, b) => a.formatted === b.formatted && a.seconds === b.seconds
           );
+
+          setVWC(videoErroredVWC, vid.error !== null);
+        }
+
+        function handleError() {
+          setVWC(videoErroredVWC, true);
         }
       },
-      [videoPlayingVWC, videoCurrentTimeVWC, videoMutedVWC]
+      [
+        videoEndedVWC,
+        videoPlayingVWC,
+        videoMutedVWC,
+        videoCurrentTimeVWC,
+        videoTotalTimeVWC,
+        durationSeconds,
+        videoErroredVWC,
+      ]
     )
   );
   const videoPlayPauseStateVWC = useMappedValuesWithCallbacks(
-    [videoLoadedVWC, videoPlayingVWC],
-    (): 'loading' | 'playing' | 'paused' => {
-      if (!videoLoadedVWC.get()) {
-        return 'loading';
-      }
+    [videoErroredVWC, videoLoadedVWC, videoPlayingVWC],
+    (): 'loading' | 'playing' | 'paused' | 'errored' => {
       if (videoPlayingVWC.get()) {
         return 'playing';
+      }
+      if (videoErroredVWC.get()) {
+        return 'errored';
+      }
+      if (!videoLoadedVWC.get()) {
+        return 'loading';
       }
       return 'paused';
     }
@@ -185,6 +237,15 @@ export const useVideoInfo = ({
     return undefined;
   });
 
+  const progressVWC = useMappedValuesWithCallbacks([videoCurrentTimeVWC, videoTotalTimeVWC], () => {
+    const currentTime = videoCurrentTimeVWC.get();
+    const totalTime = videoTotalTimeVWC.get();
+    if (totalTime.seconds === undefined || totalTime.seconds <= 0) {
+      return 0;
+    }
+    return currentTime / totalTime.seconds;
+  });
+
   return useMemo(
     () => ({
       loaded: videoLoadedVWC,
@@ -192,6 +253,7 @@ export const useVideoInfo = ({
       paused: videoPausedVWC,
       muted: videoMutedVWC,
       currentTime: videoCurrentTimeVWC,
+      progress: progressVWC,
       playPauseState: videoPlayPauseStateVWC,
       ended: videoEndedVWC,
       closedCaptioning: {
@@ -208,9 +270,9 @@ export const useVideoInfo = ({
       videoPausedVWC,
       videoMutedVWC,
       videoCurrentTimeVWC,
+      progressVWC,
       videoPlayPauseStateVWC,
       videoEndedVWC,
-      currentTranscriptPhrasesVWC,
       closedCaptioningPhrasesVWC,
       closedCaptioningAvailableVWC,
       closedCaptioningEnabledVWC,

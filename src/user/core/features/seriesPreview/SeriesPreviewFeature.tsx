@@ -3,14 +3,13 @@ import { Callbacks, useWritableValueWithCallbacks } from '../../../../shared/lib
 import { Feature } from '../../models/Feature';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
-import { SeriesPreviewState } from './SeriesPreviewState';
+import { SeriesPreviewShow, SeriesPreviewState } from './SeriesPreviewState';
 import { SeriesPreviewResources } from './SeriesPreviewResources';
+import { externalCourseKeyMap, getPreviewableCourse } from '../../../series/lib/ExternalCourse';
 import {
-  ExternalCoursePreviewable,
-  externalCourseKeyMap,
-  getPreviewableCourse,
-} from '../../../series/lib/ExternalCourse';
-import { defaultEqualityFn } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+  defaultEqualityFn,
+  useMappedValueWithCallbacks,
+} from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { convertUsingMapper } from '../../../../admin/crud/CrudFetcher';
@@ -35,13 +34,13 @@ export const SeriesPreviewFeature: Feature<SeriesPreviewState, SeriesPreviewReso
       }
       return slug;
     });
-    const showVWC = useWritableValueWithCallbacks<ExternalCoursePreviewable | null | undefined>(
-      () => (tryingSeriesSlugVWC.get() === null ? null : undefined)
+    const showVWC = useWritableValueWithCallbacks<SeriesPreviewShow | null | undefined>(() =>
+      tryingSeriesSlugVWC.get() === null ? null : undefined
     );
 
     const setShow = useCallback(
-      (series: ExternalCoursePreviewable | null, updateWindowHistory: boolean) => {
-        if (defaultEqualityFn(series, showVWC.get())) {
+      (show: SeriesPreviewShow | null, updateWindowHistory: boolean) => {
+        if (defaultEqualityFn(show, showVWC.get())) {
           return;
         }
 
@@ -49,10 +48,10 @@ export const SeriesPreviewFeature: Feature<SeriesPreviewState, SeriesPreviewReso
           throw new Error('Cannot set show when loading');
         }
 
-        if (series !== null) {
-          setVWC(showVWC, series);
+        if (show !== null) {
+          setVWC(showVWC, show);
           if (updateWindowHistory) {
-            window.history.pushState({}, '', `/series/preview/${series.slug}`);
+            window.history.pushState({}, '', `/series/preview/${show.course.slug}`);
           }
         } else {
           setVWC(showVWC, null);
@@ -65,13 +64,17 @@ export const SeriesPreviewFeature: Feature<SeriesPreviewState, SeriesPreviewReso
     );
 
     useRefreshedExternalCourse(
-      showVWC,
+      useMappedValueWithCallbacks(showVWC, (s) => s?.course ?? null),
       useCallback(
         (newItm) => {
           const previewable = getPreviewableCourse(newItm);
-          setShow(previewable, newItm === null);
+          if (previewable === null) {
+            setShow(null, true);
+            return;
+          }
+          setShow({ enter: showVWC.get()?.enter ?? 'fade', course: previewable }, false);
         },
-        [setShow]
+        [setShow, showVWC]
       ),
       'list'
     );
@@ -149,7 +152,10 @@ export const SeriesPreviewFeature: Feature<SeriesPreviewState, SeriesPreviewReso
           return;
         }
 
-        setVWC(showVWC, coursePreviewable);
+        setVWC(showVWC, {
+          enter: 'fade',
+          course: coursePreviewable,
+        } as const);
       }
 
       async function fetchSeriesBySlug() {
@@ -200,7 +206,7 @@ export const SeriesPreviewFeature: Feature<SeriesPreviewState, SeriesPreviewReso
       loading: false,
       imageHandler,
       goBack() {
-        allStates.get().seriesList.setShow(true, true);
+        allStates.get().seriesList.setForced({ enter: 'fade' }, true);
         state.get().setShow(null, false);
       },
       gotoDetails(series) {

@@ -169,7 +169,7 @@ export const SettingsFeature: Feature<SettingsState, SettingsResources> = {
           gotoEditReminderTimes: gotoEditTimesVWC.get(),
           gotoMyLibrary: gotoMyLibraryVWC.get(),
           gotoSeries: () => {
-            allStatesVWC.get().seriesList.setShow(true, true);
+            allStatesVWC.get().seriesList.setForced({ enter: 'fade' }, true);
             stateVWC.get().setShow(false, false);
           },
           gotoManageMembership: () => {

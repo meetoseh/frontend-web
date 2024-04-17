@@ -1,6 +1,8 @@
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { JourneyRouterScreenId } from '../../../journey/JourneyRouter';
 import { useJourneyShared } from '../../../journey/hooks/useJourneyShared';
@@ -22,16 +24,22 @@ export const SingleJourneyFeature: Feature<SingleJourneyState, SingleJourneyReso
   },
   isRequired: (state) => state.show !== null,
   useResources: (stateVWC, requiredVWC, allStatesVWC) => {
-    const sharedVWC = useJourneyShared({
-      type: 'callbacks',
-      props: () => stateVWC.get().show?.ref ?? null,
-      callbacks: stateVWC.callbacks,
+    const refVWC = useMappedValueWithCallbacks(stateVWC, (s) => s.show?.ref ?? null, {
+      outputEqualityFn: Object.is,
     });
+    const sharedVWC = useJourneyShared(adaptValueWithCallbacksAsVariableStrategyProps(refVWC));
     const stepVWC = useWritableValueWithCallbacks<{
       uid: string | null;
       screen: JourneyRouterScreenId;
     }>(() => ({ uid: null, screen: 'lobby' }));
     const showVWC = useMappedValueWithCallbacks(stateVWC, (s) => s.show);
+
+    useValueWithCallbacksEffect(refVWC, (r) => {
+      if (r === null) {
+        setVWC(stepVWC, { uid: null, screen: 'lobby' });
+      }
+      return undefined;
+    });
 
     return useMappedValuesWithCallbacks(
       [showVWC, sharedVWC, stepVWC, requiredVWC],

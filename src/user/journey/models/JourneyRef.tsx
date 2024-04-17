@@ -1,6 +1,7 @@
 import { CrudFetcherKeyMap } from '../../../admin/crud/CrudFetcher';
 import { OsehContentRef } from '../../../shared/content/OsehContentRef';
 import { OsehImageRef } from '../../../shared/images/OsehImageRef';
+import { OsehTranscriptRef } from '../../../shared/transcripts/OsehTranscriptRef';
 
 export type JourneyRef = {
   /**
@@ -82,6 +83,11 @@ export type JourneyRef = {
    * a 1080x1920 15s vertical video), this is the content ref for that video.
    */
   sample: OsehContentRef | null;
+
+  /**
+   * If a transcript is available for this journey, the transcript
+   */
+  transcript: OsehTranscriptRef | null;
 };
 
 /**

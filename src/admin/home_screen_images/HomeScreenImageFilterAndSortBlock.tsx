@@ -196,13 +196,11 @@ export const HomeScreenImageFilterAndSortBlock = ({
       return progressBytes / size;
     }
   );
-  useWorkingModal(
-    modalContext.modals,
-    computingSha512VWC,
-    'Computing SHA512...',
-    computingSha512ProgressFractionVWC,
-    'nospinner' // spinner will look laggy due to the cpu usage going to the hashing
-  );
+  useWorkingModal(modalContext.modals, computingSha512VWC, {
+    title: 'Computing SHA512...',
+    progressBarFraction: computingSha512ProgressFractionVWC,
+    variant: 'nospinner', // spinner will look laggy due to the cpu usage going to the hashing
+  });
 
   const onOriginalFileSelected = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,7 +223,7 @@ export const HomeScreenImageFilterAndSortBlock = ({
       setVWC(filterVWC, newFilter, () => false);
       setVWC(computingSha512FileSizeVWC, null);
     },
-    [computingSha512FileSizeVWC, computingSha512HashedSoFarVWC, filterVWC, originalFileSHA512VWC]
+    [computingSha512FileSizeVWC, computingSha512HashedSoFarVWC, filterVWC]
   );
 
   const hasDateVWC = useMappedValueWithCallbacks(filterVWC, (filter): string | null | undefined => {

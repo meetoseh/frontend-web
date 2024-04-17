@@ -1,155 +1,19 @@
 .container {
-  width: 100%;
-  min-height: 100vh; /* swapped to inner height in js */
+  display: grid;
+  grid-template: 1fr / 1fr;
 }
 
-.backgroundImageContainer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: -1;
+.background {
+  grid-area: 1 / 1 / 1 / 1;
   display: flex;
   justify-content: center;
   align-items: center;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
-.innerContainer {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  bottom: 106px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1;
-}
-
-.content {
-  max-width: 440px;
-  max-height: 875px;
-  width: 100%;
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 24px;
-}
-
-.titleAndInstructor {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.title {
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 400;
-  font-size: 22px;
-  line-height: 30px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #eaf0ff;
-  margin-bottom: 5px;
-}
-
-.instructor {
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 300;
-  font-size: 12px;
-  line-height: 16px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: rgba(245, 245, 245, 0.7);
-}
-
-.closeButtonContainer {
-  position: absolute;
-  top: 16px;
-  left: 0;
-  width: 100%;
-  z-index: 2;
-}
-
-.closeButtonInnerContainer {
-  width: 100%;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: row-reverse;
-  padding-right: 16px;
-}
-
-.close {
-  composes: unstyled from '../../../shared/buttons.module.css';
-}
-
-.closeIcon {
-  composes: icon from '../../../shared/icons.module.css';
-  width: 24px;
-  height: 24px;
-  background-image: url('../icons/close.svg');
-}
-
-.audioControlsContainer {
-  position: absolute;
-  bottom: 64px;
-  left: 24px;
-  right: 24px;
-}
-
-.audioControlsInnerContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-}
-
-.audioProgressContainer {
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: flex-start;
-  align-items: center;
-  height: 5px;
-  background: #8a9a9d;
-  width: 100%;
-  z-index: 2;
-}
-.audioProgress {
-  height: 5px;
-  background: #446266;
-}
-
-.audioProgressCircle {
-  margin-left: -5px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #446266;
-}
-
-.fullHeartIcon {
-  composes: icon from '../../../shared/icons.module.css';
-  width: 24px;
-  height: 24px;
-  background-image: url('../icons/fullHeart.svg');
-  margin-right: 12px;
-}
-
-.emptyHeartIcon {
-  composes: icon from '../../../shared/icons.module.css';
-  width: 24px;
-  height: 24px;
-  background-image: url('../icons/emptyHeart.svg');
-  margin-right: 12px;
-}
-
-.control {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.foreground {
+  grid-area: 1 / 1 / 1 / 1;
+  display: grid;
+  grid-template: 1fr / 1fr;
 }

@@ -21,7 +21,6 @@ import { RenderGuardedComponent } from '../../shared/components/RenderGuardedCom
 import styles from './HomeScreenImageDetails.module.css';
 import { inputToSecondsOffset, secondsOffsetToInput } from '../../shared/lib/secondsOffsetUtils';
 import { useBeforeTime } from '../../shared/hooks/useBeforeTime';
-import { useDelayedValueWithCallbacks } from '../../shared/hooks/useDelayedValueWithCallbacks';
 import { Checkbox } from '../../shared/forms/Checkbox';
 import { HomeScreenImageFlags } from './flags/HomeScreenImageFlags';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
@@ -79,7 +78,7 @@ export const HomeScreenImageDetails = ({
     props: () => saveAt.get() ?? undefined,
     callbacks: saveAt.callbacks,
   });
-  useWorkingModal(modalContext.modals, useDelayedValueWithCallbacks(savingVWC, 100));
+  useWorkingModal(modalContext.modals, savingVWC, { delayStartMs: 100 });
   useErrorModal(modalContext.modals, errorVWC, 'saving');
 
   useValuesWithCallbacksEffect([savingVWC, saveAt], () => {

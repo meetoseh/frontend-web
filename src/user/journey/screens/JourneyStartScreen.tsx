@@ -32,7 +32,7 @@ export const JourneyStartScreen = ({
 }): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
   const audioReady = useUnwrappedValueWithCallbacks(
-    useMappedValueWithCallbacks(shared, (s) => s.audio.play !== null)
+    useMappedValueWithCallbacks(shared, (s) => s.audio.element !== null)
   );
 
   const windowSizeVWC = useWindowSizeValueWithCallbacks();

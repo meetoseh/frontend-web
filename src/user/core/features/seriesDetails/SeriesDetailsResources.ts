@@ -3,6 +3,7 @@ import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehI
 import { UseCourseLikeStateResult } from '../../../favorites/hooks/useCourseLikeState';
 import { MinimalCourse, MinimalCourseJourney } from '../../../favorites/lib/MinimalCourseJourney';
 import { JourneyRef } from '../../../journey/models/JourneyRef';
+import { ExternalCoursePreviewable } from '../../../series/lib/ExternalCourse';
 
 export type SeriesDetailsResources = {
   /**
@@ -37,6 +38,9 @@ export type SeriesDetailsResources = {
    * Can be called to return to the "previous" screen
    */
   goBack: () => void;
+
+  /** Go to the course preview for the given course */
+  gotoCoursePreview: (course: ExternalCoursePreviewable) => void;
 
   /**
    * Can be called to show the course feature for the journey with

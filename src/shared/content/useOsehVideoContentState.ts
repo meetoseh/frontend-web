@@ -1,16 +1,16 @@
 import { ReactElement, useCallback } from 'react';
 import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
 import { OsehContentTarget } from './OsehContentTarget';
-import {
-  OsehVideoContentState,
-  OsehVideoContentStateError,
-  OsehVideoContentStateLoaded,
-  OsehVideoContentStateLoading,
-} from './OsehVideoContentState';
 import { setVWC } from '../lib/setVWC';
-import { describeError } from '../forms/ErrorBlock';
 import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
 import { getEffectiveVideoTarget } from './createVideoSizeComparerForTarget';
+import {
+  OsehMediaContentState,
+  OsehMediaContentStateError,
+  OsehMediaContentStateLoaded,
+  OsehMediaContentStateLoading,
+} from './OsehMediaContentState';
+import { describeError } from '../forms/ErrorBlock';
 
 export type UseOsehVideoContentStateProps = {
   target: ValueWithCallbacks<OsehContentTarget>;
@@ -19,13 +19,17 @@ export type UseOsehVideoContentStateProps = {
 
 /**
  * Loads the video from the given target, if the target is loaded,
- * otherwise stays in a loading state.
+ * otherwise stays in a loading state. Note that the actual video
+ * width and height may differ from the requested size; it should
+ * be positioned center/center with overflow hidden.
  */
 export const useOsehVideoContentState = ({
   target: targetVWC,
   size: sizeVWC,
-}: UseOsehVideoContentStateProps): ValueWithCallbacks<OsehVideoContentState> => {
-  const result = useWritableValueWithCallbacks<OsehVideoContentState>(() => makeLoadingState());
+}: UseOsehVideoContentStateProps): ValueWithCallbacks<OsehMediaContentState<HTMLVideoElement>> => {
+  const result = useWritableValueWithCallbacks<OsehMediaContentState<HTMLVideoElement>>(() =>
+    makeLoadingState()
+  );
 
   useValuesWithCallbacksEffect(
     [targetVWC, sizeVWC],
@@ -69,12 +73,6 @@ export const useOsehVideoContentState = ({
 
           video.setAttribute('width', `${logicalWidth}`);
           video.setAttribute('height', `${logicalHeight}`);
-          if (realWidth !== size.width) {
-            video.style.marginLeft = `${(size.width - logicalWidth) / 2}px`;
-          }
-          if (realHeight !== size.height) {
-            video.style.marginTop = `${(size.height - logicalHeight) / 2}px`;
-          }
         } else {
           video.setAttribute('width', `${size.width}`);
           video.setAttribute('height', `${size.height}`);
@@ -225,14 +223,7 @@ export const useOsehVideoContentState = ({
           return;
         }
 
-        setVWC(
-          result,
-          makeLoadedState(
-            () => video.play(),
-            async () => video.pause(),
-            video
-          )
-        );
+        setVWC(result, makeLoadedState(video));
       }
     }, [result, sizeVWC, targetVWC])
   );
@@ -240,33 +231,25 @@ export const useOsehVideoContentState = ({
   return result;
 };
 
-const makeLoadingState = (): OsehVideoContentStateLoading => ({
+const makeLoadingState = (): OsehMediaContentStateLoading => ({
   state: 'loading',
-  play: null,
-  stop: null,
   loaded: false,
   error: null,
-  video: null,
+  element: null,
 });
 
-const makeErrorState = (error: ReactElement): OsehVideoContentStateError => ({
+const makeErrorState = (error: ReactElement): OsehMediaContentStateError => ({
   state: 'error',
-  play: null,
-  stop: null,
   loaded: false,
   error,
-  video: null,
+  element: null,
 });
 
 const makeLoadedState = (
-  play: (this: void) => Promise<void>,
-  stop: (this: void) => Promise<void>,
   video: HTMLVideoElement
-): OsehVideoContentStateLoaded => ({
+): OsehMediaContentStateLoaded<HTMLVideoElement> => ({
   state: 'loaded',
-  play,
-  stop,
   loaded: true,
   error: null,
-  video,
+  element: video,
 });
