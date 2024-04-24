@@ -5,7 +5,7 @@ export type TouchPointSelectionStrategy =
   | 'random_with_replacement'
   | 'ordered_resettable';
 
-type TouchPointMessageBase = {
+export type TouchPointMessageBase = {
   /**
    * Messages with lower priority are sent first with most selection strategies
    */

@@ -123,3 +123,9 @@
   justify-content: flex-start;
   align-items: center;
 }
+
+.delete {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}

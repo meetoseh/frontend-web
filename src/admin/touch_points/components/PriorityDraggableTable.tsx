@@ -138,6 +138,38 @@ export type AddEvent<T extends object> = {
   item: T;
 };
 
+export type RemoveEvent<T extends object> = {
+  /**
+   * Indicates that an element was removed from the list. We don't actually emit this
+   * event, but we have an optimized flow when receiving it as an event since its
+   * extremely common functionality with this table. Note that if this item is not
+   * at the end and it is the only item at this priority, this change must also coincide
+   * with decrementing the priority of all items after the removed item.
+   *
+   * Implemented as if by
+   * ```
+   * arr.splice(index, 1);
+   * ```
+   */
+  type: 'remove';
+
+  /**
+   * `simple` if the item was not the only item at its priority, `decreaseHigher` if it was
+   * and all later items had their priority decreased by 1.
+   */
+  scenario: 'simple' | 'decreaseHigher';
+
+  /**
+   * The index of the removed item
+   */
+  index: number;
+
+  /**
+   * The removed item
+   */
+  item: T;
+};
+
 export type ReplaceEvent<T extends object> = {
   /**
    * Indicates that an element was replaced in the list. We don't actually emit this
@@ -168,6 +200,7 @@ export type PriorityDraggableTableMutationEvent<T extends object> =
   | ReindexEvent<T>
   | ReprioritizeEvent<T>
   | AddEvent<T>
+  | RemoveEvent<T>
   | ReplaceEvent<T>;
 
 export type PriorityDraggableTableProps<T extends object> = {
@@ -788,6 +821,102 @@ export const PriorityDraggableTable = <T extends object>({
         return;
       }
 
+      if (info.type === 'remove') {
+        const map = priorityToPriorityIdMapVWC.get();
+        const subitemsMap = itemsByPriorityIdVWC.get();
+
+        const changedPriority = priority.get(info.item);
+        const changedPriorityId = map.get(changedPriority);
+        if (changedPriorityId === undefined) {
+          throw new Error(`remove: changedPriorityId not found for priority ${changedPriority}`);
+        }
+        const subitemsVWC = subitemsMap.get(changedPriorityId);
+        if (subitemsVWC === undefined) {
+          throw new Error(`remove: subitems not found for priority ${changedPriorityId}`);
+        }
+        const subitems = subitemsVWC.get();
+        const changedSubindex = subitems.findIndex((m) => Object.is(m, info.item));
+        if (changedSubindex === -1) {
+          throw new Error('remove: changedIndex not found');
+        }
+        subitems.splice(changedSubindex, 1);
+
+        if (subitems.length === 0) {
+          if (info.scenario !== 'decreaseHigher') {
+            throw new Error('remove: scenario is not decreaseHigher but subitems.length === 0');
+          }
+          const imap = priorityIdToPriorityMapVWC.get();
+
+          map.delete(changedPriority);
+          subitemsMap.delete(changedPriorityId);
+          imap.delete(changedPriorityId);
+
+          let nextPriority = changedPriority + 1;
+          while (true) {
+            const nextPriorityId = map.get(nextPriority);
+            if (nextPriorityId === undefined) {
+              break;
+            }
+
+            map.set(nextPriority - 1, nextPriorityId);
+            imap.set(nextPriorityId, nextPriority - 1);
+            map.delete(nextPriority);
+            nextPriority++;
+          }
+
+          const items = itemsVWC.get();
+          let iterPrio = changedPriority;
+          let nextSubindex = 0;
+          for (let i = info.index; i < items.length; i++) {
+            const newItemPriority = priority.get(items[i]);
+            if (newItemPriority !== iterPrio) {
+              if (nextSubindex === 0) {
+                throw new Error(
+                  'remove: nextSubindex is 0 but newItemPriority !== iterPrio; implies a gap'
+                );
+              }
+              iterPrio++;
+              nextSubindex = 0;
+            }
+
+            const prioId = map.get(iterPrio);
+            if (prioId === undefined) {
+              throw new Error(`remove: prioId is undefined for priority ${iterPrio}`);
+            }
+
+            const prioSubitems = subitemsMap.get(prioId);
+            if (prioSubitems === undefined) {
+              throw new Error(`remove: prioSubitems is undefined for priority ${prioId}`);
+            }
+
+            prioSubitems.get()[nextSubindex] = items[i];
+            nextSubindex++;
+          }
+
+          priorityToPriorityIdMapVWC.callbacks.call(undefined);
+          priorityIdToPriorityMapVWC.callbacks.call(undefined);
+          if (info.index < items.length) {
+            for (let i = changedPriority; i <= iterPrio; i++) {
+              const prioId = map.get(i);
+              if (prioId === undefined) {
+                throw new Error(`remove: prioId is undefined for priority ${i}`);
+              }
+              const subitemsVWC = subitemsMap.get(prioId);
+              if (subitemsVWC === undefined) {
+                throw new Error(`remove: subitems not found for priority ${i}`);
+              }
+              subitemsVWC.callbacks.call(undefined);
+            }
+          }
+        } else {
+          if (info.scenario !== 'simple') {
+            throw new Error('remove: scenario is not simple but subitems.length !== 0');
+          }
+          subitemsVWC.callbacks.call(undefined);
+        }
+        return;
+      }
+
       if (info.type === 'replace') {
         const map = priorityToPriorityIdMapVWC.get();
         const subitemsMap = itemsByPriorityIdVWC.get();
@@ -907,6 +1036,13 @@ export const PriorityDraggableTable = <T extends object>({
 
       if (info.type === 'add') {
         return; // never alters the item
+      }
+
+      if (info.type === 'remove') {
+        if (Object.is(info.item, dragging.item)) {
+          setVWC(draggingVWC, undefined);
+        }
+        return;
       }
 
       if (info.type === 'replace') {
@@ -1351,13 +1487,10 @@ export const PriorityDraggableTable = <T extends object>({
 
             let elements: ReactElement[] = [];
             let prio = 1;
-            const lastPriority = lastPriorityVWC.get();
-            while (prio <= lastPriority) {
+            while (true) {
               const priorityId = dangerousPriorityMap.get(prio);
               if (priorityId === undefined) {
-                throw new Error(
-                  `Priority ${prio} not found in priority map, despite last priority ${lastPriority}`
-                );
+                break;
               }
               const subitemsVWC = itemsByPriorityIdVWC.get().get(priorityId);
               if (subitemsVWC === undefined) {

@@ -6,7 +6,12 @@ import {
   downgradeTypedVWC,
   useWritableValueWithCallbacks,
 } from '../../shared/lib/Callbacks';
-import { TouchPointEmailMessage, TouchPointPushMessage, TouchPointSmsMessage } from './TouchPoint';
+import {
+  TouchPointEmailMessage,
+  TouchPointMessageBase,
+  TouchPointPushMessage,
+  TouchPointSmsMessage,
+} from './TouchPoint';
 import styles from './TouchPointMessagesSection.module.css';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
@@ -337,6 +342,21 @@ const ExpandedSmsModal = (props: {
           )}
         />
       </div>
+      <div className={styles.delete}>
+        <Button
+          type="button"
+          variant="outlined"
+          onClick={(e) => {
+            e.preventDefault();
+            const msg = messageVWC.get();
+            if (msg === undefined) {
+              return;
+            }
+            removeMessage(props.items, msg);
+          }}>
+          Delete SMS
+        </Button>
+      </div>
       <RenderGuardedComponent
         props={bodyParametersVWC}
         component={(parameters) => (
@@ -649,6 +669,21 @@ const ExpandedPushModal = (props: {
             </Button>
           )}
         />
+      </div>
+      <div className={styles.delete}>
+        <Button
+          type="button"
+          variant="outlined"
+          onClick={(e) => {
+            e.preventDefault();
+            const msg = messageVWC.get();
+            if (msg === undefined) {
+              return;
+            }
+            removeMessage(props.items, msg);
+          }}>
+          Delete Push
+        </Button>
       </div>
       <RenderGuardedComponent
         props={titleParametersVWC}
@@ -1085,6 +1120,21 @@ const ExpandedEmailModal = (
           )}
         />
       </div>
+      <div className={styles.delete}>
+        <Button
+          type="button"
+          variant="outlined"
+          onClick={(e) => {
+            e.preventDefault();
+            const msg = messageVWC.get();
+            if (msg === undefined) {
+              return;
+            }
+            removeMessage(props.items, msg);
+          }}>
+          Delete Email
+        </Button>
+      </div>
       <RenderGuardedComponent
         props={subjectParametersVWC}
         component={(parameters) => (
@@ -1344,4 +1394,38 @@ const removePath = (obj: any, path: string[]): any => {
   }
 
   return newObj;
+};
+
+const removeMessage = <T extends TouchPointMessageBase>(
+  vwc: WritableValueWithTypedCallbacks<T[], PriorityDraggableTableMutationEvent<T> | undefined>,
+  msg: T
+) => {
+  const items = vwc.get();
+  const idx = items.findIndex((i) => i.uid === msg.uid);
+  if (idx === -1) {
+    return;
+  }
+  items.splice(idx, 1);
+
+  if (
+    (idx === 0 || items[idx - 1].priority !== msg.priority) &&
+    (idx === items.length || items[idx].priority !== msg.priority)
+  ) {
+    for (let i = idx; i < items.length; i++) {
+      items[i] = { ...items[i], priority: items[i].priority - 1 };
+    }
+    vwc.callbacks.call({
+      type: 'remove',
+      scenario: 'decreaseHigher',
+      index: idx,
+      item: msg,
+    });
+  } else {
+    vwc.callbacks.call({
+      type: 'remove',
+      scenario: 'simple',
+      index: idx,
+      item: msg,
+    });
+  }
 };
