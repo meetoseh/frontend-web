@@ -277,7 +277,7 @@ export const RequestPhone = ({
         setVWC(saving, false);
       }
     },
-    [loginContextRaw, code, phone, verificationUid, resources, error, saving, step]
+    [loginContextRaw, code, phone, verificationUid, resources, error, saving, state, transition]
   );
 
   const onSkipPhone = useCallback(
@@ -297,7 +297,7 @@ export const RequestPhone = ({
         }
       }
     },
-    [state, resources]
+    [state, resources, transition]
   );
 
   const onBackVerify = useCallback(

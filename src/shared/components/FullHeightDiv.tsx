@@ -1,4 +1,4 @@
-import { HTMLAttributes, ReactElement, RefObject, forwardRef, useCallback, useRef } from 'react';
+import { HTMLAttributes, ReactElement, forwardRef, useCallback, useRef } from 'react';
 import { useWindowSizeValueWithCallbacks } from '../hooks/useWindowSize';
 import { ForwardedRef } from 'react-chartjs-2/dist/types';
 import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';

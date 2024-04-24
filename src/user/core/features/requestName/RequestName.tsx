@@ -83,7 +83,7 @@ export const RequestName = ({
         setVWC(savingVWC, false);
       }
     },
-    [loginContextRaw, firstNameVWC, lastNameVWC, errorVWC]
+    [loginContextRaw, firstNameVWC, lastNameVWC, errorVWC, savingVWC]
   );
   const disabledVWC = useMappedValuesWithCallbacks(
     [firstNameVWC, lastNameVWC, savingVWC],

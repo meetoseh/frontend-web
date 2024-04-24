@@ -314,8 +314,8 @@ export type ValueWithCallbacks<T> = ValueWithTypedCallbacks<T, undefined>;
 
 /**
  * Downgrades a typed value-with-callbacks to a standard "untyped" (undefined)
- * variant. This is 'downgrading' since the reverse operation is generally not
- * safe.
+ * variant. The reverse operation is safe only if the type in the callbacks is
+ * optional, and the object is only ever upgraded to the same type.
  */
 export const downgradeTypedVWC = <T, U>(
   vwc: ValueWithTypedCallbacks<T, U | undefined> | ValueWithCallbacks<T>

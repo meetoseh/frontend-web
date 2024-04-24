@@ -2,10 +2,10 @@ import { ReactElement } from 'react';
 import styles from './BottomNavBar.module.css';
 import { combineClasses } from '../../shared/lib/combineClasses';
 
-export type BottomNavItem = 'home' | 'series' | 'account';
+export type BottomNavItemT = 'home' | 'series' | 'account';
 
 type ItemInfo = {
-  readonly item: BottomNavItem;
+  readonly item: BottomNavItemT;
   readonly iconClass: string;
   readonly label: string;
 };
@@ -29,10 +29,10 @@ const items: readonly ItemInfo[] = [
 ] as const;
 
 export type BottomNavBarProps = {
-  active: BottomNavItem | null;
+  active: BottomNavItemT | null;
 
   clickHandlers: {
-    [K in BottomNavItem]?: () => void;
+    [K in BottomNavItemT]?: () => void;
   };
 };
 

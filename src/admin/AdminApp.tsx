@@ -32,6 +32,8 @@ import { FlowChartExamples } from './flow_chart_examples/FlowChartExamples';
 import { Courses } from './courses/Courses';
 import { HomeScreenImages } from './home_screen_images/HomeScreenImages';
 import { OnboardingVideos } from './onboarding_videos/OnboardingVideos';
+import { TouchPoints } from './touch_points/TouchPoints';
+import { BigTouchPoint } from './touch_points/BigTouchPoint';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -55,6 +57,8 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="series" element={<Courses />} />
       <Route path="home_screen_images" element={<HomeScreenImages />} />
       <Route path="onboarding_videos" element={<OnboardingVideos />} />
+      <Route path="touch_points" element={<TouchPoints />} />
+      <Route path="touch_point" element={<BigTouchPoint />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />

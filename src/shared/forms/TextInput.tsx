@@ -1,7 +1,7 @@
 import { ReactElement, useEffect, useRef, useState } from 'react';
 import styles from './TextInput.module.css';
 
-type TextInputProps = {
+export type TextInputProps = {
   /**
    * The label for the text input, which also acts as its
    * placeholder.
@@ -16,7 +16,7 @@ type TextInputProps = {
   /**
    * Supporting text, if any
    */
-  help: string | null;
+  help: ReactElement | string | null;
 
   /**
    * Disables the input and fades it out

@@ -86,7 +86,13 @@ export const AdminNavDesktopSideContent = ({
             text="Sharing"
             url="/admin/sharing_dashboard"
             active={currentPath === '/admin/sharing_dashboard'}
-            padTextTop={4}
+          />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconTouch}
+            text="Touch Points"
+            url="/admin/touch_points"
+            active={currentPath === '/admin/touch_points'}
+            padTextTop={2}
           />
           <AdminNavDesktopSideSectionHeader text="Visibility" />
           <AdminNavDesktopSideLink
@@ -113,6 +119,7 @@ export const AdminNavDesktopSideContent = ({
             text="Touch"
             url="/admin/touch_dashboard"
             active={currentPath === '/admin/touch_dashboard'}
+            padTextTop={2}
           />
           <AdminNavDesktopSideLink
             iconClass={styles.iconReminders}

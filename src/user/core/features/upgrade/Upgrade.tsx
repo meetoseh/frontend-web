@@ -389,7 +389,7 @@ export const Upgrade = ({
     resources.get().session?.reset();
     state.get().ian?.onShown();
     state.get().setContext(null, true);
-  }, [resources, playExitTransition, state, transition]);
+  }, [resources, state, transition]);
 
   return (
     <div className={styles.container}>

@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useRef } from 'react';
 import {
   Chart,
   CategoryScale,
@@ -116,7 +116,7 @@ export const AdminDashboardSmallChart = ({
         above: gradient,
       },
     });
-  }, [name, values]);
+  }, [name, values, datasetVWC]);
 
   const smoothedVWC = useMappedValueWithCallbacks(
     datasetVWC,
@@ -151,7 +151,7 @@ export const AdminDashboardSmallChart = ({
           },
         };
       },
-      [labels, targetPoints]
+      [labels, targetPoints, values]
     )
   );
 

@@ -199,6 +199,6 @@ export const useCurrentTranscriptPhrases = ({
         error: null,
         currentTime: currentTimeVWC,
       };
-    }, [loading, phrasesVWC, error, currentTimeVWC])
+    }, [loading, phrasesVWC, error, currentTimeVWC, transcriptRefVWC])
   );
 };

@@ -153,7 +153,7 @@ export const useListItemExpandModal = (
           handleClosed();
         };
       },
-      [modalContext.modals, expandedVWC]
+      [modalContext.modals, expandedVWC, realCreateChild]
     )
   );
 

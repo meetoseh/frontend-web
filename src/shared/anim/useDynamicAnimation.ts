@@ -209,92 +209,95 @@ export const useDynamicAnimationEngine = (): DynamicAnimationEngine => {
   const engineVWC = useWritableValueWithCallbacks<EngineState | null>(() => null);
   const playing = useMappedValueWithCallbacks(engineVWC, (engine) => engine !== null);
 
-  const play = useCallback((animations: DynamicAnimationEngineItemArg[]) => {
-    setVWC(
-      engineVWC,
-      {
-        originalAnimations: animations,
-        absoluteTime: 0,
-        running: [],
-        animationsWithDelay: animations
-          .map((a) =>
-            a.delayUntil === undefined
-              ? { ms: 0, animation: a }
-              : a.delayUntil.type === 'ms'
-              ? { ms: a.delayUntil.ms, animation: a }
-              : undefined
-          )
-          .filter((a): a is typeof a & object => a !== undefined),
-        animationsRelativeToStart: (() => {
-          const result = new Map<
-            string,
-            (DynamicAnimationEngineItemArg & { delayUntil: { type: 'relativeToStart' } })[]
-          >();
+  const play = useCallback(
+    (animations: DynamicAnimationEngineItemArg[]) => {
+      setVWC(
+        engineVWC,
+        {
+          originalAnimations: animations,
+          absoluteTime: 0,
+          running: [],
+          animationsWithDelay: animations
+            .map((a) =>
+              a.delayUntil === undefined
+                ? { ms: 0, animation: a }
+                : a.delayUntil.type === 'ms'
+                ? { ms: a.delayUntil.ms, animation: a }
+                : undefined
+            )
+            .filter((a): a is typeof a & object => a !== undefined),
+          animationsRelativeToStart: (() => {
+            const result = new Map<
+              string,
+              (DynamicAnimationEngineItemArg & { delayUntil: { type: 'relativeToStart' } })[]
+            >();
 
-          for (const anim of animations) {
-            if (anim.delayUntil === undefined || anim.delayUntil.type !== 'relativeToStart') {
-              continue;
+            for (const anim of animations) {
+              if (anim.delayUntil === undefined || anim.delayUntil.type !== 'relativeToStart') {
+                continue;
+              }
+
+              const castedAnim = anim as DynamicAnimationEngineItemArg & {
+                delayUntil: { type: 'relativeToStart' };
+              };
+              const existing = result.get(anim.delayUntil.id);
+              if (existing === undefined) {
+                result.set(anim.delayUntil.id, [castedAnim]);
+              } else {
+                existing.push(castedAnim);
+              }
             }
 
-            const castedAnim = anim as DynamicAnimationEngineItemArg & {
-              delayUntil: { type: 'relativeToStart' };
-            };
-            const existing = result.get(anim.delayUntil.id);
-            if (existing === undefined) {
-              result.set(anim.delayUntil.id, [castedAnim]);
-            } else {
-              existing.push(castedAnim);
-            }
-          }
-
-          const iter = result.values();
-          let next = iter.next();
-          while (!next.done) {
-            next.value.sort((a, b) => a.delayUntil.after - b.delayUntil.after);
-            next = iter.next();
-          }
-
-          return result;
-        })(),
-        animationsRelativeToEnd: (() => {
-          const result = new Map<
-            string,
-            (DynamicAnimationEngineItemArg & { delayUntil: { type: 'relativeToEnd' } })[]
-          >();
-
-          for (const anim of animations) {
-            if (anim.delayUntil === undefined || anim.delayUntil.type !== 'relativeToEnd') {
-              continue;
+            const iter = result.values();
+            let next = iter.next();
+            while (!next.done) {
+              next.value.sort((a, b) => a.delayUntil.after - b.delayUntil.after);
+              next = iter.next();
             }
 
-            const castedAnim = anim as DynamicAnimationEngineItemArg & {
-              delayUntil: { type: 'relativeToEnd' };
-            };
-            const existing = result.get(anim.delayUntil.id);
-            if (existing === undefined) {
-              result.set(anim.delayUntil.id, [castedAnim]);
-            } else {
-              existing.push(castedAnim);
+            return result;
+          })(),
+          animationsRelativeToEnd: (() => {
+            const result = new Map<
+              string,
+              (DynamicAnimationEngineItemArg & { delayUntil: { type: 'relativeToEnd' } })[]
+            >();
+
+            for (const anim of animations) {
+              if (anim.delayUntil === undefined || anim.delayUntil.type !== 'relativeToEnd') {
+                continue;
+              }
+
+              const castedAnim = anim as DynamicAnimationEngineItemArg & {
+                delayUntil: { type: 'relativeToEnd' };
+              };
+              const existing = result.get(anim.delayUntil.id);
+              if (existing === undefined) {
+                result.set(anim.delayUntil.id, [castedAnim]);
+              } else {
+                existing.push(castedAnim);
+              }
             }
-          }
 
-          const iter = result.values();
-          let next = iter.next();
-          while (!next.done) {
-            next.value.sort((a, b) => a.delayUntil.after - b.delayUntil.after);
-            next = iter.next();
-          }
+            const iter = result.values();
+            let next = iter.next();
+            while (!next.done) {
+              next.value.sort((a, b) => a.delayUntil.after - b.delayUntil.after);
+              next = iter.next();
+            }
 
-          return result;
-        })(),
-      },
-      () => false
-    );
-  }, []);
+            return result;
+          })(),
+        },
+        () => false
+      );
+    },
+    [engineVWC]
+  );
 
   const stop = useCallback(() => {
     setVWC(engineVWC, null);
-  }, []);
+  }, [engineVWC]);
 
   useValueWithCallbacksEffect(engineVWC, (engineRaw) => {
     if (engineRaw === null) {

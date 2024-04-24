@@ -17,7 +17,6 @@ import {
 } from '../hooks/useVisitorValueWithCallbacks';
 import { apiFetch } from '../ApiConstants';
 import { useLogoutHandler } from '../hooks/useLogoutHandler';
-import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';
 import { ValueWithCallbacks } from '../lib/Callbacks';
 import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
 
@@ -493,7 +492,7 @@ export const InterestsProvider = ({
           }
         }
       }
-    }, [baseState])
+    }, [baseState, loginContextRaw.value, visitorVWC])
   );
 
   const state = useMemo<InterestsContextValue>(() => {

@@ -85,7 +85,7 @@ export const SimpleImageFilesChoice = <T extends object>({
       running = false;
       cancelers.call(undefined);
     };
-  }, [items, imageHandler]);
+  }, [items, imageHandler, displaySize, itemToImage]);
 
   return (
     <ImageFilesChoice>

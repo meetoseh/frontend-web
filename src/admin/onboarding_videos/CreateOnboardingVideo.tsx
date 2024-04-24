@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { ModalContext } from '../../shared/contexts/ModalContext';
 import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
@@ -21,9 +21,6 @@ import { OsehImage } from '../../shared/images/OsehImage';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 import { apiFetch } from '../../shared/ApiConstants';
-import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
-import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
-import { adaptActiveVWCToAbortSignal } from '../../shared/lib/adaptActiveVWCToAbortSignal';
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { describeError } from '../../shared/forms/ErrorBlock';
@@ -384,6 +381,7 @@ export const CreateOnboardingVideo = ({
                               });
                             }}
                             value={language}>
+                            {/* eslint-disable-next-line react/jsx-pascal-case */}
                             <ISO639_1_Options forceInclude={language} optionsNR={languagesNR} />
                           </select>
                         )}

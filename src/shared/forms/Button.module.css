@@ -43,6 +43,12 @@
   border-width: 1px;
 }
 
+.outlined-danger {
+  background: transparent;
+  color: #c83030;
+  border-color: #c83030;
+}
+
 .filled {
   background: #446266;
   color: white;
@@ -118,6 +124,12 @@
 }
 .outlined-white-thin:hover {
   border-width: 1px;
+}
+
+.outlined-danger:hover {
+  background: rgba(200, 48, 48, 0.1);
+  color: #c83030;
+  border: 3px solid #c83030;
 }
 
 .button:active {

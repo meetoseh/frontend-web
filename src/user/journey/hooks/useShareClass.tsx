@@ -20,7 +20,6 @@ import styles from './useShareClass.module.css';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { combineClasses } from '../../../shared/lib/combineClasses';
 import { IconButtonWithLabel } from '../../../shared/forms/IconButtonWithLabel';
-import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
 
 export type UseShareClassProps = {

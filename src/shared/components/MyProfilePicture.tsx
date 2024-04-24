@@ -1,10 +1,7 @@
 import { ReactElement, useContext } from 'react';
 import { LoginContext } from '../contexts/LoginContext';
 import { OsehImageStateRequestHandler } from '../images/useOsehImageStateRequestHandler';
-import {
-  useMyProfilePictureState,
-  useMyProfilePictureStateValueWithCallbacks,
-} from '../hooks/useMyProfilePicture';
+import { useMyProfilePictureStateValueWithCallbacks } from '../hooks/useMyProfilePicture';
 import { OsehImageFromState } from '../images/OsehImageFromState';
 import { RenderGuardedComponent } from './RenderGuardedComponent';
 

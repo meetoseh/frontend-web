@@ -1,5 +1,3 @@
-import { CrudFetcherMapper } from '../../crud/CrudFetcher';
-
 /**
  * Bit flag enum. Mostly, this works as you expect.
  *

@@ -61,6 +61,7 @@ if os.environ["ENVIRONMENT"] == "dev":
 
     nginx_url = os.environ["ROOT_NGINX_FRONTEND_URL"]
     ssr_url = os.environ["ROOT_FRONTEND_SSR_URL"]
+    email_templates_url = os.environ["ROOT_EMAIL_TEMPLATE_URL"]
     forwarded_headers = frozenset(("Content-Type", "ETag", "Cache-Control", "Location"))
 
     # Avoids the need for port forwarding
@@ -80,6 +81,8 @@ if os.environ["ENVIRONMENT"] == "dev":
             )
         ):
             full_url = ssr_url + raw_loc
+        elif raw_path.startswith("/api/3/"):
+            full_url = email_templates_url + raw_loc
         else:
             full_url = nginx_url + raw_loc
 

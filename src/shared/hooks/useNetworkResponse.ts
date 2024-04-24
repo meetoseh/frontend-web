@@ -182,21 +182,25 @@ export const useNetworkResponse = <T>(
         replace,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, fetcher, minRefreshTimeMS, loadPrevented, loginContextRaw]);
 
-  const replace = useCallback((value: T) => {
-    if (loadPrevented.get() || result.get().type === 'loading') {
-      return;
-    }
+  const replace = useCallback(
+    (value: T) => {
+      if (loadPrevented.get() || result.get().type === 'loading') {
+        return;
+      }
 
-    setVWC(result, {
-      type: 'success',
-      result: value,
-      error: null,
-      refresh,
-      replace,
-    });
-  }, []);
+      setVWC(result, {
+        type: 'success',
+        result: value,
+        error: null,
+        refresh,
+        replace,
+      });
+    },
+    [loadPrevented, refresh, result]
+  );
 
   useValuesWithCallbacksEffect(
     [loginContextRaw.value, ...(opts?.dependsOn ?? [])],
@@ -267,7 +271,7 @@ export const useNetworkResponse = <T>(
           }
         }
       }
-    }, [result, fetcher, loadPrevented, refresh])
+    }, [result, fetcher, loadPrevented, refresh, loginContextRaw.value, replace])
   );
   useValueWithCallbacksEffect(
     loadPrevented,

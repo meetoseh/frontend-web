@@ -31,6 +31,7 @@ export type ButtonProps = {
     | 'outlined'
     | 'outlined-white'
     | 'outlined-white-thin'
+    | 'outlined-danger'
     | 'link'
     | 'link-small'
     | 'link-white'
@@ -185,6 +186,7 @@ const ButtonSpinner = ({
           outlined: 'white',
           'outlined-white': 'white',
           'outlined-white-thin': 'white',
+          'outlined-danger': 'black',
           link: 'white',
           'link-small': 'white',
           'link-white': 'white',

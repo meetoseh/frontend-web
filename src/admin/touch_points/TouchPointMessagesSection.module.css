@@ -1,0 +1,125 @@
+.container {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.tabs {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  overflow-x: auto;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.tab {
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  text-decoration: none;
+}
+
+.tabSelected {
+  border-bottom: 1px solid #383838;
+}
+
+.content {
+  max-width: 100%;
+}
+
+.modal {
+  width: 90vw;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modalParameters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modalParametersTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 18px;
+  line-height: 27px;
+  font-weight: 400;
+  color: #232323;
+}
+
+.modalParametersValue {
+  white-space: pre-wrap;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: #383838;
+}
+
+.modalTemplateInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modalLabel {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  line-height: 15.6px;
+  font-weight: 400;
+  color: #383838;
+}
+
+.modalHelp {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #232323;
+}
+
+.modalHelpError {
+  font-size: 12px;
+  line-height: 15.6px;
+  color: #ff0000;
+}
+
+.modalSelect {
+  width: 100%;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.25px;
+  font-weight: 400;
+  padding: 4px;
+  margin-top: 4px;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 32px;
+}
+
+.sendTest {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}

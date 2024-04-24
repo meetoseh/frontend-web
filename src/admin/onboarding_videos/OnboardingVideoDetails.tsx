@@ -39,7 +39,6 @@ import { createVideoSizeComparerForTarget } from '../../shared/content/createVid
 import { Button } from '../../shared/forms/Button';
 import { showOnboardingVideoUploader } from './uploads/showOnboardingVideoUploader';
 import { showOnboardingVideoSelector } from './uploads/showOnboardingVideoSelector';
-import { CrudSwappableFormElement } from '../lib/CrudSwappableFormElement';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { showOnboardingVideoThumbnailUploader } from './thumbnails/showOnboardingVideoThumbnailUploader';
 import { showOnboardingVideoThumbnailSelector } from './thumbnails/showOnboardingVideoThumbnailSelector';
@@ -247,7 +246,17 @@ export const OnboardingVideoDetails = ({
       const parsed = convertUsingMapper(raw, onboardingVideoKeyMap);
       setOnboardingVideo(parsed);
     },
-    [onboardingVideo]
+    [
+      onboardingVideo,
+      loginContextRaw.value,
+      modalContext.modals,
+      newIsActiveVWC,
+      newPurposeVWC,
+      newThumbnailVWC,
+      newVideoVWC,
+      newVisibleInAdminVWC,
+      setOnboardingVideo,
+    ]
   );
 
   const tryAndSave = useCallback(
@@ -391,7 +400,7 @@ const OnboardingVideoUploadControl = ({
         cta2: 'Cancel',
         emphasize: 2,
       }),
-    []
+    [modalContext.modals]
   );
 
   return (
@@ -727,6 +736,7 @@ const OnboardingVideoPurposeControl = ({
                           });
                         }}
                         value={rest.language}>
+                        {/* eslint-disable-next-line react/jsx-pascal-case */}
                         <ISO639_1_Options forceInclude={rest.language} optionsNR={languagesNR} />
                       </select>
                     </CrudFormElement>

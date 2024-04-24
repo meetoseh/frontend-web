@@ -1,8 +1,7 @@
-import { ReactElement, useContext } from 'react';
+import { ReactElement } from 'react';
 import { WritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { CrudFetcherFilter, CrudFetcherSort, SimpleFilterItem } from '../crud/CrudFetcher';
 import styles from './OnboardingVideoFilterAndSortBlock.module.css';
-import { ModalContext } from '../../shared/contexts/ModalContext';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 import { makeInputFromILike, setILikeFilter } from '../../shared/forms/utils';
 import { CrudFiltersBlock } from '../crud/CrudFiltersBlock';
@@ -75,7 +74,6 @@ export const OnboardingVideoFilterAndSortBlock = ({
   sort: sortVWC,
   filter: filterVWC,
 }: OnboardingVideoFilterAndSortBlockProps): ReactElement => {
-  const modalContext = useContext(ModalContext);
   const sortNameVWC = useMappedValueWithCallbacks(sortVWC, (sort) => {
     const expected = JSON.stringify(sort);
     return SORTS.find((s) => JSON.stringify(s.sort) === expected)!.name;

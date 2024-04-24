@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useState } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { AdminDashboardTopBlock } from './AdminDashboardTopBlock';
@@ -74,7 +74,7 @@ export const AdminDashboardSimpleTopBlock = ({
           setVWC(value, data.value);
         }
       },
-      [path]
+      [path, value]
     )
   );
 
