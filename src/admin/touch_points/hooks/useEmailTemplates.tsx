@@ -17,6 +17,12 @@ export type EmailTemplateInfo = {
   /** The description for the tmeplate */
   description: string;
 
+  /**
+   * If the description has a line starting with 'Available substitutions:', the
+   * first such line is used here instead.
+   */
+  availableSubstitutions?: string;
+
   /** The schema for the request body, or undefined if there are no json arguments */
   schema?: OASSchema;
 
@@ -52,6 +58,7 @@ export const useEmailTemplates = ({
             throw response;
           }
 
+          const substitutionsRegex = /^Available substitutions: (.*)$/gm;
           const openapi = (await response.json()) as OpenAPI;
           if (openapi.paths === undefined) {
             return { bySlug: {} };
@@ -98,10 +105,20 @@ export const useEmailTemplates = ({
               }
             }
 
+            let desc = post.description ?? '(no description provided)';
+
+            let availableSubstitutions: string | undefined = undefined;
+            const substitutionsMatch = substitutionsRegex.exec(desc);
+            if (substitutionsMatch !== null) {
+              availableSubstitutions = substitutionsMatch[1];
+              desc = desc.replace(substitutionsRegex, '');
+            }
+
             bySlug[slug] = {
               slug,
               summary: post.summary ?? '(no summary provided)',
-              description: post.description ?? '(no description provided)',
+              description: desc,
+              availableSubstitutions,
               schema,
               raw: { path: pathItem },
             };

@@ -905,7 +905,7 @@ const ExpandedEmailModal = (
             <TextInput
               label="Subject Format"
               value={subjectFormat}
-              help="Typically, no parameters available. Short (~50 characters) to prevent cutoff. No hard limit."
+              help="Short (~50 characters) to prevent cutoff. No hard limit."
               disabled={false}
               inputStyle="normal"
               onChange={(newFmt) => {
@@ -1029,6 +1029,12 @@ const ExpandedEmailModal = (
                 <div className={styles.modalLabel}>Description</div>
                 <div className={styles.modalHelp}>{templateInfo.description}</div>
               </div>
+              {templateInfo.availableSubstitutions !== undefined && (
+                <div>
+                  <div className={styles.modalLabel}>Available Substitutions</div>
+                  <div className={styles.modalHelp}>{templateInfo.availableSubstitutions}</div>
+                </div>
+              )}
 
               {templateInfo.schema === undefined ? (
                 <div>
