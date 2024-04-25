@@ -11,6 +11,7 @@ import {
   TouchPointMessageBase,
   TouchPointPushMessage,
   TouchPointSmsMessage,
+  TouchPointTemplateParameterSubstitution,
 } from './TouchPoint';
 import styles from './TouchPointMessagesSection.module.css';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
@@ -26,17 +27,11 @@ import { ModalContext, addModalWithCallbackToRemove } from '../../shared/context
 import { TextInput } from '../../shared/forms/TextInput';
 import { useEmailTemplates } from './hooks/useEmailTemplates';
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
-import {
-  OASObjectDataType,
-  OASObjectTypeHint,
-  OASSchema,
-  OASSimpleDataType,
-} from '../../shared/lib/openapi';
+import { OASObjectDataType, OASSchema, OASSimpleDataType } from '../../shared/lib/openapi';
 import { combineClasses } from '../../shared/lib/combineClasses';
 import { Button } from '../../shared/forms/Button';
 import { showYesNoModal } from '../../shared/lib/showYesNoModal';
 import { createUID } from '../../shared/lib/createUID';
-import { R } from 'chart.js/dist/chunks/helpers.core';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
@@ -891,6 +886,16 @@ const ExpandedEmailModal = (
   useErrorModal(modalContext.modals, sendTestErrorVWC, 'send test email');
   const sendingTestVWC = useWritableValueWithCallbacks(() => false);
 
+  const paramsByTemplateVWC = useWritableValueWithCallbacks<
+    Map<
+      string,
+      {
+        fixed: Record<string, unknown>;
+        substituted: TouchPointTemplateParameterSubstitution[];
+      }
+    >
+  >(() => new Map());
+
   return (
     <div className={styles.modal}>
       <div className={styles.modalFormat}>
@@ -937,10 +942,61 @@ const ExpandedEmailModal = (
                   return;
                 }
 
-                setMessage({
-                  ...msg,
-                  template: e.target.value,
+                const newTemplate = e.target.value;
+
+                const paramsByTemplate = paramsByTemplateVWC.get();
+                paramsByTemplate.set(msg.template, {
+                  fixed: msg.templateParametersFixed,
+                  substituted: msg.templateParametersSubstituted,
                 });
+                paramsByTemplateVWC.callbacks.call(undefined);
+
+                const stored = paramsByTemplate.get(newTemplate);
+                if (stored !== undefined) {
+                  setMessage({
+                    ...msg,
+                    template: newTemplate,
+                    templateParametersFixed: stored.fixed,
+                    templateParametersSubstituted: stored.substituted,
+                  });
+                  return;
+                }
+
+                let newMessage: TouchPointEmailMessage = {
+                  ...msg,
+                  template: newTemplate,
+                  templateParametersFixed: {},
+                  templateParametersSubstituted: [],
+                };
+                const setNewMessage = (m: TouchPointEmailMessage) => {
+                  newMessage = m;
+                };
+
+                const allTemplates = props.emailTemplatesNR.get();
+                if (allTemplates.type !== 'success') {
+                  setMessage(newMessage);
+                  return;
+                }
+
+                const newTemplateInfo = allTemplates.result.bySlug[newTemplate];
+                if (newTemplateInfo === undefined || newTemplateInfo.schema === undefined) {
+                  setMessage(newMessage);
+                  return;
+                }
+
+                const newFlattenedSchema = flattenSchema(newTemplateInfo.schema);
+                if (newFlattenedSchema === undefined) {
+                  setMessage(newMessage);
+                  return;
+                }
+
+                for (const { path, data, example } of newFlattenedSchema) {
+                  if (data.type === 'string' && typeof example === 'string') {
+                    setMessageStringParameter(newMessage, setNewMessage, path, example);
+                  }
+                }
+
+                setMessage(newMessage);
               }}>
               <RenderGuardedComponent
                 props={templatesVWC}
@@ -958,33 +1014,6 @@ const ExpandedEmailModal = (
           )}
         />
       </div>
-      <Button
-        type="button"
-        variant="outlined"
-        onClick={async (e) => {
-          e.preventDefault();
-          const msg = messageVWC.get();
-          if (msg === undefined) {
-            return;
-          }
-          const confirmation = await showYesNoModal(modalContext.modals, {
-            title: 'Reset Template Parameters?',
-            body: 'This will clear all template parameters. You may need to do this after changing templates to one with different parameters. Are you sure?',
-            cta1: 'Reset',
-            cta2: 'Cancel',
-            emphasize: 1,
-          }).promise;
-          if (!confirmation) {
-            return;
-          }
-          setMessage({
-            ...msg,
-            templateParametersFixed: {},
-            templateParametersSubstituted: [],
-          });
-        }}>
-        Reset Template Parameters
-      </Button>
       <RenderGuardedComponent
         props={templateInfoVWC}
         component={(templateInfo) =>
@@ -1019,7 +1048,7 @@ const ExpandedEmailModal = (
                       </div>
                     ) : (
                       <>
-                        {flatSchema.map(({ path, data, title, description }) => {
+                        {flatSchema.map(({ path, data, title, description, example }) => {
                           const key = path.join('.');
                           if (data.type === 'string') {
                             const extra = data as any as { maxLength?: number };
@@ -1032,6 +1061,7 @@ const ExpandedEmailModal = (
                                   message={messageVWC}
                                   setMessage={setMessage}
                                   maxLength={extra.maxLength}
+                                  example={example}
                                 />
                               </div>
                             );
@@ -1185,6 +1215,7 @@ type FlattenedSchema = {
   data: OASSimpleDataType;
   title: string;
   description: string;
+  example?: any;
 }[];
 
 const flattenSchema = (schema: OASSchema): FlattenedSchema | undefined => {
@@ -1194,7 +1225,7 @@ const flattenSchema = (schema: OASSchema): FlattenedSchema | undefined => {
   }
 
   const res: FlattenedSchema = [];
-  const stack: [string[], OASObjectDataType][] = [[[], schema]];
+  const stack: [string[], OASObjectDataType & { example?: any }][] = [[[], schema]];
 
   while (true) {
     const next = stack.pop();
@@ -1224,6 +1255,7 @@ const flattenSchema = (schema: OASSchema): FlattenedSchema | undefined => {
         data: value,
         title: value.title ?? key,
         description: value.description ?? '(no description provided)',
+        example: (value as any).example,
       });
     }
   }
@@ -1238,6 +1270,7 @@ const StringParameterEditor = (props: {
   message: ValueWithCallbacks<TouchPointEmailMessage | undefined>;
   setMessage: (msg: TouchPointEmailMessage) => void;
   maxLength?: number;
+  example?: string;
 }): ReactElement => {
   const valueVWC = useMappedValueWithCallbacks(props.message, (message) => {
     if (message === undefined) {
@@ -1299,61 +1332,7 @@ const StringParameterEditor = (props: {
               return;
             }
 
-            const params = extractParameters(newValue);
-            if (params.length === 0) {
-              // make sure we're not in the dynamic list
-              const dynamicParams = msg.templateParametersSubstituted;
-              const dynamicParamsFiltered = dynamicParams.filter(
-                (dp) =>
-                  dp.key.length !== props.path.length || dp.key.some((k, i) => k !== props.path[i])
-              );
-
-              // inject into fixed list, copying as we go
-              const fixedParams =
-                newValue === ''
-                  ? removePath(msg.templateParametersFixed, props.path)
-                  : { ...msg.templateParametersFixed };
-              if (newValue !== '') {
-                let remainingPath = props.path.slice();
-                let current: any = fixedParams;
-                while (true) {
-                  let next = remainingPath.shift();
-                  if (next === undefined) {
-                    break;
-                  }
-                  if (remainingPath.length === 0) {
-                    current[next] = newValue;
-                    break;
-                  }
-                  current[next] = { ...current[next] };
-                  current = current[next];
-                }
-              }
-
-              props.setMessage({
-                ...msg,
-                templateParametersFixed: fixedParams,
-                templateParametersSubstituted: dynamicParamsFiltered,
-              });
-            } else {
-              const dynamicParams = msg.templateParametersSubstituted;
-              const dynamicParamsFiltered = dynamicParams.filter(
-                (dp) =>
-                  dp.key.length !== props.path.length || dp.key.some((k, i) => k !== props.path[i])
-              );
-              dynamicParamsFiltered.push({
-                key: props.path,
-                format: newValue,
-                parameters: params,
-              });
-
-              const fixedParams = removePath(msg.templateParametersFixed, props.path);
-              props.setMessage({
-                ...msg,
-                templateParametersFixed: fixedParams,
-                templateParametersSubstituted: dynamicParamsFiltered,
-              });
-            }
+            setMessageStringParameter(msg, props.setMessage, props.path, newValue);
           }}
           html5Validation={{
             maxLength: props.maxLength,
@@ -1363,6 +1342,67 @@ const StringParameterEditor = (props: {
       applyInstantly
     />
   );
+};
+
+const setMessageStringParameter = (
+  msg: TouchPointEmailMessage,
+  setMessage: (msg: TouchPointEmailMessage) => void,
+  path: string[],
+  newValue: string
+) => {
+  const params = extractParameters(newValue);
+  if (params.length === 0) {
+    // make sure we're not in the dynamic list
+    const dynamicParams = msg.templateParametersSubstituted;
+    const dynamicParamsFiltered = dynamicParams.filter(
+      (dp) => dp.key.length !== path.length || dp.key.some((k, i) => k !== path[i])
+    );
+
+    // inject into fixed list, copying as we go
+    const fixedParams =
+      newValue === ''
+        ? removePath(msg.templateParametersFixed, path)
+        : { ...msg.templateParametersFixed };
+    if (newValue !== '') {
+      let remainingPath = path.slice();
+      let current: any = fixedParams;
+      while (true) {
+        let next = remainingPath.shift();
+        if (next === undefined) {
+          break;
+        }
+        if (remainingPath.length === 0) {
+          current[next] = newValue;
+          break;
+        }
+        current[next] = { ...current[next] };
+        current = current[next];
+      }
+    }
+
+    setMessage({
+      ...msg,
+      templateParametersFixed: fixedParams,
+      templateParametersSubstituted: dynamicParamsFiltered,
+    });
+  } else {
+    const dynamicParams = msg.templateParametersSubstituted;
+    const dynamicParamsFiltered = dynamicParams.filter(
+      (dp) => dp.key.length !== path.length || dp.key.some((k, i) => k !== path[i])
+    );
+    dynamicParamsFiltered.push({
+      key: path,
+      format: newValue,
+      parameters: params,
+    });
+
+    const fixedParams = removePath(msg.templateParametersFixed, path);
+    setMessage({
+      ...msg,
+      templateParametersFixed: fixedParams,
+      templateParametersSubstituted: dynamicParamsFiltered,
+    });
+  }
 };
 
 const removePath = (obj: any, path: string[]): any => {
@@ -1385,7 +1425,8 @@ const removePath = (obj: any, path: string[]): any => {
   newObj[key] = removePath(newObj[key], path.slice(1));
 
   let isEmpty = true;
-  for (const _ in newObj[key]) {
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+  for (const _unused in newObj[key]) {
     isEmpty = false;
     break;
   }
