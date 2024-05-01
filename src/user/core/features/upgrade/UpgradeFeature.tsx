@@ -83,14 +83,6 @@ export const UpgradeFeature: Feature<UpgradeState, UpgradeResources> = {
     const priceVWC = useOfferingPrice({ offering: offerVWC });
     const imageHandler = useOsehImageStateRequestHandler({});
 
-    useValueWithCallbacksEffect(offerVWC, (offer) => {
-      if (offer.error !== null) {
-        console.log('suppressing upgrade screen (offer error)');
-        state.get().setContext(null, true);
-      }
-      return undefined;
-    });
-
     useValuesWithCallbacksEffect([offerVWC, priceVWC, required], () => {
       const offer = offerVWC.get();
       const price = priceVWC.get();

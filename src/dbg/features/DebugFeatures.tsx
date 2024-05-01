@@ -1,6 +1,6 @@
 import { ReactElement, useContext } from 'react';
 import { LoginContext, LoginProvider } from '../../shared/contexts/LoginContext';
-import { InterestsAutoProvider } from '../../shared/contexts/InterestsContext';
+import { InterestsAutoProvider, InterestsContext } from '../../shared/contexts/InterestsContext';
 import { ModalProvider } from '../../shared/contexts/ModalContext';
 import styles from './DebugFeatures.module.css';
 import { useFeaturesState, features as featuresList } from '../../user/core/hooks/useFeaturesState';
@@ -25,6 +25,7 @@ export const DebugFeatures = (): ReactElement => {
 
 const DebugFeaturesInner = (): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
+  const interestsRaw = useContext(InterestsContext);
   const states = useWritableValueWithCallbacks<any[]>(() => []);
   const required = useWritableValueWithCallbacks<(boolean | undefined)[]>(() => []);
   const requiredRollingSum = useWritableValueWithCallbacks<number[]>(() => []);
@@ -103,6 +104,38 @@ const DebugFeaturesInner = (): ReactElement => {
                           )}
                         </>
                       )}
+                    />
+                  </pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className={styles.feature}>
+            <div className={styles.featureIdentifier}>Interests Context</div>
+            <div className={styles.featureSections}>
+              <div className={styles.featureSection}>
+                <div className={styles.featureSectionTitle}>State</div>
+                <div className={styles.featureStateContainer}>
+                  <pre className={styles.featureState}>
+                    <RenderGuardedComponent
+                      props={interestsRaw.value}
+                      component={(interests) => <>{JSON.stringify(interests, null, 2)}</>}
+                    />
+                  </pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className={styles.feature}>
+            <div className={styles.featureIdentifier}>Visitor</div>
+            <div className={styles.featureSections}>
+              <div className={styles.featureSection}>
+                <div className={styles.featureSectionTitle}>State</div>
+                <div className={styles.featureStateContainer}>
+                  <pre className={styles.featureState}>
+                    <RenderGuardedComponent
+                      props={interestsRaw.visitor}
+                      component={(visitor) => <>{JSON.stringify(visitor, null, 2)}</>}
                     />
                   </pre>
                 </div>
