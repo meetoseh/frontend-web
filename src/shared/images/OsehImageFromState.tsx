@@ -33,7 +33,7 @@ export const OsehImageFromState = ({
   return (
     <img
       src={localUrl ?? require('../placeholder.png')}
-      style={{ width: displayWidth, height: displayHeight, objectFit: 'cover' }}
+      style={{ width: displayWidth, height: displayHeight, objectFit: 'fill' }}
       alt={alt}
     />
   );

@@ -12,6 +12,10 @@ export type PlaylistItem = {
    */
   url: string;
   /**
+   * A stable identifier for the content that is downloaded from the URL
+   */
+  uid: string;
+  /**
    * The format of the item, e.g., 'jpeg'
    */
   format: string;
@@ -49,6 +53,7 @@ export const playlistItemsEqual = (a: PlaylistItem | null, b: PlaylistItem | nul
 
   return (
     a.url === b.url &&
+    a.uid === b.uid &&
     a.format === b.format &&
     a.width === b.width &&
     a.height === b.height &&

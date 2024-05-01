@@ -6,6 +6,8 @@ import { HomeScreenTransition } from './HomeScreen';
 export type HomeScreenSessionInfo = {
   /** The number of classes taken */
   classesTaken: number;
+  /** When the last class was taken in this session */
+  lastClassTakenAt: Date | null;
 };
 
 /**

@@ -91,14 +91,15 @@ export const useOsehImageState = (
     }
     const stateRef = handler.request(cpProps as OsehImagePropsLoadable);
     stateRef.stateChanged.add((s) => {
-      updateState(s);
+      updateState();
     });
-    updateState(stateRef.state);
+    updateState();
     return () => {
       stateRef.release();
     };
 
-    function updateState(newState: OsehImageState) {
+    function updateState() {
+      const newState = stateRef.state;
       setState((orig) => {
         const [p, s] = orig;
         if (newState.loading && !s.loading && p.uid === cpProps.uid) {

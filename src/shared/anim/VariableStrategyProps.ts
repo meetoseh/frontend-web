@@ -96,17 +96,21 @@ export const useVariableStrategyPropsAsValueWithCallbacks = <P>(
     props.type === 'react-rerender' ? props.props : props.props()
   );
 
+  // we don't need to remount when the getter changes as its still required to
+  // invoke or change the callbacks
+  const _propsGetterRaw = props.type === 'react-rerender' ? undefined : props.props;
+  const propsGetterRef = useRef(_propsGetterRaw);
+  propsGetterRef.current = _propsGetterRaw;
+
+  const propsCallbacksRaw = props.type === 'react-rerender' ? undefined : props.callbacks;
+
   useEffect(() => {
-    if (props.type === 'react-rerender') {
-      if (!optsRef.current.equalityFn(result.get(), props.props)) {
-        result.set(props.props);
-        result.callbacks.call(undefined);
-      }
+    if (propsCallbacksRaw === undefined) {
       return;
     }
 
-    const propsGetter = props.props;
-    const propsCallbacks = props.callbacks;
+    const propsCallbacks = propsCallbacksRaw;
+
     propsCallbacks.add(handleChange);
     handleChange();
     return () => {
@@ -114,16 +118,22 @@ export const useVariableStrategyPropsAsValueWithCallbacks = <P>(
     };
 
     function handleChange() {
-      const val = propsGetter();
+      const oldVal = result.get();
 
-      if (optsRef.current.equalityFn(result.get(), val)) {
+      const propsGetterRaw = propsGetterRef.current;
+      if (propsGetterRaw === undefined) {
         return;
       }
 
-      result.set(propsGetter());
+      const newVal = propsGetterRaw();
+      if (optsRef.current.equalityFn(oldVal, newVal)) {
+        return;
+      }
+
+      result.set(newVal);
       result.callbacks.call(undefined);
     }
-  }, [props, result]);
+  }, [propsCallbacksRaw, result]);
 
   return result;
 };

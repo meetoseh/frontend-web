@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import {
   VariableStrategyProps,
   useVariableStrategyPropsAsValueWithCallbacks,
@@ -7,6 +7,7 @@ import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callba
 import { OsehImageProps, OsehImagePropsLoadable } from './OsehImageProps';
 import { OsehImageState } from './OsehImageState';
 import { OsehImageStateRequestHandler } from './useOsehImageStateRequestHandler';
+import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';
 
 const createLoadingState = (props: OsehImageProps): OsehImageState => ({
   localUrl: null,
@@ -40,80 +41,48 @@ export const useOsehImageStateValueWithCallbacks = (
   props: VariableStrategyProps<OsehImageProps>,
   handler: OsehImageStateRequestHandler
 ): ValueWithCallbacks<OsehImageState> => {
+  const propsAsValueWithCallbacks = useVariableStrategyPropsAsValueWithCallbacks(props, {
+    equalityFn: (a, b) =>
+      a.uid === b.uid &&
+      a.jwt === b.jwt &&
+      a.displayWidth === b.displayWidth &&
+      a.displayHeight === b.displayHeight &&
+      (a.displayWidth === null || a.displayHeight === null ? a.compareAspectRatio : undefined) ===
+        (b.displayWidth === null || b.displayHeight === null ? b.compareAspectRatio : undefined) &&
+      a.alt === b.alt &&
+      a.isPublic === b.isPublic &&
+      a.placeholderColor === b.placeholderColor &&
+      a.thumbhashOnly === b.thumbhashOnly,
+  });
+
   const result = useWritableValueWithCallbacks<OsehImageState>(() =>
-    createLoadingState(props.type === 'react-rerender' ? props.props : props.props())
+    createLoadingState(propsAsValueWithCallbacks.get())
   );
 
-  const propsAsValueWithCallbacks = useVariableStrategyPropsAsValueWithCallbacks(props);
+  useValueWithCallbacksEffect(
+    propsAsValueWithCallbacks,
+    useCallback(
+      (props: OsehImageProps) => {
+        if (props.uid === null) {
+          return undefined;
+        }
 
-  useEffect(() => {
-    let canceler: (() => void) | null = null;
+        const stateRef = handler.request(props as OsehImagePropsLoadable);
+        stateRef.stateChanged.add(updateState);
+        updateState();
+        return () => {
+          stateRef.stateChanged.remove(updateState);
+          stateRef.release();
+        };
 
-    propsAsValueWithCallbacks.callbacks.add(handlePropsChanged);
-    handlePropsChanged();
-
-    return () => {
-      propsAsValueWithCallbacks.callbacks.remove(handlePropsChanged);
-      if (canceler) {
-        canceler();
-        canceler = null;
-      }
-    };
-
-    function handlePropsChanged() {
-      if (canceler) {
-        canceler();
-        canceler = null;
-      }
-
-      canceler = handleProps(propsAsValueWithCallbacks.get());
-    }
-
-    function handleProps(props: OsehImageProps): () => void {
-      const cpDisplaySize =
-        props.displayWidth === null
-          ? {
-              displayWidth: null,
-              displayHeight: props.displayHeight,
-              compareAspectRatio: props.compareAspectRatio,
-            }
-          : props.displayHeight === null
-          ? {
-              displayWidth: props.displayWidth,
-              displayHeight: null,
-              compareAspectRatio: props.compareAspectRatio,
-            }
-          : { displayWidth: props.displayWidth, displayHeight: props.displayHeight };
-
-      const cpProps: OsehImageProps = {
-        uid: props.uid,
-        jwt: props.jwt,
-        ...cpDisplaySize,
-        alt: props.alt,
-        isPublic: props.isPublic,
-        placeholderColor: props.placeholderColor,
-        thumbhashOnly: props.thumbhashOnly,
-      };
-
-      if (cpProps.uid === null) {
-        result.set(createLoadingState(cpProps));
-        return () => {};
-      }
-
-      const stateRef = handler.request(cpProps as OsehImagePropsLoadable);
-      stateRef.stateChanged.add(updateState);
-      updateState(stateRef.state);
-      return () => {
-        stateRef.stateChanged.remove(updateState);
-        stateRef.release();
-      };
-
-      function updateState(newState: OsehImageState) {
-        result.set(newState);
-        result.callbacks.call(undefined);
-      }
-    }
-  }, [propsAsValueWithCallbacks, handler, result]);
+        function updateState() {
+          result.set(stateRef.state);
+          result.callbacks.call(undefined);
+        }
+      },
+      [handler, result]
+    )
+  );
 
   return result;
 };

@@ -81,9 +81,7 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
     []
   );
   const imageHandler = useOsehImageStateRequestHandler({
-    playlistCacheSize: 512,
-    imageCacheSize: 128,
-    cropCacheSize: 128,
+    cacheSize: 512,
   });
 
   const onPlaceholderVisible = useCallback(() => {

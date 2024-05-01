@@ -83,9 +83,7 @@ export const useProfilePictures = ({
   );
   const loginContextRaw = useContext(LoginContext);
   const imagesHandler = useOsehImageStateRequestHandler({
-    playlistCacheSize: 128,
-    imageCacheSize: 128,
-    cropCacheSize: 128,
+    cacheSize: 128,
   });
 
   useEffect(() => {

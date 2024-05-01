@@ -307,6 +307,8 @@ export const AdminDailyRemindersDashboard = (): ReactElement => {
                         { key: 'push', format: formatNetworkNumber },
                         { key: 'email', format: formatNetworkNumber },
                         { key: 'swaps', format: formatNetworkNumber },
+                        { key: 'marked_engaged', format: formatNetworkNumber },
+                        { key: 'marked_disengaged', format: formatNetworkNumber },
                         { key: 'purgatory_size', format: formatNetworkNumber },
                       ],
                       []

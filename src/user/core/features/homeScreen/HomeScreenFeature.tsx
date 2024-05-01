@@ -16,6 +16,8 @@ import { useHomeScreenImage } from './hooks/useHomeScreenImage';
 import { Emotion } from '../../../../shared/models/Emotion';
 import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { HomeScreenCopy } from './HomeScreenCopy';
+import { useCallback } from 'react';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 
 export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = {
   identifier: 'homeScreen',
@@ -51,11 +53,34 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
     );
     const sessionInfoVWC = useWritableValueWithCallbacks<HomeScreenSessionInfo>(() => ({
       classesTaken: 0,
+      lastClassTakenAt: null,
     }));
     const imageHandler = useOsehImageStateRequestHandler({});
     const nextEnterTransition = useWritableValueWithCallbacks<HomeScreenTransition | undefined>(
       () => undefined
     );
+
+    const resetSession = useCallback(() => {
+      setVWC(sessionInfoVWC, { classesTaken: 0, lastClassTakenAt: null });
+      streakInfoVWC.get().refresh?.();
+    }, [sessionInfoVWC, streakInfoVWC]);
+
+    useValueWithCallbacksEffect(sessionInfoVWC, (info) => {
+      if (info.lastClassTakenAt === null) {
+        return undefined;
+      }
+
+      let timeout: NodeJS.Timeout | null = setTimeout(() => {
+        timeout = null;
+        resetSession();
+      }, 1000 * 60 * 60 * 4);
+      return () => {
+        if (timeout !== null) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+      };
+    });
 
     return useMappedValuesWithCallbacks(
       [streakInfoVWC, sessionInfoVWC, nextEnterTransition],
@@ -69,6 +94,7 @@ export const HomeScreenFeature: Feature<HomeScreenState, HomeScreenResources> = 
           setVWC(sessionInfoVWC, {
             ...info,
             classesTaken: info.classesTaken + 1,
+            lastClassTakenAt: new Date(),
           });
         },
         setNextEnterTransition: (transition) => {

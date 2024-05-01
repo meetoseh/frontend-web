@@ -51,9 +51,15 @@ export class LeastRecentlyUsedCache<K, V> {
    *
    * @param key the key of the item to add
    * @param value the value of the item to add or replace
-   * @returns true if the item was added, false if it replaced an existing item
+   * @returns The key, value pair that was evicted as a result of this add, or
+   *   null if nothing was evicted. If the result key matches the provided key,
+   *   the old value was evicted because keys are unique. Otherwise, if the
+   *   result key does not match the provided key, then the provided key did not
+   *   already exist in the cache and the result key was evicted to make room
+   *   for the new item. Finally, if the result is null, then the provided key
+   *   was not already in the cache and the cache was not at capacity.
    */
-  add(key: K, value: V): boolean {
+  add(key: K, value: V): [K, V] | null {
     const node = this.lookup.get(key);
     if (node === undefined) {
       const newNode = {
@@ -75,16 +81,19 @@ export class LeastRecentlyUsedCache<K, V> {
           throw new Error('Invariant violation: over capacity with fewer than 2 items');
         }
 
-        this.lookup.delete(this.tail.key);
+        const removed = this.tail;
+        this.lookup.delete(removed.key);
         this.tail = this.tail.prev;
         this.tail.next = null;
+        return [removed.key, removed.value];
       }
-      return true;
+      return null;
     }
 
+    const oldValue = node.value;
     this.get(key, undefined, false);
     node.value = value;
-    return false;
+    return [key, oldValue];
   }
 
   /**
@@ -200,4 +209,22 @@ type LRUNode<K, V> = {
   value: V;
   next: LRUNode<K, V> | null;
   prev: LRUNode<K, V> | null;
+};
+
+/**
+ * Memoizes the given 1-parameter function using a Least Recently Used (LRU)
+ * cache with the given capacity.
+ */
+export const memoizeWithLRU = <K, V>(fn: (key: K) => V, capacity: number): ((key: K) => V) => {
+  const cache = new LeastRecentlyUsedCache<K, V>(capacity);
+  return (key: K): V => {
+    const cached = cache.get(key, undefined, true);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const result = fn(key);
+    cache.add(key, result);
+    return result;
+  };
 };
