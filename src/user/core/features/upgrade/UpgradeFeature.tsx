@@ -92,6 +92,9 @@ export const UpgradeFeature: Feature<UpgradeState, UpgradeResources> = {
         return undefined;
       }
 
+      // TODO: skip this in-app notification, so we don't repeat this every load
+      // when the user has already upgraded
+
       const path = new URL(window.location.href).pathname;
       setTimeout(() => state.get().setContext(null, path === '/upgrade'), 5);
     });

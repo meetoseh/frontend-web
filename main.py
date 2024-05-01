@@ -30,6 +30,7 @@ app = FastAPI(
     docs_url=None,
     exception_handlers={Exception: handle_request_error},
 )
+serve_static = False
 
 if os.environ.get("ENVIRONMENT") == "dev":
     app.add_middleware(
@@ -40,6 +41,8 @@ if os.environ.get("ENVIRONMENT") == "dev":
         allow_headers=["Authorization", "Pragma", "Cache-Control", "Visitor"],
         expose_headers=["x-image-file-jwt"],
     )
+    serve_static = os.path.exists("build")
+    print("serve_static:", serve_static)
 
 app.include_router(routes.journey_public_links.router)
 app.include_router(routes.favorites.router)
@@ -84,6 +87,44 @@ if os.environ["ENVIRONMENT"] == "dev":
         elif raw_path.startswith("/api/3/"):
             full_url = email_templates_url + raw_loc
         else:
+            if serve_static:
+                filepath = os.path.join("build", raw_path.lstrip("/"))
+                if os.path.exists(filepath) and os.path.isdir(filepath):
+                    filepath = os.path.join(filepath, "index.html")
+                if os.path.exists(filepath) and os.path.isfile(filepath):
+                    content_type = None
+                    if filepath.endswith(".css"):
+                        content_type = "text/css; charset=utf-8"
+                    elif filepath.endswith(".js"):
+                        content_type = "application/javascript; charset=utf-8"
+                    elif filepath.endswith(".html"):
+                        content_type = "text/html; charset=utf-8"
+                    elif filepath.endswith(".json"):
+                        content_type = "application/json; charset=utf-8"
+                    elif filepath.endswith(".png"):
+                        content_type = "image/png"
+                    elif filepath.endswith(".jpg") or filepath.endswith(".jpeg"):
+                        content_type = "image/jpeg"
+                    elif filepath.endswith(".svg"):
+                        content_type = "image/svg+xml"
+                    with open(filepath, "rb") as f:
+                        return Response(
+                            content=f.read(),
+                            headers=(
+                                None
+                                if content_type is None
+                                else {"Content-Type": content_type}
+                            ),
+                        )
+                else:
+                    with open("build/index.html", "rb") as f:
+                        return Response(
+                            content=f.read(),
+                            headers={
+                                "Content-Type": "text/html; charset=utf-8",
+                            },
+                        )
+
             full_url = nginx_url + raw_loc
 
         try:

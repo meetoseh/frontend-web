@@ -10,8 +10,12 @@ import os
 
 router = APIRouter()
 
-use_fetch_for_index_html = os.environ["ENVIRONMENT"] == "dev"
-base_index_html = "/var/www/index.html"
+if os.environ["ENVIRONMENT"] == "dev":
+    base_index_html = "build/index.html"
+    use_fetch_for_index_html = not os.path.exists(base_index_html)
+else:
+    use_fetch_for_index_html = False
+    base_index_html = "/var/www/index.html"
 
 
 @router.get("/jpl")
