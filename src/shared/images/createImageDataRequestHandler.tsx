@@ -32,7 +32,7 @@ export const createImageDataRequestHandler = ({
     getDataFromRef,
     compareRefs,
     logConfig: { logging },
-    cacheConfig: { maxStale },
+    cacheConfig: { maxStale, keepActiveRequestsIntoStale: true },
     retryConfig: { maxRetries },
   });
 };

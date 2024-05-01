@@ -30,7 +30,7 @@ export const createImagePrivatePlaylistRequestHandler = ({
     getDataFromRef,
     compareRefs,
     logConfig: { logging },
-    cacheConfig: { maxStale },
+    cacheConfig: { maxStale, keepActiveRequestsIntoStale: true },
     retryConfig: { maxRetries },
   });
 };
