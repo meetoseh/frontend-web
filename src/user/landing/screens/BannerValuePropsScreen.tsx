@@ -2,9 +2,9 @@ import { ReactElement, useMemo } from 'react';
 import styles from './BannerValuePropsScreen.module.css';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import { Button } from '../../../shared/forms/Button';
-import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { useOsehImageState } from '../../../shared/images/useOsehImageState';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 
 type BannerValuePropsScreenProps = {
   /**
@@ -28,6 +28,9 @@ type BannerValuePropsScreenProps = {
    * the button be an anchor tag going to the specified url.
    */
   onContinue: React.MouseEventHandler<HTMLButtonElement> | string;
+
+  /** The image handler to use */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
@@ -38,6 +41,7 @@ export const BannerValuePropsScreen = ({
   valueProps: valuePropsRaw,
   bannerImageUid,
   onContinue,
+  imageHandler,
 }: BannerValuePropsScreenProps): ReactElement => {
   const title = titleRaw ?? (
     <>
@@ -55,17 +59,19 @@ export const BannerValuePropsScreen = ({
       ]
     );
   }, [valuePropsRaw]);
-  const imageHandler = useOsehImageStateRequestHandler({});
 
-  const bannerImage = useOsehImageState(
+  const bannerImageVWC = useOsehImageStateValueWithCallbacks(
     {
-      uid: bannerImageUid ?? 'oseh_if_F7sVhs4BJ7nnhPjyhi09-g',
-      jwt: null,
-      displayWidth: 336,
-      displayHeight: 184,
-      alt: '',
-      isPublic: true,
-      placeholderColor: '#000000',
+      type: 'react-rerender',
+      props: {
+        uid: bannerImageUid ?? 'oseh_if_F7sVhs4BJ7nnhPjyhi09-g',
+        jwt: null,
+        displayWidth: 336,
+        displayHeight: 184,
+        alt: '',
+        isPublic: true,
+        placeholderColor: '#000000',
+      },
     },
     imageHandler
   );
@@ -89,7 +95,7 @@ export const BannerValuePropsScreen = ({
           ))}
         </div>
         <div className={styles.bannerContainer}>
-          <OsehImageFromState {...bannerImage} />
+          <OsehImageFromStateValueWithCallbacks state={bannerImageVWC} />
         </div>
         <div className={styles.submitOuterContainer}>
           <div className={styles.submitContainer}>

@@ -1,14 +1,13 @@
 import { ReactElement } from 'react';
 import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import styles from './HeadshotScreen.module.css';
-import { SplashScreen } from '../../splash/SplashScreen';
-import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { useOsehImageState } from '../../../shared/images/useOsehImageState';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { useOauthProviderUrlsValueWithCallbacks } from '../../login/hooks/useOauthProviderUrlsValueWithCallbacks';
 import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { ProvidersList } from '../../core/features/login/components/ProvidersList';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 
 type HeadshotScreenProps = {
   /**
@@ -33,6 +32,9 @@ type HeadshotScreenProps = {
    * "Free access to anxiety-relieving 1 minute exercises"
    */
   valueProp?: ReactElement | string;
+
+  /** The image handler to use */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
@@ -44,6 +46,7 @@ export const HeadshotScreen = ({
   quote: quoteRaw,
   name: nameRaw,
   valueProp: valuePropRaw,
+  imageHandler,
 }: HeadshotScreenProps): ReactElement => {
   const headshotUid = headshotUidRaw ?? 'oseh_if_y2J1TPz5VhUUsk8I0ofPwg';
   const quote = quoteRaw ?? (
@@ -56,45 +59,46 @@ export const HeadshotScreen = ({
   );
 
   const windowSize = useWindowSize();
-  const imageHandler = useOsehImageStateRequestHandler({});
-  const background = useOsehImageState(
+  const backgroundVWC = useOsehImageStateValueWithCallbacks(
     {
-      uid: 'oseh_if_NOA1u2xYanYQlA8rdpPEQQ',
-      jwt: null,
-      displayWidth: windowSize.width,
-      displayHeight: windowSize.height,
-      alt: '',
-      isPublic: true,
-      placeholderColor: '#040b17',
+      type: 'react-rerender',
+      props: {
+        uid: 'oseh_if_NOA1u2xYanYQlA8rdpPEQQ',
+        jwt: null,
+        displayWidth: windowSize.width,
+        displayHeight: windowSize.height,
+        alt: '',
+        isPublic: true,
+        placeholderColor: '#040b17',
+      },
     },
     imageHandler
   );
-  const headshot = useOsehImageState(
+  const headshotVWC = useOsehImageStateValueWithCallbacks(
     {
-      uid: headshotUid,
-      jwt: null,
-      displayWidth: 56,
-      displayHeight: 56,
-      alt: '',
-      isPublic: true,
-      placeholderColor: '#f9f9f9',
+      type: 'react-rerender',
+      props: {
+        uid: headshotUid,
+        jwt: null,
+        displayWidth: 56,
+        displayHeight: 56,
+        alt: '',
+        isPublic: true,
+        placeholderColor: '#f9f9f9',
+      },
     },
     imageHandler
   );
-
-  if (urls === null || headshot.loading) {
-    return <SplashScreen />;
-  }
 
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...background} />
+        <OsehImageFromStateValueWithCallbacks state={backgroundVWC} />
       </div>
       <div className={styles.content}>
         <div className={styles.userQuote}>
           <div className={styles.headshot}>
-            <OsehImageFromState {...headshot} />
+            <OsehImageFromStateValueWithCallbacks state={headshotVWC} />
           </div>
           <div className={styles.quote}>{quote}</div>
           <div className={styles.name}>{name}</div>

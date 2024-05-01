@@ -3,9 +3,9 @@ import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import styles from './FactWithTitleScreen.module.css';
 import { DidYouKnow } from '../../../shared/components/DidYouKnow';
 import { Button } from '../../../shared/forms/Button';
-import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { useOsehImageState } from '../../../shared/images/useOsehImageState';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
+import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
+import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 
 type FactWithTitleScreenProps = {
   /**
@@ -28,6 +28,9 @@ type FactWithTitleScreenProps = {
    * the button be an anchor tag going to the specified url.
    */
   onContinue: React.MouseEventHandler<HTMLButtonElement> | string;
+
+  /** The image handler to use */
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
@@ -38,6 +41,7 @@ export const FactWithTitleScreen = ({
   factTitle: factTitleRaw,
   fact: factRaw,
   onContinue,
+  imageHandler,
 }: FactWithTitleScreenProps): ReactElement => {
   const title = titleRaw ?? (
     <>
@@ -53,16 +57,18 @@ export const FactWithTitleScreen = ({
   );
 
   const windowSize = useWindowSize();
-  const imageHandler = useOsehImageStateRequestHandler({});
-  const background = useOsehImageState(
+  const backgroundVWC = useOsehImageStateValueWithCallbacks(
     {
-      uid: 'oseh_if_NOA1u2xYanYQlA8rdpPEQQ',
-      jwt: null,
-      displayWidth: windowSize.width,
-      displayHeight: windowSize.height,
-      alt: '',
-      isPublic: true,
-      placeholderColor: '#040b17',
+      type: 'react-rerender',
+      props: {
+        uid: 'oseh_if_NOA1u2xYanYQlA8rdpPEQQ',
+        jwt: null,
+        displayWidth: windowSize.width,
+        displayHeight: windowSize.height,
+        alt: '',
+        isPublic: true,
+        placeholderColor: '#040b17',
+      },
     },
     imageHandler
   );
@@ -70,7 +76,7 @@ export const FactWithTitleScreen = ({
   return (
     <div className={styles.container}>
       <div className={styles.imageContainer}>
-        <OsehImageFromState {...background} />
+        <OsehImageFromStateValueWithCallbacks state={backgroundVWC} />
       </div>
       <div className={styles.content}>
         <div className={styles.title}>{title}</div>

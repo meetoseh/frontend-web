@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { FactWithTitleScreen } from './screens/FactWithTitleScreen';
 import { HeadshotScreen } from './screens/HeadshotScreen';
 import { BannerValuePropsScreen } from './screens/BannerValuePropsScreen';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 type Step = 'bannerVPs' | 'fact' | 'headshot';
 
@@ -10,6 +11,7 @@ type Step = 'bannerVPs' | 'fact' | 'headshot';
  * Assumed to be wrapped in a login / interest context.
  */
 export const AnxietyLanding = () => {
+  const imageHandler = useOsehImageStateRequestHandler({});
   const [step, setStep] = useState<Step>('bannerVPs');
 
   const gotoFact = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
@@ -23,9 +25,9 @@ export const AnxietyLanding = () => {
   }, []);
 
   if (step === 'bannerVPs') {
-    return <BannerValuePropsScreen onContinue={gotoFact} />;
+    return <BannerValuePropsScreen onContinue={gotoFact} imageHandler={imageHandler} />;
   } else if (step === 'fact') {
-    return <FactWithTitleScreen onContinue={gotoHeadshot} />;
+    return <FactWithTitleScreen onContinue={gotoHeadshot} imageHandler={imageHandler} />;
   } else {
     return (
       <HeadshotScreen
@@ -37,6 +39,7 @@ export const AnxietyLanding = () => {
           </>
         }
         name="Patricia Lee"
+        imageHandler={imageHandler}
       />
     );
   }
