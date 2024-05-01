@@ -33,7 +33,7 @@ export const FastUnsubscribeLoggedOut = ({
   const saving = useWritableValueWithCallbacks<boolean>(() => false);
   const formError = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const finished = useWritableValueWithCallbacks<boolean>(() => false);
-  const interests = useContext(InterestsContext);
+  const interestsRaw = useContext(InterestsContext);
   const loginContextRaw = useContext(LoginContext);
 
   const setEmail = useCallback(
@@ -47,7 +47,8 @@ export const FastUnsubscribeLoggedOut = ({
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const loginContextUnch = loginContextRaw.value.get();
-      const visitor = interests.visitor.get();
+      const interests = interestsRaw.value.get();
+      const visitor = interestsRaw.visitor.get();
 
       setVWC(saving, true);
       setVWC(formError, null);
@@ -91,7 +92,7 @@ export const FastUnsubscribeLoggedOut = ({
         setVWC(saving, false);
       }
     },
-    [saving, formError, loginContextRaw, interests, email, finished, resources]
+    [saving, formError, loginContextRaw, interestsRaw, email, finished, resources]
   );
 
   useFullHeight({ element: containerRef, attribute: 'minHeight', windowSizeVWC: windowSize });

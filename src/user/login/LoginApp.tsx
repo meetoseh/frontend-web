@@ -1,7 +1,6 @@
 import { ReactElement, useContext, useRef } from 'react';
 import styles from './LoginApp.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
-import { SplashScreen } from '../splash/SplashScreen';
 import { useWindowSizeValueWithCallbacks } from '../../shared/hooks/useWindowSize';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { InterestsContext } from '../../shared/contexts/InterestsContext';
@@ -21,7 +20,7 @@ import { useOauthProviderUrlsValueWithCallbacks } from './hooks/useOauthProvider
  * required tokens in the url fragment on success.
  */
 export const LoginApp = (): ReactElement => {
-  const interests = useContext(InterestsContext);
+  const interestsRaw = useContext(InterestsContext);
   const componentRef = useRef<HTMLDivElement | null>(null);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
   const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
@@ -37,10 +36,6 @@ export const LoginApp = (): ReactElement => {
   const modalContext = useContext(ModalContext);
   useErrorModal(modalContext.modals, error, 'direct account login');
   useErrorModal(modalContext.modals, urlsError, 'oauth provider urls');
-
-  if (urls === null) {
-    return <SplashScreen />;
-  }
 
   return (
     <div className={styles.container}>
@@ -69,29 +64,32 @@ export const LoginApp = (): ReactElement => {
               <div className={assistiveStyles.srOnly}>Oseh</div>
             </div>
             <div className={styles.info}>
-              {(() => {
-                const defaultCopy = <>Reclaim your Calm</>;
-                if (interests.state !== 'loaded') {
-                  return defaultCopy;
-                } else if (interests.primaryInterest === 'anxiety') {
-                  return <>Sign up for instant, free access to anxiety-relieving meditations.</>;
-                } else if (interests.primaryInterest === 'mindful') {
-                  return (
-                    <>
-                      You&rsquo;re one step away from starting a life-changing mindfulness journey
-                    </>
-                  );
-                } else if (interests.primaryInterest === 'sleep') {
-                  return (
-                    <>
-                      Sign up for instant, free access to sleep-inducing meditations from the
-                      world&rsquo;s most relaxing instructors.
-                    </>
-                  );
-                } else {
-                  return defaultCopy;
-                }
-              })()}
+              <RenderGuardedComponent
+                props={interestsRaw.value}
+                component={(interests) => {
+                  const defaultCopy = <>Reclaim your Calm</>;
+                  if (interests.state !== 'loaded') {
+                    return defaultCopy;
+                  } else if (interests.primaryInterest === 'anxiety') {
+                    return <>Sign up for instant, free access to anxiety-relieving meditations.</>;
+                  } else if (interests.primaryInterest === 'mindful') {
+                    return (
+                      <>
+                        You&rsquo;re one step away from starting a life-changing mindfulness journey
+                      </>
+                    );
+                  } else if (interests.primaryInterest === 'sleep') {
+                    return (
+                      <>
+                        Sign up for instant, free access to sleep-inducing meditations from the
+                        world&rsquo;s most relaxing instructors.
+                      </>
+                    );
+                  } else {
+                    return defaultCopy;
+                  }
+                }}
+              />
             </div>
           </div>
           <RenderGuardedComponent

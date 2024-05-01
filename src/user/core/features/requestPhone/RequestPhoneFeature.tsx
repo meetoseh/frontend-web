@@ -10,7 +10,6 @@ import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../../shared/lib/setVWC';
 
@@ -111,11 +110,10 @@ export const RequestPhoneFeature: Feature<RequestPhoneState, RequestPhoneResourc
       callbacks: ianUID.callbacks,
     });
     const interestsRaw = useContext(InterestsContext);
-    const interestsVWC = useReactManagedValueAsValueWithCallbacks(interestsRaw);
 
-    return useMappedValuesWithCallbacks([session, interestsVWC], () => ({
+    return useMappedValuesWithCallbacks([session, interestsRaw.value], () => ({
       session: session.get(),
-      loading: interestsVWC.get().state === 'loading',
+      loading: interestsRaw.value.get().state === 'loading',
     }));
   },
 

@@ -50,7 +50,7 @@ export const RequestPhone = ({
   useEntranceTransition(transition);
 
   const loginContextRaw = useContext(LoginContext);
-  const interests = useContext(InterestsContext);
+  const interestsRaw = useContext(InterestsContext);
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
   const step = useWritableValueWithCallbacks<'number' | 'verify'>(() => 'number');
@@ -407,7 +407,12 @@ export const RequestPhone = ({
                       <div className={styles.iconDot} />
                     </div>
                   </div>
-                  <div className={styles.title}>{phoneStepTitle(interests)}</div>
+                  <div className={styles.title}>
+                    <RenderGuardedComponent
+                      props={interestsRaw.value}
+                      component={(interests) => phoneStepTitle(interests)}
+                    />
+                  </div>
                   <div className={styles.subtitle}>
                     Sign up for daily text reminders by entering your phone number below.
                   </div>

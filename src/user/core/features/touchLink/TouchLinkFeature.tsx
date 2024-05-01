@@ -38,7 +38,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
     );
 
     const loginContextRaw = useContext(LoginContext);
-    const interests = useContext(InterestsContext);
+    const interestsRaw = useContext(InterestsContext);
 
     useValueWithCallbacksEffect(
       codeInUrl,
@@ -86,11 +86,12 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
     );
 
     useValuesWithCallbacksEffect(
-      [activeLinkCode, loginContextRaw.value, interests.visitor],
+      [activeLinkCode, loginContextRaw.value, interestsRaw.value, interestsRaw.visitor],
       useCallback(() => {
         const activeLink = activeLinkCode.get();
         const loginContextUnch = loginContextRaw.value.get();
-        const visitor = interests.visitor.get();
+        const interests = interestsRaw.value.get();
+        const visitor = interestsRaw.visitor.get();
 
         let running = true;
         getLinkInfo();
@@ -188,11 +189,11 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
             setVWC(activeLinkCode, null);
           }
         }
-      }, [activeLinkCode, loginContextRaw, interests])
+      }, [activeLinkCode, loginContextRaw, interestsRaw])
     );
 
     useValuesWithCallbacksEffect(
-      [activeLinkCode, loginContextRaw.value, interests.visitor],
+      [activeLinkCode, loginContextRaw.value, interestsRaw.value, interestsRaw.visitor],
       useCallback(() => {
         let running = true;
         handlePostLogin();
@@ -203,7 +204,8 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
         async function handlePostLoginInner() {
           const link = activeLinkCode.get();
           const loginContextUnch = loginContextRaw.value.get();
-          const visitor = interests.visitor.get();
+          const interests = interestsRaw.value.get();
+          const visitor = interestsRaw.visitor.get();
           if (
             loginContextUnch.state !== 'logged-in' ||
             interests.state === 'loading' ||
@@ -263,7 +265,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
             console.log('Failed to handle post login:', e);
           }
         }
-      }, [activeLinkCode, loginContextRaw, interests])
+      }, [activeLinkCode, loginContextRaw, interestsRaw])
     );
 
     useValuesWithCallbacksEffect(

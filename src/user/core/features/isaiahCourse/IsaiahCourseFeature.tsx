@@ -30,7 +30,7 @@ const courseToIanUid: Record<string, string> = {
 export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResources> = {
   identifier: 'isaiahCourse',
   useWorldState: () => {
-    const interests = useContext(InterestsContext);
+    const interestsRaw = useContext(InterestsContext);
     const loginContextRaw = useContext(LoginContext);
 
     const courseToAttach = useMemo(() => {
@@ -47,33 +47,43 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
       return lastIsaiahCourseSlug ?? 'resilient-spirit-07202023';
     }, []);
 
-    const ianVWC = useInappNotificationValueWithCallbacks({
-      type: 'react-rerender',
-      props: {
-        uid: courseToIanUid[courseToAttach],
-        suppress: interests.state !== 'loaded' || interests.primaryInterest !== 'isaiah-course',
+    const ianPropsVWC = useMappedValueWithCallbacks(
+      interestsRaw.value,
+      (interests) => {
+        return {
+          uid: courseToIanUid[courseToAttach],
+          suppress: interests.state !== 'loaded' || interests.primaryInterest !== 'isaiah-course',
+        };
       },
-    });
-    const primaryInterestVWC = useMappedValueWithCallbacks(
-      loginContextRaw.value,
-      (loginContextUnch) =>
-        interests.state === 'loading'
+      { outputEqualityFn: (a, b) => a.uid === b.uid && a.suppress === b.suppress }
+    );
+    const ianVWC = useInappNotificationValueWithCallbacks(
+      adaptValueWithCallbacksAsVariableStrategyProps(ianPropsVWC)
+    );
+    const primaryInterestVWC = useMappedValuesWithCallbacks(
+      [loginContextRaw.value, interestsRaw.value],
+      () => {
+        const loginContextUnch = loginContextRaw.value.get();
+        const interests = interestsRaw.value.get();
+        return interests.state === 'loading'
           ? undefined
           : interests.state === 'loaded'
           ? loginContextUnch.state === 'logged-in'
             ? interests.primaryInterest
             : null
-          : null
+          : null;
+      }
     );
 
     const attachedCourse = useWritableValueWithCallbacks<boolean | null>(() => null);
     useValuesWithCallbacksEffect(
-      [ianVWC, primaryInterestVWC, loginContextRaw.value, interests.visitor],
+      [ianVWC, primaryInterestVWC, loginContextRaw.value, interestsRaw.value, interestsRaw.visitor],
       useCallback(() => {
         const ian = ianVWC.get();
         const primaryInterest = primaryInterestVWC.get();
         const loginContextUnch = loginContextRaw.value.get();
-        const visitor = interests.visitor.get();
+        const interests = interestsRaw.value.get();
+        const visitor = interestsRaw.visitor.get();
 
         if (attachedCourse.get() !== null) {
           return;
@@ -150,7 +160,14 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
             }
           }
         }
-      }, [ianVWC, primaryInterestVWC, interests, attachedCourse, courseToAttach, loginContextRaw])
+      }, [
+        ianVWC,
+        primaryInterestVWC,
+        interestsRaw,
+        attachedCourse,
+        courseToAttach,
+        loginContextRaw,
+      ])
     );
 
     return useMappedValuesWithCallbacks([ianVWC, primaryInterestVWC, attachedCourse], () => ({

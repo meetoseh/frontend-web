@@ -26,7 +26,7 @@ export const TestLogin = (): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const [loggingIn, setLoggingIn] = useState(false);
   const [userSub, setUserSub] = useState('timothy');
-  const interests = useContext(InterestsContext);
+  const interestsRaw = useContext(InterestsContext);
   const [isMerge, setIsMerge] = useState<boolean | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string>(
     process.env.REACT_APP_ROOT_FRONTEND_URL || window.location.origin
@@ -185,18 +185,25 @@ export const TestLogin = (): ReactElement => {
         </button>
       </form>
       <p>redirect url: {redirectUrl}</p>
-      {interests.state === 'loading' && <p>Interests: Loading</p>}
-      {interests.state === 'unavailable' && <p>Interests: Unavailable</p>}
-      {interests.state === 'loaded' && (
-        <>
-          <p>Interests:</p>
-          <ul>
-            {interests.interests.map((int) => (
-              <li>{int === interests.primaryInterest ? <b>{int}</b> : int}</li>
-            ))}
-          </ul>
-        </>
-      )}
+      <RenderGuardedComponent
+        props={interestsRaw.value}
+        component={(interests) => (
+          <>
+            {interests.state === 'loading' && <p>Interests: Loading</p>}
+            {interests.state === 'unavailable' && <p>Interests: Unavailable</p>}
+            {interests.state === 'loaded' && (
+              <>
+                <p>Interests:</p>
+                <ul>
+                  {interests.interests.map((int) => (
+                    <li>{int === interests.primaryInterest ? <b>{int}</b> : int}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
+        )}
+      />
       <p>Log:</p>
       <RenderGuardedComponent props={log} component={(lg) => <pre>{lg}</pre>} />
     </div>

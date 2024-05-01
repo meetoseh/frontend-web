@@ -6,7 +6,6 @@ import {
   useContext,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 import { LoginContext, LoginContextValue } from './LoginContext';
 import {
@@ -17,8 +16,10 @@ import {
 } from '../hooks/useVisitorValueWithCallbacks';
 import { apiFetch } from '../ApiConstants';
 import { useLogoutHandler } from '../hooks/useLogoutHandler';
-import { ValueWithCallbacks } from '../lib/Callbacks';
+import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
 import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
+import { setVWC } from '../lib/setVWC';
+import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 
 /**
  * A discriminatory union based on 'type': the reason the interests were set.
@@ -50,12 +51,6 @@ export type InterestsContextValue =
        * the visitor or user may have interests, but we don't know yet.
        */
       state: 'loading';
-
-      /**
-       * The visitor state, since it's convenient to include this as a context
-       * whenever interests are being used and it's required for interests
-       */
-      visitor: ValueWithCallbacks<Visitor>;
     }
   | {
       /**
@@ -64,12 +59,6 @@ export type InterestsContextValue =
        * primaryInterest and interests properties.
        */
       state: 'loaded';
-
-      /**
-       * The visitor state, since it's convenient to include this as a context
-       * whenever interests are being used and it's required for interests
-       */
-      visitor: ValueWithCallbacks<Visitor>;
 
       /**
        * The primary interest for the user, typically used for personalization.
@@ -112,12 +101,6 @@ export type InterestsContextValue =
       state: 'unavailable';
 
       /**
-       * The visitor state, since it's convenient to include this as a context
-       * whenever interests are being used and it's required for interests
-       */
-      visitor: ValueWithCallbacks<Visitor>;
-
-      /**
        * Used to set the interests for the user locally and in the backend. This
        * will update the state, store the interests locally, and trigger a
        * network request.
@@ -135,7 +118,33 @@ export type InterestsContextValue =
       ) => void;
     };
 
-const defaultProps: InterestsContextValue = { state: 'loading' } as InterestsContextValue;
+export type InterestsContextProvidedValue = {
+  /**
+   * The visitor state, since it's convenient to include this as a context
+   * whenever interests are being used and it's required for interests
+   */
+  visitor: ValueWithCallbacks<Visitor>;
+
+  /**
+   * The current state of the interests context.
+   */
+  value: ValueWithCallbacks<InterestsContextValue>;
+};
+
+const defaultProps: InterestsContextProvidedValue = {
+  visitor: {
+    get: () => {
+      throw new Error('cannot access get() on defaultProps');
+    },
+    callbacks: new Callbacks(),
+  },
+  value: {
+    get: () => {
+      throw new Error('cannot access get() on defaultProps');
+    },
+    callbacks: new Callbacks(),
+  },
+};
 
 /**
  * A React Context which provides, in both logged-in and logged-out scenarios, a
@@ -149,7 +158,8 @@ const defaultProps: InterestsContextValue = { state: 'loading' } as InterestsCon
  * bucket can be determined. This would include, for example, organic traffic
  * straight to the signup page.
  */
-export const InterestsContext: React.Context<InterestsContextValue> = createContext(defaultProps);
+export const InterestsContext: React.Context<InterestsContextProvidedValue> =
+  createContext(defaultProps);
 
 /**
  * The expected props for the InterestsContextProvider component.
@@ -279,10 +289,9 @@ export const InterestsProvider = ({
   visitor: visitorVWC,
   children,
 }: PropsWithChildren<InterestsContextProps>): ReactElement => {
-  const [baseState, setBaseState] = useState<InterestsContextValue>({
+  const baseStateVWC = useWritableValueWithCallbacks<InterestsContextValue>(() => ({
     state: 'loading',
-    visitor: visitorVWC,
-  });
+  }));
 
   const setInterests = useCallback(
     async (primaryInterest: string, interests: string[], reason: SetInterestReason) => {
@@ -331,9 +340,8 @@ export const InterestsProvider = ({
           staleAfter: nowMS + 1000 * 60 * 60 * 24,
           expiresAt: nowMS + 1000 * 60 * 60 * 24 * 7,
         });
-        setBaseState({
+        setVWC(baseStateVWC, {
           state: 'loaded',
-          visitor: visitorVWC,
           primaryInterest: data.primary_interest,
           interests: data.interests,
           setInterests: _noSetInterests,
@@ -341,17 +349,16 @@ export const InterestsProvider = ({
         });
       }
     },
-    [loginContextRaw, visitorVWC]
+    [loginContextRaw, visitorVWC, baseStateVWC]
   );
 
   const clearInterests = useCallback(async () => {
     deleteLocalInterests();
-    setBaseState({
+    setVWC(baseStateVWC, {
       state: 'unavailable',
-      visitor: visitorVWC,
       setInterests: _noSetInterests,
     });
-  }, [visitorVWC]);
+  }, [baseStateVWC]);
 
   useLogoutHandler(clearInterests);
 
@@ -360,7 +367,7 @@ export const InterestsProvider = ({
   useValuesWithCallbacksEffect(
     [loginContextRaw.value, visitorVWC],
     useCallback(() => {
-      if (baseState.state !== 'loading') {
+      if (baseStateVWC.get().state !== 'loading') {
         return;
       }
       const loginContextUnch = loginContextRaw.value.get();
@@ -438,9 +445,8 @@ export const InterestsProvider = ({
           if (!active) {
             return;
           }
-          setBaseState({
+          setVWC(baseStateVWC, {
             state: 'loaded',
-            visitor: visitorVWC,
             primaryInterest: locallyStored.primaryInterest,
             interests: locallyStored.interests,
             setInterests: _noSetInterests,
@@ -465,9 +471,8 @@ export const InterestsProvider = ({
         }
         if (serverStored !== null) {
           storeInterestsLocally(serverStored);
-          setBaseState({
+          setVWC(baseStateVWC, {
             state: 'loaded',
-            visitor: visitorVWC,
             primaryInterest: serverStored.primaryInterest,
             interests: serverStored.interests,
             setInterests: _noSetInterests,
@@ -476,7 +481,7 @@ export const InterestsProvider = ({
           return;
         }
 
-        setBaseState({ state: 'unavailable', visitor: visitorVWC, setInterests: _noSetInterests });
+        setVWC(baseStateVWC, { state: 'unavailable', setInterests: _noSetInterests });
       }
 
       async function fetchState() {
@@ -484,41 +489,48 @@ export const InterestsProvider = ({
           await fetchStateInner();
         } catch (e) {
           if (active) {
-            setBaseState({
+            setVWC(baseStateVWC, {
               state: 'unavailable',
-              visitor: visitorVWC,
               setInterests: _noSetInterests,
             });
           }
         }
       }
-    }, [baseState, loginContextRaw.value, visitorVWC])
+    }, [baseStateVWC, loginContextRaw.value, visitorVWC])
   );
 
-  const state = useMemo<InterestsContextValue>(() => {
-    if (baseState.state === 'loading') {
-      return { state: 'loading', visitor: visitorVWC };
-    }
+  const stateVWC = useMappedValueWithCallbacks(
+    baseStateVWC,
+    useCallback(
+      (baseState): InterestsContextValue => {
+        if (baseState.state === 'loading') {
+          return baseState;
+        }
 
-    if (baseState.state === 'unavailable') {
-      return {
-        state: 'unavailable',
-        visitor: visitorVWC,
-        setInterests,
-      };
-    }
+        if (baseState.state === 'unavailable') {
+          return {
+            state: 'unavailable',
+            setInterests,
+          };
+        }
 
-    return {
-      state: 'loaded',
-      visitor: visitorVWC,
-      primaryInterest: baseState.primaryInterest,
-      interests: baseState.interests,
-      setInterests,
-      clearLocallyStoredInterests: clearInterests,
-    };
-  }, [baseState, visitorVWC, setInterests, clearInterests]);
+        return {
+          state: 'loaded',
+          primaryInterest: baseState.primaryInterest,
+          interests: baseState.interests,
+          setInterests,
+          clearLocallyStoredInterests: clearInterests,
+        };
+      },
+      [setInterests, clearInterests]
+    )
+  );
 
-  return <InterestsContext.Provider value={state}>{children}</InterestsContext.Provider>;
+  const result = useMemo(
+    (): InterestsContextProvidedValue => ({ visitor: visitorVWC, value: stateVWC }),
+    [visitorVWC, stateVWC]
+  );
+  return <InterestsContext.Provider value={result}>{children}</InterestsContext.Provider>;
 };
 
 /**
