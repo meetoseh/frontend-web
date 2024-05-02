@@ -50,6 +50,20 @@ export type UTM = {
   term: string | null;
 };
 
+const areUtmsEqual = (a: UTM | null, b: UTM | null): boolean => {
+  if (a === null || b === null) {
+    return a === b;
+  }
+
+  return (
+    a.source === b.source &&
+    a.medium === b.medium &&
+    a.campaign === b.campaign &&
+    a.content === b.content &&
+    a.term === b.term
+  );
+};
+
 /**
  * Fetches the UTM parameters from the current url, if there
  * are any.
@@ -155,11 +169,13 @@ type VisitorAFSMState =
 type VisitorAFSMType = VisitorAFSMState['type'];
 
 type VisitorAFSMEventUserChanged = { type: 'userChanged'; user: LoginContextValueLoggedIn | null };
+type VisitorAFSMEventUtmChanged = { type: 'utmChanged'; utm: UTM | null };
 type VisitorAFSMEventUnmounted = { type: 'unmounted' };
 type VisitorAFSMVisitorForced = { type: 'visitorForced'; uid: string | null };
 
 type VisitorAFSMEvent =
   | VisitorAFSMEventUserChanged
+  | VisitorAFSMEventUtmChanged
   | VisitorAFSMEventUnmounted
   | VisitorAFSMVisitorForced;
 type VisitorAFSMEventType = VisitorAFSMEvent['type'];
@@ -203,6 +219,18 @@ const handlers: VisitorAFSMHandlers = {
           }
 
           queuedState = { type: 'loadingFromStore', user: event.user, utm: state.utm };
+          active = false;
+        },
+        utmChanged: (event) => {
+          if (!active) {
+            return;
+          }
+
+          if (areUtmsEqual(event.utm, state.utm)) {
+            return;
+          }
+
+          queuedState = { type: 'loadingFromStore', user: state.user, utm: event.utm };
           active = false;
         },
         visitorForced: (event) => {
@@ -295,6 +323,23 @@ const handlers: VisitorAFSMHandlers = {
             type: 'requesting',
             user: event.user,
             utm: state.utm,
+            uid: state.uid,
+          });
+        },
+        utmChanged: (event) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          if (areUtmsEqual(event.utm, state.utm)) {
+            return;
+          }
+
+          controller.abort();
+          setVWC(newState, {
+            type: 'requesting',
+            user: state.user,
+            utm: event.utm,
             uid: state.uid,
           });
         },
@@ -474,6 +519,34 @@ const handlers: VisitorAFSMHandlers = {
           queuedState = { type: 'requesting', user: event.user, utm: state.utm, uid: state.uid };
           active = false;
         },
+        utmChanged: (event) => {
+          if (!active) {
+            return;
+          }
+
+          if (areUtmsEqual(event.utm, state.utm)) {
+            return;
+          }
+
+          if (event.utm === null) {
+            queuedState = {
+              type: 'storing',
+              user: state.user,
+              uid: state.uid,
+              utm: null,
+            };
+            active = false;
+            return;
+          }
+
+          queuedState = {
+            type: 'requesting',
+            user: state.user.current,
+            utm: event.utm,
+            uid: state.uid,
+          };
+          active = false;
+        },
         visitorForced: (event) => {
           if (!active) {
             return;
@@ -590,6 +663,23 @@ const handlers: VisitorAFSMHandlers = {
             uid: state.uid,
           });
         },
+        utmChanged: (event) => {
+          if (!active) {
+            return;
+          }
+
+          if (areUtmsEqual(event.utm, state.utm)) {
+            return;
+          }
+
+          active = false;
+          setVWC(newState, {
+            type: 'requesting',
+            user: state.user.current,
+            utm: event.utm,
+            uid: state.uid,
+          });
+        },
         visitorForced: (event) => {
           if (!active) {
             return;
@@ -642,6 +732,13 @@ const handlers: VisitorAFSMHandlers = {
           active = false;
           setVWC(newState, { type: 'loadingFromStore', user: event.user, utm: state.utm });
         },
+        utmChanged: (event) => {
+          if (!active) {
+            return;
+          }
+          active = false;
+          setVWC(newState, { type: 'loadingFromStore', user: state.user, utm: event.utm });
+        },
         visitorForced: (event) => {
           if (!active) {
             return;
@@ -690,19 +787,21 @@ const handlers: VisitorAFSMHandlers = {
  * current user. Must be used within a login context, and is intended to
  * only be included once per page.
  */
-export const useVisitorValueWithCallbacks = (): Visitor => {
+export const useVisitorValueWithCallbacks = (
+  forcedUtm?: ValueWithCallbacks<UTM | null>
+): Visitor => {
   const loginContextRaw = useContext(LoginContext);
+  const utmFromUrl = useMemo(() => getUTMFromURL(), []);
   const stateMachine = useWritableValueWithCallbacks<{
     state: VisitorAFSMState;
     result: VisitorAFSMHandlerResult;
   }>(() => {
     const loginContextUnch = loginContextRaw.value.get();
 
-    const utm = getUTMFromURL();
     const state: VisitorAFSMState = {
       type: 'loadingFromStore',
       user: loginContextUnch.state === 'logged-in' ? loginContextUnch : null,
-      utm,
+      utm: utmFromUrl,
     };
     return { state, result: handlers[state.type](state) };
   });
@@ -712,6 +811,25 @@ export const useVisitorValueWithCallbacks = (): Visitor => {
     stateMachine.get().result.onEvent.userChanged({ type: 'userChanged', user: loginContext });
     return undefined;
   });
+
+  useEffect(() => {
+    if (forcedUtm === undefined) {
+      return;
+    }
+
+    const vwc = forcedUtm;
+    vwc.callbacks.add(onChanged);
+    onChanged();
+    return () => {
+      vwc.callbacks.remove(onChanged);
+    };
+
+    function onChanged() {
+      stateMachine
+        .get()
+        .result.onEvent.utmChanged({ type: 'utmChanged', utm: vwc.get() ?? utmFromUrl });
+    }
+  }, [stateMachine, forcedUtm]);
 
   const setVisitor = useCallback(
     (uid: string) => {
