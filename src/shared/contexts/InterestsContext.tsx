@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
 } from 'react';
@@ -16,8 +17,12 @@ import {
 } from '../hooks/useVisitorValueWithCallbacks';
 import { apiFetch } from '../ApiConstants';
 import { useLogoutHandler } from '../hooks/useLogoutHandler';
-import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
-import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
+import {
+  Callbacks,
+  ValueWithCallbacks,
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../lib/Callbacks';
 import { setVWC } from '../lib/setVWC';
 import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 import { VISITOR_SOURCE } from '../lib/visitorSource';
@@ -229,7 +234,7 @@ type LocallyStoredInterests = {
  * fetchLocalInterests. This doesn't handle any caching logic like the
  * expiresAt or staleAfter fields, it just stores the interests.
  */
-const storeInterestsLocally = (interests: LocallyStoredInterests) => {
+const storeInterestsLocally = async (interests: LocallyStoredInterests) => {
   const serialized = JSON.stringify(interests);
   localStorage.setItem('interests', serialized);
 };
@@ -237,7 +242,7 @@ const storeInterestsLocally = (interests: LocallyStoredInterests) => {
 /**
  * Deletes any locally stored interests.
  */
-const deleteLocalInterests = () => {
+const deleteLocalInterests = async () => {
   localStorage.removeItem('interests');
 };
 
@@ -246,7 +251,7 @@ const deleteLocalInterests = () => {
  * staleAfter and expiresAt. Returns null if there are no locally stored
  * interests.
  */
-const fetchLocalInterests = (): LocallyStoredInterests | null => {
+const fetchLocalInterests = async (): Promise<LocallyStoredInterests | null> => {
   const serialized = localStorage.getItem('interests');
   if (serialized === null) {
     return null;
@@ -370,16 +375,31 @@ export const InterestsProvider = ({
 
   const setInterestsRef = useRef(setInterests);
   setInterestsRef.current = setInterests;
-  useValuesWithCallbacksEffect(
-    [loginContextRaw.value, visitorRaw.value],
-    useCallback(() => {
-      if (baseStateVWC.get().state !== 'loading') {
-        return;
-      }
+  useEffect(() => {
+    if (baseStateVWC.get().state !== 'loading') {
+      return undefined;
+    }
+
+    const result = handle();
+    if (result !== undefined) {
+      return result;
+    }
+
+    const active = createWritableValueWithCallbacks(true);
+    let handling = false;
+    loginContextRaw.value.callbacks.add(retry);
+    visitorRaw.value.callbacks.add(retry);
+    return () => {
+      loginContextRaw.value.callbacks.remove(retry);
+      visitorRaw.value.callbacks.remove(retry);
+      setVWC(active, false);
+    };
+
+    function handle(): (() => void) | undefined {
       const loginContextUnch = loginContextRaw.value.get();
       const visitor = visitorRaw.value.get();
       if (loginContextUnch.state === 'loading' || visitor.loading) {
-        return;
+        return undefined;
       }
 
       const vis = visitor;
@@ -392,7 +412,7 @@ export const InterestsProvider = ({
 
       async function fetchFromServer(): Promise<LocallyStoredInterests | null> {
         const response = await apiFetch(
-          '/api/1/users/me/interests/?source=browser',
+          '/api/1/users/me/interests/?source=' + encodeURIComponent(VISITOR_SOURCE),
           {
             method: 'GET',
             headers:
@@ -445,7 +465,7 @@ export const InterestsProvider = ({
         }
 
         const nowMS = Date.now();
-        const locallyStored = fetchLocalInterests();
+        const locallyStored = await fetchLocalInterests();
 
         if (locallyStored !== null && locallyStored.expiresAt > nowMS) {
           if (!active) {
@@ -502,8 +522,27 @@ export const InterestsProvider = ({
           }
         }
       }
-    }, [baseStateVWC, loginContextRaw.value, visitorRaw])
-  );
+    }
+
+    function retry() {
+      if (!active.get() || handling) {
+        return;
+      }
+
+      const result = handle();
+      if (result !== undefined) {
+        handling = true;
+        loginContextRaw.value.callbacks.remove(retry);
+        visitorRaw.value.callbacks.remove(retry);
+        const cleanup = () => {
+          active.callbacks.remove(cleanup);
+          result();
+        };
+        active.callbacks.add(cleanup);
+        return;
+      }
+    }
+  }, [baseStateVWC, loginContextRaw.value, visitorRaw]);
 
   const stateVWC = useMappedValueWithCallbacks(
     baseStateVWC,
