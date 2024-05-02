@@ -134,7 +134,7 @@ const DebugFeaturesInner = (): ReactElement => {
                 <div className={styles.featureStateContainer}>
                   <pre className={styles.featureState}>
                     <RenderGuardedComponent
-                      props={interestsRaw.visitor}
+                      props={interestsRaw.visitor.value}
                       component={(visitor) => <>{JSON.stringify(visitor, null, 2)}</>}
                     />
                   </pre>

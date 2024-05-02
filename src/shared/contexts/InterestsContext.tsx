@@ -20,6 +20,7 @@ import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '..
 import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
 import { setVWC } from '../lib/setVWC';
 import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
+import { VISITOR_SOURCE } from '../lib/visitorSource';
 
 /**
  * A discriminatory union based on 'type': the reason the interests were set.
@@ -123,7 +124,7 @@ export type InterestsContextProvidedValue = {
    * The visitor state, since it's convenient to include this as a context
    * whenever interests are being used and it's required for interests
    */
-  visitor: ValueWithCallbacks<Visitor>;
+  visitor: Visitor;
 
   /**
    * The current state of the interests context.
@@ -133,10 +134,15 @@ export type InterestsContextProvidedValue = {
 
 const defaultProps: InterestsContextProvidedValue = {
   visitor: {
-    get: () => {
-      throw new Error('cannot access get() on defaultProps');
+    value: {
+      get: () => {
+        throw new Error('cannot access get() on defaultProps');
+      },
+      callbacks: new Callbacks(),
     },
-    callbacks: new Callbacks(),
+    setVisitor: () => {
+      throw new Error('cannot access setVisitor() on defaultProps');
+    },
   },
   value: {
     get: () => {
@@ -175,7 +181,7 @@ type InterestsContextProps = {
   /**
    * The visitor, which is used if the user is logged out
    */
-  visitor: ValueWithCallbacks<Visitor>;
+  visitor: Visitor;
 };
 
 const _noSetInterests = () => {
@@ -286,7 +292,7 @@ const getInterestFromUTM = (utm: UTM): { primaryInterest: string; interests: str
  */
 export const InterestsProvider = ({
   loginContext: loginContextRaw,
-  visitor: visitorVWC,
+  visitor: visitorRaw,
   children,
 }: PropsWithChildren<InterestsContextProps>): ReactElement => {
   const baseStateVWC = useWritableValueWithCallbacks<InterestsContextValue>(() => ({
@@ -296,7 +302,7 @@ export const InterestsProvider = ({
   const setInterests = useCallback(
     async (primaryInterest: string, interests: string[], reason: SetInterestReason) => {
       const loginContextUnch = loginContextRaw.value.get();
-      const visitor = visitorVWC.get();
+      const visitor = visitorRaw.value.get();
 
       if (loginContextUnch.state === 'loading') {
         throw new Error('cannot set interests while login context is loading');
@@ -321,7 +327,7 @@ export const InterestsProvider = ({
             reason,
             primary_interest: primaryInterest,
             interests,
-            source: 'browser',
+            source: VISITOR_SOURCE,
           }),
         },
         loginContextUnch.state === 'logged-in' ? loginContextUnch : null
@@ -330,7 +336,7 @@ export const InterestsProvider = ({
       if (response.ok) {
         const data: { primary_interest: string; interests: string[]; visitor_uid: string } =
           await response.json();
-        visitor.setVisitor(data.visitor_uid);
+        visitorRaw.setVisitor(data.visitor_uid);
 
         const nowMS = Date.now();
         storeInterestsLocally({
@@ -349,7 +355,7 @@ export const InterestsProvider = ({
         });
       }
     },
-    [loginContextRaw, visitorVWC, baseStateVWC]
+    [loginContextRaw, visitorRaw, baseStateVWC]
   );
 
   const clearInterests = useCallback(async () => {
@@ -365,13 +371,13 @@ export const InterestsProvider = ({
   const setInterestsRef = useRef(setInterests);
   setInterestsRef.current = setInterests;
   useValuesWithCallbacksEffect(
-    [loginContextRaw.value, visitorVWC],
+    [loginContextRaw.value, visitorRaw.value],
     useCallback(() => {
       if (baseStateVWC.get().state !== 'loading') {
         return;
       }
       const loginContextUnch = loginContextRaw.value.get();
-      const visitor = visitorVWC.get();
+      const visitor = visitorRaw.value.get();
       if (loginContextUnch.state === 'loading' || visitor.loading) {
         return;
       }
@@ -409,7 +415,7 @@ export const InterestsProvider = ({
           visitor_uid: string;
         } = await response.json();
 
-        vis.setVisitor(data.visitor_uid);
+        visitorRaw.setVisitor(data.visitor_uid);
 
         if (data.primary_interest === null) {
           return null;
@@ -496,7 +502,7 @@ export const InterestsProvider = ({
           }
         }
       }
-    }, [baseStateVWC, loginContextRaw.value, visitorVWC])
+    }, [baseStateVWC, loginContextRaw.value, visitorRaw])
   );
 
   const stateVWC = useMappedValueWithCallbacks(
@@ -527,8 +533,8 @@ export const InterestsProvider = ({
   );
 
   const result = useMemo(
-    (): InterestsContextProvidedValue => ({ visitor: visitorVWC, value: stateVWC }),
-    [visitorVWC, stateVWC]
+    (): InterestsContextProvidedValue => ({ visitor: visitorRaw, value: stateVWC }),
+    [visitorRaw, stateVWC]
   );
   return <InterestsContext.Provider value={result}>{children}</InterestsContext.Provider>;
 };

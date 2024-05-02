@@ -19,7 +19,6 @@ import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedV
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
-import { ValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 
 /**
@@ -47,10 +46,10 @@ export const JourneyPublicLink = (): ReactElement => {
 
 const JourneyPublicLinkInner = ({
   loginContext: loginContextRaw,
-  visitor: visitorVWC,
+  visitor: visitorRaw,
 }: {
   loginContext: LoginContextValue;
-  visitor: ValueWithCallbacks<Visitor>;
+  visitor: Visitor;
 }): ReactElement => {
   const code = useMemo(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -62,10 +61,10 @@ const JourneyPublicLinkInner = ({
   const [startedAudio, setStartedAudio] = useState(false);
 
   useValuesWithCallbacksEffect(
-    [loginContextRaw.value, visitorVWC],
+    [loginContextRaw.value, visitorRaw.value],
     useCallback(() => {
       const loginContextUnch = loginContextRaw.value.get();
-      const visitor = visitorVWC.get();
+      const visitor = visitorRaw.value.get();
       if (loginContextUnch.state === 'loading' || visitor.loading || journey !== null) {
         return;
       }
@@ -106,9 +105,7 @@ const JourneyPublicLinkInner = ({
         const data = await response.json();
         const journey = convertUsingKeymap(data.journey, journeyRefKeyMap);
         const visitorUid = data.visitor_uid;
-        if (vis.uid !== visitorUid) {
-          vis.setVisitor(visitorUid);
-        }
+        visitorRaw.setVisitor(visitorUid);
         setJourney(journey);
       }
 
@@ -122,7 +119,7 @@ const JourneyPublicLinkInner = ({
           }
         }
       }
-    }, [journey, code, loginContextRaw, visitorVWC])
+    }, [journey, code, loginContextRaw, visitorRaw])
   );
 
   const darkenedImageLoading = useAnyImageStateValueWithCallbacksLoading(
@@ -132,17 +129,20 @@ const JourneyPublicLinkInner = ({
   const audioLoading = useUnwrappedValueWithCallbacks(
     useMappedValueWithCallbacks(shared, (s) => !s.audio.loaded)
   );
-  const settingUpVWC = useMappedValuesWithCallbacks([loginContextRaw.value, visitorVWC], () => {
-    const loginContextUnch = loginContextRaw.value.get();
-    const visitor = visitorVWC.get();
-    return (
-      visitor.loading ||
-      journey === null ||
-      darkenedImageLoading ||
-      audioLoading ||
-      loginContextUnch.state === 'loading'
-    );
-  });
+  const settingUpVWC = useMappedValuesWithCallbacks(
+    [loginContextRaw.value, visitorRaw.value],
+    () => {
+      const loginContextUnch = loginContextRaw.value.get();
+      const visitor = visitorRaw.value.get();
+      return (
+        visitor.loading ||
+        journey === null ||
+        darkenedImageLoading ||
+        audioLoading ||
+        loginContextUnch.state === 'loading'
+      );
+    }
+  );
 
   useValuesWithCallbacksEffect(
     [loginContextRaw.value, settingUpVWC],

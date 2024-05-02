@@ -20,6 +20,7 @@ import { getUTMFromURL } from '../../../../shared/hooks/useVisitorValueWithCallb
 import { useStaleOsehImageOnSwap } from '../../../../shared/images/useStaleOsehImageOnSwap';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
+import { VISITOR_SOURCE } from '../../../../shared/lib/visitorSource';
 
 const backgroundUid = 'oseh_if_0ykGW_WatP5-mh-0HRsrNw';
 const courseToIanUid: Record<string, string> = {
@@ -77,13 +78,19 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
 
     const attachedCourse = useWritableValueWithCallbacks<boolean | null>(() => null);
     useValuesWithCallbacksEffect(
-      [ianVWC, primaryInterestVWC, loginContextRaw.value, interestsRaw.value, interestsRaw.visitor],
+      [
+        ianVWC,
+        primaryInterestVWC,
+        loginContextRaw.value,
+        interestsRaw.value,
+        interestsRaw.visitor.value,
+      ],
       useCallback(() => {
         const ian = ianVWC.get();
         const primaryInterest = primaryInterestVWC.get();
         const loginContextUnch = loginContextRaw.value.get();
         const interests = interestsRaw.value.get();
-        const visitor = interestsRaw.visitor.get();
+        const visitorUnch = interestsRaw.visitor.value.get();
 
         if (attachedCourse.get() !== null) {
           return;
@@ -105,9 +112,10 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
           return;
         }
 
-        if (visitor.loading) {
+        if (visitorUnch.loading) {
           return;
         }
+        const visitor = visitorUnch;
 
         let active = true;
         attachCourse();
@@ -129,11 +137,11 @@ export const IsaiahCourseFeature: Feature<IsaiahCourseState, IsaiahCourseResourc
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json; charset=utf-8',
-                ...(visitor.loading || visitor.uid === null ? {} : { Visitor: visitor.uid }),
+                ...(visitor.uid === null ? {} : { Visitor: visitor.uid }),
               },
               body: JSON.stringify({
                 course_slug: courseToAttach,
-                source: 'browser',
+                source: VISITOR_SOURCE,
               }),
             },
             loginContext

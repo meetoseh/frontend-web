@@ -48,7 +48,7 @@ export const FastUnsubscribeLoggedOut = ({
       e.preventDefault();
       const loginContextUnch = loginContextRaw.value.get();
       const interests = interestsRaw.value.get();
-      const visitor = interestsRaw.visitor.get();
+      const visitor = interestsRaw.visitor.value.get();
 
       setVWC(saving, true);
       setVWC(formError, null);

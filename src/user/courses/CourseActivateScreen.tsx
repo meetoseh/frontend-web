@@ -1,10 +1,4 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  StoredVisitor,
-  getUTMFromURL,
-  loadVisitorFromStore,
-  writeVisitorToStore,
-} from '../../shared/hooks/useVisitorValueWithCallbacks';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { useTimezone } from '../../shared/hooks/useTimezone';
@@ -28,9 +22,10 @@ import { useOauthProviderUrlsValueWithCallbacks } from '../login/hooks/useOauthP
 import { ProvidersList } from '../core/features/login/components/ProvidersList';
 import { ModalContext } from '../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
-import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { setLoginRedirect } from '../login/lib/LoginRedirectStore';
 import { ExternalCourse, externalCourseKeyMap } from '../series/lib/ExternalCourse';
+import { useVisitorValueWithCallbacks } from '../../shared/hooks/useVisitorValueWithCallbacks';
+import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
 
 /**
  * The activation screen for a course, which should be the first screen after a
@@ -44,12 +39,9 @@ import { ExternalCourse, externalCourseKeyMap } from '../series/lib/ExternalCour
 export const CourseActivateScreen = (): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
-  const [visitor, setVisitor] = useState<StoredVisitor | null>(() => loadVisitorFromStore());
+  const visitorRaw = useVisitorValueWithCallbacks();
   const imageHandler = useOsehImageStateRequestHandler({});
   const timezone = useTimezone();
-  const utm = useMemo(() => {
-    return getUTMFromURL();
-  }, []);
   const slug = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('slug');
@@ -59,8 +51,6 @@ export const CourseActivateScreen = (): ReactElement => {
     return params.get('session');
   }, []);
   const [course, setCourse] = useState<ExternalCourse | null>(null);
-
-  const associatedUTMWithVisitorUID = useRef<string | null>(null);
 
   useEffect(() => {
     if (slug !== null && session !== null) {
@@ -72,155 +62,70 @@ export const CourseActivateScreen = (): ReactElement => {
     }
   }, [slug, session]);
 
-  useValueWithCallbacksEffect(
-    loginContextRaw.value,
-    useCallback(
-      (loginContextUnch) => {
+  let handledRef = useRef(false);
+  useValuesWithCallbacksEffect(
+    [loginContextRaw.value, visitorRaw.value],
+    useCallback(() => {
+      if (handledRef.current) {
+        return undefined;
+      }
+
+      const loginContextUnch = loginContextRaw.value.get();
+      const visitorUnch = visitorRaw.value.get();
+
+      let active = true;
+      activateCourse();
+      return () => {
+        active = false;
+      };
+
+      async function activateCourseInner() {
         if (
-          utm === null ||
-          visitor === null ||
           loginContextUnch.state === 'loading' ||
-          (associatedUTMWithVisitorUID.current !== null &&
-            associatedUTMWithVisitorUID.current === visitor.uid)
+          visitorUnch.loading ||
+          slug === null ||
+          session === null ||
+          !active ||
+          course !== null
         ) {
           return;
         }
-        const currentUserSub =
-          loginContextUnch.state === 'logged-in' ? loginContextUnch.userAttributes.sub : null;
+        const visitor = visitorUnch;
 
-        let active = true;
-        doAssociateUTM();
-        return () => {
-          active = false;
-        };
-
-        async function doAssociateUTMInner() {
-          if (utm === null) {
-            return;
-          }
-
-          const response = await apiFetch(
-            '/api/1/visitors/utms?source=browser',
-            {
-              method: 'POST',
-              headers: Object.assign(
-                (visitor === null ? {} : { Visitor: visitor.uid }) as {
-                  [key: string]: string;
-                },
-                {
-                  'Content-Type': 'application/json; charset=utf-8',
-                } as { [key: string]: string }
-              ),
-              body: JSON.stringify({
-                utm_source: utm.source,
-                utm_medium: utm.medium,
-                utm_campaign: utm.campaign,
-                utm_content: utm.content,
-                utm_term: utm.term,
-              }),
+        const response = await apiFetch(
+          '/api/1/courses/activate',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              ...(visitor.uid === null ? {} : { Visitor: visitor.uid }),
             },
-            loginContextUnch.state === 'logged-in' ? loginContextUnch : null
-          );
-          if (!response.ok) {
-            throw response;
-          }
+            body: JSON.stringify({
+              checkout_session_id: session,
+              source: 'browser',
+              timezone,
+              timezone_technique: 'browser',
+            }),
+          },
+          loginContextUnch.state === 'logged-in' ? loginContextUnch : null
+        );
 
-          const data = await response.json();
-          const newVisitor = {
-            uid: data.uid,
-            user: currentUserSub === null ? null : { sub: currentUserSub, time: Date.now() },
-          };
-          writeVisitorToStore(newVisitor);
-          associatedUTMWithVisitorUID.current = newVisitor.uid;
-          if (active) {
-            setVisitor((v) => {
-              if (v !== null && v.uid === newVisitor.uid && v.user === newVisitor.user) {
-                return v;
-              }
-              return newVisitor;
-            });
-          }
+        if (!response.ok) {
+          throw response;
         }
 
-        async function doAssociateUTM() {
-          try {
-            await doAssociateUTMInner();
-          } catch (e) {
-            console.error('error associating utm with visitor:', e);
-          }
-        }
-      },
-      [utm, visitor]
-    )
-  );
+        const data: { course: any; visitor_uid: string } = await response.json();
+        handledRef.current = true;
+        visitorRaw.setVisitor(data.visitor_uid);
 
-  useValueWithCallbacksEffect(
-    loginContextRaw.value,
-    useCallback(
-      (loginContextUnch) => {
-        let active = true;
-        activateCourse();
-        return () => {
-          active = false;
-        };
+        const newCourse = convertUsingMapper(data.course, externalCourseKeyMap);
+        setCourse(newCourse);
+      }
 
-        async function activateCourseInner() {
-          if (
-            loginContextUnch.state === 'loading' ||
-            slug === null ||
-            session === null ||
-            !active ||
-            course !== null
-          ) {
-            return;
-          }
-
-          const response = await apiFetch(
-            '/api/1/courses/activate',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                ...(visitor === null ? {} : { Visitor: visitor.uid }),
-              },
-              body: JSON.stringify({
-                checkout_session_id: session,
-                source: 'browser',
-                timezone,
-                timezone_technique: 'browser',
-              }),
-            },
-            loginContextUnch.state === 'logged-in' ? loginContextUnch : null
-          );
-
-          if (!response.ok) {
-            throw response;
-          }
-
-          const data: { course: any; visitor_uid: string } = await response.json();
-          const currentUserSub =
-            loginContextUnch.state === 'logged-in' ? loginContextUnch.userAttributes.sub : null;
-          if (
-            visitor === null ||
-            visitor.uid !== data.visitor_uid ||
-            visitor.user?.sub !== currentUserSub
-          ) {
-            setVisitor({
-              uid: data.visitor_uid,
-              user: currentUserSub === null ? null : { sub: currentUserSub, time: Date.now() },
-            });
-          }
-
-          const newCourse = convertUsingMapper(data.course, externalCourseKeyMap);
-          setCourse(newCourse);
-        }
-
-        async function activateCourse() {
-          await activateCourseInner();
-        }
-      },
-      [slug, visitor, course, timezone, session]
-    )
+      async function activateCourse() {
+        await activateCourseInner();
+      }
+    }, [slug, loginContextRaw, visitorRaw, course, timezone, session])
   );
 
   const windowSizeVWC = useWindowSizeValueWithCallbacks();

@@ -1,4 +1,4 @@
-import { ReactElement } from 'react';
+import { ReactElement, useEffect, useMemo } from 'react';
 import { RequestPhoneFeature } from '../features/requestPhone/RequestPhoneFeature';
 import { RequestNameFeature } from '../features/requestName/RequestNameFeature';
 import { FeatureAllStates } from '../models/FeatureAllStates';
@@ -6,7 +6,11 @@ import { RequestNotificationTimeFeature } from '../features/requestNotificationT
 import { VipChatRequestFeature } from '../features/vipChatRequest/VipChatRequestFeature';
 import { GoalDaysPerWeekFeature } from '../features/goalDaysPerWeek/GoalDaysPerWeekFeature';
 import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
-import { ValueWithCallbacks, WritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import {
+  ValueWithCallbacks,
+  WritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../shared/lib/Callbacks';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { FavoritesFeature } from '../features/favorites/FavoritesFeature';
 import { IsaiahCourseFeature } from '../features/isaiahCourse/IsaiahCourseFeature';
@@ -31,6 +35,7 @@ import { WelcomeVideoFeature } from '../features/welcomeVideo/WelcomeVideoFeatur
 import { GoalCategoriesFeature } from '../features/goalCategories/GoalCategoriesFeature';
 import { AgeFeature } from '../features/age/AgeFeature';
 import { HomeScreenTutorialFeature } from '../features/homeScreenTutorial/HomeScreenTutorialFeature';
+import { setVWC } from '../../../shared/lib/setVWC';
 
 export const features = [
   TouchLinkFeature,
@@ -129,14 +134,20 @@ export const useFeaturesState = (
     }
   }
 
-  const allStates = useMappedValuesWithCallbacks(states, () => {
-    const res: any = {};
-    states.forEach((s, idx) => {
-      const state = s.get();
-      res[features[idx].identifier] = state;
-    });
-    return res as FeatureAllStates;
-  });
+  const _allStates = useMemo(
+    () => {
+      const res: any = {};
+      states.forEach((s, idx) => {
+        const state = s.get();
+        res[features[idx].identifier] = state;
+      });
+      return res as FeatureAllStates;
+    },
+    /* eslint-disable react-hooks/exhaustive-deps */
+    []
+  );
+
+  const allStates = useMappedValuesWithCallbacks(states, () => _allStates);
   const required = features.map((f, i) =>
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useMappedValueWithCallbacks(allStates, (unw) => f.isRequired(states[i].get() as any, unw))
@@ -151,12 +162,12 @@ export const useFeaturesState = (
 
   const requiredRollingSum = useMappedValuesWithCallbacks(
     required,
-    () => {
-      const res: number[] = [];
+    (): number[] => {
+      const res = Array(required.length);
       let sum = 0;
       for (let i = 0; i < required.length; i++) {
         sum += required[i].get() ? 1 : 0;
-        res.push(sum);
+        res[i] = sum;
       }
       return res;
     },
@@ -166,6 +177,7 @@ export const useFeaturesState = (
   );
   useValueWithCallbacksEffect(requiredRollingSum, () => {
     if (realOpts.debug) {
+      realOpts.debug.log('trace', 'required changed');
       realOpts.debug.requiredRollingSum.set(requiredRollingSum.get());
       realOpts.debug.requiredRollingSum.callbacks.call(undefined);
     }
@@ -192,15 +204,6 @@ export const useFeaturesState = (
   const resources = features.map((f, i) =>
     f.useResources(states[i] as any, loadingFeatures[i], allStates)
   );
-  if (realOpts.debug !== undefined) {
-    realOpts.debug.log('trace', 'useFeaturesState resources:');
-    for (let i = 0; i < resources.length; i++) {
-      realOpts.debug.log(
-        'trace',
-        `  ${features[i].identifier}: ${JSON.stringify(resources[i].get(), null, 2)}`
-      );
-    }
-  }
   useValuesWithCallbacksEffect(resources, () => {
     if (realOpts.debug) {
       realOpts.debug.resources.set(resources.map((r) => r.get()));
@@ -221,31 +224,90 @@ export const useFeaturesState = (
     return undefined;
   });
 
-  return useMappedValuesWithCallbacks([...required, ...loadingResources], () => {
-    const req = required.map((r) => r.get());
-    const loading = loadingResources.map((r) => r.get());
-    for (let i = 0; i < req.length; i++) {
-      if (req[i] === undefined) {
-        realOpts.debug?.log(
-          'info',
-          `waiting on feature ${features[i].identifier} to decide if it is required`
-        );
-        return undefined;
-      }
+  const result = useWritableValueWithCallbacks<ReactElement | null | undefined>(() => undefined);
+  useEffect(
+    () => {
+      let active = true;
+      realOpts.debug?.log('trace', 'frame request mounted and queued onFrame');
+      let frameRequest: number | null = requestAnimationFrame(onFrame);
 
-      if (req[i]) {
-        if (loading[i]) {
-          realOpts.debug?.log('info', `waiting on feature ${features[i].identifier} to load`);
-          return undefined;
+      const cleanup: (() => void)[] = [];
+      required.forEach((r) => {
+        r.callbacks.add(queueFrame);
+        cleanup.push(() => r.callbacks.remove(queueFrame));
+      });
+      loadingResources.forEach((r) => {
+        r.callbacks.add(queueFrame);
+        cleanup.push(() => r.callbacks.remove(queueFrame));
+      });
+
+      return () => {
+        realOpts.debug?.log('trace', 'frame request unmounted');
+        active = false;
+        if (frameRequest !== null) {
+          cancelAnimationFrame(frameRequest);
+          frameRequest = null;
+        }
+        for (const c of cleanup) {
+          c();
+        }
+      };
+
+      function onFrame() {
+        frameRequest = null;
+        realOpts.debug?.log('trace', 'onFrame');
+        if (!active) {
+          return;
         }
 
-        realOpts.debug?.log('info', `displaying ${features[i].identifier}`);
-        return features[i].component(states[i] as any, resources[i] as any);
+        const res = getUpdatedResult();
+        setVWC(result, res, Object.is);
       }
-    }
 
-    realOpts.debug?.log('critical', 'no feature requested');
-    console.log('no feature requested');
-    return null;
-  });
+      function getUpdatedResult() {
+        const req = required.map((r) => r.get());
+        const loading = loadingResources.map((r) => r.get());
+        for (let i = 0; i < req.length; i++) {
+          if (req[i] === undefined) {
+            realOpts.debug?.log(
+              'info',
+              `waiting on feature ${features[i].identifier} to decide if it is required:\n\n` +
+                `state: ${JSON.stringify(states[i].get(), null, 2)}`
+            );
+            return undefined;
+          }
+
+          if (req[i]) {
+            if (loading[i]) {
+              realOpts.debug?.log('info', `waiting on feature ${features[i].identifier} to load`);
+              return undefined;
+            }
+
+            realOpts.debug?.log('info', `displaying ${features[i].identifier}`);
+            return features[i].component(states[i] as any, resources[i] as any);
+          }
+        }
+
+        realOpts.debug?.log('critical', 'no feature requested');
+        console.log('no feature requested');
+        return null;
+      }
+
+      function queueFrame() {
+        if (!active) {
+          realOpts.debug?.log('trace', 'queueFrame inactive');
+          return;
+        }
+
+        if (frameRequest === null) {
+          realOpts.debug?.log('trace', 'queueFrame');
+          frameRequest = requestAnimationFrame(onFrame);
+        }
+      }
+    },
+    /* eslint-disable react-hooks/exhaustive-deps */
+    [realOpts.debug]
+  );
+
+  return result;
 };

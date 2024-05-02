@@ -86,12 +86,12 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
     );
 
     useValuesWithCallbacksEffect(
-      [activeLinkCode, loginContextRaw.value, interestsRaw.value, interestsRaw.visitor],
+      [activeLinkCode, loginContextRaw.value, interestsRaw.value, interestsRaw.visitor.value],
       useCallback(() => {
         const activeLink = activeLinkCode.get();
         const loginContextUnch = loginContextRaw.value.get();
         const interests = interestsRaw.value.get();
-        const visitor = interestsRaw.visitor.get();
+        const visitor = interestsRaw.visitor.value.get();
 
         let running = true;
         getLinkInfo();
@@ -193,7 +193,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
     );
 
     useValuesWithCallbacksEffect(
-      [activeLinkCode, loginContextRaw.value, interestsRaw.value, interestsRaw.visitor],
+      [activeLinkCode, loginContextRaw.value, interestsRaw.value, interestsRaw.visitor.value],
       useCallback(() => {
         let running = true;
         handlePostLogin();
@@ -205,7 +205,7 @@ export const TouchLinkFeature: Feature<TouchLinkState, TouchLinkResources> = {
           const link = activeLinkCode.get();
           const loginContextUnch = loginContextRaw.value.get();
           const interests = interestsRaw.value.get();
-          const visitor = interestsRaw.visitor.get();
+          const visitor = interestsRaw.visitor.value.get();
           if (
             loginContextUnch.state !== 'logged-in' ||
             interests.state === 'loading' ||
