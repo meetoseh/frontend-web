@@ -134,20 +134,14 @@ export const useFeaturesState = (
     }
   }
 
-  const _allStates = useMemo(
-    () => {
-      const res: any = {};
-      states.forEach((s, idx) => {
-        const state = s.get();
-        res[features[idx].identifier] = state;
-      });
-      return res as FeatureAllStates;
-    },
-    /* eslint-disable react-hooks/exhaustive-deps */
-    []
-  );
-
-  const allStates = useMappedValuesWithCallbacks(states, () => _allStates);
+  const allStates = useMappedValuesWithCallbacks(states, () => {
+    const res: any = {};
+    states.forEach((s, idx) => {
+      const state = s.get();
+      res[features[idx].identifier] = state;
+    });
+    return res as FeatureAllStates;
+  });
   const required = features.map((f, i) =>
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useMappedValueWithCallbacks(allStates, (unw) => f.isRequired(states[i].get() as any, unw))
