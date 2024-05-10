@@ -93,8 +93,14 @@ export const FLAG_NAMES: [CourseFlags, string][] = [
   [CourseFlags.SERIES_VISIBLE_IN_OWNED, 'Series visible in owned'],
   [CourseFlags.JOURNEYS_IN_SERIES_IN_HISTORY, 'Journeys in series in history'],
   [CourseFlags.SERIES_IN_SERIES_TAB, 'Series in series tab'],
-  [CourseFlags.JOURNEYS_IN_SERIES_ARE_1MINUTE, 'Journeys in series are 1 minute'],
-  [CourseFlags.JOURNEYS_IN_SERIES_ARE_PREMIUM, 'Journeys in series are premium'],
+  [
+    CourseFlags.JOURNEYS_IN_SERIES_ARE_1MINUTE,
+    'Journeys within the series may be served when a user clicks "Take a one-minute class"',
+  ],
+  [
+    CourseFlags.JOURNEYS_IN_SERIES_ARE_PREMIUM,
+    'Journeys within the series may be served when a user clicks "Take a premium class"',
+  ],
   [CourseFlags.SERIES_ATTACHABLE_FOR_FREE, 'Series attachable for free'],
   [CourseFlags.SERIES_IN_ADMIN_AREA, 'Series in admin area'],
 ];
