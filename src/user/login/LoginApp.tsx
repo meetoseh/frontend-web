@@ -63,7 +63,7 @@ export const LoginApp = (): ReactElement => {
               <div className={styles.logo} />
               <div className={assistiveStyles.srOnly}>Oseh</div>
             </div>
-            <a href="https://oseh.io" target="_blank" className={styles.info} download>
+            <div className={styles.info}>
               <RenderGuardedComponent
                 props={interestsRaw.value}
                 component={(interests) => {
@@ -90,7 +90,7 @@ export const LoginApp = (): ReactElement => {
                   }
                 }}
               />
-            </a>
+            </div>
           </div>
           <RenderGuardedComponent
             props={urls}
