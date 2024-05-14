@@ -94,6 +94,20 @@ export const AdminNavDesktopSideContent = ({
             active={currentPath === '/admin/touch_points'}
             padTextTop={2}
           />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconComputer}
+            text="Client Screens"
+            url="/admin/client_screens"
+            active={currentPath === '/admin/client_screens'}
+            padTextTop={2}
+          />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconWorkflowCircle}
+            text="Client Flows"
+            url="/admin/client_flows"
+            active={currentPath === '/admin/client_flows'}
+            padTextTop={2}
+          />
           <AdminNavDesktopSideSectionHeader text="Visibility" />
           <AdminNavDesktopSideLink
             iconClass={styles.iconNotifications}

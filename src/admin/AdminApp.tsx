@@ -34,6 +34,10 @@ import { HomeScreenImages } from './home_screen_images/HomeScreenImages';
 import { OnboardingVideos } from './onboarding_videos/OnboardingVideos';
 import { TouchPoints } from './touch_points/TouchPoints';
 import { BigTouchPoint } from './touch_points/BigTouchPoint';
+import { ClientScreens } from './client_screens/ClientScreens';
+import { BigClientScreen } from './client_screens/BigClientScreen';
+import { ClientFlows } from './client_flows/ClientFlows';
+import { BigClientFlow } from './client_flows/BigClientFlow';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -59,6 +63,10 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="onboarding_videos" element={<OnboardingVideos />} />
       <Route path="touch_points" element={<TouchPoints />} />
       <Route path="touch_point" element={<BigTouchPoint />} />
+      <Route path="client_screens" element={<ClientScreens />} />
+      <Route path="client_screen" element={<BigClientScreen />} />
+      <Route path="client_flows" element={<ClientFlows />} />
+      <Route path="client_flow" element={<BigClientFlow />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />

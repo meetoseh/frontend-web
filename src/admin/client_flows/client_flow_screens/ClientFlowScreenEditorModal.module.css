@@ -1,0 +1,81 @@
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.content {
+  position: relative;
+  width: 90vw;
+  max-width: 750px;
+  padding-top: 20px;
+  background: #eaeaeb;
+  border-radius: 14px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.flowScreen {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0 20px 20px 20px;
+}
+
+.name {
+  margin-top: 20px;
+}
+
+.slug {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.flowScreen textarea {
+  width: 100%;
+  overflow-x: auto;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  margin-top: 8px;
+}
+
+.fixedError,
+.variableError {
+  width: 100%;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  color: #c83030;
+  margin-top: 8px;
+}
+
+.testContainer {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid black;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.testWrapper {
+  margin-top: 20px;
+}

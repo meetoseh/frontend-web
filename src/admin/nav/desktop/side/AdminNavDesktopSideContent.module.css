@@ -79,6 +79,16 @@
   background-image: url('./icons/touch.svg');
 }
 
+.iconComputer {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/computer.svg');
+}
+
+.iconWorkflowCircle {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/workflow-circle.svg');
+}
+
 .iconReminders {
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/reminders.svg');

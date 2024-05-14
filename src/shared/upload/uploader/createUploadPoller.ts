@@ -1,4 +1,8 @@
-import { CrudFetcherKeyMap, convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
+import {
+  CrudFetcherFilter,
+  CrudFetcherKeyMap,
+  convertUsingKeymap,
+} from '../../../admin/crud/CrudFetcher';
 import { apiFetch } from '../../ApiConstants';
 import { LoginContextValue } from '../../contexts/LoginContext';
 import { CancelablePromise } from '../../lib/CancelablePromise';
@@ -24,7 +28,7 @@ export const createUploadPoller = <T extends object>(
      * or null to suppress filtering by sha512
      * @default 'original_file_sha512'
      */
-    sha512Key?: string | null;
+    sha512Key?: string | ((sha512: string) => Record<string, CrudFetcherFilter>) | null;
 
     /**
      * Additional filters to apply to the search query. Applied after
@@ -32,13 +36,7 @@ export const createUploadPoller = <T extends object>(
      *
      * If not specified, treated as an empty object.
      */
-    additionalFilters?: Record<
-      string,
-      {
-        operator: string;
-        value: any;
-      }
-    >;
+    additionalFilters?: CrudFetcherFilter;
 
     /**
      * Additional client-side predicate for rejecting results.
@@ -82,10 +80,14 @@ export const createUploadPoller = <T extends object>(
 
         const filters: Record<string, any> = {};
         if (sha512Key !== null) {
-          filters[sha512Key] = {
-            operator: 'eq',
-            value: sha512,
-          };
+          if (typeof sha512Key === 'function') {
+            Object.assign(filters, sha512Key(sha512));
+          } else {
+            filters[sha512Key] = {
+              operator: 'eq',
+              value: sha512,
+            };
+          }
         }
         if (opts?.additionalFilters !== undefined) {
           Object.assign(filters, opts.additionalFilters);

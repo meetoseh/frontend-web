@@ -41,6 +41,10 @@ export const describeErrorFromResponse = async (response: Response): Promise<Rea
 
   if (body?.message) {
     const msg = body.message;
+    if (msg.includes('-') || msg.includes('{')) {
+      return <pre className={styles.pre}>{msg}</pre>;
+    }
+
     return (
       <>
         {msg.split('\n').map((line: string, i: number) => (

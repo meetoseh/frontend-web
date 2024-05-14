@@ -2,12 +2,7 @@ import { ReactElement, useCallback, useContext, useEffect, useMemo } from 'react
 import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { NetworkResponse, useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
-import {
-  TouchPointMessages,
-  TouchPointSelectionStrategy,
-  TouchPointWithMessages,
-  touchPointWithMessagesKeyMap,
-} from './TouchPoint';
+import { TouchPointWithMessages, touchPointWithMessagesKeyMap } from './TouchPoint';
 import { adaptActiveVWCToAbortSignal } from '../../shared/lib/adaptActiveVWCToAbortSignal';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingMapper } from '../crud/CrudFetcher';
@@ -22,8 +17,6 @@ import {
   TouchPointMessagesSection,
   TouchPointMessagesSectionProps,
 } from './TouchPointMessagesSection';
-import { useBeforeTime } from '../../shared/hooks/useBeforeTime';
-import { useWorkingModal } from '../../shared/hooks/useWorkingModal';
 import { describeError } from '../../shared/forms/ErrorBlock';
 import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
 import { TextInput } from '../../shared/forms/TextInput';

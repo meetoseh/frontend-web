@@ -19,3 +19,8 @@
   text-decoration: underline;
   font-weight: 600;
 }
+
+.pre {
+  width: 100%;
+  overflow-x: auto;
+}

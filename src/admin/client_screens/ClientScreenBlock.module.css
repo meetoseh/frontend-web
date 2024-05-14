@@ -1,0 +1,6 @@
+.iconExpand {
+  composes: icon from '../../shared/icons.module.css';
+  background-image: url('../users/icons/expand.svg');
+  width: 24px;
+  height: 24px;
+}
