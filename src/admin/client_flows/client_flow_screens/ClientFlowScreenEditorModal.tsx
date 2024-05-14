@@ -135,7 +135,7 @@ export const ClientFlowScreenEditorModal = ({
     if (!response.ok) {
       throw response;
     }
-  }, [flowScreenSaveable]);
+  }, [flow, loginContextRaw.value, valueVWC]);
 
   const onClickOutside = useCallback(async () => {
     const closed = createCancelablePromiseFromCallbacks(visible.callbacks);
@@ -219,7 +219,7 @@ export const ClientFlowScreenEditorModal = ({
     } finally {
       closed.cancel();
     }
-  }, [visible, flowScreenSaveable, modalContext, saveErrorVWC]);
+  }, [visible, flowScreenSaveable, modalContext, saveErrorVWC, validate]);
 
   return (
     <Inner

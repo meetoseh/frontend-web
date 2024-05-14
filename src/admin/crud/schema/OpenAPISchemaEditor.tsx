@@ -1,14 +1,11 @@
-import { useEffect } from 'react';
 import {
   WritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
 import { setVWC } from '../../../shared/lib/setVWC';
 import styles from './OpenAPISchemaEditor.module.css';
-import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
-import { on } from 'events';
 
 export type OpenAPIEditableSchema =
   | {

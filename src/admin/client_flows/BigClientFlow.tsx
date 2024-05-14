@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect } from 'react';
+import { ReactElement, useContext, useEffect } from 'react';
 import { ModalContext } from '../../shared/contexts/ModalContext';
 import {
   WritableValueWithTypedCallbacks,

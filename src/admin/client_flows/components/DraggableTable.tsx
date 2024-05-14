@@ -2,7 +2,6 @@ import { ReactElement, memo, useCallback, useEffect } from 'react';
 import {
   ValueWithCallbacks,
   WritableValueWithTypedCallbacks,
-  downgradeTypedVWC,
   useWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
 import { setVWC } from '../../../shared/lib/setVWC';
@@ -186,14 +185,11 @@ const areDraggingEqual = <T extends object>(
  */
 export const DraggableTable = <T extends object>({
   thead,
-  numberOfColumns: numberOfColumnsOpt,
   items: itemsVWC,
   render,
   keyFn,
   onExpandRow,
 }: DraggableTableProps<T>): ReactElement => {
-  const numberOfColumns = numberOfColumnsOpt ?? thead.props.children.props.children.length;
-
   const draggingVWC = useWritableValueWithCallbacks<{ item: T; index: number } | undefined>(
     () => undefined
   );
@@ -440,7 +436,17 @@ export const DraggableTable = <T extends object>({
         />
       );
     }
-  }, [itemsVWC, renderedItemsVWC]);
+  }, [
+    itemsVWC,
+    renderedItemsVWC,
+    draggingVWC,
+    keyFn,
+    onDragEnd,
+    onDragoverRow,
+    onExpandRow,
+    onPickupRow,
+    render,
+  ]);
 
   return (
     <table
