@@ -510,7 +510,22 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                   };
                 },
               });
-              await showClientFlowScreenEditor(modalContext.modals, draftVWC, saveable).promise;
+              let onDelete = () => {};
+              const popup = showClientFlowScreenEditor(
+                modalContext.modals,
+                draftVWC,
+                saveable,
+                () => onDelete()
+              );
+              onDelete = () => {
+                popup.cancel();
+                screensFastTWVWC.get().splice(index, 1);
+                screensFastTWVWC.callbacks.call({
+                  type: 'remove',
+                  index,
+                  item,
+                });
+              };
             }}
           />
           <Button

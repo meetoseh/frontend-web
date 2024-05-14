@@ -45,6 +45,11 @@ export type ClientFlowScreenEditorModalProps = {
   /** The flow screen which is being edited. */
   flowScreenSaveable: Saveable<ClientFlowScreen>;
   /**
+   * If specified a delete button is shown and this is called when the delete
+   * button is clicked.
+   */
+  onDelete?: () => void;
+  /**
    * Called after the modal has been dismissed and all animations
    * have been played, so the modal can be removed from the DOM
    */
@@ -67,6 +72,7 @@ export type ClientFlowScreenEditorModalProps = {
 export const ClientFlowScreenEditorModal = ({
   flow,
   flowScreenSaveable,
+  onDelete,
   onDismiss,
   requestDismiss,
 }: ClientFlowScreenEditorModalProps) => {
@@ -221,6 +227,7 @@ export const ClientFlowScreenEditorModal = ({
       flowScreenSaveable={flowScreenSaveable}
       visible={visible}
       onClickOutside={onClickOutside}
+      onDelete={onDelete}
     />
   );
 };
@@ -230,6 +237,7 @@ const Inner = ({
   flow,
   visible,
   onClickOutside,
+  onDelete,
 }: {
   flowScreenSaveable: Saveable<ClientFlowScreen>;
   flow: ValueWithCallbacks<{
@@ -238,6 +246,7 @@ const Inner = ({
   }>;
   visible: ValueWithCallbacks<boolean>;
   onClickOutside: () => void;
+  onDelete?: () => void;
 }): ReactElement => {
   const backgroundOpacityVWC = useWritableValueWithCallbacks(() => 0);
   const foregroundStateVWC = useWritableValueWithCallbacks(() => ({
@@ -372,7 +381,7 @@ const Inner = ({
           e.stopPropagation();
         }}
         ref={(r) => setVWC(contentRef, r)}>
-        <Content flow={flow} flowScreenSaveable={flowScreenSaveable} />
+        <Content flow={flow} flowScreenSaveable={flowScreenSaveable} onDelete={onDelete} />
       </div>
     </div>
   );
@@ -381,12 +390,14 @@ const Inner = ({
 const Content = ({
   flow,
   flowScreenSaveable,
+  onDelete,
 }: {
   flow: ValueWithCallbacks<{
     clientSchema: any;
     serverSchema: any;
   }>;
   flowScreenSaveable: Saveable<ClientFlowScreen>;
+  onDelete?: () => void;
 }): ReactElement => {
   const modalContext = useContext(ModalContext);
   const valueVWC = useMappedValueWithCallbacks(flowScreenSaveable.state, (state) =>
@@ -695,24 +706,49 @@ const Content = ({
           props={useMappedValueWithCallbacks(valueVWC, (v) => v.screen.slug)}
           component={(slug) => <div className={styles.slug}>{slug}</div>}
         />
-        <Button
-          type="button"
-          onClick={async (e) => {
-            e.preventDefault();
-            const choice = await showClientScreenPicker({ modals: modalContext.modals }).promise;
-            if (choice !== null) {
-              flowScreenSaveable.onClientChange({
-                ...valueVWC.get(),
-                screen: {
-                  slug: choice.slug,
-                  fixed: {},
-                  variable: [],
-                },
-              });
-            }
-          }}>
-          Choose Different Screen
-        </Button>
+        <div className={styles.buttons}>
+          <Button
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              const choice = await showClientScreenPicker({ modals: modalContext.modals }).promise;
+              if (choice !== null) {
+                flowScreenSaveable.onClientChange({
+                  ...valueVWC.get(),
+                  screen: {
+                    slug: choice.slug,
+                    fixed: {},
+                    variable: [],
+                  },
+                });
+              }
+            }}>
+            Choose Different Screen
+          </Button>
+          {onDelete === undefined ? (
+            <></>
+          ) : (
+            <Button
+              type="button"
+              variant="outlined-danger"
+              onClick={async (e) => {
+                e.preventDefault();
+
+                const confirmation = await showYesNoModal(modalContext.modals, {
+                  title: 'Remove Screen?',
+                  body: 'Are you sure you want to remove this screen from this flow?',
+                  cta1: 'Remove',
+                  cta2: 'Cancel',
+                  emphasize: 2,
+                }).promise;
+                if (confirmation) {
+                  onDelete();
+                }
+              }}>
+              Remove Screen From Flow
+            </Button>
+          )}
+        </div>
       </CrudFormElement>
       <CrudFormElement title="Fixed">
         <textarea className={styles.fixed} ref={(r) => setVWC(fixedTextareaRef, r)} rows={10} />

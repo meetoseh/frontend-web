@@ -20,6 +20,9 @@ import { ClientFlowScreenEditorModal } from './ClientFlowScreenEditorModal';
  * @param modals Where to show the popup.
  * @param flow The flow configuration to use for tests
  * @param flowScreenSaveable The saveable client flow screen
+ * @param onDelete If specified, a delete button is shown and this is called after
+ *   the user clicks it and confirms they want to remove the screen from the flow.
+ *   The caller is responsible for canceling the returned promise in this case.
  * @returns The modified flow screen, or null if the user cancels.
  */
 export const showClientFlowScreenEditor = (
@@ -28,7 +31,8 @@ export const showClientFlowScreenEditor = (
     clientSchema: any;
     serverSchema: any;
   }>,
-  flowScreenSaveable: Saveable<ClientFlowScreen>
+  flowScreenSaveable: Saveable<ClientFlowScreen>,
+  onDelete?: () => void
 ): CancelablePromise<void> => {
   return constructCancelablePromise({
     body: async (state, resolve, reject) => {
@@ -55,6 +59,7 @@ export const showClientFlowScreenEditor = (
           flowScreenSaveable={flowScreenSaveable}
           onDismiss={resolveDismissed}
           requestDismiss={requestDismiss}
+          onDelete={onDelete}
         />
       );
 
