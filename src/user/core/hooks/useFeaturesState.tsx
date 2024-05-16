@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useMemo } from 'react';
+import { ReactElement, useEffect } from 'react';
 import { RequestPhoneFeature } from '../features/requestPhone/RequestPhoneFeature';
 import { RequestNameFeature } from '../features/requestName/RequestNameFeature';
 import { FeatureAllStates } from '../models/FeatureAllStates';

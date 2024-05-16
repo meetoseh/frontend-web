@@ -139,6 +139,7 @@ const Content = ({
     return undefined;
   });
 
+  const saveRequiredVWC = useWritableValueWithCallbacks(() => false);
   const doSave = useCallback(async (): Promise<void> => {
     if (savingVWC.get()) {
       return;
@@ -235,9 +236,9 @@ const Content = ({
     email,
     slugVWC,
     selectionStrategyVWC,
+    saveRequiredVWC,
   ]);
 
-  const saveRequiredVWC = useWritableValueWithCallbacks(() => false);
   useEffect(() => {
     const setRequired = () => setVWC(saveRequiredVWC, true);
     sms.callbacks.add(setRequired);
@@ -252,7 +253,7 @@ const Content = ({
       slugVWC.callbacks.remove(setRequired);
       selectionStrategyVWC.callbacks.remove(setRequired);
     };
-  }, [sms, push, email, slugVWC, selectionStrategyVWC]);
+  }, [sms, push, email, slugVWC, selectionStrategyVWC, saveRequiredVWC]);
 
   const saveRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   useValuesWithCallbacksEffect([saveRequiredVWC, savingVWC, saveRef], () => {

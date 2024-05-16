@@ -2,7 +2,6 @@ import { ReactElement, useCallback, useContext } from 'react';
 import { LoginContext, LoginProvider } from '../shared/contexts/LoginContext';
 import { ModalProvider } from '../shared/contexts/ModalContext';
 import { SplashScreen } from './splash/SplashScreen';
-import styles from './UserApp.module.css';
 import { apiFetch } from '../shared/ApiConstants';
 import { useFonts } from '../shared/lib/useFonts';
 import { useFeaturesState } from './core/hooks/useFeaturesState';
@@ -164,7 +163,7 @@ const UserAppInner = (): ReactElement => {
   );
 
   return (
-    <div className={styles.container}>
+    <div>
       <RenderGuardedComponent
         props={stateVWC}
         component={(state) => {

@@ -1,0 +1,7 @@
+.container {
+  position: relative;
+  display: grid;
+  grid-template: 1 / 1 / 1 / 1;
+  width: 100%;
+  overflow-x: hidden;
+}

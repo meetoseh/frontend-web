@@ -12,10 +12,6 @@ import { apiFetch } from '../../shared/ApiConstants';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
-import {
-  touchPointSelectionStrategies,
-  touchPointSelectionStrategyInfo,
-} from './models/TouchPointSelectionStrategy';
 import { TouchPointSelectionStrategySelect } from './components/TouchPointSelectionStrategySelect';
 import { Button } from '../../shared/forms/Button';
 import { describeError } from '../../shared/forms/ErrorBlock';

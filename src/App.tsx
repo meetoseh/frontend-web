@@ -25,6 +25,7 @@ import { ModalProvider } from './shared/contexts/ModalContext';
 import { ClearCache } from './user/connectivity/ClearCache';
 import { DebugFeatures } from './dbg/features/DebugFeatures';
 import { getLoginRedirect, setLoginRedirect } from './user/login/lib/LoginRedirectStore';
+import UserScreensApp from './user/UserScreensApp';
 
 function App() {
   const [handlingLogin, setHandlingLogin] = useState(true);
@@ -102,6 +103,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<UserApp />} />
+        <Route path="/newapp" element={<UserScreensApp />} />
         <Route path="/upgrade" element={<UserApp />} />
         <Route path="/settings" element={<UserApp />} />
         <Route path="/settings/manage-membership" element={<UserApp />} />

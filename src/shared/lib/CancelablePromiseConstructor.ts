@@ -190,6 +190,8 @@ export const constructCancelablePromise = <T>(
 
   constructor.preamble?.(state);
 
+  let stackInfo = process.env.REACT_APP_ENVIRONMENT === 'dev' ? new Error().stack : undefined;
+
   return {
     done: () => state.done,
     cancel: () => {
@@ -205,7 +207,7 @@ export const constructCancelablePromise = <T>(
         return;
       }
 
-      rejectCanceled = () => reject(new Error('canceled'));
+      rejectCanceled = () => reject(new Error(`canceled: ${stackInfo}`));
 
       let bodyResolvedOrRejected = false;
       const ensureDone = () => {
@@ -244,14 +246,14 @@ export const constructCancelablePromise = <T>(
         }
 
         if (constructor.guardBody) {
-          wrappedReject(new Error('body returned without resolving or rejecting'));
+          wrappedReject(new Error(`body returned without resolving or rejecting ${stackInfo}`));
         } else {
-          console.trace('body returned without resolving or rejecting');
+          console.trace('body returned without resolving or rejecting', stackInfo);
 
           if (process.env.REACT_APP_ENVIRONMENT === 'dev') {
-            throw new Error('body returned without resolving or rejecting');
+            throw new Error(`body returned without resolving or rejecting ${stackInfo}`);
           } else {
-            wrappedReject(new Error('body returned without resolving or rejecting'));
+            wrappedReject(new Error(`body returned without resolving or rejecting ${stackInfo}`));
           }
         }
       };

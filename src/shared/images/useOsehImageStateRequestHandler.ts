@@ -310,7 +310,7 @@ const getPlaylist = (
   privatePlaylistHandler: RequestHandler<OsehImageRef, PlaylistWithJWT>,
   publicPlaylistHandler: RequestHandler<OsehPublicImageRef, PlaylistWithJWT>
 ): RequestResult<PlaylistWithJWT> => {
-  // TODO -> OsehImagePropsLoadable should include refreshRef
+  // TODO -> add refreshProps argument
   return props.isPublic
     ? publicPlaylistHandler.request({
         ref: { uid: props.uid, jwt: null },

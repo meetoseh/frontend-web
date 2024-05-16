@@ -61,12 +61,16 @@ export const describeErrorFromResponse = async (response: Response): Promise<Rea
   );
 };
 
+export const describeFetchError = () => {
+  return <>Failed to connect to server. Check your internet connection.</>;
+};
+
 /**
  * Does the best it can to describe an error in a human readable way.
  */
 export const describeError = async (e: any): Promise<ReactElement> => {
   if (e instanceof TypeError) {
-    return <>Failed to connect to server. Check your internet connection.</>;
+    return describeFetchError();
   } else if (e instanceof Response) {
     return describeErrorFromResponse(e);
   } else {

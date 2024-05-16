@@ -1,11 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  CrudFetcher,
-  CrudFetcherFilter,
-  CrudFetcherKeyMap,
-  CrudFetcherMapper,
-  CrudFetcherSort,
-} from './CrudFetcher';
+import { CrudFetcher, CrudFetcherFilter, CrudFetcherMapper, CrudFetcherSort } from './CrudFetcher';
 import styles from './CrudPicker.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
