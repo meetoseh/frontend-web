@@ -1,0 +1,59 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  border-top: 1px solid rgb(168, 71, 71);
+  border-bottom: 1px solid rgb(168, 71, 71);
+  padding: 12px 0;
+  gap: 20px;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.meta:empty {
+  display: none;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 18px;
+  line-height: 27px;
+  font-weight: 400;
+  color: #232323;
+}
+
+.description {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 16.8px;
+  font-weight: 400;
+  color: #383838;
+}
+
+.selectTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  line-height: 15.6px;
+  font-weight: 400;
+  color: #232323;
+}
+
+.select {
+  composes: sortSelect from '../../../crud/standard.module.css';
+}
+
+.selectDescription {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 16.8px;
+  font-weight: 400;
+  color: #383838;
+  margin-top: 8px;
+}

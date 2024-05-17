@@ -7,9 +7,8 @@ import {
 import { Saveable } from '../../../shared/models/Saveable';
 import {
   ClientFlowScreen,
-  clientFlowScreenScreenVariableKeyMap,
+  ClientFlowScreenVariableInput,
   serializeClientFlowScreen,
-  serializeClientFlowScreenScreenVariable,
 } from './ClientFlowScreen';
 import { useDelayedValueWithCallbacks } from '../../../shared/hooks/useDelayedValueWithCallbacks';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
@@ -26,14 +25,19 @@ import { CrudFormElement } from '../../crud/CrudFormElement';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { Button } from '../../../shared/forms/Button';
 import { showClientScreenPicker } from '../../client_screens/showClientScreenPicker';
-import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
 import { convertUsingMapper } from '../../crud/CrudFetcher';
-import { describeError } from '../../../shared/forms/ErrorBlock';
+import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { Checkbox } from '../../../shared/forms/Checkbox';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { TextInput } from '../../../shared/forms/TextInput';
+import { RawJSONEditor } from '../../lib/schema/RawJSONEditor';
+import { useNetworkResponse } from '../../../shared/hooks/useNetworkResponse';
+import { ClientScreen, clientScreenKeyMap } from '../../client_screens/ClientScreen';
+import { adaptActiveVWCToAbortSignal } from '../../../shared/lib/adaptActiveVWCToAbortSignal';
+import { prettySchemaPath } from '../../lib/schema/prettySchemaPath';
+import { ClientScreenSchema } from './schema/multiple/ClientScreenSchema';
 
 export type ClientFlowScreenEditorModalProps = {
   /** The flow this screen is within, so that we can perform tests */
@@ -403,275 +407,59 @@ const Content = ({
   const valueVWC = useMappedValueWithCallbacks(flowScreenSaveable.state, (state) =>
     state.type === 'error' ? state.erroredValue : state.value
   );
+  const slugVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.slug);
+
+  const screenNR = useNetworkResponse<ClientScreen>(
+    (active, loginContext) =>
+      adaptActiveVWCToAbortSignal(active, async (signal): Promise<ClientScreen> => {
+        const response = await apiFetch(
+          '/api/1/client_screens/search',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              filters: {
+                slug: {
+                  operator: 'eq',
+                  value: slugVWC.get(),
+                },
+              },
+              limit: 1,
+            }),
+            signal,
+          },
+          loginContext
+        );
+        if (!response.ok) {
+          throw response;
+        }
+        const raw = await response.json();
+        if (raw.items.length !== 1) {
+          throw new Error('expected exactly one client screen');
+        }
+        return convertUsingMapper(raw.items[0], clientScreenKeyMap);
+      }),
+    {
+      dependsOn: [slugVWC],
+    }
+  );
 
   const fixedValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.fixed);
-  const fixedCanonicalTextVWC = useMappedValueWithCallbacks(fixedValueVWC, (v) =>
-    JSON.stringify(v, undefined, 2)
-  );
-  const fixedTextVWC = useWritableValueWithCallbacks<string>(() => fixedCanonicalTextVWC.get());
-  useValueWithCallbacksEffect(fixedCanonicalTextVWC, (v) => {
-    setVWC(fixedTextVWC, v);
-    return undefined;
-  });
-
-  const fixedErrorVWC = useWritableValueWithCallbacks<string | null>(() => null);
-  useValueWithCallbacksEffect(useDelayedValueWithCallbacks(fixedTextVWC, 1), (text) => {
-    setVWC(fixedErrorVWC, null);
-    if (text === fixedCanonicalTextVWC.get()) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(text);
-      flowScreenSaveable.onClientChange({
-        ...valueVWC.get(),
-        screen: {
-          ...valueVWC.get().screen,
-          fixed: parsed,
-        },
-      });
-    } catch (e) {
-      console.log('error', e);
-      if (
-        typeof e === 'object' &&
-        e !== null &&
-        'message' in e &&
-        typeof (e as any).message === 'string'
-      ) {
-        setVWC(fixedErrorVWC, (e as any).message);
-      } else {
-        setVWC(fixedErrorVWC, 'Unknown error while parsing');
-      }
-    }
-    return undefined;
-  });
-
-  const fixedTextareaRef = useWritableValueWithCallbacks<HTMLTextAreaElement | null>(() => null);
-  useValuesWithCallbacksEffect([fixedCanonicalTextVWC, fixedTextareaRef], () => {
-    const refRaw = fixedTextareaRef.get();
-    if (refRaw === null) {
-      return undefined;
-    }
-    const ref = refRaw;
-
-    ref.value = fixedCanonicalTextVWC.get();
-
-    ref.addEventListener('change', handleChange);
-    return () => {
-      ref.removeEventListener('change', handleChange);
-    };
-
-    function handleChange() {
-      console.log('updating fixedText');
-      setVWC(fixedTextVWC, ref.value);
-    }
-  });
-
   const variableValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.variable);
-  const variableCanonicalTextVWC = useMappedValueWithCallbacks(variableValueVWC, (v) =>
-    JSON.stringify(serializeClientFlowScreenScreenVariable(v), undefined, 2)
-  );
-  const variableTextVWC = useWritableValueWithCallbacks<string>(() =>
-    variableCanonicalTextVWC.get()
-  );
-  useValueWithCallbacksEffect(variableCanonicalTextVWC, (v) => {
-    setVWC(variableTextVWC, v);
-    return undefined;
+  const mappedVariableValueVWC = useMappedValueWithCallbacks(variableValueVWC, (v) => {
+    const result = new Map<string, ClientFlowScreenVariableInput>();
+    for (const variableInput of v) {
+      result.set(prettySchemaPath(variableInput.outputPath), variableInput);
+    }
+    return result;
   });
-
-  const variableErrorVWC = useWritableValueWithCallbacks<string | null>(() => null);
-  useValueWithCallbacksEffect(useDelayedValueWithCallbacks(variableTextVWC, 1), (text) => {
-    setVWC(variableErrorVWC, null);
-    if (text === variableCanonicalTextVWC.get()) {
-      return;
-    }
-
-    try {
-      const raw = JSON.parse(text);
-      const parsed = convertUsingMapper(raw, clientFlowScreenScreenVariableKeyMap);
-      flowScreenSaveable.onClientChange({
-        ...valueVWC.get(),
-        screen: {
-          ...valueVWC.get().screen,
-          variable: parsed,
-        },
-      });
-    } catch (e) {
-      console.log('error', e);
-      if (
-        typeof e === 'object' &&
-        e !== null &&
-        'message' in e &&
-        typeof (e as any).message === 'string'
-      ) {
-        setVWC(variableErrorVWC, (e as any).message);
-      } else {
-        setVWC(variableErrorVWC, 'Unknown error while parsing');
-      }
-    }
-    return undefined;
-  });
-
-  const variableTextareaRef = useWritableValueWithCallbacks<HTMLTextAreaElement | null>(() => null);
-  useValuesWithCallbacksEffect([variableCanonicalTextVWC, variableTextareaRef], () => {
-    const refRaw = variableTextareaRef.get();
-    if (refRaw === null) {
-      return undefined;
-    }
-    const ref = refRaw;
-
-    ref.value = variableCanonicalTextVWC.get();
-
-    ref.addEventListener('change', handleChange);
-    return () => {
-      ref.removeEventListener('change', handleChange);
-    };
-
-    function handleChange() {
-      setVWC(variableTextVWC, ref.value);
-    }
-  });
-
-  const testClientParametersObjectVWC = useMappedValueWithCallbacks(
-    flow,
-    (v) => v.clientSchema.example ?? {}
+  const testClientParametersObjectVWC = useWritableValueWithCallbacks(
+    () => flow.get().clientSchema.example ?? {}
   );
-  const testClientParametersCanonicalTextVWC = useMappedValueWithCallbacks(
-    testClientParametersObjectVWC,
-    (v) => JSON.stringify(v, undefined, 2)
-  );
-  const testClientParametersTextVWC = useWritableValueWithCallbacks<string>(() =>
-    testClientParametersCanonicalTextVWC.get()
-  );
-
-  const testClientParametersErrorVWC = useWritableValueWithCallbacks<string | null>(() => null);
-  useValueWithCallbacksEffect(
-    useDelayedValueWithCallbacks(testClientParametersTextVWC, 1),
-    (text) => {
-      setVWC(testClientParametersErrorVWC, null);
-      if (text === testClientParametersCanonicalTextVWC.get()) {
-        return;
-      }
-
-      try {
-        const parsed = JSON.parse(text);
-        flowScreenSaveable.onClientChange({
-          ...valueVWC.get(),
-          screen: {
-            ...valueVWC.get().screen,
-            fixed: parsed,
-          },
-        });
-      } catch (e) {
-        console.log('error', e);
-        if (
-          typeof e === 'object' &&
-          e !== null &&
-          'message' in e &&
-          typeof (e as any).message === 'string'
-        ) {
-          setVWC(testClientParametersErrorVWC, (e as any).message);
-        } else {
-          setVWC(testClientParametersErrorVWC, 'Unknown error while parsing');
-        }
-      }
-      return undefined;
-    }
-  );
-
-  const testClientParametersTextareaRef = useWritableValueWithCallbacks<HTMLTextAreaElement | null>(
-    () => null
-  );
-  useValuesWithCallbacksEffect(
-    [testClientParametersCanonicalTextVWC, testClientParametersTextareaRef],
-    () => {
-      const refRaw = testClientParametersTextareaRef.get();
-      if (refRaw === null) {
-        return undefined;
-      }
-      const ref = refRaw;
-
-      ref.value = testClientParametersCanonicalTextVWC.get();
-
-      ref.addEventListener('change', handleChange);
-      return () => {
-        ref.removeEventListener('change', handleChange);
-      };
-
-      function handleChange() {
-        setVWC(testClientParametersTextVWC, ref.value);
-      }
-    }
-  );
-
-  const testServerParametersObjectVWC = useMappedValueWithCallbacks(
-    flow,
-    (v) => v.serverSchema.example ?? {}
-  );
-  const testServerParametersCanonicalTextVWC = useMappedValueWithCallbacks(
-    testServerParametersObjectVWC,
-    (v) => JSON.stringify(v, undefined, 2)
-  );
-  const testServerParametersTextVWC = useWritableValueWithCallbacks<string>(() =>
-    testServerParametersCanonicalTextVWC.get()
-  );
-  const testServerParametersErrorVWC = useWritableValueWithCallbacks<string | null>(() => null);
-  useValueWithCallbacksEffect(
-    useDelayedValueWithCallbacks(testServerParametersTextVWC, 1),
-    (text) => {
-      setVWC(testServerParametersErrorVWC, null);
-      if (text === testServerParametersCanonicalTextVWC.get()) {
-        return;
-      }
-
-      try {
-        const parsed = JSON.parse(text);
-        flowScreenSaveable.onClientChange({
-          ...valueVWC.get(),
-          screen: {
-            ...valueVWC.get().screen,
-            fixed: parsed,
-          },
-        });
-      } catch (e) {
-        console.log('error', e);
-        if (
-          typeof e === 'object' &&
-          e !== null &&
-          'message' in e &&
-          typeof (e as any).message === 'string'
-        ) {
-          setVWC(testServerParametersErrorVWC, (e as any).message);
-        } else {
-          setVWC(testServerParametersErrorVWC, 'Unknown error while parsing');
-        }
-      }
-      return undefined;
-    }
-  );
-  const testServerParametersTextareaRef = useWritableValueWithCallbacks<HTMLTextAreaElement | null>(
-    () => null
-  );
-  useValuesWithCallbacksEffect(
-    [testServerParametersCanonicalTextVWC, testServerParametersTextareaRef],
-    () => {
-      const refRaw = testServerParametersTextareaRef.get();
-      if (refRaw === null) {
-        return undefined;
-      }
-      const ref = refRaw;
-
-      ref.value = testServerParametersCanonicalTextVWC.get();
-
-      ref.addEventListener('change', handleChange);
-      return () => {
-        ref.removeEventListener('change', handleChange);
-      };
-
-      function handleChange() {
-        setVWC(testServerParametersTextVWC, ref.value);
-      }
-    }
+  const testServerParametersObjectVWC = useWritableValueWithCallbacks(
+    () => flow.get().serverSchema.example ?? {}
   );
 
   const testErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
@@ -750,53 +538,71 @@ const Content = ({
           )}
         </div>
       </CrudFormElement>
+      <RenderGuardedComponent
+        props={screenNR}
+        component={(screen) =>
+          screen.type === 'error' ? (
+            <ErrorBlock>{screen.error}</ErrorBlock>
+          ) : screen.type !== 'success' ? (
+            <></>
+          ) : (
+            <ClientScreenSchema
+              schema={screen.result.screenSchema}
+              value={{
+                get: () => fixedValueVWC.get(),
+                set: (v) =>
+                  flowScreenSaveable.onClientChange({
+                    ...valueVWC.get(),
+                    screen: { ...valueVWC.get().screen, fixed: v },
+                  }),
+                callbacks: fixedValueVWC.callbacks,
+              }}
+              variable={{
+                get: () => mappedVariableValueVWC.get(),
+                set: (v) =>
+                  flowScreenSaveable.onClientChange({
+                    ...valueVWC.get(),
+                    screen: { ...valueVWC.get().screen, variable: Array.from(v.values()) },
+                  }),
+                callbacks: mappedVariableValueVWC.callbacks,
+              }}
+            />
+          )
+        }
+      />
       <CrudFormElement title="Fixed">
-        <textarea className={styles.fixed} ref={(r) => setVWC(fixedTextareaRef, r)} rows={10} />
-        <RenderGuardedComponent
-          props={fixedErrorVWC}
-          component={(error) =>
-            error === null ? <></> : <div className={styles.fixedError}>{error}</div>
+        <RawJSONEditor
+          canonicalVWC={fixedValueVWC}
+          setValue={(v) =>
+            flowScreenSaveable.onClientChange({
+              ...valueVWC.get(),
+              screen: { ...valueVWC.get().screen, fixed: v },
+            })
           }
         />
       </CrudFormElement>
       <CrudFormElement title="Variable">
-        <textarea
-          className={styles.variable}
-          ref={(r) => setVWC(variableTextareaRef, r)}
-          rows={10}
-        />
-        <RenderGuardedComponent
-          props={variableErrorVWC}
-          component={(error) =>
-            error === null ? <></> : <div className={styles.variableError}>{error}</div>
+        <RawJSONEditor
+          canonicalVWC={variableValueVWC}
+          setValue={(v) =>
+            flowScreenSaveable.onClientChange({
+              ...valueVWC.get(),
+              screen: { ...valueVWC.get().screen, variable: v },
+            })
           }
         />
       </CrudFormElement>
       <div className={styles.testContainer}>
         <CrudFormElement title="Test Client Parameters">
-          <textarea
-            className={styles.testParameters}
-            ref={(r) => setVWC(testClientParametersTextareaRef, r)}
-            rows={10}
-          />
-          <RenderGuardedComponent
-            props={testClientParametersErrorVWC}
-            component={(error) =>
-              error === null ? <></> : <div className={styles.testParametersError}>{error}</div>
-            }
+          <RawJSONEditor
+            canonicalVWC={testClientParametersObjectVWC}
+            setValue={(v) => setVWC(testClientParametersObjectVWC, v)}
           />
         </CrudFormElement>
         <CrudFormElement title="Test Server Parameters">
-          <textarea
-            className={styles.testParameters}
-            ref={(r) => setVWC(testServerParametersTextareaRef, r)}
-            rows={10}
-          />
-          <RenderGuardedComponent
-            props={testServerParametersErrorVWC}
-            component={(error) =>
-              error === null ? <></> : <div className={styles.testParametersError}>{error}</div>
-            }
+          <RawJSONEditor
+            canonicalVWC={testServerParametersObjectVWC}
+            setValue={(v) => setVWC(testServerParametersObjectVWC, v)}
           />
         </CrudFormElement>
         <CrudFormElement title="Dry Run?">
@@ -818,8 +624,8 @@ const Content = ({
               }
               const loginContext = loginContextUnch;
               try {
-                const clientParameters = JSON.parse(testClientParametersTextVWC.get());
-                const serverParameters = JSON.parse(testServerParametersTextVWC.get());
+                const clientParameters = testClientParametersObjectVWC.get();
+                const serverParameters = testServerParametersObjectVWC.get();
 
                 const flowInfo = flow.get();
                 const flowScreen = valueVWC.get();
