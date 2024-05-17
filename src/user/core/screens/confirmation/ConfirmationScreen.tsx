@@ -16,7 +16,6 @@ export const ConfirmationScreen: OsehScreen<
   slug: 'confirmation',
   paramMapper: (params) => ({
     ...params,
-    trigger: params.trigger ?? null,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {
     return {

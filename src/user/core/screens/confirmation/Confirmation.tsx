@@ -33,7 +33,7 @@ export const Confirmation = ({
   ConfirmationResources,
   ConfirmationMappedParams
 >): ReactElement => {
-  const transition = useTransitionProp((): StandardScreenTransition => ({ type: 'fade', ms: 350 }));
+  const transition = useTransitionProp((): StandardScreenTransition => screen.parameters.entrance);
   useEntranceTransition(transition);
 
   const contentWidthVWC = useContentWidthValueWithCallbacks(ctx.windowSizeImmediate);
@@ -70,10 +70,11 @@ export const Confirmation = ({
                     parameters: {},
                   }
             );
+            setVWC(transition.animation, screen.parameters.exit);
             await playExitTransition(transition).promise;
             finishPop();
           }}>
-          Ok
+          {screen.parameters.cta}
         </Button>
       </GridContentContainer>
       <WipeTransitionOverlay wipe={transitionState.wipe} />
