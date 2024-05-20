@@ -97,7 +97,18 @@ export const SchemaNumberSimpleInput = ({
             type="number"
             value={v.text}
             inputStyle={v.inputStyle}
-            onChange={(v) => setVWC(value, v)}
+            onChange={(v) => {
+              try {
+                const num = Number(v);
+                if (Number.isNaN(num)) {
+                  return;
+                }
+
+                setVWC(value, num);
+              } catch (e) {
+                setVWC(value, v);
+              }
+            }}
             label={schema.title ?? path[path.length - 1] ?? '(no title or path)'}
             help={
               <>

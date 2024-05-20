@@ -1,6 +1,6 @@
 .container {
   grid-area: 1 / 1 / -1 / -1;
   display: flex;
+  align-items: stretch;
   justify-content: center;
-  align-items: center;
 }

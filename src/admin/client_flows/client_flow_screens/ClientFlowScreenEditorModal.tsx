@@ -38,6 +38,7 @@ import { ClientScreen, clientScreenKeyMap } from '../../client_screens/ClientScr
 import { adaptActiveVWCToAbortSignal } from '../../../shared/lib/adaptActiveVWCToAbortSignal';
 import { prettySchemaPath } from '../../lib/schema/prettySchemaPath';
 import { ClientScreenSchema } from './schema/multiple/ClientScreenSchema';
+import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 
 export type ClientFlowScreenEditorModalProps = {
   /** The flow this screen is within, so that we can perform tests */
@@ -466,6 +467,7 @@ const Content = ({
   useErrorModal(modalContext.modals, testErrorVWC, 'while testing flow screen');
 
   const dryRunVWC = useWritableValueWithCallbacks<boolean>(() => false);
+  const imageHandler = useOsehImageStateRequestHandler({});
 
   const loginContextRaw = useContext(LoginContext);
 
@@ -505,7 +507,7 @@ const Content = ({
                   ...valueVWC.get(),
                   screen: {
                     slug: choice.slug,
-                    fixed: {},
+                    fixed: (choice.screenSchema as any).example ?? {},
                     variable: [],
                   },
                 });
@@ -538,6 +540,7 @@ const Content = ({
           )}
         </div>
       </CrudFormElement>
+      <div style={{ height: '32px' }} />
       <RenderGuardedComponent
         props={screenNR}
         component={(screen) =>
@@ -566,10 +569,12 @@ const Content = ({
                   }),
                 callbacks: mappedVariableValueVWC.callbacks,
               }}
+              imageHandler={imageHandler}
             />
           )
         }
       />
+      <div style={{ height: '400px' }} />
       <CrudFormElement title="Fixed">
         <RawJSONEditor
           canonicalVWC={fixedValueVWC}

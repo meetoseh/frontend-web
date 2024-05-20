@@ -26,6 +26,7 @@ export const GridContentContainer = ({
   contentWidthVWC,
   left,
   opacity,
+  justifyContent,
   children,
 }: PropsWithChildren<{
   contentWidthVWC: ValueWithCallbacks<number>;
@@ -33,6 +34,8 @@ export const GridContentContainer = ({
   left?: ValueWithCallbacks<number>;
   /** Opacity for fade transitions */
   opacity?: ValueWithCallbacks<number>;
+  /** Overrides the centering justify-content option */
+  justifyContent?: CSSProperties['justifyContent'];
 }>): ReactElement => {
   const containerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
 
@@ -67,7 +70,7 @@ export const GridContentContainer = ({
         (a, b) => a.left === b.left && a.opacity === b.opacity
       );
     }
-  }, [left, opacity]);
+  }, [left, opacity, containerTransitionState]);
 
   const containerStyleVWC = useMappedValueWithCallbacks(
     containerTransitionState,
@@ -92,7 +95,9 @@ export const GridContentContainer = ({
       className={styles.container}
       ref={(r) => setVWC(containerRef, r)}
       style={containerStyleVWC.get()}>
-      <ContentContainer contentWidthVWC={contentWidthVWC}>{children}</ContentContainer>
+      <ContentContainer contentWidthVWC={contentWidthVWC} justifyContent={justifyContent}>
+        {children}
+      </ContentContainer>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { ReactElement, useCallback, useContext, useEffect } from 'react';
 import { LoginContext, LoginProvider } from '../shared/contexts/LoginContext';
 import { SplashScreen } from './splash/SplashScreen';
 import { apiFetch } from '../shared/ApiConstants';
@@ -20,13 +20,40 @@ import { useScreenQueue } from './core/hooks/useScreenQueue';
 import { OsehScreen, ScreenResources } from './core/models/Screen';
 import { useMappedValueWithCallbacks } from '../shared/hooks/useMappedValueWithCallbacks';
 import { ConfirmationScreen } from './core/screens/confirmation/ConfirmationScreen';
+import { USES_WEBP } from '../shared/images/usesWebp';
+import { USES_SVG } from '../shared/images/usesSvg';
+import { ImageInterstitialScreen } from './core/screens/image_interstitial/ImageInterstitialScreen';
 
 export default function UserScreensApp(): ReactElement {
+  const imageFormatsVWC = useWritableValueWithCallbacks<{
+    usesWebp: boolean;
+    usesSvg: boolean;
+  } | null>(() => null);
+
+  useEffect(() => {
+    let active = true;
+    check();
+    return () => {
+      active = false;
+    };
+
+    async function check() {
+      const [usesWebp, usesSvg] = await Promise.all([USES_WEBP, USES_SVG]);
+      if (!active) {
+        return;
+      }
+      setVWC(imageFormatsVWC, { usesWebp, usesSvg });
+    }
+  });
+
   return (
     <LoginProvider>
       <InterestsAutoProvider>
         <ModalProvider>
-          <UserScreensAppInner />
+          <RenderGuardedComponent
+            props={imageFormatsVWC}
+            component={(fmts) => (fmts === null ? <></> : <UserScreensAppInner {...fmts} />)}
+          />
         </ModalProvider>
       </InterestsAutoProvider>
     </LoginProvider>
@@ -41,7 +68,7 @@ const requiredFonts = [
   '700 1em Open Sans',
 ];
 
-const screens = [ConfirmationScreen] as any[] as readonly OsehScreen<
+const screens = [ConfirmationScreen, ImageInterstitialScreen] as any[] as readonly OsehScreen<
   string,
   ScreenResources,
   object,
@@ -51,12 +78,18 @@ const screens = [ConfirmationScreen] as any[] as readonly OsehScreen<
 /**
  * Initializes a screen queue and renders the current screen component or a spinner
  */
-const UserScreensAppInner = (): ReactElement => {
+const UserScreensAppInner = ({
+  usesWebp,
+  usesSvg,
+}: {
+  usesWebp: boolean;
+  usesSvg: boolean;
+}): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const fontsLoaded = useFonts(requiredFonts);
 
   const screenQueueState = useScreenQueueState();
-  const screenContext = useScreenContext();
+  const screenContext = useScreenContext(usesWebp, usesSvg);
   const screenQueue = useScreenQueue({
     screenQueueState,
     screenContext,

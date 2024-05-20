@@ -1,3 +1,4 @@
+import { OsehImageStateRequestHandler } from '../../../../shared/images/useOsehImageStateRequestHandler';
 import { WritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { SchemaInputProps } from '../../../lib/schema/SchemaInputProps';
 import { ClientFlowScreenVariableInput } from '../ClientFlowScreen';
@@ -10,6 +11,7 @@ export type ClientScreenSchemaInputProps = Omit<SchemaInputProps, 'delegator'> &
   variable: WritableValueWithCallbacks<Map<string, ClientFlowScreenVariableInput>>;
   noCopyDelegator: SchemaInputProps['delegator'];
   withCopyDelegator: SchemaInputProps['delegator'];
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 export type ClientScreenSchemaInputPropsTopLevel = Omit<

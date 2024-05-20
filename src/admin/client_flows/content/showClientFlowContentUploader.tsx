@@ -53,7 +53,7 @@ export const showClientFlowContentUploader = (
       },
       accept: 'video/*, audio/*',
       poller: createUploadPoller(
-        '/api/1/client_flows/content/search',
+        '/api/1/admin/client_flows/content/search',
         clientFlowContentKeyMap,
         loginContextRaw,
         {

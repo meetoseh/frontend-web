@@ -4,16 +4,15 @@ import {
   InterestsContextProvidedValue,
 } from '../../../shared/contexts/InterestsContext';
 import { LoginContext, LoginContextValue } from '../../../shared/contexts/LoginContext';
-import {
-  ValueWithCallbacks,
-  WritableValueWithCallbacks,
-  useWritableValueWithCallbacks,
-} from '../../../shared/lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { Resources } from '../models/Resources';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { useDelayedValueWithCallbacks } from '../../../shared/hooks/useDelayedValueWithCallbacks';
-import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { useContentWidthValueWithCallbacks } from '../../../shared/lib/useContentWidthValueWithCallbacks';
+import { createImagePrivatePlaylistRequestHandler } from '../../../shared/images/createImagePrivatePlaylistRequestHandler';
+import { createImagePublicPlaylistRequestHandler } from '../../../shared/images/createImagePublicPlaylistRequestHandler';
+import { createImageDataRequestHandler } from '../../../shared/images/createImageDataRequestHandler';
+import { createImageCropRequestHandler } from '../../../shared/images/createImageCropRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -57,7 +56,7 @@ export type ScreenContext = {
   /**
    * The suggested width of the content area for app-like screens. This will
    * allow for the appropriate horizontal padding when centered within the
-   * viewport.
+   * viewport. Updates immediately when the window size changes.
    */
   contentWidth: ValueWithCallbacks<number>;
 
@@ -65,6 +64,12 @@ export type ScreenContext = {
    * The visitor and how they signed up with oseh (i.e, their interests)
    */
   interests: InterestsContextProvidedValue;
+
+  /** True to use webp images, false never to use webp images */
+  usesWebp: boolean;
+
+  /** True to use svg vector images, false never to use svg vector images */
+  usesSvg: boolean;
 };
 
 const areWindowSizesEqual = (a: WindowSize, b: WindowSize): boolean =>
@@ -74,7 +79,7 @@ const areWindowSizesEqual = (a: WindowSize, b: WindowSize): boolean =>
  * Initializes a new screen context that can be used by screens managed by
  * `useScreenQueue`
  */
-export const useScreenContext = (): ScreenContext => {
+export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenContext => {
   const windowSizeImmediate = useWritableValueWithCallbacks<{ width: number; height: number }>(
     () => {
       return { width: window.innerWidth, height: window.innerHeight };
@@ -107,8 +112,30 @@ export const useScreenContext = (): ScreenContext => {
   }, [windowSizeImmediate]);
 
   const windowSizeDebounced = useDelayedValueWithCallbacks(windowSizeImmediate, 100);
-  const imageHandler = useOsehImageStateRequestHandler({ cacheSize: 100 });
-  const resources = useMemo((): Resources => ({ imageHandler }), [imageHandler]);
+  const logging = 'none';
+  const cacheSize = 100;
+  const privatePlaylistHandler = useWritableValueWithCallbacks(() =>
+    createImagePrivatePlaylistRequestHandler({ logging, maxStale: cacheSize })
+  );
+  const publicPlaylistHandler = useWritableValueWithCallbacks(() =>
+    createImagePublicPlaylistRequestHandler({ logging, maxStale: cacheSize })
+  );
+  const imageDataHandler = useWritableValueWithCallbacks(() =>
+    createImageDataRequestHandler({ logging, maxStale: cacheSize })
+  );
+  const imageCropHandler = useWritableValueWithCallbacks(() =>
+    createImageCropRequestHandler({ logging, maxStale: cacheSize })
+  );
+
+  const resources = useMemo(
+    (): Resources => ({
+      privatePlaylistHandler: privatePlaylistHandler.get(),
+      publicPlaylistHandler: publicPlaylistHandler.get(),
+      imageDataHandler: imageDataHandler.get(),
+      imageCropHandler: imageCropHandler.get(),
+    }),
+    [privatePlaylistHandler, publicPlaylistHandler, imageDataHandler, imageCropHandler]
+  );
 
   const loginContext = useContext(LoginContext);
   const interestsContext = useContext(InterestsContext);
@@ -122,6 +149,8 @@ export const useScreenContext = (): ScreenContext => {
       windowSizeDebounced,
       contentWidth,
       interests: interestsContext,
+      usesWebp,
+      usesSvg,
     }),
     [
       loginContext,
@@ -130,6 +159,8 @@ export const useScreenContext = (): ScreenContext => {
       windowSizeImmediate,
       windowSizeDebounced,
       contentWidth,
+      usesWebp,
+      usesSvg,
     ]
   );
 };

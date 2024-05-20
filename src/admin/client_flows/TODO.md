@@ -74,13 +74,13 @@ The first simple screen we create for testing; contains title, message, and a bu
 
 https://www.figma.com/design/B8RtzaDUCQK6ku4CO4tblE/%F0%9F%AA%A8-Oseh?node-id=4400-8315&t=GrlgmhyDQ6UiUix8-4
 
-- [ ] client
-- [ ] backend migration to add screen
-- [ ] add minimal client flows using this screen (empty, etc)
+- [x] client
+- [x] backend migration to add screen
+- [x] add minimal client flows using this screen (empty, etc)
 
 ### debug queue
 
-/debug-client-screen-queue
+- [ ] /debug-client-screen-queue
 
 similar to how /debug-features worked, but this time is going to show the common
 contexts + resources + screens
@@ -91,9 +91,9 @@ a really simple screen but now with an image
 
 https://www.figma.com/design/B8RtzaDUCQK6ku4CO4tblE/%F0%9F%AA%A8-Oseh?node-id=7590-32870&t=GrlgmhyDQ6UiUix8-4
 
-- [ ] client
-- [ ] backend migration to add screen
-- [ ] add client flow
+- [x] client
+- [x] backend migration to add screen
+- [x] add client flow
 
 ### video screen
 

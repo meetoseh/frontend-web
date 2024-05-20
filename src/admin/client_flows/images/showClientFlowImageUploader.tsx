@@ -53,7 +53,7 @@ export const showClientFlowImageUploader = (
       },
       accept: 'image/*',
       poller: createUploadPoller(
-        '/api/1/client_flows/image/search',
+        '/api/1/admin/client_flows/image/search',
         clientFlowImageKeyMap,
         loginContextRaw,
         {

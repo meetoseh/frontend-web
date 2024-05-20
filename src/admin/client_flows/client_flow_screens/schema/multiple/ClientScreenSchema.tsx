@@ -6,6 +6,7 @@ import {
 import { ClientScreenSchemaCopyInput } from '../wrapper/ClientScreenSchemaCopyInput';
 import { SchemaStandard } from '../../../../lib/schema/multiple/SchemaStandard';
 import { ClientScreenSchemaStringInput } from '../string/ClientScreenSchemaStringInput';
+import { ClientScreenSchemaImageInput } from '../string/ClientScreenSchemaImageInput';
 
 const copyableTypes = new Set(['number', 'integer', 'boolean', 'double', 'float']);
 
@@ -20,19 +21,33 @@ export const ClientScreenSchema = ({
   delegator,
   variable,
   noCopy,
+  imageHandler,
 }: ClientScreenSchemaInputPropsTopLevel & { noCopy?: boolean }): ReactElement => {
   const subprops = {
     schema,
     path: path ?? [],
     value,
     variable,
+    imageHandler,
   };
 
   const fancyProps: ClientScreenSchemaInputProps = {
     ...subprops,
-    noCopyDelegator: (props) => <ClientScreenSchema variable={variable} {...props} noCopy={true} />,
+    noCopyDelegator: (props) => (
+      <ClientScreenSchema
+        variable={variable}
+        imageHandler={imageHandler}
+        {...props}
+        noCopy={true}
+      />
+    ),
     withCopyDelegator: (props) => (
-      <ClientScreenSchema variable={variable} {...props} noCopy={false} />
+      <ClientScreenSchema
+        variable={variable}
+        imageHandler={imageHandler}
+        {...props}
+        noCopy={false}
+      />
     ),
   };
 
@@ -41,13 +56,23 @@ export const ClientScreenSchema = ({
   }
 
   if (schema.type === 'string') {
+    if (schema.format === 'image_uid') {
+      return <ClientScreenSchemaImageInput {...fancyProps} />;
+    }
     return <ClientScreenSchemaStringInput {...fancyProps} />;
   }
 
   return (
     <SchemaStandard
       {...subprops}
-      delegator={(props) => <ClientScreenSchema variable={variable} {...props} noCopy={false} />}
+      delegator={(props) => (
+        <ClientScreenSchema
+          variable={variable}
+          imageHandler={imageHandler}
+          {...props}
+          noCopy={false}
+        />
+      )}
     />
   );
 };
