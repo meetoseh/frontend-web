@@ -7,6 +7,7 @@ import { ClientScreenSchemaCopyInput } from '../wrapper/ClientScreenSchemaCopyIn
 import { SchemaStandard } from '../../../../lib/schema/multiple/SchemaStandard';
 import { ClientScreenSchemaStringInput } from '../string/ClientScreenSchemaStringInput';
 import { ClientScreenSchemaImageInput } from '../string/ClientScreenSchemaImageInput';
+import { ClientScreenSchemaContentInput } from '../string/ClientScreenSchemaContentInput';
 
 const copyableTypes = new Set(['number', 'integer', 'boolean', 'double', 'float']);
 
@@ -58,6 +59,8 @@ export const ClientScreenSchema = ({
   if (schema.type === 'string') {
     if (schema.format === 'image_uid') {
       return <ClientScreenSchemaImageInput {...fancyProps} />;
+    } else if (schema.format === 'content_uid') {
+      return <ClientScreenSchemaContentInput {...fancyProps} />;
     }
     return <ClientScreenSchemaStringInput {...fancyProps} />;
   }

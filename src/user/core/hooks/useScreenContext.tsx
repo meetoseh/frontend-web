@@ -13,6 +13,8 @@ import { createImagePrivatePlaylistRequestHandler } from '../../../shared/images
 import { createImagePublicPlaylistRequestHandler } from '../../../shared/images/createImagePublicPlaylistRequestHandler';
 import { createImageDataRequestHandler } from '../../../shared/images/createImageDataRequestHandler';
 import { createImageCropRequestHandler } from '../../../shared/images/createImageCropRequestHandler';
+import { createContentPlaylistRequestHandler } from '../../../shared/content/createContentPlaylistRequestHandler';
+import { createVideoDataRequestHandler } from '../../../shared/content/createVideoDataHandler';
 
 type WindowSize = {
   width: number;
@@ -126,6 +128,12 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const imageCropHandler = useWritableValueWithCallbacks(() =>
     createImageCropRequestHandler({ logging, maxStale: cacheSize })
   );
+  const contentPlaylistHandler = useWritableValueWithCallbacks(() =>
+    createContentPlaylistRequestHandler({ logging, maxStale: cacheSize })
+  );
+  const videoDataHandler = useWritableValueWithCallbacks(() =>
+    createVideoDataRequestHandler({ logging, maxStale: 2 })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -133,8 +141,17 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       publicPlaylistHandler: publicPlaylistHandler.get(),
       imageDataHandler: imageDataHandler.get(),
       imageCropHandler: imageCropHandler.get(),
+      contentPlaylistHandler: contentPlaylistHandler.get(),
+      videoDataHandler: videoDataHandler.get(),
     }),
-    [privatePlaylistHandler, publicPlaylistHandler, imageDataHandler, imageCropHandler]
+    [
+      privatePlaylistHandler,
+      publicPlaylistHandler,
+      imageDataHandler,
+      imageCropHandler,
+      contentPlaylistHandler,
+      videoDataHandler,
+    ]
   );
 
   const loginContext = useContext(LoginContext);

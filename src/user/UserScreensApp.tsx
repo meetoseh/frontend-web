@@ -23,6 +23,7 @@ import { ConfirmationScreen } from './core/screens/confirmation/ConfirmationScre
 import { USES_WEBP } from '../shared/images/usesWebp';
 import { USES_SVG } from '../shared/images/usesSvg';
 import { ImageInterstitialScreen } from './core/screens/image_interstitial/ImageInterstitialScreen';
+import { VideoInterstitialScreen } from './core/screens/video_interstitial/VideoInterstitialScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -68,12 +69,11 @@ const requiredFonts = [
   '700 1em Open Sans',
 ];
 
-const screens = [ConfirmationScreen, ImageInterstitialScreen] as any[] as readonly OsehScreen<
-  string,
-  ScreenResources,
-  object,
-  { __mapped?: true }
->[];
+const screens = [
+  ConfirmationScreen,
+  ImageInterstitialScreen,
+  VideoInterstitialScreen,
+] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
  * Initializes a screen queue and renders the current screen component or a spinner

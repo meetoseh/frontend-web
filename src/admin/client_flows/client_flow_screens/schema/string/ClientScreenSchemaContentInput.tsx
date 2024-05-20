@@ -8,28 +8,30 @@ import { useNetworkResponse } from '../../../../../shared/hooks/useNetworkRespon
 import { adaptActiveVWCToAbortSignal } from '../../../../../shared/lib/adaptActiveVWCToAbortSignal';
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { convertUsingMapper } from '../../../../crud/CrudFetcher';
-import { clientFlowImageKeyMap } from '../../../images/ClientFlowImage';
-import { OsehImage } from '../../../../../shared/images/OsehImage';
 import { Button } from '../../../../../shared/forms/Button';
-import { showClientFlowImageSelector } from '../../../images/showClientFlowImageSelector';
 import { ModalContext } from '../../../../../shared/contexts/ModalContext';
 import { setVWC } from '../../../../../shared/lib/setVWC';
-import { showClientFlowImageUploader } from '../../../images/showClientFlowImageUploader';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
 import { ErrorBlock } from '../../../../../shared/forms/ErrorBlock';
+import { OsehContent } from '../../../../../shared/content/OsehContent';
+import { clientFlowContentKeyMap } from '../../../content/ClientFlowContent';
+import { showClientFlowContentSelector } from '../../../content/showClientFlowContentSelector';
+import { showClientFlowContentUploader } from '../../../content/showClientFlowContentUploader';
 
 /**
- * Allows the user to select or upload an image to fill a string prop.
+ * Allows the user to select or upload a video or audio file to fill a string prop.
  */
-export const ClientScreenSchemaImageInput = (props: ClientScreenSchemaInputProps): ReactElement => {
+export const ClientScreenSchemaContentInput = (
+  props: ClientScreenSchemaInputProps
+): ReactElement => {
   if (props.schema.type !== 'string') {
-    throw new Error('ClientScreenSchemaImageInput only works with string schemas');
+    throw new Error('ClientScreenSchemaContentInput only works with string schemas');
   }
-  if (props.schema.format !== 'image_uid') {
-    throw new Error('ClientScreenSchemaImageInput only works with string format "image_uid"');
+  if (props.schema.format !== 'content_uid') {
+    throw new Error('ClientScreenSchemaContentInput only works with string format "content_uid"');
   }
   if (typeof props.schema['x-processor'] !== 'object') {
-    throw new Error('ClientScreenSchemaImageInput requires an x-processor hint');
+    throw new Error('ClientScreenSchemaContentInput requires an x-processor hint');
   }
 
   const outputPrettyPath = useMemo(() => prettySchemaPath(props.path), [props.path]);
@@ -54,12 +56,14 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
   const modalContext = useContext(ModalContext);
   const loginContextRaw = useContext(LoginContext);
   const processor = props.schema['x-processor'] as { job: string; list: string };
-  const preview = (props.schema['x-preview'] as { width: number; height: number } | undefined) ?? {
-    width: 200,
-    height: 200,
+  const preview = (props.schema['x-preview'] as
+    | { type: 'audio' }
+    | { type: 'video'; width: number; height: number }
+    | undefined) ?? {
+    type: 'audio',
   };
 
-  const imageNR = useNetworkResponse(
+  const contentNR = useNetworkResponse(
     (active, loginContext) =>
       adaptActiveVWCToAbortSignal(active, async (signal) => {
         const uid = props.value.get();
@@ -68,7 +72,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
         }
 
         const response = await apiFetch(
-          '/api/1/admin/client_flows/image/search',
+          '/api/1/admin/client_flows/content/search',
           {
             method: 'POST',
             headers: {
@@ -76,7 +80,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
             },
             body: JSON.stringify({
               filters: {
-                image_file_uid: {
+                content_file_uid: {
                   operator: 'eq',
                   value: uid,
                 },
@@ -98,7 +102,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
           return null;
         }
 
-        return convertUsingMapper(data.items[0], clientFlowImageKeyMap);
+        return convertUsingMapper(data.items[0], clientFlowContentKeyMap);
       }),
     {
       dependsOn: [props.value],
@@ -117,25 +121,31 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
       <div className={styles.content}>
         <div className={styles.image}>
           <RenderGuardedComponent
-            props={imageNR}
-            component={(image) => {
-              if (image.type === 'error') {
-                return <ErrorBlock>{image.error}</ErrorBlock>;
+            props={contentNR}
+            component={(content) => {
+              if (content.type === 'error') {
+                return <ErrorBlock>{content.error}</ErrorBlock>;
               }
-              if (image.type === 'unavailable') {
-                return <ErrorBlock>Image is invalid or in the wrong list</ErrorBlock>;
+              if (content.type === 'unavailable') {
+                return <ErrorBlock>File is invalid or in the wrong list</ErrorBlock>;
               }
-              if (image.type !== 'success') {
+              if (content.type !== 'success') {
                 return <></>;
               }
+
               return (
-                <OsehImage
-                  displayWidth={preview.width}
-                  displayHeight={preview.height}
-                  alt=""
-                  uid={image.result.imageFile.uid}
-                  jwt={image.result.imageFile.jwt}
-                  handler={props.imageHandler}
+                <OsehContent
+                  uid={content.result.contentFile.uid}
+                  jwt={content.result.contentFile.jwt}
+                  showAs={preview.type}
+                  playerStyle={
+                    preview.type !== 'video'
+                      ? undefined
+                      : {
+                          width: preview.width,
+                          height: preview.height,
+                        }
+                  }
                 />
               );
             }}
@@ -147,23 +157,23 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
             variant="outlined"
             onClick={async (e) => {
               e.preventDefault();
-              const choice = await showClientFlowImageSelector(
+              const choice = await showClientFlowContentSelector(
                 modalContext.modals,
                 processor.list,
                 preview
               ).promise;
               if (choice !== null && choice !== undefined) {
-                setVWC(props.value, choice.imageFile.uid);
+                setVWC(props.value, choice.contentFile.uid);
               }
             }}>
-            Select Image
+            Select {preview.type === 'video' ? 'Video' : 'Audio'}
           </Button>
           <Button
             type="button"
             variant="outlined"
             onClick={async (e) => {
               e.preventDefault();
-              const choice = await showClientFlowImageUploader(
+              const choice = await showClientFlowContentUploader(
                 modalContext.modals,
                 loginContextRaw,
                 {
@@ -172,10 +182,10 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
                 }
               ).promise;
               if (choice !== null && choice !== undefined) {
-                setVWC(props.value, choice.imageFile.uid);
+                setVWC(props.value, choice.contentFile.uid);
               }
             }}>
-            Upload Image
+            Upload {preview.type === 'video' ? 'Video' : 'Audio'}
           </Button>
         </div>
       </div>

@@ -119,7 +119,7 @@ export const ImageInterstitialScreen: OsehScreen<
       getExportCropped()
     );
 
-    imageSizeDebouncedVWC.callbacks.add(() => {
+    const handleImageSizeChange = () => {
       const oldImg = imageVWC.get();
       if (oldImg !== null) {
         oldImg.release();
@@ -131,7 +131,8 @@ export const ImageInterstitialScreen: OsehScreen<
       }
 
       setVWC(imageVWC, getExportCropped());
-    });
+    };
+    imageSizeDebouncedVWC.callbacks.add(handleImageSizeChange);
 
     const imageDataUnwrapperVWC = createWritableValueWithCallbacks<
       RequestResultConcrete<OsehImageExportCropped>
@@ -200,6 +201,7 @@ export const ImageInterstitialScreen: OsehScreen<
         cleanupImageSizeImmediate();
         cleanupImageSizeDebounced();
         cleanupImageDataUnwrapper();
+        imageSizeDebouncedVWC.callbacks.remove(handleImageSizeChange);
         const img = imageVWC.get();
         if (img !== null) {
           img.release();

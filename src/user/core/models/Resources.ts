@@ -1,3 +1,9 @@
+import { OsehContentRefLoadable } from '../../../shared/content/OsehContentRef';
+import {
+  ContentFileWebExportRef,
+  OsehContentPlaylist,
+  VideoFileData,
+} from '../../../shared/content/OsehContentTarget';
 import { OsehImageExport } from '../../../shared/images/OsehImageExport';
 import { OsehImageExportCropped } from '../../../shared/images/OsehImageExportCropped';
 import { OsehImageExportCroppedRef } from '../../../shared/images/OsehImageExportCroppedRef';
@@ -33,4 +39,15 @@ export type Resources = {
    * Manages cropping downloaded image assets
    */
   imageCropHandler: RequestHandler<OsehImageExportCroppedRef, OsehImageExportCropped>;
+  /**
+   * Manages downloading content playlists, i.e., the web broadly compatible
+   * equivalent to m3u8 files (lists out all the available encodings of a video
+   * or audio file). This isn't necessary on the web as we directly supply the
+   * api path for the m3u8 file to play to the video player
+   */
+  contentPlaylistHandler: RequestHandler<OsehContentRefLoadable, OsehContentPlaylist>;
+  /**
+   * Manages downloading video data for the video player
+   */
+  videoDataHandler: RequestHandler<ContentFileWebExportRef, VideoFileData>;
 };

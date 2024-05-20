@@ -11,6 +11,7 @@ import {
   OsehMediaContentStateLoading,
 } from './OsehMediaContentState';
 import { describeError } from '../forms/ErrorBlock';
+import { CancelablePromise } from '../lib/CancelablePromise';
 
 export type UseOsehVideoContentStateProps = {
   target: ValueWithCallbacks<OsehContentTarget>;
@@ -96,117 +97,14 @@ export const useOsehVideoContentState = ({
           video.pause();
         }
 
-        const onLoadPromise = new Promise<void>((resolve, reject) => {
-          const innerCancelers = new Callbacks<undefined>();
-
-          if (video.readyState >= 4) {
-            innerCancelers.call(undefined);
-            resolve();
-            return;
-          }
-
-          const onCanceled = () => {
-            cancelers.remove(onCanceled);
-            innerCancelers.call(undefined);
-            reject(new Error('canceled'));
-          };
-
-          const onLoaded = () => {
-            cancelers.remove(onCanceled);
-            innerCancelers.call(undefined);
-            resolve();
-          };
-
-          const onPotentiallyResolvableIssue = () => {
-            if (didResetLoad) {
-              onLoaded();
-            } else {
-              resetLoad();
-            }
-          };
-
-          const onRecheckNetworkStateTimeout = () => {
-            recheckNetworkStateTimeout = null;
-
-            if (video.networkState !== 2) {
-              if (didResetLoad) {
-                onLoaded();
-              } else {
-                resetLoad();
-              }
-            } else {
-              recheckNetworkStateTimeout = setTimeout(onRecheckNetworkStateTimeout, 100);
-            }
-          };
-
-          cancelers.add(onCanceled);
-          innerCancelers.add(() => video.removeEventListener('canplaythrough', onLoaded));
-          innerCancelers.add(() =>
-            video.removeEventListener('suspend', onPotentiallyResolvableIssue)
-          );
-          innerCancelers.add(() =>
-            video.removeEventListener('stalled', onPotentiallyResolvableIssue)
-          );
-          innerCancelers.add(() =>
-            video.removeEventListener('error', onPotentiallyResolvableIssue)
-          );
-          video.addEventListener('canplaythrough', onLoaded);
-          video.addEventListener('suspend', onPotentiallyResolvableIssue);
-          video.addEventListener('stalled', onPotentiallyResolvableIssue);
-          video.addEventListener('error', onPotentiallyResolvableIssue);
-
-          let recheckNetworkStateTimeout: NodeJS.Timeout | null = setTimeout(
-            onRecheckNetworkStateTimeout,
-            100
-          );
-          innerCancelers.add(() => {
-            if (recheckNetworkStateTimeout !== null) {
-              clearTimeout(recheckNetworkStateTimeout);
-              recheckNetworkStateTimeout = null;
-            }
-          });
-
-          let didResetLoad = false;
-          const resetLoad = () => {
-            if (didResetLoad) {
-              return;
-            }
-            didResetLoad = true;
-
-            if (video.networkState === 3) {
-              video.src = videoSrc;
-            }
-            let timeout: NodeJS.Timeout | null = null;
-            innerCancelers.add(() => {
-              if (timeout !== null) {
-                clearTimeout(timeout);
-                timeout = null;
-              }
-            });
-
-            const onLoadStart = () => {
-              if (timeout !== null) {
-                clearTimeout(timeout);
-              }
-            };
-
-            timeout = setTimeout(() => {
-              timeout = null;
-              onLoaded();
-            }, 250);
-
-            innerCancelers.add(() => video.removeEventListener('loadstart', onLoadStart));
-            video.addEventListener('loadstart', onLoadStart);
-            video.load();
-          };
-
-          if (video.networkState !== 2) {
-            resetLoad();
-          }
-        });
+        const videoReady = waitUntilVideoIsReady(video, videoSrc);
+        cancelers.add(videoReady.cancel);
+        if (!active) {
+          videoReady.cancel();
+        }
 
         try {
-          await onLoadPromise;
+          await videoReady.promise;
         } catch (e) {
           if (!active) {
             return;
@@ -217,6 +115,8 @@ export const useOsehVideoContentState = ({
           }
           setVWC(result, makeErrorState(err));
           return;
+        } finally {
+          cancelers.remove(videoReady.cancel);
         }
 
         if (!active) {
@@ -229,6 +129,133 @@ export const useOsehVideoContentState = ({
   );
 
   return result;
+};
+
+/**
+ * Returns a cancelable promise which resolves when the video is ready to
+ * be shown and rejects if the video cannot be loaded.
+ */
+export const waitUntilVideoIsReady = (
+  video: HTMLVideoElement,
+  videoSrc: string
+): CancelablePromise<void> => {
+  if (video.readyState >= 4) {
+    return {
+      promise: Promise.resolve(),
+      done: () => true,
+      cancel: () => {},
+    };
+  }
+
+  let resolve: () => void = () => {};
+  let reject: (e: Error) => void = () => {};
+  const promise = new Promise<void>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  const innerCancelers = new Callbacks<undefined>();
+  let done = false;
+
+  const onCanceled = () => {
+    innerCancelers.call(undefined);
+    innerCancelers.clear();
+    done = true;
+    reject(new Error('canceled'));
+  };
+
+  const onLoaded = () => {
+    innerCancelers.call(undefined);
+    innerCancelers.clear();
+    done = true;
+    resolve();
+  };
+
+  const onPotentiallyResolvableIssue = () => {
+    if (didResetLoad) {
+      onLoaded();
+    } else {
+      resetLoad();
+    }
+  };
+
+  const onRecheckNetworkStateTimeout = () => {
+    recheckNetworkStateTimeout = null;
+
+    if (video.networkState !== 2) {
+      if (didResetLoad) {
+        onLoaded();
+      } else {
+        resetLoad();
+      }
+    } else {
+      recheckNetworkStateTimeout = setTimeout(onRecheckNetworkStateTimeout, 100);
+    }
+  };
+
+  innerCancelers.add(() => video.removeEventListener('canplaythrough', onLoaded));
+  innerCancelers.add(() => video.removeEventListener('suspend', onPotentiallyResolvableIssue));
+  innerCancelers.add(() => video.removeEventListener('stalled', onPotentiallyResolvableIssue));
+  innerCancelers.add(() => video.removeEventListener('error', onPotentiallyResolvableIssue));
+  video.addEventListener('canplaythrough', onLoaded);
+  video.addEventListener('suspend', onPotentiallyResolvableIssue);
+  video.addEventListener('stalled', onPotentiallyResolvableIssue);
+  video.addEventListener('error', onPotentiallyResolvableIssue);
+
+  let recheckNetworkStateTimeout: NodeJS.Timeout | null = setTimeout(
+    onRecheckNetworkStateTimeout,
+    100
+  );
+  innerCancelers.add(() => {
+    if (recheckNetworkStateTimeout !== null) {
+      clearTimeout(recheckNetworkStateTimeout);
+      recheckNetworkStateTimeout = null;
+    }
+  });
+
+  let didResetLoad = false;
+  const resetLoad = () => {
+    if (didResetLoad) {
+      return;
+    }
+    didResetLoad = true;
+
+    if (video.networkState === 3) {
+      video.src = videoSrc;
+    }
+    let timeout: NodeJS.Timeout | null = null;
+    innerCancelers.add(() => {
+      if (timeout !== null) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+    });
+
+    const onLoadStart = () => {
+      if (timeout !== null) {
+        clearTimeout(timeout);
+      }
+    };
+
+    timeout = setTimeout(() => {
+      timeout = null;
+      onLoaded();
+    }, 250);
+
+    innerCancelers.add(() => video.removeEventListener('loadstart', onLoadStart));
+    video.addEventListener('loadstart', onLoadStart);
+    video.load();
+  };
+
+  if (video.networkState !== 2) {
+    resetLoad();
+  }
+
+  return {
+    promise,
+    done: () => done,
+    cancel: onCanceled,
+  };
 };
 
 const makeLoadingState = (): OsehMediaContentStateLoading => ({

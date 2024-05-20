@@ -27,7 +27,7 @@ export const ClientFlowContentList = ({
         height: number;
       };
 }): ReactElement =>
-  preview.type == 'video' ? (
+  preview.type === 'video' ? (
     <SimpleVideoFilesChoice
       items={items}
       itemToVideo={(item) => item.contentFile}

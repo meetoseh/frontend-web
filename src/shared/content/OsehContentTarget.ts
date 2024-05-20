@@ -1,4 +1,6 @@
 import { ReactElement } from 'react';
+import { CrudFetcherMapper, convertUsingMapper } from '../../admin/crud/CrudFetcher';
+import { OsehContentRefLoadable } from './OsehContentRef';
 
 /**
  * Describes the meta-information on a web export of a content file.
@@ -28,6 +30,68 @@ export type ContentFileWebExport = {
    * why this export was selected.
    */
   formatParameters: any;
+};
+
+export const contentFileWebExportKeyMap: CrudFetcherMapper<ContentFileWebExport> = {
+  file_size: 'fileSize',
+  quality_parameters: 'qualityParameters',
+  format_parameters: 'formatParameters',
+};
+
+/**
+ * Describes a single content file export, but keeping track of the playlist it belongs to
+ */
+export type ContentFileWebExportRef = {
+  /** The playlist the web export is part of */
+  playlistRef: OsehContentRefLoadable;
+  /** The actual web export to download */
+  target: ContentFileWebExport;
+  /** True if the target url is already presigned, false if not */
+  presigned: boolean;
+};
+
+export type VideoFileData = {
+  element: HTMLVideoElement;
+  /** Width in physical pixels of the underlying content, if known */
+  width?: number;
+  /** Height in physical pixels of the underlying content, if known */
+  height?: number;
+};
+
+/**
+ * Describes what a OsehContentRef can be converted to for the
+ * web via an api request
+ */
+export type OsehAPIContentPlaylist = {
+  /**
+   * The exports that are available for the content
+   */
+  exports: ContentFileWebExport[];
+  /**
+   * The duration of each export in seconds (they should all be the same,
+   * as they are just different encodings of the same content)
+   */
+  durationSeconds: number;
+};
+
+export const osehAPIContentPlaylistMapper: CrudFetcherMapper<OsehAPIContentPlaylist> = {
+  exports: (_, v: any[]) => ({
+    key: 'exports',
+    value: v.map((i) => convertUsingMapper(i, contentFileWebExportKeyMap)),
+  }),
+  duration_seconds: 'durationSeconds',
+};
+
+/** Describes what we typically map a content ref to, which keeps track of the ref */
+export type OsehContentPlaylist = {
+  /** The ref that was loaded */
+  ref: OsehContentRefLoadable;
+
+  /** The underlying playlist */
+  playlist: OsehAPIContentPlaylist;
+
+  /** True if this playlist is presigned, false otherwise */
+  presigned: boolean;
 };
 
 /**
