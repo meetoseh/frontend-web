@@ -62,6 +62,13 @@ export type ScreenComponentProps<
    * the returned function is called when the exit transition finishes.
    */
   startPop: (trigger: { slug: string; parameters: any } | null) => () => void;
+  /**
+   * Stores a trace event for the screen; this involves a network request
+   * and thus doesn't actually finish instantly, but the network request
+   * is never required to complete before starting some other action, and
+   * doesn't need to finish (or even start) before popping the screen.
+   */
+  trace: (event: object) => void;
 };
 
 /**

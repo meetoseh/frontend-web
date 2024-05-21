@@ -4,6 +4,7 @@ import { SchemaStringSimpleInput } from '../string/SchemaStringSimpleInput';
 import { SchemaRawInput } from '../wrapper/SchemaRawInput';
 import { SchemaObjectInput } from '../object/SchemaObjectInput';
 import { SchemaNumberSimpleInput } from '../number/SchemaNumberSimpleInput';
+import { SchemaFlatArrayInput } from '../array/SchemaFlatArrayInput';
 
 /**
  * A very simple openapi 3.0.3 schema editor that supports as much of the
@@ -24,6 +25,8 @@ export const SchemaStandard = ({
 
   if (schema.type === 'object') {
     return <SchemaObjectInput {...subprops} />;
+  } else if (schema.type === 'array') {
+    return <SchemaFlatArrayInput {...subprops} />;
   } else if (schema.type === 'string') {
     return <SchemaStringSimpleInput {...subprops} />;
   } else if (

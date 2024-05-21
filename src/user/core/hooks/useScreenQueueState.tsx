@@ -1,10 +1,10 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { ReactElement, useCallback, useContext, useEffect, useMemo } from 'react';
 import { PeekedScreen } from '../models/Screen';
 import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
 import { Result } from '../../../shared/requests/RequestHandler';
 import { LoginContext, LoginContextValueLoggedIn } from '../../../shared/contexts/LoginContext';
-import { InterestsContext, InterestsContextValue } from '../../../shared/contexts/InterestsContext';
+import { InterestsContext } from '../../../shared/contexts/InterestsContext';
 import { constructCancelablePromise } from '../../../shared/lib/CancelablePromiseConstructor';
 import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
 import { VisitorValue } from '../../../shared/hooks/useVisitorValueWithCallbacks';
@@ -343,7 +343,7 @@ export const useScreenQueueState = (): ScreenQueueState => {
           }),
         prepare()
       ),
-    [prepare]
+    [prepare, interestsContext.visitor, valueVWC]
   );
 
   const peek = useCallback(
@@ -383,7 +383,9 @@ export const useScreenQueueState = (): ScreenQueueState => {
           keepalive: true,
         },
         null
-      );
+      ).catch((e) => {
+        console.debug('trace failed', e);
+      });
     },
     []
   );

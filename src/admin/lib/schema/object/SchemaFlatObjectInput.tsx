@@ -32,7 +32,9 @@ export const SchemaFlatObjectInput = ({
     throw new Error('SchemaObjectInput only works with object schemas with properties');
   }
 
-  console.log('rerender');
+  if (typeof value?.get !== 'function') {
+    throw new Error('bad value here');
+  }
 
   const properties = useMemo((): Map<string, { required: boolean; schema: any }> => {
     const result = new Map<string, { required: boolean; schema: any }>();
@@ -52,7 +54,7 @@ export const SchemaFlatObjectInput = ({
     (v) => {
       const result = new Set<string>();
       for (const [prop, { required }] of Array.from(properties.entries())) {
-        if (required || prop in v) {
+        if (required || (v !== undefined && v !== null && typeof v === 'object' && prop in v)) {
           result.add(prop);
         }
       }

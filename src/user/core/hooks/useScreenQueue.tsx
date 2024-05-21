@@ -477,7 +477,10 @@ export const useScreenQueue = ({
             cancel();
             cancel = () => {};
             const reinitId = ++counter;
+
+            // eslint-disable-next-line no-loop-func
             screenQueueState.peek().promise.finally(() => {
+              // effectMounted, counter, and cancel are expected to mutate
               if (effectMounted && reinitId === counter) {
                 logging.info(`${effectUid} | ${loopUid} - reiniting after repeek`);
                 cancel();
@@ -527,6 +530,7 @@ export const useScreenQueue = ({
               finishPopRequestedCallbacks.call(undefined);
             };
           },
+          trace: screenQueueState.trace.bind(screenQueueState, state),
           key: `${effectUid}-${loopUid}`,
         });
 
@@ -724,7 +728,7 @@ export const useScreenQueue = ({
         }
       }
     }
-  }, [screenQueueState, screens]);
+  }, [screenQueueState, screens, logging, screenContext, valueVWC]);
 
   return useMemo(() => ({ value: valueVWC }), [valueVWC]);
 };
@@ -733,55 +737,3 @@ type RefreshResult = {
   active: Result<PeekedScreen<string, object>>;
   prefetch: Result<PeekedScreen<string, object>>[];
 };
-
-// valid deep comparison for two objects retrieved as if by JSON.parse
-// TODO - might not be necessary (probably isn't)
-function deepEqual(a: any, b: any): boolean {
-  if (Object.is(a, b)) {
-    return true;
-  }
-
-  if (typeof a !== typeof b) {
-    return false;
-  }
-
-  if (
-    a === null ||
-    a === undefined ||
-    typeof a === 'number' ||
-    typeof a === 'string' ||
-    b === null ||
-    b === undefined ||
-    typeof b === 'number' ||
-    typeof b === 'string'
-  ) {
-    return a === b;
-  }
-
-  if (Array.isArray(a)) {
-    if (!Array.isArray(b) || a.length !== b.length) {
-      return false;
-    }
-
-    for (let i = 0; i < a.length; i++) {
-      if (!deepEqual(a[i], b[i])) {
-        return false;
-      }
-    }
-    return true;
-  } else if (Array.isArray(b)) {
-    return false;
-  }
-
-  const aKeys = Object.keys(a);
-  const bKeys = Object.keys(b);
-  if (aKeys.length !== bKeys.length) {
-    return false;
-  }
-  for (const key of aKeys) {
-    if (!deepEqual(a[key], b[key])) {
-      return false;
-    }
-  }
-  return true;
-}
