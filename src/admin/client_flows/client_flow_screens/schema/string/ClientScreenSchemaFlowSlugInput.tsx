@@ -51,12 +51,13 @@ export const ClientScreenSchemaFlowSlugInput = (
 const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
   const modalContext = useContext(ModalContext);
   const loginContextRaw = useContext(LoginContext);
+  const slugVWC = useMappedValueWithCallbacks(props.value, (v): string | null => v ?? null);
 
   const flowNR = useNetworkResponse(
     (active, loginContext) =>
       adaptActiveVWCToAbortSignal(active, async (signal) => {
-        const slug = props.value.get();
-        if (slug === null || slug === undefined || slug === '' || typeof slug !== 'string') {
+        const slug = slugVWC.get();
+        if (slug === null || slug === '' || typeof slug !== 'string') {
           return null;
         }
 
@@ -90,7 +91,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
         return convertUsingMapper(data.items[0], clientFlowKeyMap);
       }),
     {
-      dependsOn: [props.value],
+      dependsOn: [slugVWC],
     }
   );
 
