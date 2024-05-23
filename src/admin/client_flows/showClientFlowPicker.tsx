@@ -12,7 +12,7 @@ import { constructCancelablePromise } from '../../shared/lib/CancelablePromiseCo
 import { createCancelablePromiseFromCallbacks } from '../../shared/lib/createCancelablePromiseFromCallbacks';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { adaptValueWithCallbacksAsSetState } from '../../shared/lib/adaptValueWithCallbacksAsSetState';
-import styles from './showClientScreenPicker.module.css';
+import styles from './showClientFlowPicker.module.css';
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 import { ClientFlow } from './ClientFlow';
 import { ClientFlowPicker } from './ClientFlowPicker';

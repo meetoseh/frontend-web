@@ -1,0 +1,165 @@
+.backWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.back,
+.heart {
+  composes: unstyled from '../../../../shared/buttons.module.css';
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.header {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 28.6px;
+  color: #eaeaeb;
+}
+
+.instructor {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #c8cdd0;
+}
+
+.headerRight {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.description {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.numClasses {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 20.4px;
+  color: #eaeaeb;
+}
+
+.classes {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.journey {
+  display: grid;
+  grid-template: 1fr / 1fr;
+  min-height: 80px;
+  background-color: black;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.journeyForeground {
+  grid-area: 1 / 1 / -1 / -1;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+}
+
+.journeyHeader {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.journeyHeaderLeft,
+.journeyHeaderRight {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.journeyCounter,
+.journeyTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 22px;
+  color: #eaeaeb;
+}
+
+.journeyCounter {
+  min-width: 24px;
+  padding-left: 0.1em;
+  padding-right: 0.1em;
+  text-align: center;
+}
+
+.journeyPlayedText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 19px;
+  letter-spacing: 0.25px;
+  color: #c8cdd0;
+  margin-right: 8px;
+}
+
+.journeyDuration {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #eaeaeb;
+  padding: 2px 4px;
+  background: #191c1d80;
+  border-radius: 4px;
+}
+
+.journeyDescriptionWrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.journeyDescription {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #eaeaeb;
+}
+
+.journeyButton {
+  composes: unstyled from '../../../../shared/buttons.module.css';
+  text-align: left;
+}

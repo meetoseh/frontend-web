@@ -1,0 +1,71 @@
+.empty {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(2px);
+  border-radius: 10px;
+  padding: 17px 34px;
+  text-align: center;
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.tooltipContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tooltip {
+  padding: 16px;
+  background: #eaeaeb;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.tooltipHeader {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 20.4px;
+  color: #191c1d;
+}
+
+.tooltipBody {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #191c1d;
+}
+
+.cta {
+  grid-area: 1 / 1 / span 1 / span 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 0; /* force a stacking context */
+  pointer-events: none;
+}
+
+.ctaInner {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0 24px;
+  padding-bottom: 32px;
+}
+
+.ctaInner > * {
+  pointer-events: all;
+}

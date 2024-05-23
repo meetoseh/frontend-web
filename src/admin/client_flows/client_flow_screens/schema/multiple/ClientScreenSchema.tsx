@@ -8,8 +8,9 @@ import { SchemaStandard } from '../../../../lib/schema/multiple/SchemaStandard';
 import { ClientScreenSchemaStringInput } from '../string/ClientScreenSchemaStringInput';
 import { ClientScreenSchemaImageInput } from '../string/ClientScreenSchemaImageInput';
 import { ClientScreenSchemaContentInput } from '../string/ClientScreenSchemaContentInput';
+import { ClientScreenSchemaFlowSlugInput } from '../string/ClientScreenSchemaFlowSlugInput';
 
-const copyableTypes = new Set(['number', 'integer', 'boolean', 'double', 'float']);
+const copyableTypes = new Set(['number', 'integer', 'boolean', 'double', 'float', 'string']);
 
 /**
  * Fills in the values for a client screen schema, as would be done when
@@ -61,6 +62,8 @@ export const ClientScreenSchema = ({
       return <ClientScreenSchemaImageInput {...fancyProps} />;
     } else if (schema.format === 'content_uid') {
       return <ClientScreenSchemaContentInput {...fancyProps} />;
+    } else if (schema.format === 'flow_slug') {
+      return <ClientScreenSchemaFlowSlugInput {...fancyProps} />;
     }
     return <ClientScreenSchemaStringInput {...fancyProps} />;
   }

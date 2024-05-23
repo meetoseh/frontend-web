@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   Callbacks,
   ValueWithCallbacks,
@@ -119,43 +119,68 @@ export const useOsehImageStateRequestHandler = ({
     createImageCropRequestHandler({ logging, maxStale: cacheSize })
   );
 
-  const request = useCallback(
-    (props: OsehImagePropsLoadable): OsehImageRequestedState => {
-      // TODO: changing the JWT should not cause a release; we need to handle
-      // that seamlessly
-      const released = createWritableValueWithCallbacks(false);
-      const release = () => {
-        setVWC(released, true);
-        released.callbacks.clear();
-      };
-
-      const stateChanged = new Callbacks<undefined>();
-      const result: OsehImageRequestedState = {
-        state: makeLoading(props),
-        stateChanged,
-        displaySize: {
-          width: props.displayWidth,
-          height: props.displayHeight,
-        } as unknown as DisplaySize,
-        release,
-      };
-
-      manageRequest(
-        props,
-        result,
-        privatePlaylistHandler.get(),
-        publicPlaylistHandler.get(),
-        imageDataHandler.get(),
-        imageCropHandler.get(),
-        released
-      );
-
-      return result;
-    },
-    [imageCropHandler, imageDataHandler, privatePlaylistHandler, publicPlaylistHandler]
+  return useMemo(
+    () =>
+      createOsehImageStateRequestHandler({
+        privatePlaylistHandler: privatePlaylistHandler.get(),
+        publicPlaylistHandler: publicPlaylistHandler.get(),
+        imageDataHandler: imageDataHandler.get(),
+        imageCropHandler: imageCropHandler.get(),
+      }),
+    [privatePlaylistHandler, publicPlaylistHandler, imageDataHandler, imageCropHandler]
   );
+};
 
-  return useMemo(() => ({ request }), [request]);
+/**
+ * Uses the given request handlers to create a new OsehImageStateRequestHandler.
+ * This is just one way of managing the glue code to start with a image uid and
+ * go straight to the image data.
+ */
+export const createOsehImageStateRequestHandler = ({
+  privatePlaylistHandler,
+  publicPlaylistHandler,
+  imageDataHandler,
+  imageCropHandler,
+}: {
+  privatePlaylistHandler: RequestHandler<OsehImageRef, PlaylistWithJWT>;
+  publicPlaylistHandler: RequestHandler<OsehPublicImageRef, PlaylistWithJWT>;
+  imageDataHandler: RequestHandler<OsehImageExportRef, OsehImageExport>;
+  imageCropHandler: RequestHandler<OsehImageExportCroppedRef, OsehImageExportCropped>;
+}): OsehImageStateRequestHandler => {
+  const request = (props: OsehImagePropsLoadable): OsehImageRequestedState => {
+    // TODO: changing the JWT should not cause a release; we need to handle
+    // that seamlessly
+    const released = createWritableValueWithCallbacks(false);
+    const release = () => {
+      setVWC(released, true);
+      released.callbacks.clear();
+    };
+
+    const stateChanged = new Callbacks<undefined>();
+    const result: OsehImageRequestedState = {
+      state: makeLoading(props),
+      stateChanged,
+      displaySize: {
+        width: props.displayWidth,
+        height: props.displayHeight,
+      } as unknown as DisplaySize,
+      release,
+    };
+
+    manageRequest(
+      props,
+      result,
+      privatePlaylistHandler,
+      publicPlaylistHandler,
+      imageDataHandler,
+      imageCropHandler,
+      released
+    );
+
+    return result;
+  };
+
+  return { request };
 };
 
 const makeLoading = (props: OsehImagePropsLoadable, item?: PlaylistItem): OsehImageState => {

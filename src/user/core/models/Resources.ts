@@ -11,7 +11,14 @@ import { OsehImageExportRef } from '../../../shared/images/OsehImageExportRef';
 import { OsehImageRef } from '../../../shared/images/OsehImageRef';
 import { OsehPublicImageRef } from '../../../shared/images/OsehPublicImageRef';
 import { PlaylistWithJWT } from '../../../shared/images/Playlist';
+import { InfiniteListing } from '../../../shared/lib/InfiniteListing';
 import { RequestHandler } from '../../../shared/requests/RequestHandler';
+import { CourseRef } from '../../favorites/lib/CourseRef';
+import { ExpirableCourseRef } from '../../series/lib/ExpirableCourseRef';
+import { ExternalCourse } from '../../series/lib/ExternalCourse';
+import { CourseJourneys } from '../../series/lib/createSeriesJourneysRequestHandler';
+import { CourseLikeState } from '../../series/lib/createSeriesLikeStateRequestHandler';
+import { SeriesListRequest } from '../../series/lib/createSeriesListRequestHandler';
 
 /**
  * Contains everything that any screen might want to eagerly preload. Generally,
@@ -50,4 +57,16 @@ export type Resources = {
    * Manages downloading video data for the video player
    */
   videoDataHandler: RequestHandler<ContentFileWebExportRef, VideoFileData>;
+  /**
+   * Manages creating objects that can paginate through the list of series
+   */
+  seriesListHandler: RequestHandler<SeriesListRequest, InfiniteListing<ExternalCourse>>;
+  /**
+   * Manages creating objects that keep track if the user has liked a series
+   */
+  seriesLikeStateHandler: RequestHandler<ExpirableCourseRef, CourseLikeState>;
+  /**
+   * Manages getting the journeys that are part of a series
+   */
+  seriesJourneysHandler: RequestHandler<CourseRef, CourseJourneys>;
 };

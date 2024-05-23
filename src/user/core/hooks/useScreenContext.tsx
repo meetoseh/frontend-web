@@ -15,6 +15,9 @@ import { createImageDataRequestHandler } from '../../../shared/images/createImag
 import { createImageCropRequestHandler } from '../../../shared/images/createImageCropRequestHandler';
 import { createContentPlaylistRequestHandler } from '../../../shared/content/createContentPlaylistRequestHandler';
 import { createVideoDataRequestHandler } from '../../../shared/content/createVideoDataHandler';
+import { createSeriesListRequestHandler } from '../../series/lib/createSeriesListRequestHandler';
+import { createSeriesLikeStateRequestHandler } from '../../series/lib/createSeriesLikeStateRequestHandler';
+import { createSeriesJourneysRequestHandler } from '../../series/lib/createSeriesJourneysRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -82,9 +85,15 @@ const areWindowSizesEqual = (a: WindowSize, b: WindowSize): boolean =>
  * `useScreenQueue`
  */
 export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenContext => {
+  const loginContext = useContext(LoginContext);
+  const interestsContext = useContext(InterestsContext);
+
   const windowSizeImmediate = useWritableValueWithCallbacks<{ width: number; height: number }>(
     () => {
-      return { width: window.innerWidth, height: window.innerHeight };
+      return {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
     }
   );
 
@@ -134,6 +143,15 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const videoDataHandler = useWritableValueWithCallbacks(() =>
     createVideoDataRequestHandler({ logging, maxStale: 2 })
   );
+  const seriesListHandler = useWritableValueWithCallbacks(() =>
+    createSeriesListRequestHandler({ logging, maxStale: 2, loginContextRaw: loginContext })
+  );
+  const seriesLikeStateHandler = useWritableValueWithCallbacks(() =>
+    createSeriesLikeStateRequestHandler({ logging, maxStale: 10, loginContextRaw: loginContext })
+  );
+  const seriesJourneysHandler = useWritableValueWithCallbacks(() =>
+    createSeriesJourneysRequestHandler({ logging, maxStale: 10, loginContextRaw: loginContext })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -143,6 +161,9 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       imageCropHandler: imageCropHandler.get(),
       contentPlaylistHandler: contentPlaylistHandler.get(),
       videoDataHandler: videoDataHandler.get(),
+      seriesListHandler: seriesListHandler.get(),
+      seriesLikeStateHandler: seriesLikeStateHandler.get(),
+      seriesJourneysHandler: seriesJourneysHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -151,11 +172,11 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       imageCropHandler,
       contentPlaylistHandler,
       videoDataHandler,
+      seriesListHandler,
+      seriesLikeStateHandler,
+      seriesJourneysHandler,
     ]
   );
-
-  const loginContext = useContext(LoginContext);
-  const interestsContext = useContext(InterestsContext);
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);
 
   return useMemo(

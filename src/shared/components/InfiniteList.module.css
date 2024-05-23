@@ -13,3 +13,12 @@
   background-color: rgba(0, 0, 0, 0.3);
   border-radius: 10px;
 }
+
+.noScrollBar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.noScrollBar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera*/
+}

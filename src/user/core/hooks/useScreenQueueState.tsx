@@ -71,10 +71,15 @@ export type ScreenQueueState = {
    * Pops the current screen from the queue, optionally triggers a client
    * flow with the given slug and parameters, and returns the new state.
    * Other peek or pop operations should be canceled before calling this.
+   *
+   * @param from The current state
+   * @param trigger The trigger to execute
+   * @param endpoint usually /api/1/users/me/screens/pop
    */
   pop: (
     from: UseScreenQueueStateState & { type: 'success' },
-    trigger: { slug: string; parameters: any } | null
+    trigger: { slug: string; parameters: any } | null,
+    endpoint: string
   ) => CancelablePromise<Result<UseScreenQueueStateState>>;
 };
 
@@ -354,10 +359,11 @@ export const useScreenQueueState = (): ScreenQueueState => {
   const pop = useCallback(
     (
       from: UseScreenQueueStateState & { type: 'success' },
-      trigger: { slug: string; parameters: any } | null
+      trigger: { slug: string; parameters: any } | null,
+      endpoint: string
     ) =>
       peekLike(
-        '/api/1/users/me/screens/pop',
+        endpoint,
         new Headers({
           'Content-Type': 'application/json; charset=utf-8',
         }),
@@ -372,7 +378,7 @@ export const useScreenQueueState = (): ScreenQueueState => {
   const trace = useCallback(
     (from: UseScreenQueueStateState & { type: 'success' }, event: object) => {
       apiFetch(
-        '/api/1/users/me/screens/trace',
+        `/api/1/users/me/screens/trace?platform=${encodeURIComponent(VISITOR_SOURCE)}`,
         {
           method: 'POST',
           headers: {

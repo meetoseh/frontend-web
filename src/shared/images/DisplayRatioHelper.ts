@@ -9,14 +9,14 @@
  * corresponding number of x-axis device pixels
  */
 export const convertLogicalWidthToPhysicalWidth = (width: number) =>
-  width * window.devicePixelRatio;
+  Math.floor(width * window.devicePixelRatio);
 
 /**
  * Converts the specific given number of logical y-axis pixels to the
  * corresponding number of y-axis device pixels
  */
 export const convertLogicalHeightToPhysicalHeight = (height: number) =>
-  height * window.devicePixelRatio;
+  Math.floor(height * window.devicePixelRatio);
 
 /**
  * The pixel ratio for the x-axis, named to avoid "devicePixelRatio"

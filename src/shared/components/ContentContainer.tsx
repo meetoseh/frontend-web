@@ -2,8 +2,9 @@ import { CSSProperties, PropsWithChildren, ReactElement } from 'react';
 import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
 import styles from './ContentContainer.module.css';
 import { useStyleVWC } from '../hooks/useStyleVWC';
-import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 import { setVWC } from '../lib/setVWC';
+import { useMappedValuesWithCallbacks } from '../hooks/useMappedValuesWithCallbacks';
+import { useReactManagedValueAsValueWithCallbacks } from '../hooks/useReactManagedValueAsValueWithCallbacks';
 
 /**
  * Renders a container with a fixed width matching the suggested width of the
@@ -19,10 +20,13 @@ export const ContentContainer = ({
   justifyContent?: CSSProperties['justifyContent'];
 }>): ReactElement => {
   const contentRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
-  const contentStyleVWC = useMappedValueWithCallbacks(contentWidthVWC, (cw) => ({
-    width: `${cw}px`,
-    justifyContent: justifyContent ?? 'center',
-  }));
+  const contentStyleVWC = useMappedValuesWithCallbacks(
+    [contentWidthVWC, useReactManagedValueAsValueWithCallbacks(justifyContent)],
+    () => ({
+      width: `${contentWidthVWC.get()}px`,
+      justifyContent: justifyContent ?? 'center',
+    })
+  );
   useStyleVWC(contentRef, contentStyleVWC);
 
   return (

@@ -1,4 +1,15 @@
-import { MutableRefObject, ReactElement, useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  MutableRefObject,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  forwardRef,
+  Fragment,
+  ComponentType,
+  Context,
+} from 'react';
 import { InfiniteListing } from '../lib/InfiniteListing';
 import styles from './InfiniteList.module.css';
 import {
@@ -11,7 +22,7 @@ import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffec
 import { setVWC } from '../lib/setVWC';
 import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 import { RenderGuardedComponent } from './RenderGuardedComponent';
-import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { ScrollerProps, Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { useMappedValuesWithCallbacks } from '../hooks/useMappedValuesWithCallbacks';
 
 type InfiniteListProps<T extends object> = {
@@ -73,6 +84,11 @@ type InfiniteListProps<T extends object> = {
    * The element to show if the list is empty
    */
   emptyElement?: ReactElement;
+
+  /**
+   * If true, hides the scrollbar
+   */
+  noScrollBar?: boolean;
 };
 
 /**
@@ -90,6 +106,7 @@ export function InfiniteList<T extends object>({
   initialComponentHeight,
   loadingElement,
   emptyElement,
+  noScrollBar,
 }: InfiniteListProps<T>): ReactElement {
   const listingVWC = useListingItemsAsVWC(listingUntrackable);
   const itemsUnloadedAboveVWC = useWritableValueWithCallbacks<number>(() => 0);
@@ -249,6 +266,7 @@ export function InfiniteList<T extends object>({
                     }}
                     totalCount={numAvailable}
                     rangeChanged={handleRangeChanged}
+                    components={noScrollBar ? { Scroller } : {}}
                   />
                 );
               }}
@@ -259,6 +277,14 @@ export function InfiniteList<T extends object>({
     </div>
   );
 }
+
+const Scroller: ComponentType<
+  ScrollerProps & {
+    context?: Context<any>;
+  }
+> = forwardRef(({ style, ...props }, ref) => {
+  return <div ref={ref} style={style} className={styles.noScrollBar} {...props} />;
+});
 
 /**
  * Gets the items within an infinite listing as a value with callbacks.

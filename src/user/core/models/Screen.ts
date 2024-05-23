@@ -60,8 +60,13 @@ export type ScreenComponentProps<
    * screen remotely, and then called again to apply the change locally. It is
    * intended that this is called as soon as the exit transition starts, and
    * the returned function is called when the exit transition finishes.
+   *
+   * @param trigger The trigger to execute
+   * @param endpoint The endpoint to use for the pop; if not provided, uses
+   *   /api/1/users/me/screens/pop by default. Must be api-compatible with the
+   *   normal pop endpoint, though often stricter.
    */
-  startPop: (trigger: { slug: string; parameters: any } | null) => () => void;
+  startPop: (trigger: { slug: string; parameters: any } | null, endpoint?: string) => () => void;
   /**
    * Stores a trace event for the screen; this involves a network request
    * and thus doesn't actually finish instantly, but the network request

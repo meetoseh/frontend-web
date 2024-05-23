@@ -25,6 +25,8 @@ import { USES_SVG } from '../shared/images/usesSvg';
 import { ImageInterstitialScreen } from './core/screens/image_interstitial/ImageInterstitialScreen';
 import { VideoInterstitialScreen } from './core/screens/video_interstitial/VideoInterstitialScreen';
 import { ForkScreen } from './core/screens/fork/ForkScreen';
+import { SeriesListScreen } from './core/screens/series_list/SeriesListScreen';
+import { SeriesDetailsScreen } from './core/screens/series_details/SeriesDetailsScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -75,6 +77,8 @@ const screens = [
   ImageInterstitialScreen,
   VideoInterstitialScreen,
   ForkScreen,
+  SeriesListScreen,
+  SeriesDetailsScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**

@@ -62,9 +62,49 @@ export const serializeClientFlowVariableInputCopy = (x: ClientFlowVariableInputC
   output_path: x.outputPath,
 });
 
+export type ClientFlowVariableInputExtract = {
+  /**
+   * - `extract`: like copy, but when the flow is triggered, take the input parameter
+   *   and convert it to an object based on its format (e.g., course_uid), then pluck
+   *   from that object and put that as the input parameter for the flow screen
+   */
+  type: 'extract';
+  inputPath: string[];
+  /**
+   * The path to pluck from after realizing the input parameter. E.g., ['intro_video', 'uid']
+   */
+  extractedPath: string[];
+  outputPath: string[];
+  /**
+   * If true, _at trigger time_, if after converting the input path, while walking along the
+   * extracted path we encounter a null or undefined value, the screen will be skipped instead
+   * of added to the users screen queue.
+   */
+  skipIfMissing: boolean;
+};
+
+export const clientFlowVariableInputExtractKeyMap: CrudFetcherMapper<ClientFlowVariableInputExtract> =
+  {
+    input_path: 'inputPath',
+    extracted_path: 'extractedPath',
+    output_path: 'outputPath',
+    skip_if_missing: 'skipIfMissing',
+  };
+
+export const serializeClientFlowVariableInputExtract = (
+  x: ClientFlowVariableInputExtract
+): any => ({
+  type: x.type,
+  input_path: x.inputPath,
+  extracted_path: x.extractedPath,
+  output_path: x.outputPath,
+  skip_if_missing: x.skipIfMissing,
+});
+
 export type ClientFlowScreenVariableInput =
   | ClientFlowScreenVariableInputStringFormat
-  | ClientFlowVariableInputCopy;
+  | ClientFlowVariableInputCopy
+  | ClientFlowVariableInputExtract;
 
 export type ClientFlowScreenScreen = {
   /** The slug of the screen to initialize */
@@ -88,6 +128,9 @@ export const serializeClientFlowScreenScreenVariable = (
     if (x.type === 'copy') {
       return serializeClientFlowVariableInputCopy(x);
     }
+    if (x.type === 'extract') {
+      return serializeClientFlowVariableInputExtract(x);
+    }
     throw new Error(`Unknown type: ${x}`);
   });
 
@@ -100,6 +143,9 @@ export const clientFlowScreenScreenVariableKeyMap: CrudFetcherMapper<
     }
     if (x.type === 'copy') {
       return convertUsingMapper(x, clientFlowVariableInputCopyKeyMap);
+    }
+    if (x.type === 'extract') {
+      return convertUsingMapper(x, clientFlowVariableInputExtractKeyMap);
     }
     throw new Error(`Unknown type: ${x}`);
   });

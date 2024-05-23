@@ -6,6 +6,7 @@ import { setVWC } from '../lib/setVWC';
 import { convertLogicalWidthToPhysicalWidth } from '../images/DisplayRatioHelper';
 import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 import { useStyleVWC } from '../hooks/useStyleVWC';
+import { createValueWithCallbacksEffect } from '../hooks/createValueWithCallbacksEffect';
 
 /**
  * The standard grid container for content. This returns a div that
@@ -24,19 +25,34 @@ import { useStyleVWC } from '../hooks/useStyleVWC';
  */
 export const GridContentContainer = ({
   contentWidthVWC,
+  minHeightVWC,
   left,
   opacity,
   justifyContent,
   children,
-}: PropsWithChildren<{
-  contentWidthVWC: ValueWithCallbacks<number>;
-  /** Left offset for slide transitions */
-  left?: ValueWithCallbacks<number>;
-  /** Opacity for fade transitions */
-  opacity?: ValueWithCallbacks<number>;
-  /** Overrides the centering justify-content option */
-  justifyContent?: CSSProperties['justifyContent'];
-}>): ReactElement => {
+}: PropsWithChildren<
+  {
+    contentWidthVWC: ValueWithCallbacks<number>;
+    /** Left offset for slide transitions */
+    left?: ValueWithCallbacks<number>;
+    /** Opacity for fade transitions */
+    opacity?: ValueWithCallbacks<number>;
+  } & (
+    | {
+        /** Overrides the centering justify-content option */
+        justifyContent?: 'flex-start' | 'flex-end';
+        /**
+         * The minimum height of the content. If justify-content space-between or space-around is set
+         * then this needs to be set to do anything useful, otherwise it does nothing
+         */
+        minHeightVWC?: undefined;
+      }
+    | {
+        justifyContent: 'space-between' | 'space-around';
+        minHeightVWC: ValueWithCallbacks<number>;
+      }
+  )
+>): ReactElement => {
   const containerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
 
   const containerTransitionState = useWritableValueWithCallbacks<{ left: number; opacity: number }>(
@@ -90,14 +106,37 @@ export const GridContentContainer = ({
   );
   useStyleVWC(containerRef, containerStyleVWC);
 
+  const overflowerStyleVWC = useWritableValueWithCallbacks<CSSProperties>(() => ({
+    minHeight: undefined,
+  }));
+  useEffect(() => {
+    if (minHeightVWC === undefined) {
+      setVWC(overflowerStyleVWC, { minHeight: undefined });
+      return;
+    }
+    return createValueWithCallbacksEffect(minHeightVWC, (minHeight) => {
+      setVWC(overflowerStyleVWC, { minHeight: `${minHeight}px` });
+      return undefined;
+    });
+  });
+  const overflowerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  useStyleVWC(overflowerRef, overflowerStyleVWC);
+
   return (
     <div
       className={styles.container}
       ref={(r) => setVWC(containerRef, r)}
       style={containerStyleVWC.get()}>
-      <ContentContainer contentWidthVWC={contentWidthVWC} justifyContent={justifyContent}>
-        {children}
-      </ContentContainer>
+      <div className={styles.underflower}>
+        <div
+          className={styles.overflower}
+          style={overflowerStyleVWC.get()}
+          ref={(r) => setVWC(overflowerRef, r)}>
+          <ContentContainer contentWidthVWC={contentWidthVWC} justifyContent={justifyContent}>
+            {children}
+          </ContentContainer>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { CSSProperties, ReactElement, useCallback, useContext, useEffect } from 'react';
 import {
+  Callbacks,
   ValueWithCallbacks,
   WritableValueWithCallbacks,
   useWritableValueWithCallbacks,
@@ -449,6 +450,7 @@ const Content = ({
 
   const fixedValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.fixed);
   const variableValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.variable);
+  const allowedTriggersValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.allowedTriggers);
   const mappedVariableValueVWC = useMappedValueWithCallbacks(variableValueVWC, (v) => {
     const result = new Map<string, ClientFlowScreenVariableInput>();
     for (const variableInput of v) {
@@ -574,6 +576,34 @@ const Content = ({
           )
         }
       />
+      <div style={{ height: '24px' }} />
+      <ClientScreenSchema
+        schema={{
+          type: 'array',
+          title: 'Allowed Triggers',
+          items: {
+            type: 'string',
+            format: 'flow_slug',
+            description: 'The slug of the client flow that may be triggered',
+            example: 'skip',
+          },
+        }}
+        value={{
+          get: () => allowedTriggersValueVWC.get(),
+          set: (v) =>
+            flowScreenSaveable.onClientChange({
+              ...valueVWC.get(),
+              allowedTriggers: v,
+            }),
+          callbacks: allowedTriggersValueVWC.callbacks,
+        }}
+        variable={{
+          get: () => new Map(),
+          set: (v) => {},
+          callbacks: new Callbacks(),
+        }}
+        imageHandler={imageHandler}
+      />
       <div style={{ height: '400px' }} />
       <CrudFormElement title="Fixed">
         <RawJSONEditor
@@ -593,6 +623,17 @@ const Content = ({
             flowScreenSaveable.onClientChange({
               ...valueVWC.get(),
               screen: { ...valueVWC.get().screen, variable: v },
+            })
+          }
+        />
+      </CrudFormElement>
+      <CrudFormElement title="Allowed Triggers">
+        <RawJSONEditor
+          canonicalVWC={allowedTriggersValueVWC}
+          setValue={(v) =>
+            flowScreenSaveable.onClientChange({
+              ...valueVWC.get(),
+              allowedTriggers: v,
             })
           }
         />

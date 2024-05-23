@@ -43,6 +43,8 @@ export type UseScreenQueueProps = {
   };
 };
 
+const DEFAULT_POP_ENDPOINT = '/api/1/users/me/screens/pop';
+
 export type UseScreenQueueState =
   | {
       /**
@@ -337,10 +339,14 @@ export const useScreenQueue = ({
           releaseFromLastLoop();
           releaseFromLastLoop = () => {};
 
-          const popPromise = screenQueueState.pop(state, {
-            slug: 'skip',
-            parameters: {},
-          });
+          const popPromise = screenQueueState.pop(
+            state,
+            {
+              slug: 'skip',
+              parameters: {},
+            },
+            DEFAULT_POP_ENDPOINT
+          );
           await Promise.race([popPromise.promise, canceled.promise]);
           if (!active.get()) {
             popPromise.cancel();
@@ -505,9 +511,12 @@ export const useScreenQueue = ({
         finishPopRequested.promise.catch(() => {});
 
         const startPopRequestedCallbacks = new Callbacks<{
-          slug: string;
-          parameters: any;
-        } | null>();
+          trigger: {
+            slug: string;
+            parameters: any;
+          } | null;
+          endpoint: string | undefined;
+        }>();
         const startPopRequested = createCancelablePromiseFromCallbacks(startPopRequestedCallbacks);
         startPopRequested.promise.catch(() => {});
 
@@ -515,13 +524,13 @@ export const useScreenQueue = ({
           ctx: screenContext,
           screen: activeScreenInstanceMapped,
           resources: activeResources,
-          startPop: (trigger) => {
+          startPop: (trigger, endpoint) => {
             if (!active.get() || !loopIsActive.get()) {
               console.warn('startPop called on disposed instance');
               return () => {};
             }
 
-            startPopRequestedCallbacks.call(trigger);
+            startPopRequestedCallbacks.call({ trigger, endpoint });
             return () => {
               if (!active.get() || !loopIsActive.get()) {
                 console.warn('finishPop called on disposed instance');
@@ -552,7 +561,7 @@ export const useScreenQueue = ({
         }
 
         if (startPopRequested.done()) {
-          const popTrigger = await startPopRequested.promise;
+          const popTriggerInfo = await startPopRequested.promise;
           if (!active.get()) {
             setVWC(loopIsActive, false);
             repeekRequested.cancel();
@@ -563,15 +572,18 @@ export const useScreenQueue = ({
             return;
           }
 
+          const popTrigger = popTriggerInfo.trigger;
+          const endpoint = popTriggerInfo.endpoint ?? DEFAULT_POP_ENDPOINT;
+
           logging.info(
             `${effectUid} | ${loopUid} - preparing to pop with trigger ${JSON.stringify(
               popTrigger,
               undefined,
               2
-            )}`
+            )} via endpoint ${endpoint}`
           );
           setVWC(valueVWC, { type: 'preparing-pop', component });
-          const popCancelable = screenQueueState.pop(state, popTrigger);
+          const popCancelable = screenQueueState.pop(state, popTrigger, endpoint);
 
           await Promise.race([popCancelable.promise, finishPopRequested.promise, canceled.promise]);
 
@@ -651,7 +663,12 @@ export const useScreenQueue = ({
               return null;
             }
 
-            return screen.initInstanceResources(screenContext, prefetchInstance, () => ({
+            const prefetchInstanceMapped = {
+              slug: prefetchInstance.slug,
+              parameters: screen.paramMapper(prefetchInstance.parameters),
+            };
+
+            return screen.initInstanceResources(screenContext, prefetchInstanceMapped, () => ({
               promise: Promise.reject(new Error('refresh not supported in this spot')),
               cancel: () => {},
               done: () => true,

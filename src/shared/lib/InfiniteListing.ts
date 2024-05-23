@@ -439,6 +439,94 @@ export class ProceduralInfiniteListing<T extends object> {
   }
 }
 
+/**
+ * Provides the same interface as the networked infinite listing, but with a
+ * fixed set of prefixed objects, often of a different type than the underlying
+ * data (for e.g., tooltips).
+ */
+export class PrefixedNetworkedInfiniteListing<DataT extends object, PrefixT extends object> {
+  private delegate: InfiniteListing<DataT>;
+  private prefix: PrefixT[];
+
+  readonly visibleLimit: number;
+  readonly rotationLength: number;
+
+  readonly itemsChanged: Callbacks<(DataT | PrefixT)[] | null>;
+  readonly onShiftedEarlier: Callbacks<(DataT | PrefixT)[]>;
+  readonly onShiftedLater: Callbacks<(DataT | PrefixT)[]>;
+
+  get items(): (DataT | PrefixT)[] | null {
+    if (this.delegate.items === null) {
+      return null;
+    }
+
+    if (this.delegate.definitelyNoneAbove) {
+      return [...this.prefix, ...this.delegate.items];
+    }
+
+    return this.delegate.items;
+  }
+
+  constructor(delegate: InfiniteListing<DataT>, prefix: PrefixT[]) {
+    this.delegate = delegate;
+    this.prefix = prefix;
+
+    this.visibleLimit = delegate.visibleLimit;
+    this.rotationLength = delegate.rotationLength;
+
+    this.itemsChanged = new Callbacks();
+    this.onShiftedEarlier = new Callbacks();
+    this.onShiftedLater = new Callbacks();
+
+    this.delegate.itemsChanged.add(this.onDelegateItemsChanged.bind(this));
+    this.delegate.onShiftedEarlier.add(this.onDelegateShiftedEarlier.bind(this));
+    this.delegate.onShiftedLater.add(this.onDelegateShiftedLater.bind(this));
+  }
+
+  get definitelyNoneAbove(): boolean {
+    return this.delegate.definitelyNoneAbove;
+  }
+
+  get definitelyNoneBelow(): boolean {
+    return this.delegate.definitelyNoneBelow;
+  }
+
+  async reset(): Promise<void> {
+    await this.delegate.reset();
+  }
+
+  onFirstVisible(): void {
+    this.delegate.onFirstVisible();
+  }
+
+  onLastVisible(): void {
+    this.delegate.onLastVisible();
+  }
+
+  replaceItem(
+    isItem: (item: DataT) => boolean,
+    newItem: DataT | ((oldItem: DataT) => DataT)
+  ): void {
+    this.delegate.replaceItem(isItem, newItem);
+  }
+
+  private onDelegateItemsChanged(items: DataT[] | null): void {
+    this.itemsChanged.call(this.items);
+  }
+
+  private onDelegateShiftedEarlier(items: DataT[]): void {
+    if (this.delegate.definitelyNoneAbove) {
+      this.onShiftedEarlier.call([...this.prefix, ...items]);
+    } else {
+      this.onShiftedEarlier.call(items);
+    }
+  }
+
+  private onDelegateShiftedLater(items: DataT[]): void {
+    this.onShiftedLater.call(items);
+  }
+}
+
 export type InfiniteListing<T extends object> =
   | NetworkedInfiniteListing<T>
   | ProceduralInfiniteListing<T>;

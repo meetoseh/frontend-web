@@ -23,6 +23,7 @@ import { ImageInterstitialMappedParams } from './ImageInterstitialParams';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
+import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * A basic image interstitial; top message, image, header, subheader, button with CTA
@@ -52,7 +53,8 @@ export const ImageInterstitial = ({
         contentWidthVWC={contentWidthVWC}
         left={transitionState.left}
         opacity={transitionState.opacity}
-        justifyContent="space-between">
+        justifyContent="space-between"
+        minHeightVWC={useMappedValueWithCallbacks(ctx.windowSizeImmediate, (v) => v.height)}>
         <div className={styles.top}>
           <div style={{ height: '32px' }} />
           <div className={styles.topMessage}>{screen.parameters.top}</div>

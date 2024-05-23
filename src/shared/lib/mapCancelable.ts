@@ -1,5 +1,5 @@
 import { CancelablePromise } from './CancelablePromise';
-import { constructCancelablePromise } from './CancelablePromiseConstructor';
+import { CancelablePromiseState, constructCancelablePromise } from './CancelablePromiseConstructor';
 import { createCancelablePromiseFromCallbacks } from './createCancelablePromiseFromCallbacks';
 
 /**
@@ -9,7 +9,13 @@ import { createCancelablePromiseFromCallbacks } from './createCancelablePromiseF
  */
 export function mapCancelable<T, U>(
   base: CancelablePromise<U>,
-  mapper: (u: U) => T
+  mapper: (u: U) => T,
+  rejectHandler?: (
+    e: any,
+    state: CancelablePromiseState,
+    resolve: (t: T) => void,
+    reject: (e: any) => void
+  ) => Promise<void>
 ): CancelablePromise<T> {
   return constructCancelablePromise({
     body: async (state, resolve, reject) => {
@@ -25,6 +31,16 @@ export function mapCancelable<T, U>(
       try {
         await Promise.race([canceled.promise, base.promise]);
       } catch (e) {
+        if (state.finishing) {
+          state.done = true;
+          reject(new Error('canceled'));
+          return;
+        }
+
+        if (rejectHandler !== undefined) {
+          return rejectHandler(e, state, resolve, reject);
+        }
+
         state.finishing = true;
         state.done = true;
         reject(e);

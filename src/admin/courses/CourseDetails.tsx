@@ -352,6 +352,7 @@ export const CourseDetails = ({
         <CrudSwappableString editingVWC={editingVWC} title="Title" vwc={newTitleVWC} />
         <CrudSwappableString editingVWC={editingVWC} title="Slug" vwc={newSlugVWC} />
         <CrudSwappableString editingVWC={editingVWC} title="Description" vwc={newDescriptionVWC} />
+        <CrudFormElement title="UID">{course.uid}</CrudFormElement>
         <CourseInstructor
           course={course}
           newInstructorVWC={newInstructorVWC}

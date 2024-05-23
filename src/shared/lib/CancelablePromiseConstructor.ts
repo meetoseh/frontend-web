@@ -168,7 +168,7 @@ export type CancelablePromiseState = {
  */
 export type CancelablePromiseBodyArgs<T> = {
   state: CancelablePromiseState;
-  resolve: (value: T | PromiseLike<T>) => void;
+  resolve: (value: T | Promise<T>) => void;
   reject: (reason?: any) => void;
 };
 
@@ -235,7 +235,7 @@ export const constructCancelablePromise = <T>(
       };
 
       let handledCleanup = false;
-      const cleanup = () => {
+      const cleanup = (hint: 'returned' | 'errored', underlying?: any) => {
         if (handledCleanup) {
           return;
         }
@@ -246,29 +246,40 @@ export const constructCancelablePromise = <T>(
         }
 
         if (constructor.guardBody) {
-          wrappedReject(new Error(`body returned without resolving or rejecting ${stackInfo}`));
+          wrappedReject(
+            new Error(
+              `body ${hint} without resolving or rejecting ${stackInfo} (underlying: ${underlying})`
+            )
+          );
         } else {
-          console.trace('body returned without resolving or rejecting', stackInfo);
+          console.trace(`body ${hint} without resolving or rejecting`, stackInfo, underlying);
 
           if (process.env.REACT_APP_ENVIRONMENT === 'dev') {
-            throw new Error(`body returned without resolving or rejecting ${stackInfo}`);
+            throw new Error(
+              `body ${hint} without resolving or rejecting ${stackInfo} (underlying: ${underlying})`
+            );
           } else {
-            wrappedReject(new Error(`body returned without resolving or rejecting ${stackInfo}`));
+            wrappedReject(
+              new Error(
+                `body ${hint} without resolving or rejecting ${stackInfo} (underlying: ${underlying})`
+              )
+            );
           }
         }
       };
 
-      let hadPromise = false;
       try {
         const result = constructor.body(state, wrappedResolve, wrappedReject);
         if (result !== undefined) {
-          hadPromise = true;
-          result.finally(cleanup);
+          (result as Promise<any>).then(
+            (v) => cleanup('returned', v),
+            (e) => cleanup('errored', e)
+          );
+        } else {
+          cleanup('returned', result);
         }
-      } finally {
-        if (!hadPromise) {
-          cleanup();
-        }
+      } catch (e) {
+        cleanup('errored', e);
       }
     }),
   };

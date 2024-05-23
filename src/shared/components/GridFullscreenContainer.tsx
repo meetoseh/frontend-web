@@ -21,7 +21,7 @@ export const GridFullscreenContainer = ({
 }>): ReactElement => {
   const containerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   const containerStyleVWC = useMappedValueWithCallbacks(windowSizeImmediate, (ws) => ({
-    minHeight: `${ws.height}px`,
+    height: `${ws.height}px`,
   }));
   useStyleVWC(containerRef, containerStyleVWC);
 

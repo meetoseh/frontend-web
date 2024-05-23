@@ -39,12 +39,42 @@ const ClientScreenSchemaCopyInputInner = ({
   const variableVWC = useMappedValueWithCallbacks(variable, (map) => map.get(prettyOutputPath), {
     inputEqualityFn: () => false,
   });
-  const isCopyVWC = useMappedValueWithCallbacks(variableVWC, (value) => value?.type === 'copy');
-  const inputPathVWC = useMappedValueWithCallbacks(variableVWC, (value) =>
-    value?.type !== 'copy' ? undefined : value.inputPath
+  const variableTypeVWC = useMappedValueWithCallbacks(variableVWC, (value) => value?.type);
+  const isCopyVWC = useMappedValueWithCallbacks(
+    variableTypeVWC,
+    (type) => type === 'copy' || type === 'extract'
   );
+  const extractingVWC = useMappedValueWithCallbacks(
+    variableVWC,
+    (value) => value?.type === 'extract'
+  );
+  const skipIfMissingVWC = useMappedValueWithCallbacks(
+    variableVWC,
+    (value) => value?.type === 'extract' && value.skipIfMissing
+  );
+  const inputPathVWC = useMappedValueWithCallbacks(variableVWC, (value) => {
+    if (value === undefined) {
+      return [];
+    }
+    if (value.type === 'copy' || value.type === 'extract') {
+      return value.inputPath;
+    }
+    return [];
+  });
   const inputRef = useWritableValueWithCallbacks<HTMLInputElement | null>(() => null);
   const inputPathErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+
+  const extractPathVWC = useMappedValueWithCallbacks(variableVWC, (value) => {
+    if (value === undefined) {
+      return [];
+    }
+    if (value.type === 'extract') {
+      return value.extractedPath;
+    }
+    return [];
+  });
+  const extractRef = useWritableValueWithCallbacks<HTMLInputElement | null>(() => null);
+  const extractPathErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
 
   useValuesWithCallbacksEffect([inputPathVWC, inputRef], () => {
     const eleRaw = inputRef.get();
@@ -90,17 +120,89 @@ const ClientScreenSchemaCopyInputInner = ({
           userInputPath.some((v, idx) => v !== canonicalInputPath[idx])
         ) {
           const cpVariable = new Map(variable.get());
-          cpVariable.set(prettyOutputPath, {
-            type: 'copy',
-            inputPath: userInputPath as string[],
-            outputPath,
-          });
+          cpVariable.set(
+            prettyOutputPath,
+            !extractingVWC.get()
+              ? {
+                  type: 'copy',
+                  inputPath: userInputPath as string[],
+                  outputPath,
+                }
+              : {
+                  type: 'extract',
+                  inputPath: userInputPath as string[],
+                  extractedPath: extractPathVWC.get(),
+                  outputPath,
+                  skipIfMissing: skipIfMissingVWC.get(),
+                }
+          );
 
           variable.set(cpVariable);
           variable.callbacks.call(undefined);
         }
       } catch (e) {
         setVWC(inputPathErrorVWC, <>Invalid path: {`${e}`}</>);
+      }
+    }
+  });
+
+  useValuesWithCallbacksEffect([extractPathVWC, extractRef], () => {
+    const eleRaw = extractRef.get();
+    if (eleRaw === null) {
+      return undefined;
+    }
+    const ele = eleRaw;
+
+    const canonicalExtractPathRaw = extractPathVWC.get();
+    if (canonicalExtractPathRaw === undefined) {
+      return undefined;
+    }
+    const canonicalExtractPath = canonicalExtractPathRaw;
+
+    ele.value = prettySchemaPath(canonicalExtractPath);
+    ele.addEventListener('change', onChange);
+    onChange();
+    return () => {
+      ele.removeEventListener('change', onChange);
+    };
+
+    function onChange() {
+      if (value.get() !== undefined) {
+        return;
+      }
+
+      const userInputPathPretty = ele.value;
+      try {
+        const userInputPath = parsePrettySchemaPath(userInputPathPretty);
+        if (userInputPath.some((v) => typeof v !== 'string')) {
+          setVWC(extractPathErrorVWC, <>Array references are not currently supported here</>);
+          return;
+        }
+
+        if (userInputPath.length === 0) {
+          setVWC(extractPathErrorVWC, <>Path cannot be empty</>);
+        } else {
+          setVWC(extractPathErrorVWC, null);
+        }
+
+        if (
+          userInputPath.length !== canonicalExtractPath.length ||
+          userInputPath.some((v, idx) => v !== canonicalExtractPath[idx])
+        ) {
+          const cpVariable = new Map(variable.get());
+          cpVariable.set(prettyOutputPath, {
+            type: 'extract',
+            inputPath: inputPathVWC.get(),
+            extractedPath: userInputPath as string[],
+            outputPath,
+            skipIfMissing: skipIfMissingVWC.get(),
+          });
+
+          variable.set(cpVariable);
+          variable.callbacks.call(undefined);
+        }
+      } catch (e) {
+        setVWC(extractPathErrorVWC, <>Invalid path: {`${e}`}</>);
       }
     }
   });
@@ -113,7 +215,7 @@ const ClientScreenSchemaCopyInputInner = ({
         component={(v) => (
           <div className={styles.input}>
             <Checkbox
-              label={`Copy to produce ${name}`}
+              label={`Copy or extract to produce ${name}`}
               value={v}
               setValue={(v) => {
                 if (v) {
@@ -168,6 +270,79 @@ const ClientScreenSchemaCopyInputInner = ({
                 <RenderGuardedComponent
                   props={inputPathErrorVWC}
                   component={(v) => <div className={styles.inputPathError}>{v}</div>}
+                />
+              </div>
+              <div className={styles.extract}>
+                <RenderGuardedComponent
+                  props={extractingVWC}
+                  component={(extracting) => (
+                    <>
+                      <Checkbox
+                        label="Extract"
+                        value={extracting}
+                        setValue={(v) => {
+                          if (v) {
+                            const cpVariable = new Map(variable.get());
+                            cpVariable.set(prettyOutputPath, {
+                              type: 'extract',
+                              inputPath: inputPathVWC.get(),
+                              extractedPath: ['uid'],
+                              outputPath,
+                              skipIfMissing: false,
+                            });
+                            variable.set(cpVariable);
+                            variable.callbacks.call(undefined);
+                          } else {
+                            const cpVariable = new Map(variable.get());
+                            cpVariable.set(prettyOutputPath, {
+                              type: 'copy',
+                              inputPath: inputPathVWC.get(),
+                              outputPath,
+                            });
+                            variable.set(cpVariable);
+                            variable.callbacks.call(undefined);
+                          }
+                        }}
+                      />
+                      {extracting && (
+                        <>
+                          <div className={styles.inputPathTitle}>Extract Path:</div>
+                          <div className={styles.inputPathValue}>
+                            <input
+                              type="text"
+                              defaultValue={extractPathVWC.get() ?? ''}
+                              ref={(r) => setVWC(extractRef, r)}
+                            />
+                          </div>
+                          <RenderGuardedComponent
+                            props={extractPathErrorVWC}
+                            component={(v) => <div className={styles.inputPathError}>{v}</div>}
+                          />
+                          <RenderGuardedComponent
+                            props={skipIfMissingVWC}
+                            component={(v) => (
+                              <Checkbox
+                                label="Dont enqueue screen if value is unavailable"
+                                value={v}
+                                setValue={(v) => {
+                                  const cpVariable = new Map(variable.get());
+                                  cpVariable.set(prettyOutputPath, {
+                                    type: 'extract',
+                                    inputPath: inputPathVWC.get(),
+                                    extractedPath: extractPathVWC.get(),
+                                    outputPath,
+                                    skipIfMissing: v,
+                                  });
+                                  variable.set(cpVariable);
+                                  variable.callbacks.call(undefined);
+                                }}
+                              />
+                            )}
+                          />
+                        </>
+                      )}
+                    </>
+                  )}
                 />
               </div>
             </>
