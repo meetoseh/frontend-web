@@ -6,7 +6,6 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 import { Checkbox } from '../../../../shared/forms/Checkbox';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { setVWC } from '../../../../shared/lib/setVWC';
-import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 
 /**
  * Allows the user to fill out an object by filling out each of its properties

@@ -3,7 +3,6 @@ import styles from '../../../../lib/schema/object/SchemaFlatObjectInput.module.c
 import { ClientScreenSchemaInputProps } from '../ClientScreenSchemaInputProps';
 import { useMappedValuesWithCallbacks } from '../../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { prettySchemaPath } from '../../../../lib/schema/prettySchemaPath';
-import { useValueWithCallbacksEffect } from '../../../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { RenderGuardedComponent } from '../../../../../shared/components/RenderGuardedComponent';
 import {
