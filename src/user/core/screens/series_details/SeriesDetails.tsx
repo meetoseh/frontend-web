@@ -64,7 +64,7 @@ export const SeriesDetails = ({
         contentWidthVWC={ctx.contentWidth}
         left={transitionState.left}
         opacity={transitionState.opacity}
-        justifyContent="flex-start">
+        gridSizeVWC={ctx.windowSizeImmediate}>
         <div style={{ height: '20px' }} />
         <div className={styles.backWrapper}>
           <button

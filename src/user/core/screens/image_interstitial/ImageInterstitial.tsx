@@ -1,6 +1,5 @@
 import { ReactElement } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
-import { useContentWidthValueWithCallbacks } from '../../../../shared/lib/useContentWidthValueWithCallbacks';
 import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGrayBackground';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
@@ -41,7 +40,6 @@ export const ImageInterstitial = ({
   const transition = useTransitionProp((): StandardScreenTransition => screen.parameters.entrance);
   useEntranceTransition(transition);
 
-  const contentWidthVWC = useContentWidthValueWithCallbacks(ctx.windowSizeImmediate);
   const transitionState = useStandardTransitionsState(transition);
 
   const workingVWC = useWritableValueWithCallbacks(() => false);
@@ -50,11 +48,11 @@ export const ImageInterstitial = ({
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
       <GridDarkGrayBackground />
       <GridContentContainer
-        contentWidthVWC={contentWidthVWC}
+        contentWidthVWC={ctx.contentWidth}
         left={transitionState.left}
         opacity={transitionState.opacity}
         justifyContent="space-between"
-        minHeightVWC={useMappedValueWithCallbacks(ctx.windowSizeImmediate, (v) => v.height)}>
+        gridSizeVWC={ctx.windowSizeImmediate}>
         <div className={styles.top}>
           <div style={{ height: '32px' }} />
           <div className={styles.topMessage}>{screen.parameters.top}</div>

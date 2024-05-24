@@ -1,5 +1,5 @@
 import { OsehImageRef } from '../../shared/images/OsehImageRef';
-import { CrudFetcherKeyMap, CrudFetcherMapper, convertUsingMapper } from '../crud/CrudFetcher';
+import { CrudFetcherMapper, convertUsingMapper } from '../crud/CrudFetcher';
 
 export type UserEmail = {
   /**
@@ -188,7 +188,7 @@ export type User = {
 /**
  * The key map that can be used to parse a user from the backend
  */
-export const userKeyMap: CrudFetcherKeyMap<User> | ((raw: any) => User) = {
+export const userKeyMap: CrudFetcherMapper<User> = {
   given_name: 'givenName',
   family_name: 'familyName',
   revenue_cat_ids: 'revenueCatIDs',

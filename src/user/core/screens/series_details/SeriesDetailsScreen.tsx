@@ -151,7 +151,9 @@ export const SeriesDetailsScreen: OsehScreen<
           return undefined;
         }
 
-        const fixed = Array(journeys.journeys.length).fill(createWritableValueWithCallbacks(80));
+        const fixed = Array(journeys.journeys.length)
+          .fill(null)
+          .map(() => createWritableValueWithCallbacks(80));
         setVWC(journeyBackgroundHeights, fixed);
         return undefined;
       }

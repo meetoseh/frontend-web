@@ -155,7 +155,8 @@ export const VideoInterstitial = ({
       <GridContentContainer
         contentWidthVWC={windowWidthVWC}
         left={transitionState.left}
-        opacity={transitionState.opacity}>
+        opacity={transitionState.opacity}
+        gridSizeVWC={ctx.windowSizeImmediate}>
         <PlayerForeground
           size={ctx.windowSizeImmediate}
           content={videoVWC}

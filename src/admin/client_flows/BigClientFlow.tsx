@@ -38,6 +38,7 @@ import { DraggableTable, DraggableTableMutationEvent } from './components/Dragga
 import { createUID } from '../../shared/lib/createUID';
 import { showClientFlowScreenEditor } from './client_flow_screens/showClientFlowScreenEditor';
 import { describeError } from '../../shared/forms/ErrorBlock';
+import { showUserPicker } from '../users/showUserPicker';
 
 /**
  * Shows detailed information about a specific client flow specified by the slug in the URL
@@ -272,9 +273,10 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
   const testErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   useErrorModal(modalContext.modals, testErrorVWC, 'testing client flow');
 
-  const testFlow = async (dryRun: boolean) => {
+  const testFlow = async (dryRun: boolean, userSub?: string) => {
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
+      setVWC(workingVWC, false);
       return;
     }
 
@@ -293,6 +295,7 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
             client_parameters: draft.clientSchema.example,
             server_parameters: draft.serverSchema.example,
             dry_run: dryRun,
+            ...(userSub !== undefined ? { user_sub: userSub } : {}),
           }),
         },
         loginContext
@@ -586,18 +589,39 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
               spinner: workingVWC.get(),
             }))}
             component={({ disabled, spinner }) => (
-              <Button
-                type="button"
-                variant="outlined"
-                onClick={async (e) => {
-                  e.preventDefault();
-                  setVWC(workingVWC, true);
-                  testFlow(false);
-                }}
-                disabled={disabled}
-                spinner={spinner}>
-                Trigger on Self
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    setVWC(workingVWC, true);
+                    testFlow(false);
+                  }}
+                  disabled={disabled}
+                  spinner={spinner}>
+                  Trigger on Self
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    setVWC(workingVWC, true);
+
+                    const targetUser = await showUserPicker({ modals: modalContext.modals })
+                      .promise;
+                    if (targetUser === null) {
+                      setVWC(workingVWC, false);
+                    } else {
+                      testFlow(false, targetUser.sub);
+                    }
+                  }}
+                  disabled={disabled}
+                  spinner={spinner}>
+                  Trigger on Other
+                </Button>
+              </>
             )}
           />
         </div>

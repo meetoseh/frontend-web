@@ -1,16 +1,23 @@
 import { Fragment, ReactElement, useMemo } from 'react';
-import { SchemaInputProps } from '../SchemaInputProps';
-import { ValueWithCallbacks, WritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import styles from './SchemaFlatObjectInput.module.css';
-import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import { Checkbox } from '../../../../shared/forms/Checkbox';
-import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
-import { setVWC } from '../../../../shared/lib/setVWC';
-import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
+import styles from '../../../../lib/schema/object/SchemaFlatObjectInput.module.css';
+import { ClientScreenSchemaInputProps } from '../ClientScreenSchemaInputProps';
+import { useMappedValuesWithCallbacks } from '../../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { prettySchemaPath } from '../../../../lib/schema/prettySchemaPath';
+import { useValueWithCallbacksEffect } from '../../../../../shared/hooks/useValueWithCallbacksEffect';
+import { setVWC } from '../../../../../shared/lib/setVWC';
+import { RenderGuardedComponent } from '../../../../../shared/components/RenderGuardedComponent';
+import {
+  ValueWithCallbacks,
+  WritableValueWithCallbacks,
+} from '../../../../../shared/lib/Callbacks';
+import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
+import { Checkbox } from '../../../../../shared/forms/Checkbox';
 
 /**
  * Allows the user to fill out an object by filling out each of its properties
- * via the delegator.
+ * via the delegator. This is almost identical to the standard SchemaFlatObjectInput,
+ * except it detects when one of the properties is specified via `variable` and still
+ * shows it as checked.
  *
  * Only works if the schema is an object type with properties, i.e., doesn't have
  * anyOf, allOf, oneOf, or additionalProperties.
@@ -19,12 +26,13 @@ import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWi
  *
  * Does support `required`
  */
-export const SchemaFlatObjectInput = ({
+export const ClientScreenSchemaFlatObjectInput = ({
   path,
   schema,
   value,
-  delegator,
-}: SchemaInputProps): ReactElement => {
+  variable,
+  withCopyDelegator: delegator,
+}: ClientScreenSchemaInputProps): ReactElement => {
   if (schema.type !== 'object') {
     throw new Error('SchemaObjectInput only works with object schemas');
   }
@@ -49,12 +57,20 @@ export const SchemaFlatObjectInput = ({
     [properties]
   );
 
-  const includingPropertiesVWC = useMappedValueWithCallbacks(
-    value,
-    (v) => {
+  const includingPropertiesVWC = useMappedValuesWithCallbacks(
+    [value, variable],
+    () => {
       const result = new Set<string>();
+      const fixed = value.get() ?? {};
+      const variableMap = variable.get();
       for (const [prop, { required }] of Array.from(properties.entries())) {
-        if (required || (v !== undefined && v !== null && typeof v === 'object' && prop in v)) {
+        if (required || prop in fixed) {
+          result.add(prop);
+          continue;
+        }
+
+        const variableValue = variableMap.get(prettySchemaPath(path.concat(prop)));
+        if (variableValue !== undefined) {
           result.add(prop);
         }
       }
@@ -92,9 +108,17 @@ export const SchemaFlatObjectInput = ({
                   newValue[prop] = p.schema.default;
                   setVWC(value, newValue);
                 } else {
-                  const newValue = { ...value.get() };
-                  delete newValue[prop];
-                  setVWC(value, newValue);
+                  const fixed = value.get();
+                  if (prop in fixed) {
+                    const newValue = { ...fixed };
+                    delete newValue[prop];
+                    setVWC(value, newValue);
+                    return;
+                  }
+
+                  const newVariableMap = new Map(variable.get());
+                  newVariableMap.delete(prettySchemaPath(path.concat(prop)));
+                  setVWC(variable, newVariableMap);
                 }
               }}
             />

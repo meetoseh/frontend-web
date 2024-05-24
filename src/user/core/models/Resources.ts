@@ -4,6 +4,7 @@ import {
   OsehContentPlaylist,
   VideoFileData,
 } from '../../../shared/content/OsehContentTarget';
+import { LoginContextValueLoggedIn } from '../../../shared/contexts/LoginContext';
 import { OsehImageExport } from '../../../shared/images/OsehImageExport';
 import { OsehImageExportCropped } from '../../../shared/images/OsehImageExportCropped';
 import { OsehImageExportCroppedRef } from '../../../shared/images/OsehImageExportCroppedRef';
@@ -19,6 +20,9 @@ import { ExternalCourse } from '../../series/lib/ExternalCourse';
 import { CourseJourneys } from '../../series/lib/createSeriesJourneysRequestHandler';
 import { CourseLikeState } from '../../series/lib/createSeriesLikeStateRequestHandler';
 import { SeriesListRequest } from '../../series/lib/createSeriesListRequestHandler';
+import { PurchasesStoreProduct } from '../features/upgrade/models/PurchasesStoreProduct';
+import { RevenueCatOffering } from '../features/upgrade/models/RevenueCatOffering';
+import { OfferingPriceRef } from '../screens/upgrade/lib/createOfferingPriceRequestHandler';
 
 /**
  * Contains everything that any screen might want to eagerly preload. Generally,
@@ -69,4 +73,12 @@ export type Resources = {
    * Manages getting the journeys that are part of a series
    */
   seriesJourneysHandler: RequestHandler<CourseRef, CourseJourneys>;
+  /**
+   * Manages fetching the current revenue cat offering
+   */
+  offeringHandler: RequestHandler<LoginContextValueLoggedIn, RevenueCatOffering>;
+  /**
+   * Manages downloading product prices
+   */
+  priceHandler: RequestHandler<OfferingPriceRef, PurchasesStoreProduct>;
 };

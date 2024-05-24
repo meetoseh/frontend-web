@@ -165,7 +165,8 @@ export const SeriesList = ({
       <GridContentContainer
         contentWidthVWC={useMappedValueWithCallbacks(ctx.windowSizeImmediate, (s) => s.width)}
         left={transitionState.left}
-        opacity={transitionState.opacity}>
+        opacity={transitionState.opacity}
+        gridSizeVWC={ctx.windowSizeImmediate}>
         <RenderGuardedComponent
           props={useMappedValuesWithCallbacks(
             [mappedListVWC, listHeight, resources.imageHeight],

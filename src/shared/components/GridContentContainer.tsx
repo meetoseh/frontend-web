@@ -6,7 +6,8 @@ import { setVWC } from '../lib/setVWC';
 import { convertLogicalWidthToPhysicalWidth } from '../images/DisplayRatioHelper';
 import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 import { useStyleVWC } from '../hooks/useStyleVWC';
-import { createValueWithCallbacksEffect } from '../hooks/createValueWithCallbacksEffect';
+import { useMappedValuesWithCallbacks } from '../hooks/useMappedValuesWithCallbacks';
+import { useReactManagedValueAsValueWithCallbacks } from '../hooks/useReactManagedValueAsValueWithCallbacks';
 
 /**
  * The standard grid container for content. This returns a div that
@@ -25,34 +26,26 @@ import { createValueWithCallbacksEffect } from '../hooks/createValueWithCallback
  */
 export const GridContentContainer = ({
   contentWidthVWC,
-  minHeightVWC,
   left,
   opacity,
+  gridSizeVWC,
   justifyContent,
   children,
-}: PropsWithChildren<
-  {
-    contentWidthVWC: ValueWithCallbacks<number>;
-    /** Left offset for slide transitions */
-    left?: ValueWithCallbacks<number>;
-    /** Opacity for fade transitions */
-    opacity?: ValueWithCallbacks<number>;
-  } & (
-    | {
-        /** Overrides the centering justify-content option */
-        justifyContent?: 'flex-start' | 'flex-end';
-        /**
-         * The minimum height of the content. If justify-content space-between or space-around is set
-         * then this needs to be set to do anything useful, otherwise it does nothing
-         */
-        minHeightVWC?: undefined;
-      }
-    | {
-        justifyContent: 'space-between' | 'space-around';
-        minHeightVWC: ValueWithCallbacks<number>;
-      }
-  )
->): ReactElement => {
+}: PropsWithChildren<{
+  contentWidthVWC: ValueWithCallbacks<number>;
+  /**
+   * The absolute size of the grid, usually windowSizeImmediate
+   * For some god-awful reason grid-area 1 / 1 / -1 / -1 works for
+   * the x-axis but chrome realllly wants to expand it on the y-axis
+   */
+  gridSizeVWC: ValueWithCallbacks<{ width: number; height: number }>;
+  /** Left offset for slide transitions */
+  left?: ValueWithCallbacks<number>;
+  /** Opacity for fade transitions */
+  opacity?: ValueWithCallbacks<number>;
+  /** Overrides justify-content from center */
+  justifyContent?: CSSProperties['justifyContent'];
+}>): ReactElement => {
   const containerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
 
   const containerTransitionState = useWritableValueWithCallbacks<{ left: number; opacity: number }>(
@@ -88,9 +81,10 @@ export const GridContentContainer = ({
     }
   }, [left, opacity, containerTransitionState]);
 
-  const containerStyleVWC = useMappedValueWithCallbacks(
-    containerTransitionState,
-    (transitionState): CSSProperties => {
+  const containerStyleVWC = useMappedValuesWithCallbacks(
+    [containerTransitionState, gridSizeVWC],
+    (): CSSProperties => {
+      const transitionState = containerTransitionState.get();
       const leftValue = transitionState.left;
       const opacityValue = transitionState.opacity;
 
@@ -101,40 +95,56 @@ export const GridContentContainer = ({
         position: leftIsZero ? 'static' : 'relative',
         left: leftIsZero ? '0' : `${leftValue}px`,
         opacity: opacityIsOne ? 1 : opacityValue,
+        width: `${gridSizeVWC.get().width}px`,
+        height: `${gridSizeVWC.get().height}px`,
       };
     }
   );
   useStyleVWC(containerRef, containerStyleVWC);
 
-  const overflowerStyleVWC = useWritableValueWithCallbacks<CSSProperties>(() => ({
-    minHeight: undefined,
-  }));
-  useEffect(() => {
-    if (minHeightVWC === undefined) {
-      setVWC(overflowerStyleVWC, { minHeight: undefined });
-      return;
+  const justifyContentVWC = useReactManagedValueAsValueWithCallbacks(justifyContent);
+  const overflowerStyleVWC = useMappedValuesWithCallbacks(
+    [gridSizeVWC, contentWidthVWC, justifyContentVWC],
+    (): CSSProperties => {
+      return {
+        maxHeight: `${gridSizeVWC.get().height}px`,
+        width: `${gridSizeVWC.get().width}px`,
+        padding: `0 ${(gridSizeVWC.get().width - contentWidthVWC.get()) / 2}px`,
+        ...(justifyContent !== 'center' && justifyContent !== undefined
+          ? { minHeight: `${gridSizeVWC.get().height}px` }
+          : { minHeight: 'none' }),
+      };
     }
-    return createValueWithCallbacksEffect(minHeightVWC, (minHeight) => {
-      setVWC(overflowerStyleVWC, { minHeight: `${minHeight}px` });
-      return undefined;
-    });
-  });
+  );
   const overflowerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   useStyleVWC(overflowerRef, overflowerStyleVWC);
+
+  const innerStyleVWC = useMappedValuesWithCallbacks(
+    [gridSizeVWC, justifyContentVWC],
+    (): CSSProperties => {
+      return {
+        minHeight:
+          justifyContent !== 'center' && justifyContent !== undefined
+            ? `${gridSizeVWC.get().height}px`
+            : 'none',
+        justifyContent,
+      };
+    }
+  );
+  const innerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  useStyleVWC(innerRef, innerStyleVWC);
 
   return (
     <div
       className={styles.container}
       ref={(r) => setVWC(containerRef, r)}
       style={containerStyleVWC.get()}>
-      <div className={styles.underflower}>
-        <div
-          className={styles.overflower}
-          style={overflowerStyleVWC.get()}
-          ref={(r) => setVWC(overflowerRef, r)}>
-          <ContentContainer contentWidthVWC={contentWidthVWC} justifyContent={justifyContent}>
-            {children}
-          </ContentContainer>
+      <div
+        className={styles.overflower}
+        style={overflowerStyleVWC.get()}
+        ref={(r) => setVWC(overflowerRef, r)}>
+        <div className={styles.inner} ref={(r) => setVWC(innerRef, r)} style={innerStyleVWC.get()}>
+          {children}
         </div>
       </div>
     </div>

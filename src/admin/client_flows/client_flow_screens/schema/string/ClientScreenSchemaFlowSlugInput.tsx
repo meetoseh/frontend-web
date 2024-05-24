@@ -11,7 +11,6 @@ import { convertUsingMapper } from '../../../../crud/CrudFetcher';
 import { Button } from '../../../../../shared/forms/Button';
 import { ModalContext } from '../../../../../shared/contexts/ModalContext';
 import { setVWC } from '../../../../../shared/lib/setVWC';
-import { LoginContext } from '../../../../../shared/contexts/LoginContext';
 import { ErrorBlock } from '../../../../../shared/forms/ErrorBlock';
 import { clientFlowKeyMap } from '../../../ClientFlow';
 import { ClientFlowBlock } from '../../../ClientFlowBlock';
@@ -50,7 +49,6 @@ export const ClientScreenSchemaFlowSlugInput = (
 
 const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
   const modalContext = useContext(ModalContext);
-  const loginContextRaw = useContext(LoginContext);
   const slugVWC = useMappedValueWithCallbacks(props.value, (v): string | null => v ?? null);
 
   const flowNR = useNetworkResponse(

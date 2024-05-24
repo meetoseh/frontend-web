@@ -9,6 +9,7 @@ import { ClientScreenSchemaStringInput } from '../string/ClientScreenSchemaStrin
 import { ClientScreenSchemaImageInput } from '../string/ClientScreenSchemaImageInput';
 import { ClientScreenSchemaContentInput } from '../string/ClientScreenSchemaContentInput';
 import { ClientScreenSchemaFlowSlugInput } from '../string/ClientScreenSchemaFlowSlugInput';
+import { ClientScreenSchemaFlatObjectInput } from '../object/ClientScreenSchemaFlatObjectInput';
 
 const copyableTypes = new Set(['number', 'integer', 'boolean', 'double', 'float', 'string']);
 
@@ -66,6 +67,14 @@ export const ClientScreenSchema = ({
       return <ClientScreenSchemaFlowSlugInput {...fancyProps} />;
     }
     return <ClientScreenSchemaStringInput {...fancyProps} />;
+  }
+
+  if (
+    schema.type === 'object' &&
+    schema.format === undefined &&
+    !('x-enum-discriminator' in schema)
+  ) {
+    return <ClientScreenSchemaFlatObjectInput {...fancyProps} />;
   }
 
   return (

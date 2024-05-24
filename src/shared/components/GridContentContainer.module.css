@@ -1,22 +1,21 @@
 .container {
   grid-area: 1 / 1 / -1 / -1;
-  /* if the content is not as tall as the grid, this will center it */
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.underflower {
-  /* overflow-y forces block semantics (e.g., margin autocollapse) */
+.overflower {
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
-.overflower {
-  /* 
-   * if the content is taller than the grid, this will make it sticky to the top
-   * and maintain flex semantics (e.g., no margin autocollapse)
-   */
+.inner {
   display: flex;
+  flex-direction: column;
   align-items: stretch;
-  justify-content: center;
+  justify-content: flex-start;
 }

@@ -27,6 +27,8 @@ import { VideoInterstitialScreen } from './core/screens/video_interstitial/Video
 import { ForkScreen } from './core/screens/fork/ForkScreen';
 import { SeriesListScreen } from './core/screens/series_list/SeriesListScreen';
 import { SeriesDetailsScreen } from './core/screens/series_details/SeriesDetailsScreen';
+import { UpgradeScreen } from './core/screens/upgrade/UpgradeScreen';
+import { LoginApp } from './login/LoginApp';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -79,6 +81,7 @@ const screens = [
   ForkScreen,
   SeriesListScreen,
   SeriesDetailsScreen,
+  UpgradeScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
@@ -246,45 +249,63 @@ const UserScreensAppInner = ({
     }
   );
 
+  const needLoginScreen = useMappedValueWithCallbacks(
+    loginContextRaw.value,
+    (v) => v.state === 'logged-out'
+  );
+
   return (
-    <div>
-      <RenderGuardedComponent
-        props={stateVWC}
-        component={(state) => {
-          if (state === 'features') {
-            return (
-              <RenderGuardedComponent
-                props={screenQueue.value}
-                component={(sq) => sq.component ?? <></>}
-              />
-            );
-          }
+    <RenderGuardedComponent
+      props={needLoginScreen}
+      component={(needLogin) => {
+        if (needLogin) {
+          return <LoginApp />;
+        }
 
-          if (state === 'error') {
-            return (
-              <RenderGuardedComponent
-                props={screenQueue.value}
-                component={(sq) => sq.error ?? <div>An error has occurred. Try refreshing.</div>}
-              />
-            );
-          }
-
-          return (
+        return (
+          <div>
             <RenderGuardedComponent
-              props={splashTypeVWC}
-              component={(splashType) => {
-                if (splashType === 'brand') {
-                  return <SplashScreen type="brandmark" />;
+              props={stateVWC}
+              component={(state) => {
+                if (state === 'features') {
+                  return (
+                    <RenderGuardedComponent
+                      props={screenQueue.value}
+                      component={(sq) => sq.component ?? <></>}
+                    />
+                  );
                 }
-                if (splashType === 'word') {
-                  return <SplashScreen type="wordmark" />;
+
+                if (state === 'error') {
+                  return (
+                    <RenderGuardedComponent
+                      props={screenQueue.value}
+                      component={(sq) =>
+                        sq.error ?? <div>An error has occurred. Try refreshing.</div>
+                      }
+                    />
+                  );
                 }
-                return <></>;
+
+                return (
+                  <RenderGuardedComponent
+                    props={splashTypeVWC}
+                    component={(splashType) => {
+                      if (splashType === 'brand') {
+                        return <SplashScreen type="brandmark" />;
+                      }
+                      if (splashType === 'word') {
+                        return <SplashScreen type="wordmark" />;
+                      }
+                      return <></>;
+                    }}
+                  />
+                );
               }}
             />
-          );
-        }}
-      />
-    </div>
+          </div>
+        );
+      }}
+    />
   );
 };

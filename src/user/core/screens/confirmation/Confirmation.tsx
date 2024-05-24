@@ -47,7 +47,8 @@ export const Confirmation = ({
       <GridContentContainer
         contentWidthVWC={contentWidthVWC}
         left={transitionState.left}
-        opacity={transitionState.opacity}>
+        opacity={transitionState.opacity}
+        gridSizeVWC={ctx.windowSizeImmediate}>
         <div className={styles.header}>{screen.parameters.header}</div>
         <div style={{ height: '16px' }} />
         <div className={styles.message}>{screen.parameters.message}</div>

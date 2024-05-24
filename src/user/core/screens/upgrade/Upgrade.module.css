@@ -1,0 +1,165 @@
+.imageGridOverlay {
+  grid-area: 1 / 1 / -1 / -1;
+  background: linear-gradient(180deg, rgba(1, 1, 1, 0) 0%, rgba(1, 1, 1, 1) 100%);
+}
+.top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.back {
+  composes: unstyled from '../../../../shared/buttons.module.css';
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.foreground {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.header {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 39.2px;
+  color: white;
+}
+
+.valueProps {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.valueProp {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.valuePropIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.valuePropText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 20px;
+  color: #eaeaeb;
+}
+
+.offers {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.offers2 {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.offers2 > * {
+  flex-basis: calc(50% - 6px);
+}
+
+.offer {
+  border: 1px solid #eaeaeb;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+
+  border-radius: 10px;
+  padding: 12px 24px;
+  background: none;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.offerActive {
+  background: #eaeaeb;
+}
+
+.offerPrice {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0.25px;
+  color: #eaeaeb;
+}
+
+.offerActive .offerPrice {
+  color: #191c1d;
+}
+
+.offerFrequency {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 10px;
+  letter-spacing: 0.15px;
+  color: #c8cdd0;
+}
+
+.offerActive .offerFrequency {
+  color: #383838;
+}
+
+.disclaimer {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  text-decoration: none;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.disclaimerTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0em;
+  text-align: center;
+  color: #c8cdd0;
+}
+
+.disclaimerBody,
+.disclaimerTerms {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 13px;
+  letter-spacing: 0em;
+  text-align: center;
+  color: #c8cdd0;
+}
+
+.disclaimerTerms {
+  text-decoration: underline;
+}

@@ -18,6 +18,8 @@ import { createVideoDataRequestHandler } from '../../../shared/content/createVid
 import { createSeriesListRequestHandler } from '../../series/lib/createSeriesListRequestHandler';
 import { createSeriesLikeStateRequestHandler } from '../../series/lib/createSeriesLikeStateRequestHandler';
 import { createSeriesJourneysRequestHandler } from '../../series/lib/createSeriesJourneysRequestHandler';
+import { createOfferingRequestHandler } from '../screens/upgrade/lib/createOfferingRequestHandler';
+import { createOfferingPriceRequestHandler } from '../screens/upgrade/lib/createOfferingPriceRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -152,6 +154,12 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const seriesJourneysHandler = useWritableValueWithCallbacks(() =>
     createSeriesJourneysRequestHandler({ logging, maxStale: 10, loginContextRaw: loginContext })
   );
+  const offeringHandler = useWritableValueWithCallbacks(() =>
+    createOfferingRequestHandler({ logging, maxStale: 2 })
+  );
+  const priceHandler = useWritableValueWithCallbacks(() =>
+    createOfferingPriceRequestHandler({ logging, maxStale: 10 })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -164,6 +172,8 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       seriesListHandler: seriesListHandler.get(),
       seriesLikeStateHandler: seriesLikeStateHandler.get(),
       seriesJourneysHandler: seriesJourneysHandler.get(),
+      offeringHandler: offeringHandler.get(),
+      priceHandler: priceHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -175,6 +185,8 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       seriesListHandler,
       seriesLikeStateHandler,
       seriesJourneysHandler,
+      offeringHandler,
+      priceHandler,
     ]
   );
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);
