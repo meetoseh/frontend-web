@@ -8,18 +8,14 @@ import { GridFullscreenContainer } from '../../../../shared/components/GridFulls
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
 import styles from './Confirmation.module.css';
 import { Button } from '../../../../shared/forms/Button';
-import {
-  playExitTransition,
-  useEntranceTransition,
-  useTransitionProp,
-} from '../../../../shared/lib/TransitionProp';
+import { useEntranceTransition, useTransitionProp } from '../../../../shared/lib/TransitionProp';
 import {
   StandardScreenTransition,
   useStandardTransitionsState,
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { setVWC } from '../../../../shared/lib/setVWC';
+import { screenOut } from '../../lib/screenOut';
 
 /**
  * A basic confirmation screen with a header and message
@@ -58,22 +54,13 @@ export const Confirmation = ({
           variant="filled-white"
           onClick={async (e) => {
             e.preventDefault();
-            if (workingVWC.get()) {
-              return;
-            }
-
-            setVWC(workingVWC, true);
-            const finishPop = startPop(
-              screen.parameters.trigger === null
-                ? null
-                : {
-                    slug: screen.parameters.trigger,
-                    parameters: {},
-                  }
+            screenOut(
+              workingVWC,
+              startPop,
+              transition,
+              screen.parameters.exit,
+              screen.parameters.trigger
             );
-            setVWC(transition.animation, screen.parameters.exit);
-            await playExitTransition(transition).promise;
-            finishPop();
           }}>
           {screen.parameters.cta}
         </Button>

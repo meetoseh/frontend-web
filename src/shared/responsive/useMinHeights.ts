@@ -8,6 +8,7 @@ import { VerticalLayout } from './VerticalLayout';
 import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
 import { setVWC } from '../lib/setVWC';
 import { ResponsiveRefs } from './useResponsiveRefs';
+import { largestPhysicalPerLogical } from '../images/DisplayRatioHelper';
 
 const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'dev';
 
@@ -48,7 +49,7 @@ export const useMinHeights = <K extends string>(
     }
   }
 
-  const minRelevantPixelDifference = 1 / window.devicePixelRatio;
+  const minRelevantPixelDifference = 1 / largestPhysicalPerLogical;
 
   const minHeights = useRef<Record<K, WritableValueWithCallbacks<number>>>(
     null

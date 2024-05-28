@@ -14,9 +14,11 @@ import { thumbHashToDataURL } from 'thumbhash';
 export const GridImageBackground = ({
   image: imageVWC,
   thumbhash: thumbhashVWC,
+  borderRadius,
 }: {
   image: ValueWithCallbacks<OsehImageExportCropped | null>;
   thumbhash?: ValueWithCallbacks<string | null>;
+  borderRadius?: number;
 }): ReactElement => {
   return (
     <RenderGuardedComponent
@@ -35,18 +37,27 @@ export const GridImageBackground = ({
                   return <GridDarkGrayBackground />;
                 }
                 const thumbhashUrl = thumbHashToDataURL(base64URLToByteArray(thumbhash));
-                return <WithSrc src={thumbhashUrl} />;
+                return <WithSrc src={thumbhashUrl} borderRadius={borderRadius} />;
               }}
             />
           );
         }
 
-        return <WithSrc src={image.croppedUrl} />;
+        return <WithSrc src={image.croppedUrl} borderRadius={borderRadius} />;
       }}
     />
   );
 };
 
-const WithSrc = ({ src }: { src: string }): ReactElement => {
-  return <div className={styles.image} style={{ backgroundImage: `url(${src})` }} />;
+const WithSrc = ({ src, borderRadius }: { src: string; borderRadius?: number }): ReactElement => {
+  return (
+    <div className={styles.imageWrapper}>
+      <img
+        src={src}
+        className={styles.image}
+        alt=""
+        style={borderRadius === undefined ? undefined : { borderRadius: `${borderRadius}px` }}
+      />
+    </div>
+  );
 };

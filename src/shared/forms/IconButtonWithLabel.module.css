@@ -17,8 +17,6 @@
 }
 
 .iconContainer {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -26,6 +24,11 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.iconContainerAutoBackground {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
 }
 
 .label {
@@ -44,7 +47,7 @@
   outline: none;
 }
 
-.button:hover > .iconContainer {
+.button:hover > .iconContainerAutoBackground {
   background: rgba(255, 255, 255, 0.25);
 }
 
@@ -68,7 +71,7 @@
   background: #191c1d;
 }
 
-.button:focus-visible > .iconContainer {
+.button:focus-visible > .iconContainerAutoBackground {
   background: #383838;
 }
 
@@ -77,7 +80,7 @@
 }
 
 @media not (prefers-reduced-motion) {
-  .button > .iconContainer {
+  .button > .iconContainerAutoBackground {
     transition: background-color 0.3s ease, border-color 0.3s ease;
   }
 

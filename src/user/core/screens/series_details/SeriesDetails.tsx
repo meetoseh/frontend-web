@@ -339,11 +339,11 @@ const Journey = ({
 
         setVWC(workingVWC, true);
         const finishPop =
-          screen.parameters.buttons.buyNow.trigger === null
+          screen.parameters.buttons.takeClass.trigger === null
             ? startPop(null)
             : startPop(
                 {
-                  slug: screen.parameters.buttons.buyNow.trigger,
+                  slug: screen.parameters.buttons.takeClass.trigger,
                   parameters: {
                     series: {
                       uid: screen.parameters.series.uid,
@@ -356,7 +356,7 @@ const Journey = ({
                 },
                 '/api/1/users/me/screens/pop_to_series_class'
               );
-        setVWC(transition.animation, screen.parameters.buttons.buyNow.exit);
+        setVWC(transition.animation, screen.parameters.buttons.takeClass.exit);
         await playExitTransition(transition).promise;
         finishPop();
       }}>

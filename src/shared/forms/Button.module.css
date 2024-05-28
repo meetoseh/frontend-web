@@ -36,11 +36,11 @@
   background: transparent;
   color: white;
   border-color: white;
+  border-width: 1px;
 }
 
 .outlined-white-thin {
   padding: 9.5px 14px;
-  border-width: 1px;
 }
 
 .outlined-danger {
@@ -120,12 +120,8 @@
 .outlined-white-thin:hover {
   background: rgba(0, 0, 0, 0.1);
   color: white;
-  border: 3px solid white;
+  border: 1px solid white;
 }
-.outlined-white-thin:hover {
-  border-width: 1px;
-}
-
 .outlined-danger:hover {
   background: rgba(200, 48, 48, 0.1);
   color: #c83030;
@@ -206,11 +202,8 @@
 
 .outlined-white:disabled,
 .outlined-white-thin:disabled {
-  border: 3px solid #3f484a;
+  border: 1px solid #3f484a;
   color: #3f484a;
-}
-.outlined-white-thin:disabled {
-  border-width: 1px;
 }
 
 .link:disabled,

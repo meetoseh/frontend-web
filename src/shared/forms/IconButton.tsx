@@ -5,9 +5,10 @@ import { combineClasses } from '../lib/combineClasses';
 
 type IconButtonProps = {
   /**
-   * The class which, when applied to an element, renders the icon
+   * The class which, when applied to an element, renders the icon, or
+   * the actual icon element
    */
-  icon: string;
+  icon: string | ReactElement;
 
   /**
    * The name for screen readers
@@ -43,9 +44,13 @@ export const IconButton = ({
     return (
       <a href={onClick} className={styles.button}>
         <div
-          className={combineClasses(icon, spinning ? styles.spinning : undefined)}
+          className={combineClasses(
+            typeof icon === 'string' ? icon : undefined,
+            spinning ? styles.spinning : undefined
+          )}
           aria-hidden="true"
         />
+        {typeof icon === 'string' || spinning ? null : icon}
         <span className={assistiveStyles.srOnly}>{srOnlyName}</span>
       </a>
     );
@@ -53,9 +58,13 @@ export const IconButton = ({
     return (
       <button type="button" onClick={onClick} className={styles.button} disabled={disabled}>
         <div
-          className={combineClasses(icon, spinning ? styles.spinning : undefined)}
+          className={combineClasses(
+            typeof icon === 'string' ? icon : undefined,
+            spinning ? styles.spinning : undefined
+          )}
           aria-hidden="true"
         />
+        {typeof icon === 'string' || spinning ? null : icon}
         <span className={assistiveStyles.srOnly}>{srOnlyName}</span>
       </button>
     );

@@ -22,7 +22,6 @@ import { ImageInterstitialMappedParams } from './ImageInterstitialParams';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
-import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * A basic image interstitial; top message, image, header, subheader, button with CTA

@@ -80,6 +80,12 @@
   background-color: black;
   border-radius: 10px;
   overflow: hidden;
+  position: relative;
+  z-index: 0; /* force stacking context */
+}
+
+.journey > * {
+  z-index: 0; /* use order of appearance */
 }
 
 .journeyForeground {

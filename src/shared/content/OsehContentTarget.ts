@@ -58,6 +58,10 @@ export type VideoFileData = {
   height?: number;
 };
 
+export type AudioFileData = {
+  element: HTMLAudioElement;
+};
+
 /**
  * Describes what a OsehContentRef can be converted to for the
  * web via an api request

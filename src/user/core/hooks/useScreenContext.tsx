@@ -20,6 +20,10 @@ import { createSeriesLikeStateRequestHandler } from '../../series/lib/createSeri
 import { createSeriesJourneysRequestHandler } from '../../series/lib/createSeriesJourneysRequestHandler';
 import { createOfferingRequestHandler } from '../screens/upgrade/lib/createOfferingRequestHandler';
 import { createOfferingPriceRequestHandler } from '../screens/upgrade/lib/createOfferingPriceRequestHandler';
+import { createAudioDataRequestHandler } from '../../../shared/content/createAudioDataHandler';
+import { createIsJourneyShareableRequestHandler } from '../screens/journey_feedback/lib/createIsJourneyShareableRequestHandler';
+import { createJourneyShareLinkRequestHandler } from '../screens/journey_feedback/lib/createJourneyShareLinkRequestHandler';
+import { createJourneyLikeStateRequestHandler } from '../screens/journey_feedback/lib/createJourneyLikeStateRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -145,6 +149,9 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const videoDataHandler = useWritableValueWithCallbacks(() =>
     createVideoDataRequestHandler({ logging, maxStale: 2 })
   );
+  const audioDataHandler = useWritableValueWithCallbacks(() =>
+    createAudioDataRequestHandler({ logging, maxStale: 2 })
+  );
   const seriesListHandler = useWritableValueWithCallbacks(() =>
     createSeriesListRequestHandler({ logging, maxStale: 2, loginContextRaw: loginContext })
   );
@@ -160,6 +167,19 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const priceHandler = useWritableValueWithCallbacks(() =>
     createOfferingPriceRequestHandler({ logging, maxStale: 10 })
   );
+  const journeyIsShareableHandler = useWritableValueWithCallbacks(() =>
+    createIsJourneyShareableRequestHandler({
+      logging,
+      maxStale: 100,
+      loginContextRaw: loginContext,
+    })
+  );
+  const journeyShareLinkHandler = useWritableValueWithCallbacks(() =>
+    createJourneyShareLinkRequestHandler({ logging, maxStale: 100, loginContextRaw: loginContext })
+  );
+  const journeyLikeStateHandler = useWritableValueWithCallbacks(() =>
+    createJourneyLikeStateRequestHandler({ logging, maxStale: 100, loginContextRaw: loginContext })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -169,11 +189,15 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       imageCropHandler: imageCropHandler.get(),
       contentPlaylistHandler: contentPlaylistHandler.get(),
       videoDataHandler: videoDataHandler.get(),
+      audioDataHandler: audioDataHandler.get(),
       seriesListHandler: seriesListHandler.get(),
       seriesLikeStateHandler: seriesLikeStateHandler.get(),
       seriesJourneysHandler: seriesJourneysHandler.get(),
       offeringHandler: offeringHandler.get(),
       priceHandler: priceHandler.get(),
+      journeyIsShareableHandler: journeyIsShareableHandler.get(),
+      journeyShareLinkHandler: journeyShareLinkHandler.get(),
+      journeyLikeStateHandler: journeyLikeStateHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -182,11 +206,15 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       imageCropHandler,
       contentPlaylistHandler,
       videoDataHandler,
+      audioDataHandler,
       seriesListHandler,
       seriesLikeStateHandler,
       seriesJourneysHandler,
       offeringHandler,
       priceHandler,
+      journeyIsShareableHandler,
+      journeyShareLinkHandler,
+      journeyLikeStateHandler,
     ]
   );
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);

@@ -1,0 +1,43 @@
+import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import { JourneyRef } from '../../../journey/models/JourneyRef';
+import { ScreenJourneyMapped } from '../../models/ScreenJourney';
+
+export type JourneyFeedbackAPIParams = {
+  journey: unknown;
+
+  /** entrance transition */
+  entrance: StandardScreenTransition;
+
+  /** the first, more prominent button */
+  cta1: {
+    /** The text on the button */
+    text: string;
+
+    /** The transition to use if they click this option */
+    exit: StandardScreenTransition;
+
+    /** The client flow slug to trigger when they hit the button */
+    trigger: string | null;
+  };
+
+  /** the second, optional, less prominent button */
+  cta2: {
+    /** The text on the button */
+    text: string;
+
+    /** The transition to use if they click this option */
+    exit: StandardScreenTransition;
+
+    /** The client flow slug to trigger when they hit the button */
+    trigger: string | null;
+  } | null;
+};
+
+export type JourneyFeedbackMappedParams = Omit<
+  JourneyFeedbackAPIParams,
+  'journey' | 'background'
+> & {
+  /** The journey they are giving feedback for */
+  journey: ScreenJourneyMapped;
+  __mapped: true;
+};

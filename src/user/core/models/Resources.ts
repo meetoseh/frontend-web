@@ -1,5 +1,6 @@
 import { OsehContentRefLoadable } from '../../../shared/content/OsehContentRef';
 import {
+  AudioFileData,
   ContentFileWebExportRef,
   OsehContentPlaylist,
   VideoFileData,
@@ -22,6 +23,11 @@ import { CourseLikeState } from '../../series/lib/createSeriesLikeStateRequestHa
 import { SeriesListRequest } from '../../series/lib/createSeriesListRequestHandler';
 import { PurchasesStoreProduct } from '../features/upgrade/models/PurchasesStoreProduct';
 import { RevenueCatOffering } from '../features/upgrade/models/RevenueCatOffering';
+import { ExpirableJourneyRef } from '../screens/journey_feedback/lib/ExpirableJourneyRef';
+import { JourneyMinimalRef } from '../screens/journey_feedback/lib/JourneyMinimalRef';
+import { JourneyShareableInfo } from '../screens/journey_feedback/lib/createIsJourneyShareableRequestHandler';
+import { JourneyLikeState } from '../screens/journey_feedback/lib/createJourneyLikeStateRequestHandler';
+import { JourneyShareLink } from '../screens/journey_feedback/lib/createJourneyShareLinkRequestHandler';
 import { OfferingPriceRef } from '../screens/upgrade/lib/createOfferingPriceRequestHandler';
 
 /**
@@ -62,6 +68,10 @@ export type Resources = {
    */
   videoDataHandler: RequestHandler<ContentFileWebExportRef, VideoFileData>;
   /**
+   * Manages downloading audio data for the audio player
+   */
+  audioDataHandler: RequestHandler<ContentFileWebExportRef, AudioFileData>;
+  /**
    * Manages creating objects that can paginate through the list of series
    */
   seriesListHandler: RequestHandler<SeriesListRequest, InfiniteListing<ExternalCourse>>;
@@ -81,4 +91,16 @@ export type Resources = {
    * Manages downloading product prices
    */
   priceHandler: RequestHandler<OfferingPriceRef, PurchasesStoreProduct>;
+  /**
+   * Determines if a journey can be shared
+   */
+  journeyIsShareableHandler: RequestHandler<JourneyMinimalRef, JourneyShareableInfo>;
+  /**
+   * Actually creates share links for journeys
+   */
+  journeyShareLinkHandler: RequestHandler<JourneyMinimalRef, JourneyShareLink>;
+  /**
+   * Manages creating objects that keep track if the user has liked a journey
+   */
+  journeyLikeStateHandler: RequestHandler<ExpirableJourneyRef, JourneyLikeState>;
 };

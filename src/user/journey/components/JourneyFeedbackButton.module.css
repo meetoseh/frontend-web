@@ -11,19 +11,18 @@
   flex-direction: column;
   justify-content: center;
   align-items: stretch;
+  overflow: hidden;
 }
 
 .label,
 .unselectedLabelPlaceholder {
-  margin-top: 2px;
-  height: 12px;
+  padding-top: 2px;
   text-align: center;
 
   font-family: 'Open Sans';
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
-  line-height: 15.6px;
 }
 
 .emoji {

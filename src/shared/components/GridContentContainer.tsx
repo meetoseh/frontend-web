@@ -1,10 +1,8 @@
 import { CSSProperties, PropsWithChildren, ReactElement, useEffect } from 'react';
 import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
 import styles from './GridContentContainer.module.css';
-import { ContentContainer } from './ContentContainer';
 import { setVWC } from '../lib/setVWC';
 import { convertLogicalWidthToPhysicalWidth } from '../images/DisplayRatioHelper';
-import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 import { useStyleVWC } from '../hooks/useStyleVWC';
 import { useMappedValuesWithCallbacks } from '../hooks/useMappedValuesWithCallbacks';
 import { useReactManagedValueAsValueWithCallbacks } from '../hooks/useReactManagedValueAsValueWithCallbacks';
@@ -30,6 +28,7 @@ export const GridContentContainer = ({
   opacity,
   gridSizeVWC,
   justifyContent,
+  noPointerEvents,
   children,
 }: PropsWithChildren<{
   contentWidthVWC: ValueWithCallbacks<number>;
@@ -45,6 +44,8 @@ export const GridContentContainer = ({
   opacity?: ValueWithCallbacks<number>;
   /** Overrides justify-content from center */
   justifyContent?: CSSProperties['justifyContent'];
+  /** If true, disables pointer events on the container itself */
+  noPointerEvents?: boolean;
 }>): ReactElement => {
   const containerRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
 
@@ -82,7 +83,11 @@ export const GridContentContainer = ({
   }, [left, opacity, containerTransitionState]);
 
   const containerStyleVWC = useMappedValuesWithCallbacks(
-    [containerTransitionState, gridSizeVWC],
+    [
+      containerTransitionState,
+      gridSizeVWC,
+      useReactManagedValueAsValueWithCallbacks(noPointerEvents),
+    ],
     (): CSSProperties => {
       const transitionState = containerTransitionState.get();
       const leftValue = transitionState.left;
@@ -97,6 +102,7 @@ export const GridContentContainer = ({
         opacity: opacityIsOne ? 1 : opacityValue,
         width: `${gridSizeVWC.get().width}px`,
         height: `${gridSizeVWC.get().height}px`,
+        pointerEvents: noPointerEvents ? 'none' : 'auto',
       };
     }
   );

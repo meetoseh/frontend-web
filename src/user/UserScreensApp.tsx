@@ -29,6 +29,9 @@ import { SeriesListScreen } from './core/screens/series_list/SeriesListScreen';
 import { SeriesDetailsScreen } from './core/screens/series_details/SeriesDetailsScreen';
 import { UpgradeScreen } from './core/screens/upgrade/UpgradeScreen';
 import { LoginApp } from './login/LoginApp';
+import { InteractivePromptScreen } from './core/screens/interactive_prompt_screen/InteractivePromptScreen';
+import { AudioInterstitialScreen } from './core/screens/audio_interstitial/AudioInterstitialScreen';
+import { JourneyFeedbackScreen } from './core/screens/journey_feedback/JourneyFeedbackScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -82,6 +85,9 @@ const screens = [
   SeriesListScreen,
   SeriesDetailsScreen,
   UpgradeScreen,
+  InteractivePromptScreen,
+  AudioInterstitialScreen,
+  JourneyFeedbackScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
