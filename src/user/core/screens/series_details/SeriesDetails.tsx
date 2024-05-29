@@ -35,6 +35,7 @@ import { MinimalCourseJourney } from '../../../favorites/lib/MinimalCourseJourne
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { Check } from './icons/Check';
 import { formatDurationClock } from '../../../../shared/lib/networkResponseUtils';
+import { trackClassTaken } from '../home/lib/trackClassTaken';
 
 /**
  * Displays the series details page on a specific series
@@ -338,24 +339,27 @@ const Journey = ({
         }
 
         setVWC(workingVWC, true);
-        const finishPop =
-          screen.parameters.buttons.takeClass.trigger === null
-            ? startPop(null)
-            : startPop(
-                {
-                  slug: screen.parameters.buttons.takeClass.trigger,
-                  parameters: {
-                    series: {
-                      uid: screen.parameters.series.uid,
-                      jwt: screen.parameters.series.jwt,
-                    },
-                    journey: {
-                      uid: journey.journey.uid,
-                    },
-                  },
+        const finishPop = (() => {
+          if (screen.parameters.buttons.takeClass.trigger === null) {
+            return startPop(null);
+          }
+          trackClassTaken(ctx);
+          return startPop(
+            {
+              slug: screen.parameters.buttons.takeClass.trigger,
+              parameters: {
+                series: {
+                  uid: screen.parameters.series.uid,
+                  jwt: screen.parameters.series.jwt,
                 },
-                '/api/1/users/me/screens/pop_to_series_class'
-              );
+                journey: {
+                  uid: journey.journey.uid,
+                },
+              },
+            },
+            '/api/1/users/me/screens/pop_to_series_class'
+          );
+        })();
         setVWC(transition.animation, screen.parameters.buttons.takeClass.exit);
         await playExitTransition(transition).promise;
         finishPop();

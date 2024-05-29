@@ -1,0 +1,43 @@
+.headerLine {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.header {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  /* matching the profile picture height gives centering on one line but flex-start for wrapping */
+  line-height: 32px;
+  text-align: flex-start;
+  color: #eaeaeb;
+}
+
+.profilePicture {
+  border-radius: 50%;
+}
+
+.subheader {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.goal {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.headerCopy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}

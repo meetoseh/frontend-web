@@ -1,0 +1,78 @@
+.goal {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 24px;
+  justify-content: center;
+  align-items: center;
+  background: #0593914d;
+  backdrop-filter: blur(4px);
+  padding: 14px 28px 12px 16px;
+  border-radius: 72px;
+}
+
+.goalVisual {
+  display: grid;
+  grid-template: 1fr / 1fr;
+}
+
+.goalVisualBackground {
+  grid-area: 1 / 1 / 1 / 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.goalVisualForeground {
+  grid-area: 1 / 1 / 1 / 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.goalVisualText {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #44b2a1cc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 32px;
+  line-height: 32px;
+  font-weight: 600;
+  color: #eaeaeb;
+}
+
+.goalSection {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.goalSectionGoal {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 10px; /* easier to click */
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+}
+
+.goalSectionTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  color: #c8cdd0;
+}
+
+.goalSectionValue {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 20.4px;
+  color: #eaeaeb;
+}

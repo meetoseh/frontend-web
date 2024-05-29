@@ -1,6 +1,5 @@
 import { ReactElement } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
-import { useContentWidthValueWithCallbacks } from '../../../../shared/lib/useContentWidthValueWithCallbacks';
 import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGrayBackground';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
@@ -33,7 +32,6 @@ export const Fork = ({
   const transition = useTransitionProp((): StandardScreenTransition => screen.parameters.entrance);
   useEntranceTransition(transition);
 
-  const contentWidthVWC = useContentWidthValueWithCallbacks(ctx.windowSizeImmediate);
   const transitionState = useStandardTransitionsState(transition);
 
   const workingVWC = useWritableValueWithCallbacks(() => false);
@@ -42,7 +40,7 @@ export const Fork = ({
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
       <GridDarkGrayBackground />
       <GridContentContainer
-        contentWidthVWC={contentWidthVWC}
+        contentWidthVWC={ctx.contentWidth}
         left={transitionState.left}
         opacity={transitionState.opacity}
         gridSizeVWC={ctx.windowSizeImmediate}>

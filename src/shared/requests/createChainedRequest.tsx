@@ -5,6 +5,29 @@ import { createCancelablePromiseFromCallbacks } from '../lib/createCancelablePro
 import { setVWC } from '../lib/setVWC';
 import { RequestHandler, RequestResult } from './RequestHandler';
 
+export type ChainedRequestMapperSync<PrevDataT, RefT> = {
+  sync: (prevData: PrevDataT) => RefT;
+  async: undefined;
+  cancelable: undefined;
+};
+
+export type ChainedRequestMapperAsync<PrevDataT, RefT> = {
+  sync: undefined;
+  async: (prevData: PrevDataT) => Promise<RefT>;
+  cancelable: undefined;
+};
+
+export type ChainedRequestMapperCancelable<PrevDataT, RefT> = {
+  sync: undefined;
+  async: undefined;
+  cancelable: (prevData: PrevDataT) => CancelablePromise<RefT>;
+};
+
+export type ChainedRequestMapper<PrevDataT, RefT> =
+  | ChainedRequestMapperSync<PrevDataT, RefT>
+  | ChainedRequestMapperAsync<PrevDataT, RefT>
+  | ChainedRequestMapperCancelable<PrevDataT, RefT>;
+
 /**
  * Produces a new request, where the reference for this request is a mapped
  * version of the data from the previous request.
@@ -23,22 +46,7 @@ export const createChainedRequest = <
 >(
   createPrevious: () => RequestResult<PrevDataT>,
   handler: RequestHandler<RefT, DataT>,
-  mapper:
-    | {
-        sync: (prevData: PrevDataT) => RefT;
-        async: undefined;
-        cancelable: undefined;
-      }
-    | {
-        sync: undefined;
-        async: (prevData: PrevDataT) => Promise<RefT>;
-        cancelable: undefined;
-      }
-    | {
-        sync: undefined;
-        async: undefined;
-        cancelable: (prevData: PrevDataT) => CancelablePromise<RefT>;
-      },
+  mapper: ChainedRequestMapper<PrevDataT, RefT>,
   opts?: {
     onRefChanged?: (newRef: RefT | null) => void;
   }

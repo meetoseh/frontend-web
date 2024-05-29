@@ -14,8 +14,10 @@ import { OsehImageRef } from '../../../shared/images/OsehImageRef';
 import { OsehPublicImageRef } from '../../../shared/images/OsehPublicImageRef';
 import { PlaylistWithJWT } from '../../../shared/images/Playlist';
 import { InfiniteListing } from '../../../shared/lib/InfiniteListing';
+import { Emotion } from '../../../shared/models/Emotion';
 import { RequestHandler } from '../../../shared/requests/RequestHandler';
 import { CourseRef } from '../../favorites/lib/CourseRef';
+import { StreakInfo } from '../../journey/models/StreakInfo';
 import { ExpirableCourseRef } from '../../series/lib/ExpirableCourseRef';
 import { ExternalCourse } from '../../series/lib/ExternalCourse';
 import { CourseJourneys } from '../../series/lib/createSeriesJourneysRequestHandler';
@@ -23,6 +25,13 @@ import { CourseLikeState } from '../../series/lib/createSeriesLikeStateRequestHa
 import { SeriesListRequest } from '../../series/lib/createSeriesListRequestHandler';
 import { PurchasesStoreProduct } from '../features/upgrade/models/PurchasesStoreProduct';
 import { RevenueCatOffering } from '../features/upgrade/models/RevenueCatOffering';
+import { HomeCopy } from '../screens/home/lib/createHomeCopyRequestHandler';
+import { HomeImage } from '../screens/home/lib/createHomeImageRequestHandler';
+import { OptionalOsehImageRef } from '../screens/home/lib/createProfilePictureRequestHandler';
+import {
+  SessionStateSnapshot,
+  SessionState,
+} from '../screens/home/lib/createSessionStateRequestHandler';
 import { ExpirableJourneyRef } from '../screens/journey_feedback/lib/ExpirableJourneyRef';
 import { JourneyMinimalRef } from '../screens/journey_feedback/lib/JourneyMinimalRef';
 import { JourneyShareableInfo } from '../screens/journey_feedback/lib/createIsJourneyShareableRequestHandler';
@@ -103,4 +112,29 @@ export type Resources = {
    * Manages creating objects that keep track if the user has liked a journey
    */
   journeyLikeStateHandler: RequestHandler<ExpirableJourneyRef, JourneyLikeState>;
+  /**
+   * Manages objects that keep track of recent activity
+   */
+  sessionStateHandler: RequestHandler<LoginContextValueLoggedIn, SessionState>;
+  /**
+   * Downloads the current home copy for the user
+   */
+  homeCopyHandler: RequestHandler<SessionStateSnapshot, HomeCopy>;
+  /**
+   * Downloads the current home image reference for the user (can chain this to
+   * privatePlaylistHandler, etc)
+   */
+  homeImageHandler: RequestHandler<SessionStateSnapshot, HomeImage>;
+  /**
+   * Determines the current profile picture for the user
+   */
+  profilePictureHandler: RequestHandler<LoginContextValueLoggedIn, OptionalOsehImageRef>;
+  /**
+   * Determines the users streak information
+   */
+  streakHandler: RequestHandler<LoginContextValueLoggedIn, StreakInfo>;
+  /**
+   * Determines what emotions the user can take classes from
+   */
+  emotionsHandler: RequestHandler<LoginContextValueLoggedIn, Emotion[]>;
 };

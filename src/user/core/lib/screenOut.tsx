@@ -19,6 +19,7 @@ export const screenOut = async <T extends string, C extends { type: T; ms: numbe
   opts?: {
     endpoint?: string;
     parameters?: any;
+    beforeDone?: () => Promise<void>;
   }
 ): Promise<void> => {
   screenWithWorking(workingVWC, async () => {
@@ -31,7 +32,10 @@ export const screenOut = async <T extends string, C extends { type: T; ms: numbe
           }
     );
     setVWC(transition.animation, exit);
-    await playExitTransition(transition).promise;
+    await Promise.all([
+      playExitTransition(transition).promise,
+      opts?.beforeDone?.() ?? Promise.resolve(),
+    ]);
     finishPop();
   });
 };
