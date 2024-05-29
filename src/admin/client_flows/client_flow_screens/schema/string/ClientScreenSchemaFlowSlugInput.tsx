@@ -15,6 +15,7 @@ import { ErrorBlock } from '../../../../../shared/forms/ErrorBlock';
 import { clientFlowKeyMap } from '../../../ClientFlow';
 import { ClientFlowBlock } from '../../../ClientFlowBlock';
 import { showClientFlowPicker } from '../../../showClientFlowPicker';
+import { Checkbox } from '../../../../../shared/forms/Checkbox';
 
 /**
  * Allows the user to select or upload a video or audio file to fill a string prop.
@@ -50,6 +51,11 @@ export const ClientScreenSchemaFlowSlugInput = (
 const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
   const modalContext = useContext(ModalContext);
   const slugVWC = useMappedValueWithCallbacks(props.value, (v): string | null => v ?? null);
+  const isNullAndNullableVWC = useMappedValueWithCallbacks(
+    slugVWC,
+    (v) => v === null && props.schema.nullable,
+    { inputEqualityFn: () => false }
+  );
 
   const flowNR = useNetworkResponse(
     (active, loginContext) =>
@@ -102,47 +108,77 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
           <div className={styles.description}>{props.schema.description}</div>
         )}
       </div>
-      <div className={styles.content}>
-        <div className={styles.image}>
+      {props.schema.nullable && (
+        <div className={styles.nullable}>
           <RenderGuardedComponent
-            props={flowNR}
-            component={(content) => {
-              if (content.type === 'error') {
-                return <ErrorBlock>{content.error}</ErrorBlock>;
-              }
-              if (content.type === 'unavailable') {
-                return <ErrorBlock>Flow is invalid</ErrorBlock>;
-              }
-              if (content.type !== 'success') {
-                return <></>;
-              }
-
-              return (
-                <ClientFlowBlock
-                  clientFlow={content.result}
-                  setClientFlow={(v) => {
-                    content.replace(v);
-                  }}
-                />
-              );
-            }}
+            props={isNullAndNullableVWC}
+            component={(isNull) => (
+              <Checkbox
+                label="Null"
+                value={isNull}
+                setValue={(v) => {
+                  if (v) {
+                    setVWC(props.value, null);
+                  } else {
+                    setVWC(props.value, '');
+                  }
+                }}
+              />
+            )}
           />
         </div>
-        <div className={styles.buttons}>
-          <Button
-            type="button"
-            variant="outlined"
-            onClick={async (e) => {
-              e.preventDefault();
-              const choice = await showClientFlowPicker({ modals: modalContext.modals }).promise;
-              if (choice !== null && choice !== undefined) {
-                setVWC(props.value, choice.slug);
-              }
-            }}>
-            Select Flow
-          </Button>
-        </div>
-      </div>
+      )}
+      <RenderGuardedComponent
+        props={isNullAndNullableVWC}
+        component={(isNull) =>
+          isNull ? (
+            <></>
+          ) : (
+            <div className={styles.content}>
+              <div className={styles.image}>
+                <RenderGuardedComponent
+                  props={flowNR}
+                  component={(content) => {
+                    if (content.type === 'error') {
+                      return <ErrorBlock>{content.error}</ErrorBlock>;
+                    }
+                    if (content.type === 'unavailable') {
+                      return <ErrorBlock>Flow is invalid</ErrorBlock>;
+                    }
+                    if (content.type !== 'success') {
+                      return <></>;
+                    }
+
+                    return (
+                      <ClientFlowBlock
+                        clientFlow={content.result}
+                        setClientFlow={(v) => {
+                          content.replace(v);
+                        }}
+                      />
+                    );
+                  }}
+                />
+              </div>
+              <div className={styles.buttons}>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    const choice = await showClientFlowPicker({ modals: modalContext.modals })
+                      .promise;
+                    if (choice !== null && choice !== undefined) {
+                      setVWC(props.value, choice.slug);
+                    }
+                  }}>
+                  Select Flow
+                </Button>
+              </div>
+            </div>
+          )
+        }
+      />
     </div>
   );
 };

@@ -20,7 +20,6 @@ import { GoalPill } from './components/GoalPill';
 import { screenOut } from '../../lib/screenOut';
 import { EmotionsPicker } from './components/EmotionsPicker';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
-import { trackClassTaken } from './lib/trackClassTaken';
 
 /**
  * The standard home screen with options to take a class by emotion,

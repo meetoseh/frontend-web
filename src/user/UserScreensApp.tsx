@@ -33,6 +33,7 @@ import { InteractivePromptScreen } from './core/screens/interactive_prompt_scree
 import { AudioInterstitialScreen } from './core/screens/audio_interstitial/AudioInterstitialScreen';
 import { JourneyFeedbackScreen } from './core/screens/journey_feedback/JourneyFeedbackScreen';
 import { HomeScreen } from './core/screens/home/HomeScreen';
+import { EmotionScreen } from './core/screens/emotion/EmotionScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -90,6 +91,7 @@ const screens = [
   AudioInterstitialScreen,
   JourneyFeedbackScreen,
   HomeScreen,
+  EmotionScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**

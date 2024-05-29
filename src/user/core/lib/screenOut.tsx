@@ -29,7 +29,8 @@ export const screenOut = async <T extends string, C extends { type: T; ms: numbe
         : {
             slug: trigger,
             parameters: opts?.parameters ?? {},
-          }
+          },
+      trigger === null ? undefined : opts?.endpoint
     );
     setVWC(transition.animation, exit);
     await Promise.all([
