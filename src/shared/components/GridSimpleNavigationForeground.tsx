@@ -1,0 +1,135 @@
+import { ReactElement } from 'react';
+import { ValueWithCallbacks, WritableValueWithCallbacks } from '../lib/Callbacks';
+import { GridContentContainer } from './GridContentContainer';
+import {
+  StandardScreenTransition,
+  StandardScreenTransitionState,
+} from '../hooks/useStandardTransitions';
+import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
+import styles from './GridSimpleNavigationForeground.module.css';
+import { IconButton } from '../forms/IconButton';
+import { Back } from './icons/Back';
+import { screenOut } from '../../user/core/lib/screenOut';
+import { TransitionPropAsOwner } from '../lib/TransitionProp';
+import { BottomNavBar } from '../../user/bottomNav/BottomNavBar';
+
+export const GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT = 54;
+export const GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT = 67;
+
+/**
+ * When placed on a grid, adds a top bar with a back button and a title, and a
+ * bottom bar with navigation options. This is not expected to contain the
+ * children in the middle; instead, it should be placed above another
+ * GridContentContainer which is padded appropriately to give the illusion they
+ * occupy the same layout space, using `GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT`
+ * and `GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT`.
+ *
+ * The main benefit to splitting like this is the navigation area wants to be full
+ * width, but most content wants to be only the contentWidth, and nesting those
+ * together is awkward compared to stacking.
+ */
+export const GridSimpleNavigationForeground = ({
+  workingVWC,
+  startPop,
+  gridSize,
+  transitionState,
+  transition,
+  trace,
+  back,
+  home,
+  series,
+  account,
+  title,
+}: {
+  workingVWC: WritableValueWithCallbacks<boolean>;
+  gridSize: ValueWithCallbacks<{ width: number; height: number }>;
+  startPop: (trigger: { slug: string; parameters: any } | null, endpoint?: string) => () => void;
+  trace: (event: any) => void;
+  transitionState: StandardScreenTransitionState;
+  transition: TransitionPropAsOwner<StandardScreenTransition['type'], StandardScreenTransition>;
+  back: {
+    exit: StandardScreenTransition;
+    trigger: string | null;
+  };
+  home: {
+    exit: StandardScreenTransition;
+    trigger: string | null;
+  } | null;
+  series: {
+    exit: StandardScreenTransition;
+    trigger: string | null;
+  } | null;
+  account: {
+    exit: StandardScreenTransition;
+    trigger: string | null;
+  } | null;
+  title: string | ReactElement;
+}): ReactElement => (
+  <GridContentContainer
+    contentWidthVWC={useMappedValueWithCallbacks(gridSize, (s) => s.width)}
+    left={transitionState.left}
+    opacity={transitionState.opacity}
+    gridSizeVWC={gridSize}
+    justifyContent="space-between"
+    noPointerEvents>
+    <div className={styles.header}>
+      <div className={styles.backWrapper}>
+        <IconButton
+          icon={<Back />}
+          srOnlyName="Back"
+          onClick={() => {
+            screenOut(workingVWC, startPop, transition, back.exit, back.trigger, {
+              beforeDone: async () => {
+                trace({ type: 'back' });
+              },
+            });
+          }}
+        />
+      </div>
+      <div className={styles.headerText}>{title}</div>
+    </div>
+    <BottomNavBar
+      active={
+        home === undefined
+          ? 'home'
+          : series === undefined
+          ? 'series'
+          : account === undefined
+          ? 'account'
+          : 'home'
+      }
+      clickHandlers={{
+        home:
+          home === null
+            ? undefined
+            : () => {
+                screenOut(workingVWC, startPop, transition, home.exit, home.trigger, {
+                  beforeDone: async () => {
+                    trace({ type: 'bottom-nav', key: 'home' });
+                  },
+                });
+              },
+        series:
+          series === null
+            ? undefined
+            : () => {
+                screenOut(workingVWC, startPop, transition, series.exit, series.trigger, {
+                  beforeDone: async () => {
+                    trace({ type: 'bottom-nav', key: 'series' });
+                  },
+                });
+              },
+        account:
+          account === null
+            ? undefined
+            : () => {
+                screenOut(workingVWC, startPop, transition, account.exit, account.trigger, {
+                  beforeDone: async () => {
+                    trace({ type: 'bottom-nav', key: 'account' });
+                  },
+                });
+              },
+      }}
+    />
+  </GridContentContainer>
+);

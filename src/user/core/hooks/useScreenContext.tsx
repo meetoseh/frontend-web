@@ -35,6 +35,7 @@ import { createEntitlementsRequestHandler } from '../screens/settings/lib/create
 import { createFavoritesListRequestHandler } from '../screens/favorites/lib/createFavoritesListRequestHandler';
 import { createHistoryListRequestHandler } from '../screens/history/lib/createHistoryListRequestHandler';
 import { createOwnedListRequestHandler } from '../screens/owned/lib/createOwnedListRequestHandler';
+import { createManageMembershipUrlRequestHandler } from '../screens/membership/lib/createManageMembershipUrlRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -236,6 +237,9 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       loginContextRaw: loginContext,
     })
   );
+  const manageMembershipUrlHandler = useWritableValueWithCallbacks(() =>
+    createManageMembershipUrlRequestHandler({ logging, maxStale: 2 })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -265,6 +269,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       favoritesListHandler: favoritesListHandler.get(),
       historyListHandler: historyListHandler.get(),
       ownedListHandler: ownedListHandler.get(),
+      manageMembershipUrlHandler: manageMembershipUrlHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -293,6 +298,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       favoritesListHandler,
       historyListHandler,
       ownedListHandler,
+      manageMembershipUrlHandler,
     ]
   );
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);

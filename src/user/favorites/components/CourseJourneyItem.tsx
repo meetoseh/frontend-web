@@ -140,7 +140,7 @@ export const CourseJourneyItem = ({
       toggleFavorited();
       onToggledFavoritedCallback?.();
     },
-    [toggleFavorited]
+    [toggleFavorited, onToggledFavoritedCallback]
   );
 
   const downloadingVWC = useWritableValueWithCallbacks<boolean>(() => false);

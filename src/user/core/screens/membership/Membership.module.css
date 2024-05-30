@@ -1,0 +1,144 @@
+.errorContainer {
+  margin: 12px 0 24px 0;
+}
+
+.statusDetails {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0em;
+  text-align: left;
+  margin-top: 8px;
+  color: #c8cdd0;
+}
+
+.statusDetails a {
+  font-weight: 600;
+  color: #c8cdd0;
+  text-decoration: underline;
+}
+
+.upgradeContainer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 24px;
+}
+
+.lifetimeProps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin-top: 24px;
+}
+
+.lifetimePropsTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 39px;
+  letter-spacing: 0em;
+  text-align: left;
+  color: #ffffff;
+}
+
+.valueProps {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
+.valueProps > *:not(:last-child) {
+  margin-bottom: 8px;
+}
+
+.valueProp {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.valuePropIcon {
+  margin-right: 8px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  font-size: 17px;
+  line-height: 17px;
+}
+
+.valuePropText {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: left;
+  color: #eaeaeb;
+}
+
+.customerPortalContainer {
+  margin-top: 24px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.storeInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin-top: 24px;
+}
+
+.storeInfoTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0em;
+  text-align: left;
+  color: #eaeaeb;
+}
+
+.storeInfoDetailsList {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-left: 1em;
+  margin-top: 0.5em;
+}
+
+.storeInfoDetailsList li {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0em;
+  text-align: left;
+  color: #c8cdd0;
+}
+.storeInfoDetailsList li:not(:last-child) {
+  margin-bottom: 4px;
+}
+
+.storeInfoDetailsList a {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0em;
+  text-align: left;
+  color: #c8cdd0;
+  text-decoration: underline;
+}

@@ -38,6 +38,7 @@ import { SettingsScreen } from './core/screens/settings/SettingsScreen';
 import { FavoritesScreen } from './core/screens/favorites/FavoritesScreen';
 import { HistoryScreen } from './core/screens/history/HistoryScreen';
 import { OwnedScreen } from './core/screens/owned/OwnedScreen';
+import { MembershipScreen } from './core/screens/membership/MembershipScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -100,6 +101,7 @@ const screens = [
   FavoritesScreen,
   HistoryScreen,
   OwnedScreen,
+  MembershipScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
@@ -149,12 +151,14 @@ const UserScreensAppInner = ({
     () => undefined
   );
 
+  const handlingStripeSyncVWC = useWritableValueWithCallbacks<boolean>(() => true);
+
   useValueWithCallbacksEffect(
     loginContextRaw.value,
     useCallback(
       (loginContextUnch) => {
         let active = true;
-        checkCheckoutSuccess();
+        checkCheckoutSuccess().finally(() => checkStripeSync());
         return () => {
           active = false;
         };
@@ -212,17 +216,69 @@ const UserScreensAppInner = ({
             }
           }
         }
+
+        async function checkStripeSync() {
+          if (!active) {
+            return;
+          }
+
+          if (loginContextUnch.state === 'logged-out') {
+            setVWC(handlingStripeSyncVWC, false);
+            return;
+          }
+
+          if (loginContextUnch.state !== 'logged-in') {
+            return;
+          }
+
+          const searchParams = new URLSearchParams(window.location.search);
+          if (!searchParams.has('sync')) {
+            setVWC(handlingStripeSyncVWC, false);
+            return;
+          }
+
+          try {
+            const response = await apiFetch(
+              '/api/1/users/me/stripe/sync',
+              {
+                method: 'POST',
+              },
+              loginContextUnch
+            );
+            if (!active) {
+              return;
+            }
+            if (response.ok) {
+              const newParams = new URLSearchParams(window.location.search);
+              newParams.delete('sync');
+              window.history.replaceState(
+                {},
+                document.title,
+                `${window.location.pathname}?${newParams.toString()}`
+              );
+            }
+          } finally {
+            if (active) {
+              setVWC(handlingStripeSyncVWC, false);
+            }
+          }
+        }
       },
-      [handlingCheckoutVWC, showCheckoutSuccessfulUntilVWC]
+      [handlingCheckoutVWC, showCheckoutSuccessfulUntilVWC, handlingStripeSyncVWC]
     )
   );
 
   const screenQueueTypeVWC = useMappedValueWithCallbacks(screenQueue.value, (v) => v.type);
   useValuesWithCallbacksEffect(
-    [loginContextRaw.value, handlingCheckoutVWC, screenQueueTypeVWC],
+    [loginContextRaw.value, handlingCheckoutVWC, screenQueueTypeVWC, handlingStripeSyncVWC],
     useCallback((): undefined => {
       const loginContextUnch = loginContextRaw.value.get();
-      if (loginContextUnch.state === 'loading' || !fontsLoaded || handlingCheckoutVWC.get()) {
+      if (
+        loginContextUnch.state === 'loading' ||
+        !fontsLoaded ||
+        handlingCheckoutVWC.get() ||
+        handlingStripeSyncVWC.get()
+      ) {
         setVWC(stateVWC, 'loading');
         return;
       }
@@ -247,6 +303,7 @@ const UserScreensAppInner = ({
       screenQueueTypeVWC,
       beenLoadedVWC,
       stateVWC,
+      handlingStripeSyncVWC,
     ])
   );
 

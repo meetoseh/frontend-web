@@ -1,4 +1,3 @@
-import { CrudFetcherMapper } from '../../../../admin/crud/CrudFetcher';
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
 
 export type ConfirmationAPIParams = {

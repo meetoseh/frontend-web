@@ -51,7 +51,7 @@ export type Entitlement = {
       | {
           type: 'recurring';
           period: { iso8601: string };
-          cycleEndsAt: number;
+          cycleEndsAt: Date;
           autoRenews: boolean;
         };
     platform: 'stripe' | 'ios' | 'google' | 'promotional';
@@ -76,7 +76,7 @@ export const entitlementKeyMap: CrudFetcherMapper<Entitlement> = (v: any): Entit
               period: raw.active_info.recurrence.period && {
                 iso8601: raw.active_info.recurrence.period.iso8601,
               },
-              cycleEndsAt: raw.active_info.recurrence.cycle_ends_at,
+              cycleEndsAt: new Date(raw.active_info.recurrence.cycle_ends_at * 1000),
               autoRenews: raw.active_info.recurrence.auto_renews,
             },
       platform: raw.active_info.platform,

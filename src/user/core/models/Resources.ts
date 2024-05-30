@@ -43,6 +43,7 @@ import { JourneyMinimalRef } from '../screens/journey_feedback/lib/JourneyMinima
 import { JourneyShareableInfo } from '../screens/journey_feedback/lib/createIsJourneyShareableRequestHandler';
 import { JourneyLikeState } from '../screens/journey_feedback/lib/createJourneyLikeStateRequestHandler';
 import { JourneyShareLink } from '../screens/journey_feedback/lib/createJourneyShareLinkRequestHandler';
+import { MembershipUrl } from '../screens/membership/lib/createManageMembershipUrlRequestHandler';
 import { OwnedListRequest } from '../screens/owned/lib/createOwnedListRequestHandler';
 import {
   Entitlement,
@@ -222,5 +223,13 @@ export type Resources = {
     OwnedListRequest,
     OwnedListRequest,
     InfiniteListing<MinimalCourseJourney>
+  >;
+  /**
+   * Manages getting the stripe customer portal url for the logged in user
+   */
+  manageMembershipUrlHandler: RequestHandler<
+    LoginContextValueLoggedIn,
+    LoginContextValueLoggedIn,
+    MembershipUrl
   >;
 };

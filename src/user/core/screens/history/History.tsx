@@ -15,10 +15,6 @@ import {
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { screenOut } from '../../lib/screenOut';
-import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
-import { IconButton } from '../../../../shared/forms/IconButton';
-import { Back } from '../favorites/icons/Back';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { MyLibraryTabs } from '../favorites/components/MyLibraryTabs';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
@@ -35,6 +31,11 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { HistoryResources } from './HistoryResources';
 import { HistoryMappedParams } from './HistoryParams';
 import { trackClassTaken } from '../home/lib/trackClassTaken';
+import {
+  GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT,
+  GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT,
+  GridSimpleNavigationForeground,
+} from '../../../../shared/components/GridSimpleNavigationForeground';
 
 /**
  * Allows the user to see their list of favorites, go to their history or owned
@@ -85,7 +86,7 @@ export const History = ({
         }
       );
     },
-    [workingVWC, screen, transition, startPop, trace, resetList, ctx]
+    [workingVWC, screen, transition, startPop, trace, ctx]
   );
 
   const boundComponent = useMemo<
@@ -121,7 +122,7 @@ export const History = ({
         opacity={transitionState.opacity}
         gridSizeVWC={ctx.windowSizeImmediate}
         justifyContent="flex-start">
-        <VerticalSpacer height={54 + 24} />
+        <VerticalSpacer height={GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT + 24} />
         <MyLibraryTabs
           active="history"
           contentWidth={ctx.contentWidth}
@@ -166,7 +167,13 @@ export const History = ({
             [resources.list, ctx.windowSizeImmediate],
             () => ({
               list: resources.list.get(),
-              listHeight: ctx.windowSizeImmediate.get().height - 54 - 24 - 26.4 - 32 - 67,
+              listHeight:
+                ctx.windowSizeImmediate.get().height -
+                GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT -
+                24 -
+                26.4 -
+                32 -
+                GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT,
             }),
             {
               outputEqualityFn: (a, b) =>
@@ -192,81 +199,21 @@ export const History = ({
             )
           }
         />
-        <VerticalSpacer height={67} />
+        <VerticalSpacer height={GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT} />
       </GridContentContainer>
-      <GridContentContainer
-        contentWidthVWC={useMappedValueWithCallbacks(ctx.windowSizeImmediate, (s) => s.width)}
-        left={transitionState.left}
-        opacity={transitionState.opacity}
-        gridSizeVWC={ctx.windowSizeImmediate}
-        justifyContent="space-between"
-        noPointerEvents>
-        <div className={styles.header}>
-          <div className={styles.backWrapper}>
-            <IconButton
-              icon={<Back />}
-              srOnlyName="Back"
-              onClick={() => {
-                screenOut(
-                  workingVWC,
-                  startPop,
-                  transition,
-                  screen.parameters.back.exit,
-                  screen.parameters.back.trigger,
-                  {
-                    beforeDone: async () => {
-                      trace({ type: 'back' });
-                    },
-                    afterDone: () => {
-                      resetList();
-                    },
-                  }
-                );
-              }}
-            />
-          </div>
-          <div className={styles.headerText}>My Library</div>
-        </div>
-        <BottomNavBar
-          active="account"
-          clickHandlers={{
-            home: () => {
-              screenOut(
-                workingVWC,
-                startPop,
-                transition,
-                screen.parameters.home.exit,
-                screen.parameters.home.trigger,
-                {
-                  beforeDone: async () => {
-                    trace({ type: 'bottom-nav', key: 'home' });
-                  },
-                  afterDone: () => {
-                    resetList();
-                  },
-                }
-              );
-            },
-            series: () => {
-              screenOut(
-                workingVWC,
-                startPop,
-                transition,
-                screen.parameters.series.exit,
-                screen.parameters.series.trigger,
-                {
-                  beforeDone: async () => {
-                    trace({ type: 'bottom-nav', key: 'series' });
-                  },
-                  afterDone: () => {
-                    resetList();
-                  },
-                }
-              );
-            },
-          }}
-        />
-      </GridContentContainer>
+      <GridSimpleNavigationForeground
+        workingVWC={workingVWC}
+        startPop={startPop}
+        gridSize={ctx.windowSizeImmediate}
+        transitionState={transitionState}
+        transition={transition}
+        trace={trace}
+        back={screen.parameters.back}
+        home={screen.parameters.home}
+        series={screen.parameters.series}
+        account={null}
+        title="My Library"
+      />
       <WipeTransitionOverlay wipe={transitionState.wipe} />
     </GridFullscreenContainer>
   );
