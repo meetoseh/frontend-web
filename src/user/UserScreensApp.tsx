@@ -34,6 +34,10 @@ import { AudioInterstitialScreen } from './core/screens/audio_interstitial/Audio
 import { JourneyFeedbackScreen } from './core/screens/journey_feedback/JourneyFeedbackScreen';
 import { HomeScreen } from './core/screens/home/HomeScreen';
 import { EmotionScreen } from './core/screens/emotion/EmotionScreen';
+import { SettingsScreen } from './core/screens/settings/SettingsScreen';
+import { FavoritesScreen } from './core/screens/favorites/FavoritesScreen';
+import { HistoryScreen } from './core/screens/history/HistoryScreen';
+import { OwnedScreen } from './core/screens/owned/OwnedScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -92,6 +96,10 @@ const screens = [
   JourneyFeedbackScreen,
   HomeScreen,
   EmotionScreen,
+  SettingsScreen,
+  FavoritesScreen,
+  HistoryScreen,
+  OwnedScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**

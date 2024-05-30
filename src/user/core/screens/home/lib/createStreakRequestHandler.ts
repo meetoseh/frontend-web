@@ -17,7 +17,7 @@ export const createStreakRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<LoginContextValueLoggedIn, StreakInfo> => {
+}): RequestHandler<LoginContextValueLoggedIn, LoginContextValueLoggedIn, StreakInfo> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

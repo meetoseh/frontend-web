@@ -34,7 +34,7 @@ import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { TextInput } from '../../../shared/forms/TextInput';
 import { RawJSONEditor } from '../../lib/schema/RawJSONEditor';
-import { useNetworkResponse } from '../../../shared/hooks/useNetworkResponse';
+import { NetworkResponse, useNetworkResponse } from '../../../shared/hooks/useNetworkResponse';
 import { ClientScreen, clientScreenKeyMap } from '../../client_screens/ClientScreen';
 import { adaptActiveVWCToAbortSignal } from '../../../shared/lib/adaptActiveVWCToAbortSignal';
 import { prettySchemaPath } from '../../lib/schema/prettySchemaPath';
@@ -105,6 +105,44 @@ export const ClientFlowScreenEditorModal = ({
   const valueVWC = useMappedValueWithCallbacks(flowScreenSaveable.state, (state) =>
     state.type === 'error' ? state.erroredValue : state.value
   );
+  const slugVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.slug);
+
+  const screenNR = useNetworkResponse<ClientScreen>(
+    (active, loginContext) =>
+      adaptActiveVWCToAbortSignal(active, async (signal): Promise<ClientScreen> => {
+        const response = await apiFetch(
+          '/api/1/client_screens/search',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              filters: {
+                slug: {
+                  operator: 'eq',
+                  value: slugVWC.get(),
+                },
+              },
+              limit: 1,
+            }),
+            signal,
+          },
+          loginContext
+        );
+        if (!response.ok) {
+          throw response;
+        }
+        const raw = await response.json();
+        if (raw.items.length !== 1) {
+          throw new Error('expected exactly one client screen');
+        }
+        return convertUsingMapper(raw.items[0], clientScreenKeyMap);
+      }),
+    {
+      dependsOn: [slugVWC],
+    }
+  );
 
   const validate = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
@@ -151,7 +189,7 @@ export const ClientFlowScreenEditorModal = ({
       return;
     }
 
-    const saveTargetChanged = createCancelablePromiseFromCallbacks(
+    let saveTargetChanged = createCancelablePromiseFromCallbacks(
       flowScreenSaveable.state.callbacks
     );
     saveTargetChanged.promise.catch(() => {});
@@ -162,6 +200,151 @@ export const ClientFlowScreenEditorModal = ({
       saveTargetChanged.cancel();
       setVWC(visible, false);
       return;
+    }
+
+    // check for missing triggers in the allowed triggers list
+    const screenInfo = screenNR.get();
+    if (screenInfo.type === 'success') {
+      const screen = screenInfo.result;
+      const value = valueVWC.get();
+      const allowedTriggers = new Set(value.allowedTriggers);
+      const extraneousTriggers = new Set<string>(value.allowedTriggers);
+      const missingTriggers = new Set<string>();
+
+      const recurse = (schema: any, value: any) => {
+        if (value === null || value === undefined) {
+          return;
+        }
+
+        if ('x-enum-discriminator' in schema) {
+          const discriminatorKey = schema['x-enum-discriminator'] as string;
+          const discriminatorValue = value[discriminatorKey];
+
+          const oneOf = schema.oneOf as { type: 'object'; properties: any }[];
+          for (const oneOfSchema of oneOf) {
+            if (oneOfSchema.properties[discriminatorKey].enum[0] === discriminatorValue) {
+              recurse(oneOfSchema, value);
+              return;
+            }
+          }
+          return;
+        }
+
+        if (schema.type === 'object') {
+          for (const key in schema.properties) {
+            recurse(schema.properties[key], value[key]);
+          }
+          return;
+        }
+
+        if (schema.type === 'array') {
+          for (const item of value) {
+            recurse(schema.items, item);
+          }
+          return;
+        }
+
+        if (
+          schema.type === 'string' &&
+          schema.format === 'flow_slug' &&
+          typeof value === 'string'
+        ) {
+          if (!allowedTriggers.has(value)) {
+            missingTriggers.add(value);
+          }
+          extraneousTriggers.delete(value);
+          return;
+        }
+      };
+
+      recurse(screen.screenSchema, value.screen.fixed);
+
+      if (missingTriggers.size > 0) {
+        const confirmation = showYesNoModal(modalContext.modals, {
+          title: 'Missing Triggers',
+          body: `The following triggers are missing from the allowed triggers list: ${Array.from(
+            missingTriggers
+          ).join(', ')}. Would you like to add them?`,
+          cta1: 'Add',
+          cta2: 'Discard Pending Changes',
+          emphasize: 1,
+        });
+
+        await Promise.race([closed.promise, saveTargetChanged.promise, confirmation.promise]);
+        if (closed.done()) {
+          saveTargetChanged.cancel();
+          confirmation.cancel();
+          return;
+        }
+        if (saveTargetChanged.done()) {
+          closed.cancel();
+          confirmation.cancel();
+          return;
+        }
+        const userAnswer = await confirmation.promise;
+        if (!userAnswer) {
+          closed.cancel();
+          saveTargetChanged.cancel();
+          if (userAnswer === false) {
+            setVWC(visible, false);
+          }
+          return;
+        }
+
+        saveTargetChanged.cancel();
+        const newTriggers = Array.from(allowedTriggers).concat(Array.from(missingTriggers));
+        flowScreenSaveable.onClientChange({
+          ...value,
+          allowedTriggers: newTriggers,
+        });
+        saveTargetChanged = createCancelablePromiseFromCallbacks(
+          flowScreenSaveable.state.callbacks
+        );
+      }
+
+      if (extraneousTriggers.size > 0) {
+        const confirmation = showYesNoModal(modalContext.modals, {
+          title: 'Extraneous Triggers',
+          body: `The following triggers are in the allowed list but don't seem to appear in the screen: ${Array.from(
+            extraneousTriggers
+          ).join(', ')}. Would you like to remove them?`,
+          cta1: 'Remove',
+          cta2: 'Keep',
+          emphasize: 1,
+        });
+        await Promise.race([closed.promise, saveTargetChanged.promise, confirmation.promise]);
+        if (closed.done()) {
+          saveTargetChanged.cancel();
+          confirmation.cancel();
+          return;
+        }
+        if (saveTargetChanged.done()) {
+          closed.cancel();
+          confirmation.cancel();
+          return;
+        }
+        const userAnswer = await confirmation.promise;
+        if (!userAnswer) {
+          closed.cancel();
+          saveTargetChanged.cancel();
+          if (userAnswer === false) {
+            setVWC(visible, false);
+          }
+          return;
+        }
+
+        saveTargetChanged.cancel();
+        const newTriggers = valueVWC
+          .get()
+          .allowedTriggers.filter((trigger) => !extraneousTriggers.has(trigger));
+        flowScreenSaveable.onClientChange({
+          ...valueVWC.get(),
+          allowedTriggers: newTriggers,
+        });
+        saveTargetChanged = createCancelablePromiseFromCallbacks(
+          flowScreenSaveable.state.callbacks
+        );
+      }
     }
 
     const confirmation = showYesNoModal(modalContext.modals, {
@@ -225,13 +408,14 @@ export const ClientFlowScreenEditorModal = ({
     } finally {
       closed.cancel();
     }
-  }, [visible, flowScreenSaveable, modalContext, saveErrorVWC, validate]);
+  }, [visible, flowScreenSaveable, modalContext, saveErrorVWC, validate, screenNR, valueVWC]);
 
   return (
     <Inner
       flow={flow}
       flowScreenSaveable={flowScreenSaveable}
       visible={visible}
+      screenNR={screenNR}
       onClickOutside={onClickOutside}
       onDelete={onDelete}
     />
@@ -242,6 +426,7 @@ const Inner = ({
   flowScreenSaveable,
   flow,
   visible,
+  screenNR,
   onClickOutside,
   onDelete,
 }: {
@@ -251,6 +436,7 @@ const Inner = ({
     serverSchema: any;
   }>;
   visible: ValueWithCallbacks<boolean>;
+  screenNR: ValueWithCallbacks<NetworkResponse<ClientScreen>>;
   onClickOutside: () => void;
   onDelete?: () => void;
 }): ReactElement => {
@@ -387,7 +573,12 @@ const Inner = ({
           e.stopPropagation();
         }}
         ref={(r) => setVWC(contentRef, r)}>
-        <Content flow={flow} flowScreenSaveable={flowScreenSaveable} onDelete={onDelete} />
+        <Content
+          flow={flow}
+          flowScreenSaveable={flowScreenSaveable}
+          onDelete={onDelete}
+          screenNR={screenNR}
+        />
       </div>
     </div>
   );
@@ -396,6 +587,7 @@ const Inner = ({
 const Content = ({
   flow,
   flowScreenSaveable,
+  screenNR,
   onDelete,
 }: {
   flow: ValueWithCallbacks<{
@@ -403,49 +595,12 @@ const Content = ({
     serverSchema: any;
   }>;
   flowScreenSaveable: Saveable<ClientFlowScreen>;
+  screenNR: ValueWithCallbacks<NetworkResponse<ClientScreen>>;
   onDelete?: () => void;
 }): ReactElement => {
   const modalContext = useContext(ModalContext);
   const valueVWC = useMappedValueWithCallbacks(flowScreenSaveable.state, (state) =>
     state.type === 'error' ? state.erroredValue : state.value
-  );
-  const slugVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.slug);
-
-  const screenNR = useNetworkResponse<ClientScreen>(
-    (active, loginContext) =>
-      adaptActiveVWCToAbortSignal(active, async (signal): Promise<ClientScreen> => {
-        const response = await apiFetch(
-          '/api/1/client_screens/search',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-            },
-            body: JSON.stringify({
-              filters: {
-                slug: {
-                  operator: 'eq',
-                  value: slugVWC.get(),
-                },
-              },
-              limit: 1,
-            }),
-            signal,
-          },
-          loginContext
-        );
-        if (!response.ok) {
-          throw response;
-        }
-        const raw = await response.json();
-        if (raw.items.length !== 1) {
-          throw new Error('expected exactly one client screen');
-        }
-        return convertUsingMapper(raw.items[0], clientScreenKeyMap);
-      }),
-    {
-      dependsOn: [slugVWC],
-    }
   );
 
   const fixedValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.fixed);

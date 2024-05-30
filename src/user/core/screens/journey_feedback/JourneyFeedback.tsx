@@ -50,6 +50,7 @@ import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createV
 import { useFavoritedModal } from '../../../favorites/hooks/useFavoritedModal';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { useUnfavoritedModal } from '../../../favorites/hooks/useUnfavoritedModal';
+import { trackFavoritesChanged } from '../home/lib/trackFavoritesChanged';
 
 /**
  * Allows the user to provide feedback on a journey
@@ -555,6 +556,7 @@ export const JourneyFeedback = ({
                       onClick={async (e) => {
                         e.preventDefault();
                         v.toggleLike();
+                        trackFavoritesChanged(ctx);
                       }}
                     />
                   )

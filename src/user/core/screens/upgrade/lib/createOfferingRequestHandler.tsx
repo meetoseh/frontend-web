@@ -21,7 +21,7 @@ export const createOfferingRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<LoginContextValueLoggedIn, RevenueCatOffering> => {
+}): RequestHandler<LoginContextValueLoggedIn, LoginContextValueLoggedIn, RevenueCatOffering> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

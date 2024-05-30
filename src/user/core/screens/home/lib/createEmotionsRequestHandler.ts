@@ -16,7 +16,7 @@ export const createEmotionsRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<LoginContextValueLoggedIn, Emotion[]> => {
+}): RequestHandler<LoginContextValueLoggedIn, LoginContextValueLoggedIn, Emotion[]> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

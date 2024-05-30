@@ -20,6 +20,7 @@ export const screenOut = async <T extends string, C extends { type: T; ms: numbe
     endpoint?: string;
     parameters?: any;
     beforeDone?: () => Promise<void>;
+    afterDone?: () => void;
   }
 ): Promise<void> => {
   screenWithWorking(workingVWC, async () => {
@@ -38,5 +39,6 @@ export const screenOut = async <T extends string, C extends { type: T; ms: numbe
       opts?.beforeDone?.() ?? Promise.resolve(),
     ]);
     finishPop();
+    opts?.afterDone?.();
   });
 };

@@ -19,7 +19,7 @@ export const createIsJourneyShareableRequestHandler = ({
   maxStale?: number;
   maxRetries?: number;
   loginContextRaw: LoginContextValue;
-}): RequestHandler<JourneyMinimalRef, JourneyShareableInfo> => {
+}): RequestHandler<JourneyMinimalRef, JourneyMinimalRef, JourneyShareableInfo> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef: getDataFromRef(loginContextRaw),

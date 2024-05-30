@@ -132,7 +132,16 @@ export const SchemaEnumDiscriminatedObjectInput = ({
           props={choiceIndexVWC}
           component={(choiceIndex) => (
             <div className={styles.selectDescription}>
-              {schema.oneOf[choiceIndex].description ?? ''}
+              {choiceIndex === -1 ? (
+                <RenderGuardedComponent
+                  props={choiceVWC}
+                  component={(choice) => (
+                    <>Invalid choice: {choice}. Change the select to switch to a valid option.</>
+                  )}
+                />
+              ) : (
+                schema.oneOf[choiceIndex].description ?? ''
+              )}
             </div>
           )}
         />
@@ -141,12 +150,16 @@ export const SchemaEnumDiscriminatedObjectInput = ({
       <RenderGuardedComponent
         props={choiceIndexVWC}
         component={(choiceIndex) =>
-          delegator({
-            schema: cleanedOneOf[choiceIndex],
-            value: value,
-            path: path,
-            delegator: delegator,
-          })
+          choiceIndex === -1 ? (
+            <></>
+          ) : (
+            delegator({
+              schema: cleanedOneOf[choiceIndex],
+              value: value,
+              path: path,
+              delegator: delegator,
+            })
+          )
         }
         applyInstantly
       />

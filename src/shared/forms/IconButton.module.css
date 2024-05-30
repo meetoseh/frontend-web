@@ -6,6 +6,9 @@
   outline: none;
   appearance: none;
   text-decoration: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .spinning {

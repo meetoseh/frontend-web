@@ -26,7 +26,7 @@ export const createImageDataRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<OsehImageExportRef, OsehImageExport> => {
+}): RequestHandler<{ item: { uid: string } }, OsehImageExportRef, OsehImageExport> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,
@@ -37,7 +37,7 @@ export const createImageDataRequestHandler = ({
   });
 };
 
-const getRefUid = (ref: OsehImageExportRef): string => ref.item.uid;
+const getRefUid = (ref: { item: { uid: string } }): string => ref.item.uid;
 const getDataFromRef: (ref: OsehImageExportRef) => CancelablePromise<Result<OsehImageExport>> =
   createGetDataFromRefUsingSignal({
     inner: async (ref, signal) => {

@@ -26,7 +26,7 @@ export const createSeriesListRequestHandler = ({
   maxStale?: number;
   maxRetries?: number;
   loginContextRaw: LoginContextValue;
-}): RequestHandler<SeriesListRequest, InfiniteListing<ExternalCourse>> => {
+}): RequestHandler<SeriesListRequest, SeriesListRequest, InfiniteListing<ExternalCourse>> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef: getDataFromRef(loginContextRaw),

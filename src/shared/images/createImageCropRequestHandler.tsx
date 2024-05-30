@@ -10,6 +10,7 @@ import { reduceImageSizeExactly } from './compareSizes';
 import { RequestHandler, Result } from '../requests/RequestHandler';
 import { createGetDataFromRefUsingSignal } from './createGetDataFromRefUsingSignal';
 import { manipulateImage } from './manipulateImage';
+import { DisplaySize } from './OsehImageProps';
 
 /**
  * Handles taking a downloaded image export and preparing it to be rendered at
@@ -24,7 +25,11 @@ export const createImageCropRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<OsehImageExportCroppedRef, OsehImageExportCropped> => {
+}): RequestHandler<
+  { export: { item: { uid: string } }; cropTo: DisplaySize },
+  OsehImageExportCroppedRef,
+  OsehImageExportCropped
+> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,
@@ -35,7 +40,7 @@ export const createImageCropRequestHandler = ({
   });
 };
 
-const getRefUid = (ref: OsehImageExportCroppedRef): string => {
+const getRefUid = (ref: { export: { item: { uid: string } }; cropTo: DisplaySize }): string => {
   return `${ref.export.item.uid}-${ref.cropTo.displayWidth}x${ref.cropTo.displayHeight}`;
 };
 

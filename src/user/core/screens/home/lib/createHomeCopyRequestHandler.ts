@@ -23,7 +23,7 @@ export const createHomeCopyRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<SessionStateSnapshot, HomeCopy> => {
+}): RequestHandler<SessionStateSnapshot, SessionStateSnapshot, HomeCopy> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

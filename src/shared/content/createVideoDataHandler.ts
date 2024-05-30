@@ -22,7 +22,7 @@ export const createVideoDataRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<ContentFileWebExportRef, VideoFileData> => {
+}): RequestHandler<ContentFileWebExportRef, ContentFileWebExportRef, VideoFileData> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

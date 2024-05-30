@@ -62,7 +62,7 @@ export const createSessionStateRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<LoginContextValueLoggedIn, SessionState> => {
+}): RequestHandler<LoginContextValueLoggedIn, LoginContextValueLoggedIn, SessionState> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

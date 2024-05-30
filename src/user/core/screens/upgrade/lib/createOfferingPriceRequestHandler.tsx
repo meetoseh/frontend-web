@@ -28,7 +28,7 @@ export const createOfferingPriceRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<OfferingPriceRef, PurchasesStoreProduct> => {
+}): RequestHandler<OfferingPriceRef, OfferingPriceRef, PurchasesStoreProduct> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

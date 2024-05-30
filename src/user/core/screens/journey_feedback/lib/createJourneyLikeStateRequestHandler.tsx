@@ -84,7 +84,7 @@ export const createJourneyLikeStateRequestHandler = ({
   maxStale?: number;
   maxRetries?: number;
   loginContextRaw: LoginContextValue;
-}): RequestHandler<ExpirableJourneyRef, JourneyLikeState> => {
+}): RequestHandler<{ journey: { uid: string } }, ExpirableJourneyRef, JourneyLikeState> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef: getDataFromRef(loginContextRaw),
@@ -95,7 +95,7 @@ export const createJourneyLikeStateRequestHandler = ({
   });
 };
 
-const getRefUid = (ref: ExpirableJourneyRef): string => ref.journey.uid;
+const getRefUid = (ref: { journey: { uid: string } }): string => ref.journey.uid;
 const getDataFromRef = (
   loginContextRaw: LoginContextValue
 ): ((ref: ExpirableJourneyRef) => CancelablePromise<Result<JourneyLikeState>>) => {
@@ -149,7 +149,7 @@ export const createJourneyLikeState = ({
   reportExpired,
 }: {
   loginContextRaw: LoginContextValue;
-  journey: JourneyRef;
+  journey: Pick<JourneyRef, 'uid' | 'jwt'>;
   reportExpired: () => void;
 }): JourneyLikeState => {
   let reportedExpiration = false;

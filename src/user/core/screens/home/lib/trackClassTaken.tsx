@@ -3,6 +3,8 @@ import { shuffle } from '../../../../../shared/lib/shuffle';
 import { waitForValueWithCallbacksConditionCancelable } from '../../../../../shared/lib/waitForValueWithCallbacksCondition';
 import { DAYS_OF_WEEK } from '../../../../../shared/models/DayOfWeek';
 import { ScreenContext } from '../../../hooks/useScreenContext';
+import { createHistoryListRequest } from '../../history/lib/createHistoryListRequestHandler';
+import { createOwnedListRequest } from '../../owned/lib/createOwnedListRequestHandler';
 
 /**
  * A convenience function to track that a class was taken in the current session,
@@ -114,5 +116,30 @@ export const trackClassTaken = (ctx: ScreenContext): void => {
     });
   })().catch((e) => {
     console.error('error tracking class taken (emotions)', e);
+  });
+
+  (async () => {
+    const loginContext = ctx.login.value.get();
+    if (loginContext.state !== 'logged-in') {
+      return;
+    }
+
+    ctx.resources.historyListHandler.evictOrReplace(createHistoryListRequest(), (old) => {
+      if (old === undefined) {
+        return { type: 'make-request', data: undefined };
+      }
+      old.reset();
+      return { type: 'data', data: old };
+    });
+
+    ctx.resources.ownedListHandler.evictOrReplace(createOwnedListRequest(), (old) => {
+      if (old === undefined) {
+        return { type: 'make-request', data: undefined };
+      }
+      old.reset();
+      return { type: 'data', data: old };
+    });
+  })().catch((e) => {
+    console.error('error tracking class taken (history & owned lists)', e);
   });
 };

@@ -21,7 +21,7 @@ export const createAudioDataRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<ContentFileWebExportRef, AudioFileData> => {
+}): RequestHandler<ContentFileWebExportRef, ContentFileWebExportRef, AudioFileData> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { ReactElement, useCallback, useContext, useEffect } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import styles from './CourseJourneyItem.module.css';
 import { describeError } from '../../../shared/forms/ErrorBlock';
@@ -20,6 +20,8 @@ import { setVWC } from '../../../shared/lib/setVWC';
 import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../shared/contexts/ModalContext';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
+import { createValueWithCallbacksEffect } from '../../../shared/hooks/createValueWithCallbacksEffect';
+import { VerticalSpacer } from '../../../shared/components/VerticalSpacer';
 
 type HistoryItemProps = {
   /**
@@ -62,6 +64,17 @@ type HistoryItemProps = {
    * The request handler to use for instructor images
    */
   instructorImages: OsehImageStateRequestHandler;
+
+  /**
+   * Called for tracking purposes if they start a download for this journey
+   */
+  onDownload?: () => void;
+
+  /** If specified, called if we change the favorited state of the item */
+  toggledFavorited?: () => void;
+
+  /** The amount to pad the bottom of this item with empty space, 0 not to. Intended for the last item in the list */
+  padBottom?: ValueWithCallbacks<number>;
 };
 
 /**
@@ -75,6 +88,9 @@ export const CourseJourneyItem = ({
   separator: separatorVWC,
   onClick,
   instructorImages,
+  onDownload: onDownloadCallback,
+  toggledFavorited: onToggledFavoritedCallback,
+  padBottom: padBottomVWC,
 }: HistoryItemProps) => {
   const loginContextRaw = useContext(LoginContext);
   const instructorImageVWC = useOsehImageStateValueWithCallbacks(
@@ -122,6 +138,7 @@ export const CourseJourneyItem = ({
       e.preventDefault();
       e.stopPropagation();
       toggleFavorited();
+      onToggledFavoritedCallback?.();
     },
     [toggleFavorited]
   );
@@ -159,6 +176,7 @@ export const CourseJourneyItem = ({
         if (!response.ok) {
           throw response;
         }
+        onDownloadCallback?.();
         const data: {
           audio: OsehContentRefLoadable;
           video: OsehContentRefLoadable | null;
@@ -311,7 +329,15 @@ export const CourseJourneyItem = ({
         setVWC(downloadingVWC, false);
       }
     },
-    [downloadingVWC, downloadErrorVWC, itemVWC, loginContextRaw, mapItems, setItem]
+    [
+      downloadingVWC,
+      downloadErrorVWC,
+      itemVWC,
+      loginContextRaw,
+      mapItems,
+      setItem,
+      onDownloadCallback,
+    ]
   );
 
   const modalContext = useContext(ModalContext);
@@ -344,6 +370,19 @@ export const CourseJourneyItem = ({
       outputEqualityFn: (a, b) => a[0] === b[0] && a[1] === b[1],
     }
   );
+
+  const padBottomAlwaysAvailableVWC = useWritableValueWithCallbacks<number>(() => 0);
+  useEffect(() => {
+    if (padBottomVWC === undefined) {
+      setVWC(padBottomAlwaysAvailableVWC, 0);
+      return undefined;
+    }
+
+    return createValueWithCallbacksEffect(padBottomVWC, (padBottom) => {
+      setVWC(padBottomAlwaysAvailableVWC, padBottom);
+      return undefined;
+    });
+  }, [padBottomVWC, padBottomAlwaysAvailableVWC]);
 
   return (
     <div onClick={onClick} className={styles.outerContainer}>
@@ -423,6 +462,10 @@ export const CourseJourneyItem = ({
           />
         </div>
       </div>
+      <RenderGuardedComponent
+        props={padBottomAlwaysAvailableVWC}
+        component={(height) => (height === 0 ? <></> : <VerticalSpacer height={height} />)}
+      />
     </div>
   );
 };

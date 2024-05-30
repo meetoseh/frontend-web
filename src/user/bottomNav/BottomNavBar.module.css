@@ -5,6 +5,7 @@
   align-items: stretch;
   background: #191c1d;
   min-height: 67px;
+  pointer-events: all;
 }
 
 .itemWrapper {

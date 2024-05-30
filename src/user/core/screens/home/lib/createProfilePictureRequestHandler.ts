@@ -20,7 +20,7 @@ export const createProfilePictureRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<LoginContextValueLoggedIn, OptionalOsehImageRef> => {
+}): RequestHandler<LoginContextValueLoggedIn, LoginContextValueLoggedIn, OptionalOsehImageRef> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

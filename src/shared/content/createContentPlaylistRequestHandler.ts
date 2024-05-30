@@ -23,7 +23,7 @@ export const createContentPlaylistRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<OsehContentRefLoadable, OsehContentPlaylist> => {
+}): RequestHandler<{ uid: string }, OsehContentRefLoadable, OsehContentPlaylist> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,
@@ -34,7 +34,7 @@ export const createContentPlaylistRequestHandler = ({
   });
 };
 
-const getRefUid = (ref: OsehContentRefLoadable): string => ref.uid;
+const getRefUid = (ref: { uid: string }): string => ref.uid;
 const getDataFromRef: (
   ref: OsehContentRefLoadable
 ) => CancelablePromise<Result<OsehContentPlaylist>> = createGetDataFromRefUsingSignal({

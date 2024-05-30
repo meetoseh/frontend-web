@@ -1,0 +1,39 @@
+.container {
+  display: flex;
+  flex-flow: row nowrap;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.container > *:first-child {
+  margin-left: auto;
+}
+
+.container > *:last-child {
+  margin-right: auto;
+}
+
+.active,
+.inactive {
+  border: none;
+  border-radius: 0;
+  background: none;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 20.4px;
+}
+
+.active {
+  padding: 0 2.5px 5px 2.5px;
+  border-bottom: 1px solid #eaeaeb;
+  color: #eaeaeb;
+}
+
+.inactive {
+  padding: 0 2.5px 6px 2.5px;
+  color: #c8cdd0;
+}

@@ -30,6 +30,11 @@ import { createHomeImageRequestHandler } from '../screens/home/lib/createHomeIma
 import { createProfilePictureRequestHandler } from '../screens/home/lib/createProfilePictureRequestHandler';
 import { createStreakRequestHandler } from '../screens/home/lib/createStreakRequestHandler';
 import { createEmotionsRequestHandler } from '../screens/home/lib/createEmotionsRequestHandler';
+import { createIdentitiesRequestHandler } from '../screens/settings/lib/createIdentitiesRequestHandler';
+import { createEntitlementsRequestHandler } from '../screens/settings/lib/createEntitlementRequestHandler';
+import { createFavoritesListRequestHandler } from '../screens/favorites/lib/createFavoritesListRequestHandler';
+import { createHistoryListRequestHandler } from '../screens/history/lib/createHistoryListRequestHandler';
+import { createOwnedListRequestHandler } from '../screens/owned/lib/createOwnedListRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -204,6 +209,33 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const emotionsHandler = useWritableValueWithCallbacks(() =>
     createEmotionsRequestHandler({ logging, maxStale: 2 })
   );
+  const identitiesHandler = useWritableValueWithCallbacks(() =>
+    createIdentitiesRequestHandler({ logging, maxStale: 2 })
+  );
+  const entitlementsHandler = useWritableValueWithCallbacks(() =>
+    createEntitlementsRequestHandler({ logging, maxStale: 100 })
+  );
+  const favoritesListHandler = useWritableValueWithCallbacks(() =>
+    createFavoritesListRequestHandler({
+      logging,
+      maxStale: 2,
+      loginContextRaw: loginContext,
+    })
+  );
+  const historyListHandler = useWritableValueWithCallbacks(() =>
+    createHistoryListRequestHandler({
+      logging,
+      maxStale: 2,
+      loginContextRaw: loginContext,
+    })
+  );
+  const ownedListHandler = useWritableValueWithCallbacks(() =>
+    createOwnedListRequestHandler({
+      logging,
+      maxStale: 2,
+      loginContextRaw: loginContext,
+    })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -228,6 +260,11 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       profilePictureHandler: profilePictureHandler.get(),
       streakHandler: streakHandler.get(),
       emotionsHandler: emotionsHandler.get(),
+      identitiesHandler: identitiesHandler.get(),
+      entitlementsHandler: entitlementsHandler.get(),
+      favoritesListHandler: favoritesListHandler.get(),
+      historyListHandler: historyListHandler.get(),
+      ownedListHandler: ownedListHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -251,6 +288,11 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       profilePictureHandler,
       streakHandler,
       emotionsHandler,
+      identitiesHandler,
+      entitlementsHandler,
+      favoritesListHandler,
+      historyListHandler,
+      ownedListHandler,
     ]
   );
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);

@@ -1,4 +1,4 @@
-import { ReactElement, useCallback } from 'react';
+import { ReactElement, useCallback, useEffect } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import { MinimalJourney } from '../lib/MinimalJourney';
 import styles from './HistoryItem.module.css';
@@ -15,6 +15,9 @@ import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/Ose
 import { InlineOsehSpinner } from '../../../shared/components/InlineOsehSpinner';
 import { useToggleFavorited } from '../../journey/hooks/useToggleFavorited';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { VerticalSpacer } from '../../../shared/components/VerticalSpacer';
+import { setVWC } from '../../../shared/lib/setVWC';
+import { createValueWithCallbacksEffect } from '../../../shared/hooks/createValueWithCallbacksEffect';
 
 type HistoryItemProps = {
   /**
@@ -47,6 +50,12 @@ type HistoryItemProps = {
    * The request handler to use for instructor images
    */
   instructorImages: OsehImageStateRequestHandler;
+
+  /** If specified, called if we change the favorited state of the item */
+  toggledFavorited?: () => void;
+
+  /** The amount to pad the bottom of this item with empty space, 0 not to. Intended for the last item in the list */
+  padBottom?: ValueWithCallbacks<number>;
 };
 
 /**
@@ -58,6 +67,8 @@ export const HistoryItem = ({
   separator: separatorVWC,
   onClick,
   instructorImages,
+  toggledFavorited: onToggledFavoritedCallback,
+  padBottom: padBottomVWC,
 }: HistoryItemProps) => {
   const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const likingVWC = useWritableValueWithCallbacks<boolean>(() => false);
@@ -101,8 +112,9 @@ export const HistoryItem = ({
       e.preventDefault();
       e.stopPropagation();
       toggleFavorited();
+      onToggledFavoritedCallback?.();
     },
-    [toggleFavorited]
+    [toggleFavorited, onToggledFavoritedCallback]
   );
 
   useFavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showLikedUntilVWC));
@@ -113,6 +125,19 @@ export const HistoryItem = ({
   );
   const instructorName = useMappedValueWithCallbacks(itemVWC, (item) => item.instructor.name);
   const favorited = useMappedValueWithCallbacks(itemVWC, (item) => item.likedAt !== null);
+
+  const padBottomAlwaysAvailableVWC = useWritableValueWithCallbacks<number>(() => 0);
+  useEffect(() => {
+    if (padBottomVWC === undefined) {
+      setVWC(padBottomAlwaysAvailableVWC, 0);
+      return undefined;
+    }
+
+    return createValueWithCallbacksEffect(padBottomVWC, (padBottom) => {
+      setVWC(padBottomAlwaysAvailableVWC, padBottom);
+      return undefined;
+    });
+  }, [padBottomVWC, padBottomAlwaysAvailableVWC]);
 
   return (
     <div onClick={onClick}>
@@ -183,6 +208,10 @@ export const HistoryItem = ({
           component={(error) => <>{error && <ErrorBlock>{error}</ErrorBlock>}</>}
         />
       </div>
+      <RenderGuardedComponent
+        props={padBottomAlwaysAvailableVWC}
+        component={(height) => (height === 0 ? <></> : <VerticalSpacer height={height} />)}
+      />
     </div>
   );
 };

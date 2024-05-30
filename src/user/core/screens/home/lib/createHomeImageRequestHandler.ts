@@ -24,7 +24,7 @@ export const createHomeImageRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<SessionStateSnapshot, HomeImage> => {
+}): RequestHandler<SessionStateSnapshot, SessionStateSnapshot, HomeImage> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,

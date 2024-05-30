@@ -17,7 +17,7 @@ export const createImagePublicPlaylistRequestHandler = ({
   logging?: 'buffer' | 'direct' | 'none';
   maxStale?: number;
   maxRetries?: number;
-}): RequestHandler<OsehPublicImageRef, PlaylistWithJWT> => {
+}): RequestHandler<{ uid: string }, OsehPublicImageRef, PlaylistWithJWT> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef,
@@ -28,7 +28,7 @@ export const createImagePublicPlaylistRequestHandler = ({
   });
 };
 
-const getRefUid = (ref: OsehPublicImageRef): string => ref.uid;
+const getRefUid = (ref: { uid: string }): string => ref.uid;
 const getDataFromRef: (ref: OsehPublicImageRef) => CancelablePromise<Result<PlaylistWithJWT>> =
   createGetDataFromRefUsingSignal({
     inner: (ref, signal) => fetchPublicPlaylist(ref.uid, signal),

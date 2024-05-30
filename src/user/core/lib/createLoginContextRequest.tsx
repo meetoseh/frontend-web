@@ -1,6 +1,7 @@
 import { LoginContextValueLoggedIn } from '../../../shared/contexts/LoginContext';
 import { RequestHandler, RequestResult } from '../../../shared/requests/RequestHandler';
 import { ScreenContext } from '../hooks/useScreenContext';
+import { createMappedLoginContextRequest } from './createMappedLoginContextRequest';
 
 /**
  * Uses the standard technique to make a request that uses the logged in
@@ -13,40 +14,7 @@ export const createLoginContextRequest = <DataT extends object>({
   handler,
 }: {
   ctx: ScreenContext;
-  handler: RequestHandler<LoginContextValueLoggedIn, DataT>;
+  handler: RequestHandler<LoginContextValueLoggedIn, LoginContextValueLoggedIn, DataT>;
 }): RequestResult<DataT> => {
-  const loginContextRaw = ctx.login.value.get();
-  if (loginContextRaw.state !== 'logged-in') {
-    throw new Error('createLoginContextRequest but not logged in');
-  }
-  const loginContext = loginContextRaw;
-  return handler.request({
-    ref: loginContext,
-    refreshRef: () => {
-      const latestLoginContext = ctx.login.value.get();
-      if (latestLoginContext.state !== 'logged-in') {
-        return {
-          promise: Promise.resolve({
-            type: 'error',
-            data: undefined,
-            error: <>Not logged in</>,
-            retryAt: undefined,
-          }),
-          done: () => true,
-          cancel: () => {},
-        };
-      }
-
-      return {
-        promise: Promise.resolve({
-          type: 'success',
-          data: latestLoginContext,
-          error: undefined,
-          retryAt: undefined,
-        }),
-        done: () => true,
-        cancel: () => {},
-      };
-    },
-  });
+  return createMappedLoginContextRequest({ ctx, handler, mapper: (r) => r });
 };

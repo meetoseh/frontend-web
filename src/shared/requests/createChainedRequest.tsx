@@ -41,11 +41,12 @@ export type ChainedRequestMapper<PrevDataT, RefT> =
  */
 export const createChainedRequest = <
   PrevDataT extends object,
-  RefT extends object,
+  RefForUIDT extends object,
+  RefT extends RefForUIDT,
   DataT extends object
 >(
   createPrevious: () => RequestResult<PrevDataT>,
-  handler: RequestHandler<RefT, DataT>,
+  handler: RequestHandler<RefForUIDT, RefT, DataT>,
   mapper: ChainedRequestMapper<PrevDataT, RefT>,
   opts?: {
     onRefChanged?: (newRef: RefT | null) => void;

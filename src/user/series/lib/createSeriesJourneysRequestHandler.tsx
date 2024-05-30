@@ -33,7 +33,7 @@ export const createSeriesJourneysRequestHandler = ({
   maxStale?: number;
   maxRetries?: number;
   loginContextRaw: LoginContextValue;
-}): RequestHandler<CourseRef, CourseJourneys> => {
+}): RequestHandler<{ uid: string }, CourseRef, CourseJourneys> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef: getDataFromRef(loginContextRaw),
@@ -44,7 +44,7 @@ export const createSeriesJourneysRequestHandler = ({
   });
 };
 
-const getRefUid = (ref: CourseRef): string => ref.uid;
+const getRefUid = (ref: { uid: string }): string => ref.uid;
 const getDataFromRef = (
   loginContextRaw: LoginContextValue
 ): ((ref: CourseRef) => CancelablePromise<Result<CourseJourneys>>) =>

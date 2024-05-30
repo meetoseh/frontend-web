@@ -8,7 +8,7 @@ import { JourneyRef } from '../../../../journey/models/JourneyRef';
  */
 export type ExpirableJourneyRef = {
   /** The underlying journey */
-  journey: JourneyRef;
+  journey: Pick<JourneyRef, 'uid' | 'jwt'>;
   /** The idempotent function that reports we wanted to use the ref but it was expired */
   reportExpired: () => void;
 };

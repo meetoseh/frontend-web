@@ -86,7 +86,7 @@ export const createSeriesLikeStateRequestHandler = ({
   maxStale?: number;
   maxRetries?: number;
   loginContextRaw: LoginContextValue;
-}): RequestHandler<ExpirableCourseRef, CourseLikeState> => {
+}): RequestHandler<{ course: { uid: string } }, ExpirableCourseRef, CourseLikeState> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef: getDataFromRef(loginContextRaw),
@@ -97,7 +97,7 @@ export const createSeriesLikeStateRequestHandler = ({
   });
 };
 
-const getRefUid = (ref: ExpirableCourseRef): string => ref.course.uid;
+const getRefUid = (ref: { course: { uid: string } }): string => ref.course.uid;
 const getDataFromRef = (
   loginContextRaw: LoginContextValue
 ): ((ref: ExpirableCourseRef) => CancelablePromise<Result<CourseLikeState>>) => {

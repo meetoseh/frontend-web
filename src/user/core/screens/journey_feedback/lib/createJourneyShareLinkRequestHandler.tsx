@@ -22,7 +22,7 @@ export const createJourneyShareLinkRequestHandler = ({
   maxStale?: number;
   maxRetries?: number;
   loginContextRaw: LoginContextValue;
-}): RequestHandler<JourneyMinimalRef, JourneyShareLink> => {
+}): RequestHandler<JourneyMinimalRef, JourneyMinimalRef, JourneyShareLink> => {
   return new RequestHandler({
     getRefUid,
     getDataFromRef: getDataFromRef(loginContextRaw),
