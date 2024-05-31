@@ -37,9 +37,7 @@ import { DEFAULT_DAYS, DEFAULT_TIME_RANGE } from '../../features/requestNotifica
 import { Button } from '../../../../shared/forms/Button';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { Back } from '../../../../shared/components/icons/Back';
-import { useDelayedValueWithCallbacks } from '../../../../shared/hooks/useDelayedValueWithCallbacks';
 import { apiFetch } from '../../../../shared/ApiConstants';
-import { useSavingModal } from '../../../../shared/hooks/useSavingModal';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
@@ -47,6 +45,7 @@ import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { showYesNoModal } from '../../../../shared/lib/showYesNoModal';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { useWorkingModal } from '../../../../shared/hooks/useWorkingModal';
 
 /**
  * Allows the user to update their notification settings
@@ -148,17 +147,16 @@ export const ReminderTimes = ({
   const timeRangeVWC = useWritableValueWithCallbacks<TimeRange>(getExistingTimeRange);
   const daysVWC = useWritableValueWithCallbacks<Set<DayOfWeek>>(getExistingDays);
 
-  useValueWithCallbacksEffect(currentChannelVWC, () => {
+  useValuesWithCallbacksEffect([currentChannelVWC, resources.settings], () => {
     setVWC(timeRangeVWC, getExistingTimeRange());
     setVWC(daysVWC, getExistingDays());
     return undefined;
   });
 
   const savingVWC = useWritableValueWithCallbacks<boolean>(() => false);
-  const overlaySavingVWC = useDelayedValueWithCallbacks(savingVWC, 250);
   const savingErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
 
-  useSavingModal(modalContext.modals, overlaySavingVWC);
+  useWorkingModal(modalContext.modals, savingVWC, { delayStartMs: 200 });
   useErrorModal(modalContext.modals, savingErrorVWC, 'saving');
 
   const timezone = useTimezone();
@@ -199,6 +197,8 @@ export const ReminderTimes = ({
       return null;
     }
 
+    console.log('found difference:', settings, savingStart, savingEnd, savingDays);
+
     return async () => {
       if (savingVWC.get()) {
         return false;
@@ -233,6 +233,33 @@ export const ReminderTimes = ({
         if (!response.ok) {
           throw response;
         }
+
+        ctx.resources.reminderChannelsHandler.evictOrReplace(loginContext, () => {
+          const channelsInfo = resources.channelsInfo.get();
+          if (channelsInfo === null) {
+            return { type: 'make-request', data: undefined };
+          }
+
+          const newUnconfigured = new Set(channelsInfo.unconfiguredChannels);
+          newUnconfigured.delete(channel);
+
+          return {
+            type: 'data',
+            data: {
+              unconfiguredChannels: newUnconfigured,
+              potentialChannels: channelsInfo.potentialChannels,
+            },
+          };
+        });
+        ctx.resources.reminderSettingsHandler.evictOrReplace(loginContext, () => {
+          return {
+            type: 'data',
+            data: {
+              ...settingsMap,
+              [channel]: { start: savingStart, end: savingEnd, days: new Set(savingDays) },
+            },
+          };
+        });
         return true;
       } catch (e) {
         setVWC(savingErrorVWC, await describeError(e));
@@ -250,6 +277,9 @@ export const ReminderTimes = ({
     savingVWC,
     timeRangeVWC,
     timezone,
+    ctx.resources.reminderChannelsHandler,
+    ctx.resources.reminderSettingsHandler,
+    resources.channelsInfo,
   ]);
 
   const handleBack = useCallback(
@@ -258,7 +288,7 @@ export const ReminderTimes = ({
         const finish = () => screenOut(null, startPop, transition, exit, trigger);
         const save = prepareSave();
         if (save === null) {
-          trace({ type: 'back', pendingChanges: false });
+          trace({ type: 'back', draft: false });
           await finish();
           return;
         }
@@ -267,17 +297,17 @@ export const ReminderTimes = ({
         const channel = currentChannelVWC.get();
 
         if (draft.type === 'save') {
-          trace({ type: 'back', pendingChanges: true, technique: 'save', step: 'start' });
+          trace({ type: 'back', draft: true, technique: 'save', step: 'start' });
           const result = await save();
-          trace({ type: 'back', pendingChanges: true, technique: 'save', step: 'end', result });
+          trace({ type: 'back', draft: true, technique: 'save', step: 'end', result });
           if (result) {
             await finish();
           }
         } else if (draft.type === 'discard') {
-          trace({ type: 'back', pendingChanges: true, technique: 'discard' });
+          trace({ type: 'back', draft: true, technique: 'discard' });
           await finish();
         } else if (draft.type === 'confirm') {
-          trace({ type: 'back', pendingChanges: true, technique: 'confirm', step: 'start' });
+          trace({ type: 'back', draft: true, technique: 'confirm', step: 'start' });
           const confirmation = await showYesNoModal(modalContext.modals, {
             title: draft.title,
             body: formatChannelText(draft.message, channel),
@@ -286,16 +316,16 @@ export const ReminderTimes = ({
             emphasize: 1,
           }).promise;
           if (confirmation === null) {
-            trace({ type: 'back', pendingChanges: true, technique: 'confirm', step: 'cancel' });
+            trace({ type: 'back', draft: true, technique: 'confirm', step: 'cancel' });
             return;
           }
 
           if (confirmation) {
-            trace({ type: 'back', pendingChanges: true, technique: 'confirm', step: 'save' });
+            trace({ type: 'back', draft: true, technique: 'confirm', step: 'save' });
             const result = await save();
             trace({
               type: 'back',
-              pendingChanges: true,
+              draft: true,
               technique: 'confirm',
               step: 'end',
               result,
@@ -304,16 +334,25 @@ export const ReminderTimes = ({
               await finish();
             }
           } else {
-            trace({ type: 'back', pendingChanges: true, technique: 'confirm', step: 'discard' });
+            trace({ type: 'back', draft: true, technique: 'confirm', step: 'discard' });
             await finish();
           }
         } else {
-          trace({ type: 'back', pendingChanges: true, technique: 'unknown-becomes-discard' });
+          trace({ type: 'back', draft: true, technique: 'unknown-becomes-discard' });
           await finish();
         }
       });
     },
-    [prepareSave, screen]
+    [
+      prepareSave,
+      screen,
+      currentChannelVWC,
+      modalContext.modals,
+      startPop,
+      transition,
+      trace,
+      workingVWC,
+    ]
   );
 
   const seenChannelsVWC = useWritableValueWithCallbacks<Set<Channel>>(() => new Set());
@@ -436,7 +475,7 @@ export const ReminderTimes = ({
                   trace({
                     type: 'cta',
                     channel: currentChannelVWC.get(),
-                    pendingChanges: false,
+                    draft: false,
                     continueStrat: 'disabled',
                   });
                   await exit();
@@ -444,7 +483,7 @@ export const ReminderTimes = ({
                   trace({
                     type: 'cta',
                     channel: currentChannelVWC.get(),
-                    pendingChanges: true,
+                    draft: true,
                     continueStrat: 'disabled',
                     step: 'start',
                   });
@@ -452,7 +491,7 @@ export const ReminderTimes = ({
                   trace({
                     type: 'cta',
                     channel: currentChannelVWC.get(),
-                    pendingChanges: true,
+                    draft: true,
                     continueStrat: 'disabled',
                     step: 'end',
                     result,
@@ -468,7 +507,7 @@ export const ReminderTimes = ({
                 trace({
                   type: 'cta',
                   channel: currentChannelVWC.get(),
-                  pendingChanges: true,
+                  draft: true,
                   continueStrat: 'try-next',
                   step: 'save-start',
                 });
@@ -477,7 +516,7 @@ export const ReminderTimes = ({
                   trace({
                     type: 'cta',
                     channel: currentChannelVWC.get(),
-                    pendingChanges: true,
+                    draft: true,
                     continueStrat: 'try-next',
                     step: 'save-end',
                     result: false,

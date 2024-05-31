@@ -131,8 +131,15 @@ export const Settings = ({
       trigger: screen.parameters.reminders.trigger,
     })
   );
+  const setGoalLink = useWritableValueWithCallbacks(() =>
+    makeTriggerLink({
+      text: 'Edit Goal',
+      key: 'edit-goal',
+      trigger: screen.parameters.goal.trigger,
+    })
+  );
 
-  const settingsLinks = useMemo(() => [remindersLink], [remindersLink]);
+  const settingsLinks = useMemo(() => [remindersLink, setGoalLink], [remindersLink, setGoalLink]);
 
   const supportUrl = 'mailto:hi@oseh.com';
   const contactSupportLink = useWritableValueWithCallbacks(

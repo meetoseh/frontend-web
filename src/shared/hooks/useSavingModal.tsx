@@ -35,6 +35,7 @@ const DEFAULT_OPTIONS: Required<Options> = {
  *
  * @param modals The modals to use to show the error
  * @param visible True to show the overlay, false to hide it
+ * @deprecated prefer useWorkingModal
  */
 export const useSavingModal = (
   modals: WritableValueWithCallbacks<Modals>,

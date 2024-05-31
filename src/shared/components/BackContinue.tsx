@@ -7,6 +7,12 @@ export type BackContinueProps = {
   onBack: (() => void) | null;
   /** Handler for when the continue button is pressed */
   onContinue: () => void;
+
+  /** Overrides the text for the back button */
+  backText?: string;
+
+  /** Overrides the text for the continue button */
+  continueText?: string;
 };
 
 /**
@@ -14,7 +20,12 @@ export type BackContinueProps = {
  * a continue button or a back button and continue button. Useful for sequential
  * screens, especially in onboarding (e.g., goal categories, age range, etc)
  */
-export const BackContinue = ({ onBack, onContinue }: BackContinueProps): ReactElement => {
+export const BackContinue = ({
+  onBack,
+  onContinue,
+  backText,
+  continueText,
+}: BackContinueProps): ReactElement => {
   if (onBack === null) {
     return (
       <Button
@@ -25,7 +36,7 @@ export const BackContinue = ({ onBack, onContinue }: BackContinueProps): ReactEl
         }}
         variant="filled-white"
         fullWidth>
-        Continue
+        {continueText ?? 'Continue'}
       </Button>
     );
   }
@@ -40,7 +51,7 @@ export const BackContinue = ({ onBack, onContinue }: BackContinueProps): ReactEl
         }}
         variant="outlined-white"
         fullWidth>
-        Back
+        {backText ?? 'Back'}
       </Button>
       <Button
         type="button"
@@ -50,7 +61,7 @@ export const BackContinue = ({ onBack, onContinue }: BackContinueProps): ReactEl
         }}
         variant="filled-white"
         fullWidth>
-        Continue
+        {continueText ?? 'Continue'}
       </Button>
     </div>
   );
