@@ -15,13 +15,17 @@ export const ChannelSelector = ({
   current,
   all,
   onTap,
+  noTopPadding,
 }: {
   current: ValueWithCallbacks<Channel>;
   all: ValueWithCallbacks<Channel[]>;
   onTap: (channel: Channel) => void;
+  noTopPadding?: boolean;
 }): ReactElement => {
   return (
-    <div className={styles.channels}>
+    <div
+      className={styles.channels}
+      style={noTopPadding ? { marginTop: 0, paddingTop: 0 } : undefined}>
       <RenderGuardedComponent
         props={all}
         component={(channels) => (

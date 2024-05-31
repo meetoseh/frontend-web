@@ -36,6 +36,8 @@ import { createFavoritesListRequestHandler } from '../screens/favorites/lib/crea
 import { createHistoryListRequestHandler } from '../screens/history/lib/createHistoryListRequestHandler';
 import { createOwnedListRequestHandler } from '../screens/owned/lib/createOwnedListRequestHandler';
 import { createManageMembershipUrlRequestHandler } from '../screens/membership/lib/createManageMembershipUrlRequestHandler';
+import { createReminderChannelsRequestHandler } from '../screens/reminder_times/lib/createReminderChannelsHandler';
+import { createReminderSettingsRequestHandler } from '../screens/reminder_times/lib/createReminderSettingsHandler';
 
 type WindowSize = {
   width: number;
@@ -240,6 +242,12 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const manageMembershipUrlHandler = useWritableValueWithCallbacks(() =>
     createManageMembershipUrlRequestHandler({ logging, maxStale: 2 })
   );
+  const reminderChannelsHandler = useWritableValueWithCallbacks(() =>
+    createReminderChannelsRequestHandler({ logging, maxStale: 2 })
+  );
+  const reminderSettingsHandler = useWritableValueWithCallbacks(() =>
+    createReminderSettingsRequestHandler({ logging, maxStale: 2 })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -270,6 +278,8 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       historyListHandler: historyListHandler.get(),
       ownedListHandler: ownedListHandler.get(),
       manageMembershipUrlHandler: manageMembershipUrlHandler.get(),
+      reminderChannelsHandler: reminderChannelsHandler.get(),
+      reminderSettingsHandler: reminderSettingsHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -299,6 +309,8 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       historyListHandler,
       ownedListHandler,
       manageMembershipUrlHandler,
+      reminderChannelsHandler,
+      reminderSettingsHandler,
     ]
   );
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);

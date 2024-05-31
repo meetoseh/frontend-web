@@ -47,22 +47,33 @@ export const GridSimpleNavigationForeground = ({
   trace: (event: any) => void;
   transitionState: StandardScreenTransitionState;
   transition: TransitionPropAsOwner<StandardScreenTransition['type'], StandardScreenTransition>;
-  back: {
-    exit: StandardScreenTransition;
-    trigger: string | null;
-  };
-  home: {
-    exit: StandardScreenTransition;
-    trigger: string | null;
-  } | null;
-  series: {
-    exit: StandardScreenTransition;
-    trigger: string | null;
-  } | null;
-  account: {
-    exit: StandardScreenTransition;
-    trigger: string | null;
-  } | null;
+  back:
+    | {
+        exit: StandardScreenTransition;
+        trigger: string | null;
+      }
+    | (() => void);
+  home:
+    | {
+        exit: StandardScreenTransition;
+        trigger: string | null;
+      }
+    | (() => void)
+    | null;
+  series:
+    | {
+        exit: StandardScreenTransition;
+        trigger: string | null;
+      }
+    | (() => void)
+    | null;
+  account:
+    | {
+        exit: StandardScreenTransition;
+        trigger: string | null;
+      }
+    | (() => void)
+    | null;
   title: string | ReactElement;
 }): ReactElement => (
   <GridContentContainer
@@ -77,7 +88,14 @@ export const GridSimpleNavigationForeground = ({
         <IconButton
           icon={<Back />}
           srOnlyName="Back"
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+
+            if (typeof back === 'function') {
+              back();
+              return;
+            }
+
             screenOut(workingVWC, startPop, transition, back.exit, back.trigger, {
               beforeDone: async () => {
                 trace({ type: 'back' });
@@ -90,19 +108,17 @@ export const GridSimpleNavigationForeground = ({
     </div>
     <BottomNavBar
       active={
-        home === undefined
-          ? 'home'
-          : series === undefined
-          ? 'series'
-          : account === undefined
-          ? 'account'
-          : 'home'
+        home === null ? 'home' : series === null ? 'series' : account === null ? 'account' : 'home'
       }
       clickHandlers={{
         home:
           home === null
             ? undefined
             : () => {
+                if (typeof home === 'function') {
+                  home();
+                  return;
+                }
                 screenOut(workingVWC, startPop, transition, home.exit, home.trigger, {
                   beforeDone: async () => {
                     trace({ type: 'bottom-nav', key: 'home' });
@@ -113,6 +129,11 @@ export const GridSimpleNavigationForeground = ({
           series === null
             ? undefined
             : () => {
+                if (typeof series === 'function') {
+                  series();
+                  return;
+                }
+
                 screenOut(workingVWC, startPop, transition, series.exit, series.trigger, {
                   beforeDone: async () => {
                     trace({ type: 'bottom-nav', key: 'series' });
@@ -123,6 +144,10 @@ export const GridSimpleNavigationForeground = ({
           account === null
             ? undefined
             : () => {
+                if (typeof account === 'function') {
+                  account();
+                  return;
+                }
                 screenOut(workingVWC, startPop, transition, account.exit, account.trigger, {
                   beforeDone: async () => {
                     trace({ type: 'bottom-nav', key: 'account' });

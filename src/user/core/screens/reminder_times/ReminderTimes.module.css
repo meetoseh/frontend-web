@@ -1,0 +1,21 @@
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 22px;
+  line-height: 28.6px;
+  text-align: center;
+  color: #eaeaeb;
+}
+
+.description {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  color: #c8cdd0;
+}
+
+.backWrapper {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}

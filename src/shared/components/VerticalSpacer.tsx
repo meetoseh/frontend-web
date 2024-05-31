@@ -20,7 +20,7 @@ export const VerticalSpacer = ({
       style={{
         height: `${height}px`,
         paddingTop: `${height}px`,
-        ...(flexGrow !== undefined ? { flexGrow: `${flexGrow}px` } : {}),
+        ...(flexGrow !== undefined ? { flexGrow: `${flexGrow}` } : {}),
         ...(flexBasis !== undefined ? { flexBasis: `${flexBasis}px` } : {}),
       }}
     />

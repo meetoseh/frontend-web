@@ -45,6 +45,8 @@ import { JourneyLikeState } from '../screens/journey_feedback/lib/createJourneyL
 import { JourneyShareLink } from '../screens/journey_feedback/lib/createJourneyShareLinkRequestHandler';
 import { MembershipUrl } from '../screens/membership/lib/createManageMembershipUrlRequestHandler';
 import { OwnedListRequest } from '../screens/owned/lib/createOwnedListRequestHandler';
+import { ReminderChannelsInfo } from '../screens/reminder_times/lib/createReminderChannelsHandler';
+import { ReminderSettings } from '../screens/reminder_times/lib/createReminderSettingsHandler';
 import {
   Entitlement,
   EntitlementRef,
@@ -231,5 +233,22 @@ export type Resources = {
     LoginContextValueLoggedIn,
     LoginContextValueLoggedIn,
     MembershipUrl
+  >;
+  /**
+   * Manages getting what channels the user can configure and which ones they have
+   * already configured
+   */
+  reminderChannelsHandler: RequestHandler<
+    LoginContextValueLoggedIn,
+    LoginContextValueLoggedIn,
+    ReminderChannelsInfo
+  >;
+  /**
+   * Manages getting the users current reminder settings
+   */
+  reminderSettingsHandler: RequestHandler<
+    LoginContextValueLoggedIn,
+    LoginContextValueLoggedIn,
+    ReminderSettings
   >;
 };

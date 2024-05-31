@@ -40,7 +40,11 @@ export const ClientScreenSchemaStringInput = ({
       return valueAsVariable.format;
     }
 
-    return valueVWC.get() ?? '';
+    const value = valueVWC.get();
+    if (value !== null && value !== undefined && typeof value !== 'string') {
+      return '';
+    }
+    return value ?? '';
   });
 
   const errorVWC = useMappedValuesWithCallbacks(
