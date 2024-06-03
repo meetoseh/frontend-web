@@ -3,7 +3,7 @@ import { ScreenComponentProps } from '../../models/Screen';
 import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGrayBackground';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
-import styles from './SetGoal.module.css';
+import styles from './SetName.module.css';
 import {
   playEntranceTransition,
   playExitTransition,
@@ -21,8 +21,6 @@ import {
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { screenOut } from '../../lib/screenOut';
-import { SetGoalResources } from './SetGoalResources';
-import { SetGoalMappedParams } from './SetGoalParams';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
@@ -35,33 +33,21 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
 import { BackContinue } from '../../../../shared/components/BackContinue';
-
-const _CHOICES = [
-  { slug: '1', text: '1 day', days: 1, element: <>1 day</> },
-  { slug: '2', text: '2 days', days: 2, element: <>2 days</> },
-  { slug: '3', text: '3 days', days: 3, element: <>3 days</> },
-  { slug: '4', text: '4 days', days: 4, element: <>4 days</> },
-  { slug: '5', text: '5 days', days: 5, element: <>5 days</> },
-  { slug: '6', text: '6 days', days: 6, element: <>6 days</> },
-  { slug: '7', text: '7 days', days: 7, element: <>7 days</> },
-] as const;
-
-type ChoiceSlug = (typeof _CHOICES)[number]['slug'];
-type Choice = { slug: ChoiceSlug; text: string; days: number; element: ReactElement };
-
-const CHOICES = _CHOICES as readonly Choice[];
+import { SetNameResources } from './SetNameResources';
+import { SetNameMappedParams } from './SetNameParams';
+import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
+import { TextInput } from '../../../../shared/forms/TextInput';
 
 /**
- * A basic screen where the user can configure how many days per week they
- * want to practice
+ * A basic screen where the user can configure their name
  */
-export const SetGoal = ({
+export const SetName = ({
   ctx,
   screen,
   resources,
   trace,
   startPop,
-}: ScreenComponentProps<'set_goal', SetGoalResources, SetGoalMappedParams>): ReactElement => {
+}: ScreenComponentProps<'set_name', SetNameResources, SetNameMappedParams>): ReactElement => {
   const modalContext = useContext(ModalContext);
   const transition = useTransitionProp((): StandardScreenTransition => screen.parameters.entrance);
   useEntranceTransition(transition);
@@ -73,54 +59,40 @@ export const SetGoal = ({
   const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const savingVWC = useWritableValueWithCallbacks<boolean>(() => false);
 
-  useErrorModal(modalContext.modals, errorVWC, 'saving goal');
+  useErrorModal(modalContext.modals, errorVWC, 'saving name');
   useWorkingModal(modalContext.modals, savingVWC, { delayStartMs: 200 });
 
-  const serverGoalVWC = useMappedValueWithCallbacks(
-    resources.streak,
-    (s) => s?.goalDaysPerWeek ?? null
-  );
-  const selectedGoalVWC = useWritableValueWithCallbacks<Choice>(() => _CHOICES[2]);
-  const checkedWVWC = {
-    get: (): ChoiceSlug[] => [selectedGoalVWC.get().slug],
-    set: (slug: ChoiceSlug[]) => {
-      if (slug.length !== 1) {
-        return;
-      }
-
-      const match = _CHOICES.find((c) => c.slug === slug[0]);
-      if (match !== undefined) {
-        selectedGoalVWC.set(match);
-      }
-    },
-    callbacks: selectedGoalVWC.callbacks as Callbacks<
-      { action: 'checked' | 'unchecked'; changed: ChoiceSlug } | undefined
-    >,
-  } as WritableValueWithTypedCallbacks<
-    ChoiceSlug[],
-    { action: 'checked' | 'unchecked'; changed: ChoiceSlug } | undefined
-  >;
-
-  useValueWithCallbacksEffect(serverGoalVWC, (v) => {
-    if (v !== null) {
-      const match = _CHOICES.find((c) => c.days === v);
-      if (match !== undefined) {
-        setVWC(selectedGoalVWC, match);
-      }
+  const serverNameVWC = useMappedValueWithCallbacks(ctx.login.value, (s): [string, string] => {
+    if (s.state !== 'logged-in') {
+      return ['', ''];
     }
-    return undefined;
+
+    let given = s.userAttributes.givenName;
+    if (given === undefined || given === null || given.includes('anon')) {
+      given = '';
+    }
+
+    let family = s.userAttributes.familyName;
+    if (family === undefined || family === null || family.includes('anon')) {
+      family = '';
+    }
+
+    return [given, family];
   });
 
-  useValueWithCallbacksEffect(selectedGoalVWC, (v) => {
-    trace({ type: 'selection-changed', days: v.days });
+  const givenNameVWC = useWritableValueWithCallbacks(() => '');
+  const familyNameVWC = useWritableValueWithCallbacks(() => '');
+  useValueWithCallbacksEffect(serverNameVWC, ([given, family]) => {
+    setVWC(givenNameVWC, given);
+    setVWC(familyNameVWC, family);
     return undefined;
   });
 
   /** If the user needs to save, a function to save, otherwise null */
   const prepareSave = (): (() => Promise<boolean>) | null => {
-    const selected = selectedGoalVWC.get();
-    const server = serverGoalVWC.get();
-    if (server === selected.days) {
+    const selected = [givenNameVWC.get().trim(), familyNameVWC.get().trim()];
+    const server = serverNameVWC.get();
+    if (server[0] === selected[0] && server[1] === selected[1]) {
       return null;
     }
 
@@ -139,29 +111,26 @@ export const SetGoal = ({
       setVWC(errorVWC, null);
       try {
         const response = await apiFetch(
-          '/api/1/users/me/goal',
+          '/api/1/users/me/attributes/name',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({ days_per_week: selected.days }),
+            body: JSON.stringify({
+              given_name: selected[0],
+              family_name: selected[1],
+            }),
           },
           loginContext
         );
         if (!response.ok) {
           throw response;
         }
-        ctx.resources.streakHandler.evictOrReplace(loginContext, (old) => {
-          if (old === undefined) {
-            return { type: 'make-request', data: undefined };
-          }
-
-          return {
-            type: 'data',
-            data: {
-              ...old,
-              goalDaysPerWeek: selected.days,
-            },
-          };
+        const data: { given_name: string; family_name: string } = await response.json();
+        ctx.login.setUserAttributes({
+          ...loginContext.userAttributes,
+          givenName: data.given_name,
+          familyName: data.family_name,
+          name: `${data.given_name} ${data.family_name}`.trim(),
         });
         return true;
       } catch (e) {
@@ -225,10 +194,46 @@ export const SetGoal = ({
         <div className={styles.top}>{screen.parameters.top}</div>
         <VerticalSpacer height={0} flexGrow={1} />
         <div className={styles.title}>{screen.parameters.title}</div>
-        <VerticalSpacer height={16} />
-        <div className={styles.message}>{screen.parameters.message}</div>
+        {screen.parameters.message === null ? null : (
+          <>
+            <VerticalSpacer height={16} />
+            <div className={styles.message}>{screen.parameters.message}</div>
+          </>
+        )}
         <VerticalSpacer height={32} />
-        <SurveyCheckboxGroup choices={CHOICES} checked={checkedWVWC} variant="round" />
+        <RenderGuardedComponent
+          props={givenNameVWC}
+          component={(givenName) => (
+            <TextInput
+              type="text"
+              value={givenName}
+              onChange={(v) => setVWC(givenNameVWC, v)}
+              label="First Name"
+              html5Validation={null}
+              disabled={false}
+              help={null}
+              inputStyle="white"
+            />
+          )}
+          applyInstantly
+        />
+        <VerticalSpacer height={16} />
+        <RenderGuardedComponent
+          props={familyNameVWC}
+          component={(familyName) => (
+            <TextInput
+              type="text"
+              value={familyName}
+              onChange={(v) => setVWC(familyNameVWC, v)}
+              label="Last Name"
+              html5Validation={null}
+              disabled={false}
+              help={null}
+              inputStyle="white"
+            />
+          )}
+          applyInstantly
+        />
         <VerticalSpacer height={0} flexGrow={1} />
         <BackContinue
           onBack={

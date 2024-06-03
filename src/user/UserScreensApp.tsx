@@ -43,6 +43,7 @@ import { ReminderTimesScreen } from './core/screens/reminder_times/ReminderTimes
 import { SetGoalScreen } from './core/screens/set_goal/SetGoalScreen';
 import { AddPhoneScreen } from './core/screens/add_phone/AddPhoneScreen';
 import { VerifyPhoneScreen } from './core/screens/verify_phone/VerifyPhoneScreen';
+import { SetNameScreen } from './core/screens/set_name/SetNameScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -110,6 +111,7 @@ const screens = [
   SetGoalScreen,
   AddPhoneScreen,
   VerifyPhoneScreen,
+  SetNameScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
