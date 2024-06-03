@@ -12,6 +12,7 @@ import { Back } from './icons/Back';
 import { screenOut } from '../../user/core/lib/screenOut';
 import { TransitionPropAsOwner } from '../lib/TransitionProp';
 import { BottomNavBar } from '../../user/bottomNav/BottomNavBar';
+import { ScreenStartPop } from '../../user/core/models/Screen';
 
 export const GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT = 54;
 export const GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT = 67;
@@ -43,7 +44,7 @@ export const GridSimpleNavigationForeground = ({
 }: {
   workingVWC: WritableValueWithCallbacks<boolean>;
   gridSize: ValueWithCallbacks<{ width: number; height: number }>;
-  startPop: (trigger: { slug: string; parameters: any } | null, endpoint?: string) => () => void;
+  startPop: ScreenStartPop;
   trace: (event: any) => void;
   transitionState: StandardScreenTransitionState;
   transition: TransitionPropAsOwner<StandardScreenTransition['type'], StandardScreenTransition>;

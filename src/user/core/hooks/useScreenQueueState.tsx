@@ -75,11 +75,14 @@ export type ScreenQueueState = {
    * @param from The current state
    * @param trigger The trigger to execute
    * @param endpoint usually /api/1/users/me/screens/pop
+   * @param onError If specified, instead of transitioning to the error state if the pop
+   *   fails, we call this function with the error and keep the current state.
    */
   pop: (
     from: UseScreenQueueStateState & { type: 'success' },
     trigger: { slug: string; parameters: any } | null,
-    endpoint: string
+    endpoint: string,
+    onError?: (error: unknown) => void
   ) => CancelablePromise<Result<UseScreenQueueStateState>>;
 };
 
@@ -174,7 +177,8 @@ export const useScreenQueueState = (): ScreenQueueState => {
     (
       path: string,
       headers: Headers | undefined,
-      body: BodyInit | undefined
+      body: BodyInit | undefined,
+      onError?: (error: unknown) => void
     ): CancelablePromise<Result<UseScreenQueueStateState>> =>
       delayCancelableUntilResolved(
         ({ loginContext, visitor }) =>
@@ -191,6 +195,7 @@ export const useScreenQueueState = (): ScreenQueueState => {
                 return;
               }
 
+              const oldValue = valueVWC.get();
               setVWC(valueVWC, { type: 'loading' }, (a, b) => a.type === b.type);
 
               const fullHeaders = new Headers(headers);
@@ -212,19 +217,32 @@ export const useScreenQueueState = (): ScreenQueueState => {
                 );
               } catch (e) {
                 state.cancelers.remove(doAbort);
-                const result: UseScreenQueueStateState = {
-                  type: 'error',
-                  error: describeFetchError(),
-                };
-                setVWC(valueVWC, result);
-                state.finishing = true;
-                state.done = true;
-                resolve({
-                  type: 'error',
-                  data: undefined,
-                  error: result.error,
-                  retryAt: undefined,
-                });
+                if (onError === undefined) {
+                  const result: UseScreenQueueStateState = {
+                    type: 'error',
+                    error: describeFetchError(),
+                  };
+                  setVWC(valueVWC, result);
+                  state.finishing = true;
+                  state.done = true;
+                  resolve({
+                    type: 'error',
+                    data: undefined,
+                    error: result.error,
+                    retryAt: undefined,
+                  });
+                } else {
+                  setVWC(valueVWC, oldValue);
+                  onError(e);
+                  state.finishing = true;
+                  state.done = true;
+                  resolve({
+                    type: 'error',
+                    data: undefined,
+                    error: describeHandledError(),
+                    retryAt: undefined,
+                  });
+                }
                 return;
               }
 
@@ -236,6 +254,21 @@ export const useScreenQueueState = (): ScreenQueueState => {
               }
 
               if (!response.ok) {
+                if (onError !== undefined) {
+                  state.cancelers.remove(doAbort);
+                  setVWC(valueVWC, oldValue);
+                  onError(response);
+                  state.finishing = true;
+                  state.done = true;
+                  resolve({
+                    type: 'error',
+                    data: undefined,
+                    error: describeHandledError(),
+                    retryAt: undefined,
+                  });
+                  return;
+                }
+
                 const described = await describeErrorFromResponse(response);
                 state.cancelers.remove(doAbort);
 
@@ -297,6 +330,22 @@ export const useScreenQueueState = (): ScreenQueueState => {
               try {
                 data = await response.json();
               } catch (e) {
+                state.cancelers.remove(doAbort);
+
+                if (onError !== undefined) {
+                  setVWC(valueVWC, oldValue);
+                  onError(e);
+                  state.finishing = true;
+                  state.done = true;
+                  resolve({
+                    type: 'error',
+                    data: undefined,
+                    error: describeHandledError(),
+                    retryAt: undefined,
+                  });
+                  return;
+                }
+
                 const result: UseScreenQueueStateState = {
                   type: 'error',
                   error: describeFetchError(),
@@ -360,7 +409,8 @@ export const useScreenQueueState = (): ScreenQueueState => {
     (
       from: UseScreenQueueStateState & { type: 'success' },
       trigger: { slug: string; parameters: any } | null,
-      endpoint: string
+      endpoint: string,
+      onError?: (error: unknown) => void
     ) =>
       peekLike(
         endpoint,
@@ -370,7 +420,8 @@ export const useScreenQueueState = (): ScreenQueueState => {
         JSON.stringify({
           screen_jwt: from.result.activeJwt,
           ...(trigger === null ? {} : { trigger }),
-        })
+        }),
+        onError
       ),
     [peekLike]
   );
@@ -409,3 +460,7 @@ export const useScreenQueueState = (): ScreenQueueState => {
 
   return useMemo(() => ({ value: valueVWC, peek, trace, pop }), [valueVWC, peek, trace, pop]);
 };
+
+function describeHandledError(): ReactElement {
+  return <>An error occurred and an error handler was specified. You should not see this.</>;
+}

@@ -96,11 +96,18 @@ export type UseScreenQueueState =
       /**
        * - `finishing-pop`: The screen component called the provided `startPop` function
        *   and the callback that returned already, but we still don't know what the next
-       *   component is. Usually, this should be treated the same as `spinner`.
+       *   component is. This is conceptually similar to spinner, but if the component is
+       *   not undefined it must stay mounted behind the spinner in such a way that does
+       *   not cause any rerenders in case an error occurs with the pop. This allows the
+       *   component to treat errors that occur in the preparing-pop phase (where the
+       *   component is mounted and thus can write the error to local state) and errors
+       *   that occur after (which, if the component was unmounted, must be stored in the
+       *   instance resources) the same, avoiding a class of bugs that would only show up
+       *   under sufficient latency.
        */
       type: 'finishing-pop';
       error?: undefined;
-      component?: undefined;
+      component: ReactElement;
     }
   | {
       /**
@@ -504,11 +511,7 @@ export const useScreenQueue = ({
           }
         }
 
-        const finishPopRequestedCallbacks = new Callbacks<undefined>();
-        const finishPopRequested = createCancelablePromiseFromCallbacks(
-          finishPopRequestedCallbacks
-        );
-        finishPopRequested.promise.catch(() => {});
+        let finishPopRequested = null as CancelablePromise<undefined> | null;
 
         const startPopRequestedCallbacks = new Callbacks<{
           trigger: {
@@ -516,27 +519,31 @@ export const useScreenQueue = ({
             parameters: any;
           } | null;
           endpoint: string | undefined;
+          onError: ((err: unknown) => void) | undefined;
         }>();
-        const startPopRequested = createCancelablePromiseFromCallbacks(startPopRequestedCallbacks);
+        let startPopRequested = createCancelablePromiseFromCallbacks(startPopRequestedCallbacks);
         startPopRequested.promise.catch(() => {});
 
         const component = activeScreen.component({
           ctx: screenContext,
           screen: activeScreenInstanceMapped,
           resources: activeResources,
-          startPop: (trigger, endpoint) => {
-            if (!active.get() || !loopIsActive.get()) {
+          startPop: (trigger, endpoint, onError) => {
+            if (!active.get() || !loopIsActive.get() || finishPopRequested !== null) {
               console.warn('startPop called on disposed instance');
               return () => {};
             }
 
-            startPopRequestedCallbacks.call({ trigger, endpoint });
+            const finishPopCallbacks = new Callbacks<undefined>();
+            finishPopRequested = createCancelablePromiseFromCallbacks(finishPopCallbacks);
+
+            startPopRequestedCallbacks.call({ trigger, endpoint, onError });
             return () => {
               if (!active.get() || !loopIsActive.get()) {
                 console.warn('finishPop called on disposed instance');
                 return;
               }
-              finishPopRequestedCallbacks.call(undefined);
+              finishPopCallbacks.call(undefined);
             };
           },
           trace: screenQueueState.trace.bind(screenQueueState, state),
@@ -548,199 +555,258 @@ export const useScreenQueue = ({
         );
         setVWC(valueVWC, { type: 'success', component });
 
-        await Promise.race([canceled.promise, startPopRequested.promise, repeekRequested.promise]);
+        while (true) {
+          await Promise.race([
+            canceled.promise,
+            startPopRequested.promise,
+            repeekRequested.promise,
+          ]);
 
-        if (!active.get()) {
-          setVWC(loopIsActive, false);
-          repeekRequested.cancel();
-          activeResources.dispose();
-          prefetchResources.forEach((r) => r?.dispose());
-          finishPopRequested.cancel();
-          startPopRequested.cancel();
-          return;
-        }
-
-        if (startPopRequested.done()) {
-          const popTriggerInfo = await startPopRequested.promise;
           if (!active.get()) {
             setVWC(loopIsActive, false);
             repeekRequested.cancel();
             activeResources.dispose();
             prefetchResources.forEach((r) => r?.dispose());
-            finishPopRequested.cancel();
+            finishPopRequested?.cancel();
             startPopRequested.cancel();
             return;
           }
 
-          const popTrigger = popTriggerInfo.trigger;
-          const endpoint = popTriggerInfo.endpoint ?? DEFAULT_POP_ENDPOINT;
+          if (startPopRequested.done()) {
+            const popTriggerInfo = await startPopRequested.promise;
+            if (!active.get()) {
+              setVWC(loopIsActive, false);
+              repeekRequested.cancel();
+              activeResources.dispose();
+              prefetchResources.forEach((r) => r?.dispose());
+              finishPopRequested?.cancel();
+              startPopRequested.cancel();
+              return;
+            }
 
-          logging.info(
-            `${effectUid} | ${loopUid} - preparing to pop with trigger ${JSON.stringify(
-              popTrigger,
-              undefined,
-              2
-            )} via endpoint ${endpoint}`
-          );
-          setVWC(valueVWC, { type: 'preparing-pop', component });
-          const popCancelable = screenQueueState.pop(state, popTrigger, endpoint);
+            const popTrigger = popTriggerInfo.trigger;
+            const endpoint = popTriggerInfo.endpoint ?? DEFAULT_POP_ENDPOINT;
+            const onError = popTriggerInfo.onError;
 
-          await Promise.race([popCancelable.promise, finishPopRequested.promise, canceled.promise]);
-
-          if (active.get() && !popCancelable.done() && finishPopRequested.done()) {
             logging.info(
-              `${effectUid} | ${loopUid} - screen wanted to transition away before pop finished, ` +
-                `releasing active screen resources and going to finishing-pop (a spinner)`
+              `${effectUid} | ${loopUid} - preparing to pop with trigger ${JSON.stringify(
+                popTrigger,
+                undefined,
+                2
+              )} via endpoint ${endpoint}; error handler set? ${onError !== undefined}`
             );
-            setVWC(valueVWC, { type: 'finishing-pop' });
-            activeResources.dispose();
-            await Promise.race([popCancelable.promise, canceled.promise]);
-          }
+            setVWC(valueVWC, { type: 'preparing-pop', component });
+            const popCancelable = screenQueueState.pop(state, popTrigger, endpoint, onError);
 
-          if (!active.get()) {
-            setVWC(loopIsActive, false);
-            activeResources.dispose();
-            prefetchResources.forEach((r) => r?.dispose());
-            finishPopRequested.cancel();
-            startPopRequested.cancel();
-            popCancelable.cancel();
-            return;
-          }
+            const finishPopBound = finishPopRequested;
+            if (finishPopBound === null) {
+              throw new Error('unreachable');
+            }
 
-          if (!popCancelable.done()) {
-            throw new Error('unreachable');
-          }
+            await Promise.race([
+              popCancelable.promise,
+              finishPopBound.promise.catch(() => {}),
+              canceled.promise,
+            ]);
 
-          const popResult = await popCancelable.promise;
-          if (active.get() && (popResult.type !== 'success' || popResult.data.type !== 'success')) {
-            logging.warn(`${effectUid} | ${loopUid} - pop failed, going to reinit`);
-            cancel();
-            reinit(++counter);
-          } // PURPOSEFUL FALL THROUGH
+            if (active.get() && !popCancelable.done() && finishPopBound.done()) {
+              logging.info(
+                `${effectUid} | ${loopUid} - screen wanted to transition away before pop finished, ` +
+                  `going to finishing-pop (a spinner) while holding the component`
+              );
+              setVWC(valueVWC, { type: 'finishing-pop', component });
+              await Promise.race([popCancelable.promise, canceled.promise]);
+            }
 
-          if (!active.get()) {
-            setVWC(loopIsActive, false);
-            activeResources.dispose();
-            prefetchResources.forEach((r) => r?.dispose());
-            finishPopRequested.cancel();
-            startPopRequested.cancel();
-            return;
-          }
+            if (!active.get()) {
+              setVWC(loopIsActive, false);
+              activeResources.dispose();
+              prefetchResources.forEach((r) => r?.dispose());
+              finishPopRequested?.cancel();
+              startPopRequested.cancel();
+              popCancelable.cancel();
+              return;
+            }
 
-          if (popResult.type !== 'success' || popResult.data.type !== 'success') {
-            throw new Error('unreachable');
-          }
+            if (!popCancelable.done()) {
+              throw new Error('unreachable');
+            }
 
-          if (finishPopRequested.done()) {
+            const popResult = await popCancelable.promise;
+            if (
+              active.get() &&
+              (popResult.type !== 'success' || popResult.data.type !== 'success')
+            ) {
+              if (onError === undefined) {
+                logging.warn(
+                  `${effectUid} | ${loopUid} - pop failed without error handler, going to reinit`
+                );
+                cancel();
+                reinit(++counter);
+              } else {
+                const screenState = screenQueueState.value.get();
+                if (!Object.is(screenState, state)) {
+                  logging.warn(
+                    `${effectUid} | ${loopUid} - pop failed with error handler and screen changed, going to reinit; ` +
+                      `old screen state: ${JSON.stringify(
+                        state,
+                        undefined,
+                        2
+                      )}; new screen state: ${JSON.stringify(screenState, undefined, 2)}`
+                  );
+                  cancel();
+                  reinit(++counter);
+                } else {
+                  logging.info(
+                    `${effectUid} | ${loopUid} - pop failed with error handler; pretending startPop wasn't called`
+                  );
+
+                  finishPopRequested?.cancel();
+                  finishPopRequested = null;
+
+                  startPopRequested = createCancelablePromiseFromCallbacks(
+                    startPopRequestedCallbacks
+                  );
+                  setVWC(
+                    valueVWC,
+                    { type: 'success', component },
+                    (a, b) =>
+                      a.type === 'success' &&
+                      b.type === 'success' &&
+                      Object.is(a.component, b.component)
+                  );
+                  continue;
+                }
+              }
+            } // PURPOSEFUL FALL THROUGH
+
+            if (!active.get()) {
+              setVWC(loopIsActive, false);
+              activeResources.dispose();
+              prefetchResources.forEach((r) => r?.dispose());
+              finishPopRequested?.cancel();
+              startPopRequested.cancel();
+              return;
+            }
+
+            if (popResult.type !== 'success' || popResult.data.type !== 'success') {
+              throw new Error('unreachable');
+            }
+
+            if (finishPopBound.done()) {
+              logging.info(
+                `${effectUid} | ${loopUid} - pop finished and already want to transition away, releasing ` +
+                  `active screen resources and moving to next loop iteration`
+              );
+              setVWC(valueVWC, { type: 'finishing-pop', component }, (a, b) => a.type === b.type);
+              activeResources.dispose();
+
+              state = popResult.data;
+              releaseFromLastLoop = () => {
+                logging.info(`${effectUid} | ${loopUid} - releasing prefetch resources`);
+                setVWC(loopIsActive, false);
+                prefetchResources.forEach((r) => r?.dispose());
+              };
+              break;
+            }
+
             logging.info(
-              `${effectUid} | ${loopUid} - pop finished and already want to transition away, releasing ` +
-                `active screen resources and moving to next loop iteration`
+              `${effectUid} | ${loopUid} - pop finished but screen is still transitioning away (happy path) (finishPop not called) ` +
+                `starting to prefetch resources based on the latest peek and releasing all but the active screens ` +
+                `resources on the old peek`
             );
-            setVWC(valueVWC, { type: 'finishing-pop' }, (a, b) => a.type === b.type);
-            activeResources.dispose();
+
+            const newPrefetchResources = [
+              popResult.data.result.active,
+              ...popResult.data.result.prefetch,
+            ].map((prefetchInstance, idx) => {
+              const screen = screensBySlug.get(prefetchInstance.slug);
+              if (screen === undefined) {
+                return null;
+              }
+
+              const prefetchInstanceMapped = {
+                slug: prefetchInstance.slug,
+                parameters: screen.paramMapper(prefetchInstance.parameters),
+              };
+
+              return screen.initInstanceResources(screenContext, prefetchInstanceMapped, () => ({
+                promise: Promise.reject(new Error('refresh not supported in this spot')),
+                cancel: () => {},
+                done: () => true,
+              }));
+            });
+            prefetchResources.forEach((r) => r?.dispose());
+            setVWC(valueVWC, { type: 'prepared-pop', component });
+            await Promise.race([finishPopBound.promise.catch(() => {}), canceled.promise]);
+            if (!active.get()) {
+              setVWC(loopIsActive, false);
+              activeResources.dispose();
+              newPrefetchResources.forEach((r) => r?.dispose());
+              return;
+            }
+
+            logging.info(
+              `${effectUid} | ${loopUid} - finishPop called, moving to next loop iteration`
+            );
 
             state = popResult.data;
             releaseFromLastLoop = () => {
               logging.info(`${effectUid} | ${loopUid} - releasing prefetch resources`);
               setVWC(loopIsActive, false);
-              prefetchResources.forEach((r) => r?.dispose());
+              activeResources.dispose();
+              newPrefetchResources.forEach((r) => r?.dispose());
             };
-            continue;
+            break;
           }
 
-          logging.info(
-            `${effectUid} | ${loopUid} - pop finished but screen is still transitioning away (happy path) (finishPop not called) ` +
-              `starting to prefetch resources based on the latest peek and releasing all but the active screens ` +
-              `resources on the old peek`
-          );
-
-          const newPrefetchResources = [
-            popResult.data.result.active,
-            ...popResult.data.result.prefetch,
-          ].map((prefetchInstance, idx) => {
-            const screen = screensBySlug.get(prefetchInstance.slug);
-            if (screen === undefined) {
-              return null;
-            }
-
-            const prefetchInstanceMapped = {
-              slug: prefetchInstance.slug,
-              parameters: screen.paramMapper(prefetchInstance.parameters),
-            };
-
-            return screen.initInstanceResources(screenContext, prefetchInstanceMapped, () => ({
-              promise: Promise.reject(new Error('refresh not supported in this spot')),
-              cancel: () => {},
-              done: () => true,
-            }));
-          });
-          prefetchResources.forEach((r) => r?.dispose());
-          setVWC(valueVWC, { type: 'prepared-pop', component });
-          await Promise.race([finishPopRequested.promise, canceled.promise]);
-          if (!active.get()) {
-            setVWC(loopIsActive, false);
-            activeResources.dispose();
-            newPrefetchResources.forEach((r) => r?.dispose());
-            return;
-          }
-
-          logging.info(
-            `${effectUid} | ${loopUid} - finishPop called, moving to next loop iteration`
-          );
-
-          state = popResult.data;
-          releaseFromLastLoop = () => {
-            logging.info(`${effectUid} | ${loopUid} - releasing prefetch resources`);
-            setVWC(loopIsActive, false);
-            activeResources.dispose();
-            newPrefetchResources.forEach((r) => r?.dispose());
-          };
-          continue;
-        }
-
-        if (!repeekRequested.done()) {
-          throw new Error('unreachable');
-        } else {
-          logging.info(
-            `${effectUid} | ${loopUid} - repeek requested from active screen, starting peek`
-          );
-
-          const peekPromise = screenQueueState.peek();
-          await Promise.race([peekPromise.promise, canceled.promise]);
-          if (!active.get()) {
-            setVWC(loopIsActive, false);
-            peekPromise.cancel();
-            activeResources.dispose();
-            prefetchResources.forEach((r) => r?.dispose());
-            finishPopRequested.cancel();
-            startPopRequested.cancel();
-            return;
-          }
-          const newResult = await peekPromise.promise;
-          if (active.get() && (newResult.type !== 'success' || newResult.data.type !== 'success')) {
-            logging.warn(`${effectUid} | ${loopUid} - peek failed, delegating to reinit`);
-            cancel();
-            reinit(++counter);
-            // PURPOSEFUL FALL THROUGH
-          }
-          finishPopRequested.cancel();
-          startPopRequested.cancel();
-          if (!active.get()) {
-            activeResources.dispose();
-            prefetchResources.forEach((r) => r?.dispose());
-            return;
+          if (!repeekRequested.done()) {
+            throw new Error('unreachable');
           } else {
-            if (newResult.type !== 'success' || newResult.data.type !== 'success') {
-              throw new Error('unreachable');
-            }
-            logging.info(`${effectUid} | ${loopUid} - moving onto next loop iteration`);
-            state = newResult.data;
-            releaseFromLastLoop = () => {
+            logging.info(
+              `${effectUid} | ${loopUid} - repeek requested from active screen, starting peek`
+            );
+
+            const peekPromise = screenQueueState.peek();
+            await Promise.race([peekPromise.promise, canceled.promise]);
+            if (!active.get()) {
               setVWC(loopIsActive, false);
+              peekPromise.cancel();
               activeResources.dispose();
               prefetchResources.forEach((r) => r?.dispose());
-            };
-            continue;
+              finishPopRequested?.cancel();
+              startPopRequested.cancel();
+              return;
+            }
+            const newResult = await peekPromise.promise;
+            if (
+              active.get() &&
+              (newResult.type !== 'success' || newResult.data.type !== 'success')
+            ) {
+              logging.warn(`${effectUid} | ${loopUid} - peek failed, delegating to reinit`);
+              cancel();
+              reinit(++counter);
+              // PURPOSEFUL FALL THROUGH
+            }
+            finishPopRequested?.cancel();
+            startPopRequested.cancel();
+            if (!active.get()) {
+              activeResources.dispose();
+              prefetchResources.forEach((r) => r?.dispose());
+              return;
+            } else {
+              if (newResult.type !== 'success' || newResult.data.type !== 'success') {
+                throw new Error('unreachable');
+              }
+              logging.info(`${effectUid} | ${loopUid} - moving onto next loop iteration`);
+              state = newResult.data;
+              releaseFromLastLoop = () => {
+                setVWC(loopIsActive, false);
+                activeResources.dispose();
+                prefetchResources.forEach((r) => r?.dispose());
+              };
+              break;
+            }
           }
         }
       }

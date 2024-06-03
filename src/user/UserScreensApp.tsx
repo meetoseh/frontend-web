@@ -41,6 +41,8 @@ import { OwnedScreen } from './core/screens/owned/OwnedScreen';
 import { MembershipScreen } from './core/screens/membership/MembershipScreen';
 import { ReminderTimesScreen } from './core/screens/reminder_times/ReminderTimesScreen';
 import { SetGoalScreen } from './core/screens/set_goal/SetGoalScreen';
+import { AddPhoneScreen } from './core/screens/add_phone/AddPhoneScreen';
+import { VerifyPhoneScreen } from './core/screens/verify_phone/VerifyPhoneScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -106,6 +108,8 @@ const screens = [
   MembershipScreen,
   ReminderTimesScreen,
   SetGoalScreen,
+  AddPhoneScreen,
+  VerifyPhoneScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
@@ -288,7 +292,7 @@ const UserScreensAppInner = ({
       }
 
       const sqType = screenQueueTypeVWC.get();
-      if (sqType === 'spinner' || sqType === 'finishing-pop') {
+      if (sqType === 'spinner') {
         setVWC(stateVWC, 'loading');
         return;
       }
@@ -328,6 +332,11 @@ const UserScreensAppInner = ({
     }
   );
 
+  const overlaySpinnerOnFeatures = useMappedValueWithCallbacks(
+    screenQueue.value,
+    (v) => v.type === 'finishing-pop'
+  );
+
   const needLoginScreen = useMappedValueWithCallbacks(
     loginContextRaw.value,
     (v) => v.state === 'logged-out'
@@ -348,10 +357,18 @@ const UserScreensAppInner = ({
               component={(state) => {
                 if (state === 'features') {
                   return (
-                    <RenderGuardedComponent
-                      props={screenQueue.value}
-                      component={(sq) => sq.component ?? <></>}
-                    />
+                    <>
+                      <RenderGuardedComponent
+                        props={screenQueue.value}
+                        component={(sq) => sq.component ?? <></>}
+                      />
+                      <RenderGuardedComponent
+                        props={overlaySpinnerOnFeatures}
+                        component={(overlay) =>
+                          overlay ? <SplashScreen type="brandmark" /> : <></>
+                        }
+                      />
+                    </>
                   );
                 }
 

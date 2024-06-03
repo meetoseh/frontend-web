@@ -1,7 +1,12 @@
 import { WritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
-import { TransitionPropAsOwner, playExitTransition } from '../../../shared/lib/TransitionProp';
+import {
+  TransitionPropAsOwner,
+  playEntranceTransition,
+  playExitTransition,
+} from '../../../shared/lib/TransitionProp';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { screenWithWorking } from './screenWithWorking';
+import { ScreenStartPop } from '../models/Screen';
 
 /**
  * The standard screen out handler which plays the given exit transition and
@@ -12,7 +17,7 @@ import { screenWithWorking } from './screenWithWorking';
  */
 export const screenOut = async <T extends string, C extends { type: T; ms: number }>(
   workingVWC: WritableValueWithCallbacks<boolean> | null,
-  startPop: (trigger: { slug: string; parameters: any } | null, endpoint?: string) => () => void,
+  startPop: ScreenStartPop,
   transition: TransitionPropAsOwner<T, C>,
   exit: C,
   trigger: string | null,
@@ -21,9 +26,14 @@ export const screenOut = async <T extends string, C extends { type: T; ms: numbe
     parameters?: any;
     beforeDone?: () => Promise<void>;
     afterDone?: () => void;
+    onError?: (error: unknown) => void;
   }
 ): Promise<void> => {
   screenWithWorking(workingVWC, async () => {
+    setVWC(transition.animation, exit);
+
+    const exitTransitionCancelable = playExitTransition(transition);
+
     const finishPop = startPop(
       trigger === null
         ? null
@@ -31,11 +41,20 @@ export const screenOut = async <T extends string, C extends { type: T; ms: numbe
             slug: trigger,
             parameters: opts?.parameters ?? {},
           },
-      trigger === null ? undefined : opts?.endpoint
+      trigger === null ? undefined : opts?.endpoint,
+      trigger === null || opts?.onError === undefined
+        ? undefined
+        : ((onError) => {
+            return (err) => {
+              onError(err);
+              exitTransitionCancelable.promise.finally(() => {
+                playEntranceTransition(transition);
+              });
+            };
+          })(opts.onError)
     );
-    setVWC(transition.animation, exit);
     await Promise.all([
-      playExitTransition(transition).promise,
+      exitTransitionCancelable.promise.catch(() => {}),
       opts?.beforeDone?.() ?? Promise.resolve(),
     ]);
     finishPop();

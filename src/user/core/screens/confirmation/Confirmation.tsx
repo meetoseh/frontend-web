@@ -15,6 +15,7 @@ import {
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { screenOut } from '../../lib/screenOut';
+import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 
 /**
  * A basic confirmation screen with a header and message
@@ -44,9 +45,9 @@ export const Confirmation = ({
         opacity={transitionState.opacity}
         gridSizeVWC={ctx.windowSizeImmediate}>
         <div className={styles.header}>{screen.parameters.header}</div>
-        <div style={{ height: '16px' }} />
+        <VerticalSpacer height={16} />
         <div className={styles.message}>{screen.parameters.message}</div>
-        <div style={{ height: '24px' }} />
+        <VerticalSpacer height={24} />
         <Button
           type="button"
           variant="filled-white"
