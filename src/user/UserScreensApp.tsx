@@ -46,6 +46,7 @@ import { VerifyPhoneScreen } from './core/screens/verify_phone/VerifyPhoneScreen
 import { SetNameScreen } from './core/screens/set_name/SetNameScreen';
 import { ChooseAFeelingScreen } from './core/screens/choose_a_feeling/ChooseAFeelingScreen';
 import { RateClassScreen } from './core/screens/rate_class/RateClassScreen';
+import { ChoicesScreen } from './core/screens/choices/ChoicesScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -116,6 +117,7 @@ const screens = [
   SetNameScreen,
   ChooseAFeelingScreen,
   RateClassScreen,
+  ChoicesScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
