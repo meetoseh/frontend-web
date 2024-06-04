@@ -5,7 +5,9 @@ into /home/ec2-user/bootstrap/ then invoking /home/ec2-user/scripts/build/main.s
 This is a seperate file to allow for manually running this for testing purposes.
 Pass --dry-run to avoid actually spawning the instance
 """
+
 import asyncio
+import json
 import secrets
 import time
 from typing import Awaitable, Callable, List
@@ -26,6 +28,7 @@ from remote_executor import (
     exec_simple,
 )
 from loguru import logger
+import botocore.exceptions
 
 
 INSTANCE_TYPE = "c7g.2xlarge"
@@ -41,6 +44,7 @@ async def main():
 
 async def run_with_args(itgs: Itgs, *, dry_run: bool):
     build_subnet_id = os.environ["OSEH_BUILD_SUBNET_ID"]
+    backup_build_subnet_id = os.environ["OSEH_BACKUP_BUILD_SUBNET_ID"]
     build_ami_id = os.environ["OSEH_BUILD_AMI_ID"]
     build_security_group_id = os.environ["OSEH_BUILD_SECURITY_GROUP_ID"]
     build_iam_instance_profile_name: str = os.environ[
@@ -50,7 +54,7 @@ async def run_with_args(itgs: Itgs, *, dry_run: bool):
     logger.info(f"Triggering build at {datetime.datetime.now()}:")
     logger.info(f"  Dry Run: {dry_run}")
     logger.info(f"  Instance Type: {INSTANCE_TYPE}")
-    logger.info(f"  Subnet ID: {build_subnet_id}")
+    logger.info(f"  Subnet ID: {build_subnet_id} (backup: {backup_build_subnet_id})")
     logger.info(f"  AMI ID: {build_ami_id}")
     logger.info(f"  Security Group ID: {build_security_group_id}")
     logger.info(f"  IAM Instance Profile Name: {build_iam_instance_profile_name}")
@@ -61,6 +65,7 @@ async def run_with_args(itgs: Itgs, *, dry_run: bool):
         build_ami_id=build_ami_id,
         build_security_group_id=build_security_group_id,
         build_iam_instance_profile_name=build_iam_instance_profile_name,
+        backup_build_subnet_id=backup_build_subnet_id,
         dry_run=dry_run,
     )
 
@@ -72,6 +77,7 @@ async def trigger_build(
     build_ami_id: str,
     build_security_group_id: str,
     build_iam_instance_profile_name: str,
+    backup_build_subnet_id: str,
     dry_run: bool,
 ) -> None:
     slack = await itgs.slack()
@@ -119,10 +125,9 @@ async def trigger_build(
 
             cleanup.append(_cleanup_key)
 
-            logger.info("Launching instance...")
-            response = await client.run_instances(
-                ImageId=build_ami_id,
-                NetworkInterfaces=[
+            run_instances_params = {
+                "ImageId": build_ami_id,
+                "NetworkInterfaces": [
                     {
                         "DeviceIndex": 0,
                         "AssociatePublicIpAddress": False,
@@ -130,24 +135,47 @@ async def trigger_build(
                         "Groups": [build_security_group_id],
                     }
                 ],
-                InstanceType=INSTANCE_TYPE,
-                MinCount=1,
-                MaxCount=1,
-                KeyName=build_key_name,
-                IamInstanceProfile={"Name": build_iam_instance_profile_name},
-                BlockDeviceMappings=[
+                "InstanceType": INSTANCE_TYPE,
+                "MinCount": 1,
+                "MaxCount": 1,
+                "KeyName": build_key_name,
+                "IamInstanceProfile": {"Name": build_iam_instance_profile_name},
+                "BlockDeviceMappings": [
                     {
                         "DeviceName": "/dev/xvda",
                         "Ebs": {"VolumeType": "gp3", "VolumeSize": 32},
                     }
                 ],
-                TagSpecifications=[
+                "TagSpecifications": [
                     {
                         "ResourceType": "instance",
                         "Tags": [{"Key": "Name", "Value": "frontend-web build"}],
                     }
                 ],
+            }
+            logger.info(
+                "Launching instance in target availability zone...\n"
+                + json.dumps(run_instances_params, indent=2)
             )
+            try:
+                response = await client.run_instances(**run_instances_params)
+            except botocore.exceptions.ClientError as e:
+                logger.exception("Failed to launch instance")
+                if e.response["Error"]["Code"] == "InsufficientInstanceCapacity":
+                    await slack.send_ops_message(
+                        "Frontend-Web failed to launch build server due to insufficient capacity; retrying with backup subnet"
+                    )
+                    run_instances_params["NetworkInterfaces"][0][
+                        "SubnetId"
+                    ] = backup_build_subnet_id
+                    logger.info(
+                        "Launching instance in backup availability zone...\n"
+                        + json.dumps(run_instances_params, indent=2)
+                    )
+                    response = await client.run_instances(**run_instances_params)
+                else:
+                    raise
+
             instance_id = response["Instances"][0]["InstanceId"]
             instance_private_ip = response["Instances"][0]["PrivateIpAddress"]
             status = response["Instances"][0]["State"]["Name"]
