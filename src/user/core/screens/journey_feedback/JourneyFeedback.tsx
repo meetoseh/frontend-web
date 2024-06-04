@@ -2,11 +2,7 @@ import { ReactElement, useCallback, useContext } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
-import {
-  playExitTransition,
-  useEntranceTransition,
-  useTransitionProp,
-} from '../../../../shared/lib/TransitionProp';
+import { useEntranceTransition, useTransitionProp } from '../../../../shared/lib/TransitionProp';
 import {
   StandardScreenTransition,
   useStandardTransitionsState,
@@ -31,15 +27,12 @@ import { IconButtonWithLabel } from '../../../../shared/forms/IconButtonWithLabe
 import { Share } from './icons/Share';
 import { EmptyHeartIcon } from '../series_details/icons/EmptyHeartIcon';
 import { Button } from '../../../../shared/forms/Button';
-import { screenWithWorking } from '../../lib/screenWithWorking';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import {
   ModalContext,
   addModalWithCallbackToRemove,
 } from '../../../../shared/contexts/ModalContext';
-import { apiFetch } from '../../../../shared/ApiConstants';
 import { setVWC } from '../../../../shared/lib/setVWC';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { waitForValueWithCallbacksConditionCancelable } from '../../../../shared/lib/waitForValueWithCallbacksCondition';
@@ -51,6 +44,9 @@ import { useFavoritedModal } from '../../../favorites/hooks/useFavoritedModal';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { useUnfavoritedModal } from '../../../favorites/hooks/useUnfavoritedModal';
 import { trackFavoritesChanged } from '../home/lib/trackFavoritesChanged';
+import { screenOut } from '../../lib/screenOut';
+import { storeResponse } from './lib/storeResponse';
+import { makePrettyResponse } from './lib/makePrettyResponse';
 
 /**
  * Allows the user to provide feedback on a journey
@@ -91,54 +87,15 @@ export const JourneyFeedback = ({
   const shareErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   useErrorModal(modalContext.modals, shareErrorVWC, 'sharing journey');
 
-  const storeResponse = useCallback(async (): Promise<boolean> => {
-    const response = responseVWC.get();
-    trace({
-      type: 'store',
-      response,
-      responsePretty: makePrettyResponse(response),
+  const storeResponseWrapper = useCallback((): Promise<boolean> => {
+    return storeResponse({
+      responseVWC,
+      trace,
+      ctx,
+      feedbackErrorVWC,
+      journey: screen.parameters.journey,
     });
-
-    if (response === null) {
-      return true;
-    }
-
-    const loginContextUnch = ctx.login.value.get();
-    if (loginContextUnch.state !== 'logged-in') {
-      setVWC(feedbackErrorVWC, <>Not logged in</>);
-      return false;
-    }
-    const loginContext = loginContextUnch;
-
-    try {
-      const resp = await apiFetch(
-        '/api/1/journeys/feedback',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-          },
-          body: JSON.stringify({
-            journey_uid: screen.parameters.journey.uid,
-            journey_jwt: screen.parameters.journey.jwt,
-            version: 'oseh_jf-otp_sKjKVHs8wbI',
-            response: response,
-            feedback: null,
-          }),
-          keepalive: true,
-        },
-        loginContext
-      );
-      if (!resp.ok) {
-        throw resp;
-      }
-      return true;
-    } catch (e) {
-      const desc = await describeError(e);
-      setVWC(feedbackErrorVWC, desc);
-      return false;
-    }
-  }, [responseVWC, trace, ctx.login.value, feedbackErrorVWC, screen.parameters.journey]);
+  }, [responseVWC, trace, ctx, feedbackErrorVWC, screen.parameters.journey]);
 
   const tracedResponse = useWritableValueWithCallbacks<number | null>(() => null);
   useValueWithCallbacksEffect(responseVWC, (response) => {
@@ -576,19 +533,11 @@ export const JourneyFeedback = ({
           variant="filled-white"
           onClick={async (e) => {
             e.preventDefault();
-            screenWithWorking(workingVWC, async () => {
-              const cta = screen.parameters.cta1;
-              const finishPop = startPop(
-                cta.trigger === null
-                  ? null
-                  : {
-                      slug: cta.trigger,
-                      parameters: {},
-                    }
-              );
-              setVWC(transition.animation, cta.exit);
-              await Promise.allSettled([playExitTransition(transition).promise, storeResponse()]);
-              finishPop();
+            const cta = screen.parameters.cta1;
+            screenOut(workingVWC, startPop, transition, cta.exit, cta.trigger, {
+              beforeDone: async () => {
+                await storeResponseWrapper();
+              },
             });
           }}>
           {screen.parameters.cta1.text}
@@ -601,27 +550,15 @@ export const JourneyFeedback = ({
               variant="outlined-white"
               onClick={async (e) => {
                 e.preventDefault();
-                screenWithWorking(workingVWC, async () => {
-                  const cta = screen.parameters.cta2;
-                  if (cta === null) {
-                    setVWC(feedbackErrorVWC, <>cta2 is null but button handler called</>);
-                    return;
-                  }
-                  const finishPop = startPop(
-                    cta.trigger === null
-                      ? null
-                      : {
-                          slug: cta.trigger,
-                          parameters: {},
-                        }
-                  );
-
-                  setVWC(transition.animation, cta.exit);
-                  await Promise.allSettled([
-                    playExitTransition(transition).promise,
-                    storeResponse(),
-                  ]);
-                  finishPop();
+                const cta = screen.parameters.cta2;
+                if (cta === null) {
+                  setVWC(feedbackErrorVWC, <>cta2 is null but button handler called</>);
+                  return;
+                }
+                screenOut(workingVWC, startPop, transition, cta.exit, cta.trigger, {
+                  beforeDone: async () => {
+                    await storeResponseWrapper();
+                  },
                 });
               }}>
               {screen.parameters.cta2.text}
@@ -632,10 +569,4 @@ export const JourneyFeedback = ({
       <WipeTransitionOverlay wipe={transitionState.wipe} />
     </GridFullscreenContainer>
   );
-};
-
-const makePrettyResponse = (response: number | null): string => {
-  return response === null
-    ? 'null'
-    : ['hated', 'disliked', 'liked', 'loved'][response] ?? 'unknown';
 };

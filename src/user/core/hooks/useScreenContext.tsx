@@ -210,7 +210,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
     createStreakRequestHandler({ logging, maxStale: 2 })
   );
   const emotionsHandler = useWritableValueWithCallbacks(() =>
-    createEmotionsRequestHandler({ logging, maxStale: 2 })
+    createEmotionsRequestHandler({ logging: 'direct', maxStale: 2 })
   );
   const identitiesHandler = useWritableValueWithCallbacks(() =>
     createIdentitiesRequestHandler({ logging, maxStale: 2 })

@@ -1,5 +1,4 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
-import { JourneyRef } from '../../../journey/models/JourneyRef';
 import { ScreenJourneyMapped } from '../../models/ScreenJourney';
 
 export type JourneyFeedbackAPIParams = {
@@ -33,10 +32,7 @@ export type JourneyFeedbackAPIParams = {
   } | null;
 };
 
-export type JourneyFeedbackMappedParams = Omit<
-  JourneyFeedbackAPIParams,
-  'journey' | 'background'
-> & {
+export type JourneyFeedbackMappedParams = Omit<JourneyFeedbackAPIParams, 'journey'> & {
   /** The journey they are giving feedback for */
   journey: ScreenJourneyMapped;
   __mapped: true;

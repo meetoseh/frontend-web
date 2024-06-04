@@ -7,8 +7,7 @@ export type HomeAPIParams = {
   /** Handles if the user clicks one of the available emotions */
   emotion: {
     /**
-     * The trigger to use via pop_to_emotion, which will ultimately trigger
-     * this flow with `emotion` (the word) and `journey` (the class uid) set.
+     * The trigger with `emotion` in the client parameters
      */
     trigger: string;
 

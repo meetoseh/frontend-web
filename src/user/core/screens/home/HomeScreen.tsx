@@ -124,9 +124,12 @@ export const HomeScreen: OsehScreen<'home', HomeResources, HomeAPIParams, HomeMa
 
     const emotionsRequest = createWritableValueWithCallbacks<RequestResult<Emotion[]> | null>(null);
     const cleanupEmotionsRequest = createValueWithCallbacksEffect(ctx.login.value, () => {
+      console.log('cleanupEmotionsRequest forming request');
       const req = getEmotions();
+      console.log('cleanupEmotionsRequest formed request; initial data is', req.data.get());
       setVWC(emotionsRequest, req);
       return () => {
+        console.log('cleanupEmotionsRequest releasing request', req);
         req.release();
         if (Object.is(emotionsRequest.get(), req)) {
           setVWC(emotionsRequest, null);

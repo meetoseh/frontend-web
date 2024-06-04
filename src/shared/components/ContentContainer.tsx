@@ -14,10 +14,12 @@ import { useReactManagedValueAsValueWithCallbacks } from '../hooks/useReactManag
 export const ContentContainer = ({
   contentWidthVWC,
   justifyContent,
+  alignSelf,
   children,
 }: PropsWithChildren<{
   contentWidthVWC: ValueWithCallbacks<number>;
   justifyContent?: CSSProperties['justifyContent'];
+  alignSelf?: CSSProperties['alignSelf'];
 }>): ReactElement => {
   const contentRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   const contentStyleVWC = useMappedValuesWithCallbacks(
@@ -25,6 +27,7 @@ export const ContentContainer = ({
     () => ({
       width: `${contentWidthVWC.get()}px`,
       justifyContent: justifyContent ?? 'center',
+      alignSelf: alignSelf ?? 'center',
     })
   );
   useStyleVWC(contentRef, contentStyleVWC);

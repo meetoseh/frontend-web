@@ -521,6 +521,7 @@ export const LoginProvider = ({
         if (!runningRef.current) {
           return;
         }
+        console.log('refreshed tokens successfully, setting logged-in state');
         setVWC(valueVWC, {
           state: 'logged-in',
           authTokens: newTokens,
@@ -607,6 +608,22 @@ export const LoginProvider = ({
     },
     [valueVWC]
   );
+
+  (window as any).tryRefreshOsehLoginTokens = () => {
+    const val = valueVWC.get();
+    if (val.state !== 'logged-in') {
+      console.error('not logged in');
+      return;
+    }
+
+    console.info('starting refresh');
+    const runningRef = { current: true };
+    tryRefresh(val, runningRef);
+  };
+
+  (window as any).tryExecuteLoginStateCallbacks = () => {
+    valueVWC.callbacks.call(undefined);
+  };
 
   const runningLock = useRef<Promise<void> | null>(null);
   useEffect(() => {

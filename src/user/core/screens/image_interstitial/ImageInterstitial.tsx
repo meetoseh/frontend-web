@@ -22,6 +22,7 @@ import { ImageInterstitialMappedParams } from './ImageInterstitialParams';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
+import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 
 /**
  * A basic image interstitial; top message, image, header, subheader, button with CTA
@@ -53,7 +54,7 @@ export const ImageInterstitial = ({
         justifyContent="space-between"
         gridSizeVWC={ctx.windowSizeImmediate}>
         <div className={styles.top}>
-          <div style={{ height: '32px' }} />
+          <VerticalSpacer height={32} />
           <div className={styles.topMessage}>{screen.parameters.top}</div>
         </div>
         <div className={styles.center}>
@@ -76,9 +77,9 @@ export const ImageInterstitial = ({
               />
             )}
           />
-          <div style={{ height: '32px' }} />
+          <VerticalSpacer height={32} />
           <div className={styles.header}>{screen.parameters.header}</div>
-          <div style={{ height: '16px' }} />
+          <VerticalSpacer height={16} />
           <div className={styles.message}>{screen.parameters.message}</div>
         </div>
         <div className={styles.bottom}>
@@ -106,7 +107,7 @@ export const ImageInterstitial = ({
             }}>
             {screen.parameters.cta}
           </Button>
-          <div style={{ height: '32px' }} />
+          <VerticalSpacer height={32} />
         </div>
       </GridContentContainer>
       <WipeTransitionOverlay wipe={transitionState.wipe} />

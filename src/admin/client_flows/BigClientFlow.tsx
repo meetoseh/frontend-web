@@ -39,6 +39,7 @@ import { createUID } from '../../shared/lib/createUID';
 import { showClientFlowScreenEditor } from './client_flow_screens/showClientFlowScreenEditor';
 import { describeError } from '../../shared/forms/ErrorBlock';
 import { showUserPicker } from '../users/showUserPicker';
+import { showTextInputModal } from '../../shared/components/showTextInputModal';
 
 /**
  * Shows detailed information about a specific client flow specified by the slug in the URL
@@ -318,6 +319,9 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
       setVWC(workingVWC, false);
     }
   };
+
+  const cloneErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  useErrorModal(modalContext.modals, cloneErrorVWC, 'cloning client flow');
 
   return (
     <>
@@ -620,6 +624,137 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                   disabled={disabled}
                   spinner={spinner}>
                   Trigger on Other
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    const loginContext = loginContextRaw.value.get();
+                    if (loginContext.state !== 'logged-in') {
+                      return;
+                    }
+
+                    setVWC(workingVWC, true);
+                    setVWC(cloneErrorVWC, null);
+                    try {
+                      const slug = await showTextInputModal({
+                        modals: modalContext.modals,
+                        props: {
+                          label: 'Slug',
+                          help: 'The slug for the new flow',
+                          html5Validation: {
+                            minLength: 1,
+                            pattern: '^[a-z0-9_-]+$',
+                          },
+                        },
+                      }).promise;
+
+                      // check it doesn't already exist before prompting to confirm
+                      const response = await apiFetch(
+                        '/api/1/client_flows/search',
+                        {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json; charset=utf-8',
+                          },
+                          body: JSON.stringify({
+                            filters: {
+                              slug: {
+                                operator: 'eq',
+                                value: slug,
+                              },
+                            },
+                            limit: 1,
+                          }),
+                        },
+                        loginContext
+                      );
+                      if (!response.ok) {
+                        throw response;
+                      }
+                      const data: { items: any[] } = await response.json();
+                      if (data.items.length > 0) {
+                        setVWC(cloneErrorVWC, <>A flow with this slug already exists</>);
+                        return;
+                      }
+
+                      const confirmation = await showYesNoModal(modalContext.modals, {
+                        title: 'Clone Flow',
+                        body: `Are you sure you want to clone this flow, creating a new flow with the slug ${slug}?`,
+                        cta1: 'Yes, clone',
+                        cta2: 'No, cancel',
+                        emphasize: 1,
+                      }).promise;
+                      if (!confirmation) {
+                        return;
+                      }
+
+                      const createResponse = await apiFetch(
+                        '/api/1/client_flows/',
+                        {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json; charset=utf-8',
+                          },
+                          body: JSON.stringify({ slug }),
+                        },
+                        loginContext
+                      );
+                      if (!createResponse.ok) {
+                        throw createResponse;
+                      }
+                      const createData = await createResponse.json();
+                      const initialFlow = convertUsingMapper(createData, clientFlowKeyMap);
+                      const patchResponse = await apiFetch(
+                        '/api/1/client_flows/',
+                        {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json; charset=utf-8',
+                          },
+                          body: JSON.stringify({
+                            uid: initialFlow.uid,
+                            precondition: {
+                              slug: initialFlow.slug,
+                            },
+                            patch: {
+                              name: draftVWC.get().name + ' [CLONED]',
+                              description: draftVWC.get().description,
+                              client_schema: draftVWC.get().clientSchema,
+                              server_schema: draftVWC.get().serverSchema,
+                              replaces: draftVWC.get().replaces,
+                              screens: draftVWC
+                                .get()
+                                .screens.map((s) => serializeClientFlowScreen(s)),
+                              flags: draftVWC.get().flags,
+                            },
+                          }),
+                        },
+                        loginContext
+                      );
+                      if (!patchResponse.ok) {
+                        throw patchResponse;
+                      }
+                      const confirmation2 = await showYesNoModal(modalContext.modals, {
+                        title: 'Go to cloned flow?',
+                        body: 'The flow has been cloned successfully. Do you want to be redirected there now?',
+                        cta1: 'Yes, go to flow',
+                        cta2: 'No, stay here',
+                        emphasize: 1,
+                      }).promise;
+                      if (confirmation2) {
+                        window.location.href = `/admin/client_flow?slug=${slug}`;
+                      }
+                    } catch (e) {
+                      setVWC(cloneErrorVWC, await describeError(e));
+                    } finally {
+                      setVWC(workingVWC, false);
+                    }
+                  }}
+                  disabled={disabled}
+                  spinner={spinner}>
+                  Clone Flow
                 </Button>
               </>
             )}

@@ -1,5 +1,8 @@
+import { createValueWithCallbacksEffect } from '../hooks/createValueWithCallbacksEffect';
+import { createMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 import { ValueWithCallbacks, createWritableValueWithCallbacks } from '../lib/Callbacks';
 import { setVWC } from '../lib/setVWC';
+import { unwrapNestedVWC } from '../lib/unwrapNestedVWC';
 import { RequestResult, RequestResultConcrete } from './RequestHandler';
 
 /**
@@ -26,65 +29,32 @@ export const unwrapRequestResult = <T extends object, U>(
   success: (data: RequestResultConcrete<T> & { type: 'success' }) => U,
   other: (data: RequestResultConcrete<T> | null) => U
 ): [ValueWithCallbacks<U>, () => void] => {
-  const result = createWritableValueWithCallbacks<U>(
-    (() => {
-      const valRaw = wrapped.get();
-      if (valRaw === null) {
-        return other(valRaw);
-      }
-      const val = valRaw.data.get();
-      if (val.type === 'success') {
-        return success(val);
-      }
-      return other(val);
-    })()
+  // switch to VWC<VWC<U> | null>, then use the standard unwrapper
+  const standardWrappedVWC = createWritableValueWithCallbacks<ValueWithCallbacks<U>>(
+    createWritableValueWithCallbacks(other(null))
   );
+  const cleanup = createValueWithCallbacksEffect(wrapped, (concrete) => {
+    if (concrete === null) {
+      const vwc = createWritableValueWithCallbacks(other(null));
+      setVWC(standardWrappedVWC, vwc);
+      return undefined;
+    }
 
-  let active = true;
-  let cancel = () => {};
-  wrapped.callbacks.add(onWrappedChanged);
-  onWrappedChanged();
+    const [mapped, cleanup] = createMappedValueWithCallbacks(concrete.data, (d) => {
+      if (d.type === 'success') {
+        return success(d);
+      }
+      return other(d);
+    });
+    setVWC(standardWrappedVWC, mapped);
+    return cleanup;
+  });
+  const [unwrapped, cleanupUnwrapper] = unwrapNestedVWC(standardWrappedVWC);
   return [
-    result,
+    unwrapped,
     () => {
-      active = false;
-      wrapped.callbacks.remove(onWrappedChanged);
-      cancel();
-      cancel = () => {};
+      cleanupUnwrapper();
+      cleanup();
     },
   ];
-
-  function onWrappedChanged() {
-    cancel();
-    if (!active) {
-      cancel = () => {};
-      return;
-    }
-
-    const valRaw = wrapped.get();
-    if (valRaw === null) {
-      setVWC(result, other(valRaw));
-      return;
-    }
-
-    const data = valRaw.data;
-    data.callbacks.add(onDataChanged);
-    cancel = () => {
-      data.callbacks.remove(onDataChanged);
-      cancel = () => {};
-    };
-
-    function onDataChanged() {
-      if (!active) {
-        return;
-      }
-
-      const val = data.get();
-      if (val.type === 'success') {
-        setVWC(result, success(val));
-      } else {
-        setVWC(result, other(val));
-      }
-    }
-  }
 };
