@@ -78,7 +78,7 @@ export const Choices = ({
         value: checkedVWC.get(),
       });
     }
-  }, [checkedVWC, resources]);
+  }, [checkedVWC, resources, screen.parameters.slug, trace]);
 
   const canContinueVWC = useMappedValueWithCallbacks(
     downgradeTypedVWC(checkedVWC),
