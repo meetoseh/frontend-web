@@ -551,7 +551,9 @@ export const useScreenQueue = ({
         });
 
         logging.info(
-          `${effectUid} | ${loopUid} - showing active screen ${activeScreenInstance.slug}`
+          `${effectUid} | ${loopUid} - showing active screen ${
+            activeScreenInstance.slug
+          } with parameters ${JSON.stringify(activeScreenInstance.parameters)}`
         );
         setVWC(valueVWC, { type: 'success', component });
 

@@ -47,6 +47,8 @@ import { SetNameScreen } from './core/screens/set_name/SetNameScreen';
 import { ChooseAFeelingScreen } from './core/screens/choose_a_feeling/ChooseAFeelingScreen';
 import { RateClassScreen } from './core/screens/rate_class/RateClassScreen';
 import { ChoicesScreen } from './core/screens/choices/ChoicesScreen';
+import { StartMergeScreen } from './core/screens/start_merge/StartMergeScreen';
+import { ResolveMergeConflictScreen } from './core/screens/resolve_merge_conflict/ResolveMergeConflictScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -118,6 +120,8 @@ const screens = [
   ChooseAFeelingScreen,
   RateClassScreen,
   ChoicesScreen,
+  StartMergeScreen,
+  ResolveMergeConflictScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**

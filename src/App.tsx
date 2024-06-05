@@ -102,7 +102,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<UserApp />} />
+        <Route
+          path="/"
+          element={process.env.REACT_APP_ENVIRONMENT === 'dev' ? <UserScreensApp /> : <UserApp />}
+        />
         <Route path="/newapp" element={<UserScreensApp />} />
         <Route path="/upgrade" element={<UserApp />} />
         <Route path="/settings" element={<UserApp />} />

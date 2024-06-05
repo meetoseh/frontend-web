@@ -727,6 +727,7 @@ const Content = ({
                 callbacks: mappedVariableValueVWC.callbacks,
               }}
               imageHandler={imageHandler}
+              noCopy
             />
           )
         }
@@ -757,6 +758,7 @@ const Content = ({
           set: (v) => {},
           callbacks: new Callbacks(),
         }}
+        noCopy
         imageHandler={imageHandler}
       />
       <div style={{ height: '400px' }} />

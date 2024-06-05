@@ -28,7 +28,12 @@ export const SchemaFlatArrayInput = ({
   }
 
   const name = schema.title ?? path[path.length - 1];
-  const numItemsVWC = useMappedValueWithCallbacks(value, (v) => (v as any[]).length);
+  const numItemsVWC = useMappedValueWithCallbacks(value, (v) => {
+    if (Array.isArray(v)) {
+      return v.length;
+    }
+    return 0;
+  });
   return (
     <div className={styles.container}>
       <div className={styles.meta}>
@@ -63,10 +68,11 @@ export const SchemaFlatArrayInput = ({
           variant="link-small"
           onClick={(e) => {
             e.preventDefault();
-            const oldArrayValue = value.get();
-            if (oldArrayValue === undefined) {
-              return;
+            let oldArrayValue = value.get();
+            if (!Array.isArray(oldArrayValue)) {
+              oldArrayValue = [];
             }
+
             const newArrayValue = [...oldArrayValue];
             newArrayValue.push(
               schema.items.default ??

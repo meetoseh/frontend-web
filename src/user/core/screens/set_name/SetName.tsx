@@ -15,11 +15,7 @@ import {
   useStandardTransitionsState,
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
-import {
-  Callbacks,
-  WritableValueWithTypedCallbacks,
-  useWritableValueWithCallbacks,
-} from '../../../../shared/lib/Callbacks';
+import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
@@ -31,7 +27,6 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
-import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
 import { BackContinue } from '../../../../shared/components/BackContinue';
 import { SetNameResources } from './SetNameResources';
 import { SetNameMappedParams } from './SetNameParams';
@@ -68,12 +63,12 @@ export const SetName = ({
     }
 
     let given = s.userAttributes.givenName;
-    if (given === undefined || given === null || given.includes('anon')) {
+    if (given === undefined || given === null || given.toLocaleLowerCase().includes('anon')) {
       given = '';
     }
 
     let family = s.userAttributes.familyName;
-    if (family === undefined || family === null || family.includes('anon')) {
+    if (family === undefined || family === null || family.toLocaleLowerCase().includes('anon')) {
       family = '';
     }
 

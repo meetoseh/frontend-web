@@ -174,12 +174,17 @@ export const useScreenQueueState = (): ScreenQueueState => {
   );
 
   const peekLike = useCallback(
-    (
-      path: string,
-      headers: Headers | undefined,
-      body: BodyInit | undefined,
-      onError?: (error: unknown) => void
-    ): CancelablePromise<Result<UseScreenQueueStateState>> =>
+    ({
+      path,
+      headers,
+      body,
+      onError,
+    }: {
+      path: string;
+      headers: Headers | undefined;
+      body: BodyInit | undefined;
+      onError?: (error: unknown) => void;
+    }): CancelablePromise<Result<UseScreenQueueStateState>> =>
       delayCancelableUntilResolved(
         ({ loginContext, visitor }) =>
           constructCancelablePromise({
@@ -401,7 +406,7 @@ export const useScreenQueueState = (): ScreenQueueState => {
   );
 
   const peek = useCallback(
-    () => peekLike('/api/1/users/me/screens/peek', undefined, undefined),
+    () => peekLike({ path: '/api/1/users/me/screens/peek', headers: undefined, body: undefined }),
     [peekLike]
   );
 
@@ -412,17 +417,17 @@ export const useScreenQueueState = (): ScreenQueueState => {
       endpoint: string,
       onError?: (error: unknown) => void
     ) =>
-      peekLike(
-        endpoint,
-        new Headers({
+      peekLike({
+        path: endpoint,
+        headers: new Headers({
           'Content-Type': 'application/json; charset=utf-8',
         }),
-        JSON.stringify({
+        body: JSON.stringify({
           screen_jwt: from.result.activeJwt,
           ...(trigger === null ? {} : { trigger }),
         }),
-        onError
-      ),
+        onError,
+      }),
     [peekLike]
   );
 
@@ -447,8 +452,52 @@ export const useScreenQueueState = (): ScreenQueueState => {
     []
   );
 
+  /** WEB ONLY: First peek might have a merge token */
+  const peekFirst = useCallback(() => {
+    const fragment = window.location.hash;
+    if (fragment.length === 0) {
+      return peek();
+    }
+
+    const args = new URLSearchParams(fragment.substring(1));
+    if (!args.has('merge_token')) {
+      return peek();
+    }
+
+    const mergeToken = args.get('merge_token');
+    if (mergeToken === null || mergeToken.length < 3) {
+      return peek();
+    }
+
+    const result = peekLike({
+      path: '/api/1/users/me/screens/empty_with_merge_token',
+      headers: new Headers({
+        'Content-Type': 'application/json; charset=utf-8',
+      }),
+      body: JSON.stringify({ merge_token: mergeToken }),
+    });
+    return {
+      promise: result.promise.then((r) => {
+        const fragment = window.location.hash;
+        if (fragment.length < 1) {
+          return r;
+        }
+        const args = new URLSearchParams(fragment.substring(1));
+        if (!args.has('merge_token')) {
+          return r;
+        }
+
+        args.delete('merge_token');
+        window.location.hash = args.toString();
+        return r;
+      }),
+      done: result.done,
+      cancel: result.cancel,
+    };
+  }, [peek, peekLike]);
+
   useEffect(() => {
-    const peeker = peek();
+    const peeker = peekFirst();
     peeker.promise.catch((e) => {
       if (e instanceof Error && e.message.startsWith('canceled')) {
         return;
@@ -456,7 +505,7 @@ export const useScreenQueueState = (): ScreenQueueState => {
       console.error(e);
     });
     return peeker.cancel;
-  }, [peek]);
+  }, [peek, peekFirst]);
 
   return useMemo(() => ({ value: valueVWC, peek, trace, pop }), [valueVWC, peek, trace, pop]);
 };

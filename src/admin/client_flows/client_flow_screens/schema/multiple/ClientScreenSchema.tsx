@@ -11,8 +11,6 @@ import { ClientScreenSchemaContentInput } from '../string/ClientScreenSchemaCont
 import { ClientScreenSchemaFlowSlugInput } from '../string/ClientScreenSchemaFlowSlugInput';
 import { ClientScreenSchemaFlatObjectInput } from '../object/ClientScreenSchemaFlatObjectInput';
 
-const copyableTypes = new Set(['number', 'integer', 'boolean', 'double', 'float', 'string']);
-
 /**
  * Fills in the values for a client screen schema, as would be done when
  * editing a client flow screen
@@ -54,7 +52,7 @@ export const ClientScreenSchema = ({
     ),
   };
 
-  if (!noCopy && copyableTypes.has(schema.type)) {
+  if (!noCopy) {
     return <ClientScreenSchemaCopyInput {...fancyProps} />;
   }
 
