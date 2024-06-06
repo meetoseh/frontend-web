@@ -148,6 +148,13 @@ export const AdminNavDesktopSideContent = ({
             active={currentPath === '/admin/sign_in_with_oseh_dashboard'}
           />
           <AdminNavDesktopSideLink
+            iconClass={styles.iconChart}
+            text="Screens"
+            url="/admin/screens_dashboard"
+            active={currentPath === '/admin/screens_dashboard'}
+            padTextTop={2}
+          />
+          <AdminNavDesktopSideLink
             iconClass={styles.iconOnboardingVideos}
             text="Onboarding Videos"
             url="/admin/onboarding_videos"

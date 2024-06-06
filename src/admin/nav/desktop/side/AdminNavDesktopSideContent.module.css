@@ -103,6 +103,11 @@
   composes: icon from '../../../../shared/icons.module.css';
   background-image: url('./icons/flow-chart-examples.svg');
 }
+
+.iconChart {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('./icons/chart.svg');
+}
 /* #endregion */
 
 .outerContainer {

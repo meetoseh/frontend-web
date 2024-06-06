@@ -139,8 +139,6 @@ export const useScreenQueue = ({
   screens,
   logging,
 }: UseScreenQueueProps): UseScreenQueueResult => {
-  logging.info('useScreenQueue hook called');
-
   const valueVWC = useWritableValueWithCallbacks<UseScreenQueueState>(() => ({
     type: 'loading-queue',
   }));
