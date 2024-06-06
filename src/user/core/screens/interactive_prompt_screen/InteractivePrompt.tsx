@@ -21,6 +21,7 @@ import { IconButton } from '../../../../shared/forms/IconButton';
 import { Close } from './icons/Close';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { screenOut } from '../../lib/screenOut';
+import { setVWC } from '../../../../shared/lib/setVWC';
 
 /**
  * An interactive prompt (one where everyones responses are shown as they
@@ -45,6 +46,8 @@ export const InteractivePrompt = ({
   const workingVWC = useWritableValueWithCallbacks(() => false);
   const leavingCallbackRef = useRef<(() => void) | null>(null);
 
+  const tracedResponseVWC = useWritableValueWithCallbacks<any | null>(() => null);
+
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
       <GridImageBackground
@@ -60,7 +63,10 @@ export const InteractivePrompt = ({
         gridSizeVWC={ctx.windowSizeImmediate}>
         <InteractivePromptRouter
           onResponse={(r: any) => {
-            trace({ type: 'response', value: r });
+            if (!Object.is(tracedResponseVWC.get(), r)) {
+              trace({ type: 'response', value: r });
+              setVWC(tracedResponseVWC, r);
+            }
           }}
           onFinished={async (_privileged: boolean, reason: 'time' | 'skip', time: PromptTime) => {
             trace({ type: 'finished', reason, time });
