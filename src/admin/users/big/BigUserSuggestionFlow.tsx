@@ -11,6 +11,11 @@ import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
 import { ModalWrapper } from '../../../shared/ModalWrapper';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
+import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
+import { Checkbox } from '../../../shared/forms/Checkbox';
+import { setVWC } from '../../../shared/lib/setVWC';
 
 type Instructor = {
   uid: string;
@@ -186,54 +191,55 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
     }, [])
   );
 
-  useValueWithCallbacksEffect(
-    loginContextRaw.value,
-    useCallback(
-      (loginContextUnch) => {
-        if (loginContextUnch.state !== 'logged-in') {
-          return;
+  const premiumVWC = useWritableValueWithCallbacks<boolean>(() => false);
+
+  useValuesWithCallbacksEffect(
+    [loginContextRaw.value, premiumVWC],
+    useCallback(() => {
+      const loginContextUnch = loginContextRaw.value.get();
+      if (loginContextUnch.state !== 'logged-in') {
+        return;
+      }
+      const loginContext = loginContextUnch;
+      const premium = premiumVWC.get();
+
+      let active = true;
+      analyze();
+      return () => {
+        active = false;
+      };
+
+      async function analyzeInner() {
+        const response = await apiFetch(
+          `/api/1/personalization/analyze?emotion=${encodeURIComponent(
+            emotion
+          )}&user_sub=${encodeURIComponent(user.sub)}&premium=${premium}`,
+          { method: 'GET' },
+          loginContext
+        );
+        if (!response.ok) {
+          throw response;
         }
-        const loginContext = loginContextUnch;
 
-        let active = true;
-        analyze();
-        return () => {
-          active = false;
-        };
+        const data: AnalyzeResponse = await response.json();
+        if (active) {
+          setAnalyzeResponse(data);
+        }
+      }
 
-        async function analyzeInner() {
-          const response = await apiFetch(
-            `/api/1/personalization/analyze?emotion=${encodeURIComponent(
-              emotion
-            )}&user_sub=${encodeURIComponent(user.sub)}`,
-            { method: 'GET' },
-            loginContext
-          );
-          if (!response.ok) {
-            throw response;
-          }
-
-          const data: AnalyzeResponse = await response.json();
+      async function analyze() {
+        setError(null);
+        try {
+          await analyzeInner();
+        } catch (e) {
+          const err = await describeError(e);
           if (active) {
-            setAnalyzeResponse(data);
+            setError(err);
+            setAnalyzeResponse(null);
           }
         }
-
-        async function analyze() {
-          setError(null);
-          try {
-            await analyzeInner();
-          } catch (e) {
-            const err = await describeError(e);
-            if (active) {
-              setError(err);
-              setAnalyzeResponse(null);
-            }
-          }
-        }
-      },
-      [user.sub, emotion]
-    )
+      }
+    }, [user.sub, emotion])
   );
 
   const instructorCategories = useMemo<DashboardTableProps>(
@@ -482,6 +488,20 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
             </option>
           ))}
         </select>
+      </CrudFormElement>
+      <CrudFormElement title="Premium">
+        <RenderGuardedComponent
+          props={premiumVWC}
+          component={(premium) => (
+            <Checkbox
+              label="Premium"
+              value={premium}
+              setValue={(v) => {
+                setVWC(premiumVWC, v);
+              }}
+            />
+          )}
+        />
       </CrudFormElement>
       <div className={styles.explanation}>
         <h2>Step 1</h2>
