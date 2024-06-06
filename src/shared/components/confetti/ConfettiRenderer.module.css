@@ -1,0 +1,8 @@
+.container {
+  position: absolute;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+}
