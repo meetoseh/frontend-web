@@ -35,6 +35,7 @@ export const VideoInterstitial = ({
   ctx,
   screen,
   resources,
+  trace,
   startPop,
 }: ScreenComponentProps<
   'video_interstitial',
@@ -135,6 +136,7 @@ export const VideoInterstitial = ({
 
   useValueWithCallbacksEffect(mediaInfo.ended, (ended) => {
     if (ended) {
+      trace({ type: 'ended', time: mediaInfo.currentTime.get() });
       onFinish();
     }
     return undefined;
@@ -143,10 +145,16 @@ export const VideoInterstitial = ({
   const cta = useReactManagedValueAsValueWithCallbacks<PlayerCTA>({
     title: screen.parameters.cta ?? 'Skip',
     action: async () => {
+      trace({ type: 'skip', time: mediaInfo.currentTime.get() });
       onFinish();
     },
   });
   const title = useReactManagedValueAsValueWithCallbacks(screen.parameters.title);
+
+  useValueWithCallbacksEffect(mediaInfo.paused, (paused) => {
+    trace({ type: 'paused-changed', paused, time: mediaInfo.currentTime.get() });
+    return undefined;
+  });
 
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>

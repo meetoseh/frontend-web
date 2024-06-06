@@ -1,0 +1,25 @@
+.container {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 8px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+}
+
+.screenSlug {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #171717;
+}
+
+.createdAt {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #171717;
+}

@@ -1,0 +1,9 @@
+.refresh {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('../../icons/refresh.svg');
+}
+
+.more {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('../../icons/more.svg');
+}

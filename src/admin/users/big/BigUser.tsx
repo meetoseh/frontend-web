@@ -13,6 +13,7 @@ import { BigUserContactMethodLog } from './contact_method_log/BigUserContactMeth
 import { BigUserDailyReminderSettingsLog } from './daily_reminder_settings_log/BigUserDailyReminderSettingsLog';
 import { BigUserDailyReminders } from './BigUserDailyReminders';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { BigUserClientScreens } from './client_screens/BigUserClientScreens';
 
 /**
  * Acts as a dashboard for a specific user, aka a traditional user show page,
@@ -128,6 +129,9 @@ export const BigUser = (): ReactElement => {
         </div>
         <div className={styles.narrow}>
           <BigUserDailyReminders user={user} />
+        </div>
+        <div className={styles.wide}>
+          <BigUserClientScreens user={user} />
         </div>
         <div className={styles.wide}>
           <BigUserInappNotifications user={user} />

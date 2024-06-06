@@ -1,0 +1,27 @@
+.parameters {
+  width: 100%;
+  white-space: pre;
+  overflow-x: auto;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 16px;
+  line-height: 24px;
+  color: #171717;
+}
+
+.container {
+  max-width: 80vw;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.refresh {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('../../icons/refresh.svg');
+}
+
+.more {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('../../icons/more.svg');
+}
