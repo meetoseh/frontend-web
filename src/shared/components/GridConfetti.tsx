@@ -23,7 +23,7 @@ export const GridConfetti = ({
           <Confetti
             wind={{
               x: -5,
-              y: 45,
+              y: 200,
             }}
             box={{
               left: 0,
@@ -48,8 +48,8 @@ export const GridConfetti = ({
                 max: 100,
               },
               y: {
-                min: -250,
-                max: -100,
+                min: -500,
+                max: -200,
               },
             }}
             acceleration={{
