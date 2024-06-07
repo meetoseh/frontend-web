@@ -11,8 +11,6 @@ import { setVWC } from '../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../shared/hooks/useMappedValuesWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../shared/hooks/useValuesWithCallbacksEffect';
 import { useValueWithCallbacksEffect } from '../shared/hooks/useValueWithCallbacksEffect';
-import { usePurchaseSuccessfulModal } from './core/features/upgrade/hooks/usePurchaseSuccessfulModal';
-import { adaptValueWithCallbacksAsVariableStrategyProps } from '../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { ModalProvider } from '../shared/contexts/ModalContext';
 import { useScreenQueueState } from './core/hooks/useScreenQueueState';
 import { useScreenContext } from './core/hooks/useScreenContext';
@@ -168,10 +166,6 @@ const UserScreensAppInner = ({
   // if loading takes a while, we'll show the splash screen.
   const flashWhiteInsteadOfSplashVWC = useTimedValueWithCallbacks(true, false, 250);
   const beenLoadedVWC = useWritableValueWithCallbacks<boolean>(() => false);
-  const handlingCheckoutVWC = useWritableValueWithCallbacks<boolean>(() => true);
-  const showCheckoutSuccessfulUntilVWC = useWritableValueWithCallbacks<number | undefined>(
-    () => undefined
-  );
 
   const handlingStripeSyncVWC = useWritableValueWithCallbacks<boolean>(() => true);
 
@@ -180,64 +174,10 @@ const UserScreensAppInner = ({
     useCallback(
       (loginContextUnch) => {
         let active = true;
-        checkCheckoutSuccess().finally(() => checkStripeSync());
+        checkStripeSync();
         return () => {
           active = false;
         };
-
-        async function checkCheckoutSuccess() {
-          if (loginContextUnch.state === 'logged-out') {
-            setVWC(handlingCheckoutVWC, false);
-            return;
-          }
-
-          if (loginContextUnch.state !== 'logged-in') {
-            return;
-          }
-
-          const searchParams = new URLSearchParams(window.location.search);
-          if (!searchParams.has('checkout_uid')) {
-            setVWC(handlingCheckoutVWC, false);
-            return;
-          }
-
-          setVWC(handlingCheckoutVWC, true);
-          try {
-            const uid = searchParams.get('checkout_uid');
-
-            const response = await apiFetch(
-              '/api/1/users/me/checkout/stripe/finish',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json; charset=utf-8',
-                },
-                body: JSON.stringify({
-                  checkout_uid: uid,
-                }),
-                keepalive: true,
-              },
-              loginContextUnch
-            );
-
-            const newParams = new URLSearchParams(window.location.search);
-            newParams.delete('checkout_uid');
-            newParams.delete('checkout_success');
-            window.history.replaceState(
-              {},
-              document.title,
-              `${window.location.pathname}?${newParams.toString()}`
-            );
-
-            if (response.ok) {
-              setVWC(showCheckoutSuccessfulUntilVWC, Date.now() + 15000);
-            }
-          } finally {
-            if (active) {
-              setVWC(handlingCheckoutVWC, false);
-            }
-          }
-        }
 
         async function checkStripeSync() {
           if (!active) {
@@ -286,21 +226,16 @@ const UserScreensAppInner = ({
           }
         }
       },
-      [handlingCheckoutVWC, showCheckoutSuccessfulUntilVWC, handlingStripeSyncVWC]
+      [handlingStripeSyncVWC]
     )
   );
 
   const screenQueueTypeVWC = useMappedValueWithCallbacks(screenQueue.value, (v) => v.type);
   useValuesWithCallbacksEffect(
-    [loginContextRaw.value, handlingCheckoutVWC, screenQueueTypeVWC, handlingStripeSyncVWC],
+    [loginContextRaw.value, screenQueueTypeVWC, handlingStripeSyncVWC],
     useCallback((): undefined => {
       const loginContextUnch = loginContextRaw.value.get();
-      if (
-        loginContextUnch.state === 'loading' ||
-        !fontsLoaded ||
-        handlingCheckoutVWC.get() ||
-        handlingStripeSyncVWC.get()
-      ) {
+      if (loginContextUnch.state === 'loading' || !fontsLoaded || handlingStripeSyncVWC.get()) {
         setVWC(stateVWC, 'loading');
         return;
       }
@@ -321,16 +256,11 @@ const UserScreensAppInner = ({
     }, [
       loginContextRaw.value,
       fontsLoaded,
-      handlingCheckoutVWC,
       screenQueueTypeVWC,
       beenLoadedVWC,
       stateVWC,
       handlingStripeSyncVWC,
     ])
-  );
-
-  usePurchaseSuccessfulModal(
-    adaptValueWithCallbacksAsVariableStrategyProps(showCheckoutSuccessfulUntilVWC)
   );
 
   const splashTypeVWC = useMappedValuesWithCallbacks(

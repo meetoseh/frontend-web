@@ -42,6 +42,7 @@ import { Button } from '../../../../shared/forms/Button';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
+import { screenOut } from '../../lib/screenOut';
 
 /**
  * The upgrade screen, based on the users current offer but with a configurable
@@ -116,22 +117,11 @@ export const Upgrade = ({
             className={styles.back}
             onClick={async (e) => {
               e.preventDefault();
-              if (workingVWC.get()) {
-                return;
-              }
-              trace({ type: 'back' });
-              setVWC(workingVWC, true);
-              const finishPop = startPop(
-                screen.parameters.back === null
-                  ? null
-                  : {
-                      slug: screen.parameters.back,
-                      parameters: {},
-                    }
-              );
-              setVWC(transition.animation, screen.parameters.exit);
-              await playExitTransition(transition).promise;
-              finishPop();
+              screenOut(workingVWC, startPop, transition, screen.parameters.exit, screen.parameters.back, {
+                beforeDone: async () => {
+                  trace({ type: 'back' });
+                }
+              })
             }}>
             <span className={assistiveStyles.srOnly}>Back</span>
             <Back />

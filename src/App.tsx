@@ -99,21 +99,20 @@ function App() {
     return <SplashScreen type="wordmark" />;
   }
 
+  const stdApp = process.env.REACT_APP_ENVIRONMENT === 'dev' ? <UserScreensApp /> : <UserApp />;
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={process.env.REACT_APP_ENVIRONMENT === 'dev' ? <UserScreensApp /> : <UserApp />}
-        />
+        <Route path="/" element={stdApp} />
         <Route path="/newapp" element={<UserScreensApp />} />
-        <Route path="/upgrade" element={<UserApp />} />
-        <Route path="/settings" element={<UserApp />} />
-        <Route path="/settings/manage-membership" element={<UserApp />} />
-        <Route path="/series" element={<UserApp />} />
-        <Route path="/series/preview/*" element={<UserApp />} />
-        <Route path="/series/details/*" element={<UserApp />} />
-        <Route path="/emotions/*" element={<UserApp />} />
+        <Route path="/upgrade" element={stdApp} />
+        <Route path="/settings" element={stdApp} />
+        <Route path="/settings/manage-membership" element={stdApp} />
+        <Route path="/series" element={stdApp} />
+        <Route path="/series/preview/*" element={stdApp} />
+        <Route path="/series/details/*" element={stdApp} />
+        <Route path="/emotions/*" element={stdApp} />
         <Route path="/admin" element={<AdminApp />}>
           {AdminRoutes()}
         </Route>
@@ -229,9 +228,9 @@ function App() {
             </LoginProvider>
           }
         />
-        <Route path="/favorites" element={<UserApp />} />
-        <Route path="/l/*" element={<UserApp />} />
-        <Route path="/a/*" element={<UserApp />} />
+        <Route path="/favorites" element={stdApp} />
+        <Route path="/l/*" element={stdApp} /> {/* TODO */}
+        <Route path="/a/*" element={stdApp} /> {/* TODO */}
         <Route path="/clear" element={<ClearCache />} />
         <Route path="/debug-features" element={<DebugFeatures />} />
       </Routes>

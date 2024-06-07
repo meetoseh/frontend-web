@@ -239,7 +239,7 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
           }
         }
       }
-    }, [user.sub, emotion])
+    }, [user.sub, emotion, loginContextRaw.value, premiumVWC])
   );
 
   const instructorCategories = useMemo<DashboardTableProps>(

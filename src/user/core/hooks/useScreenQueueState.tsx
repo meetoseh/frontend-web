@@ -452,48 +452,114 @@ export const useScreenQueueState = (): ScreenQueueState => {
     []
   );
 
-  /** WEB ONLY: First peek might have a merge token */
+  /** WEB ONLY: First peek might have a merge token, checkout session id, or link code */
   const peekFirst = useCallback(() => {
-    const fragment = window.location.hash;
-    if (fragment.length === 0) {
-      return peek();
+    let result = handleMergeToken();
+    if (result !== null) {
+      return result;
     }
-
-    const args = new URLSearchParams(fragment.substring(1));
-    if (!args.has('merge_token')) {
-      return peek();
+    result = handleCheckoutSession();
+    if (result !== null) {
+      return result;
     }
+    /* TODO /l/* and /a/* links */
+    return peek();
 
-    const mergeToken = args.get('merge_token');
-    if (mergeToken === null || mergeToken.length < 3) {
-      return peek();
-    }
+    function handleMergeToken(): CancelablePromise<Result<UseScreenQueueStateState>> | null {
+      const fragment = window.location.hash;
+      if (fragment.length === 0) {
+        return null;
+      }
 
-    const result = peekLike({
-      path: '/api/1/users/me/screens/empty_with_merge_token',
-      headers: new Headers({
-        'Content-Type': 'application/json; charset=utf-8',
-      }),
-      body: JSON.stringify({ merge_token: mergeToken }),
-    });
-    return {
-      promise: result.promise.then((r) => {
-        const fragment = window.location.hash;
-        if (fragment.length < 1) {
+      const args = new URLSearchParams(fragment.substring(1));
+      if (!args.has('merge_token')) {
+        return null;
+      }
+
+      const mergeToken = args.get('merge_token');
+      if (mergeToken === null || mergeToken.length < 3) {
+        return null;
+      }
+
+      const result = peekLike({
+        path: '/api/1/users/me/screens/empty_with_merge_token',
+        headers: new Headers({
+          'Content-Type': 'application/json; charset=utf-8',
+        }),
+        body: JSON.stringify({ merge_token: mergeToken }),
+      });
+      return {
+        promise: result.promise.then((r) => {
+          const fragment = window.location.hash;
+          if (fragment.length < 1) {
+            return r;
+          }
+          const args = new URLSearchParams(fragment.substring(1));
+          if (!args.has('merge_token')) {
+            return r;
+          }
+
+          args.delete('merge_token');
+          window.history.replaceState(
+            {},
+            document.title,
+            `${window.location.pathname}${window.location.search}#${args.toString()}`
+          );
+
           return r;
-        }
-        const args = new URLSearchParams(fragment.substring(1));
-        if (!args.has('merge_token')) {
-          return r;
-        }
+        }),
+        done: result.done,
+        cancel: result.cancel,
+      };
+    }
 
-        args.delete('merge_token');
-        window.location.hash = args.toString();
-        return r;
-      }),
-      done: result.done,
-      cancel: result.cancel,
-    };
+    function handleCheckoutSession(): CancelablePromise<Result<UseScreenQueueStateState>> | null {
+      const query = window.location.search;
+      if (query.length === 0) {
+        return null;
+      }
+
+      const args = new URLSearchParams(query.substring(1));
+      if (!args.has('checkout_uid')) {
+        return null;
+      }
+
+      const checkoutUid = args.get('checkout_uid');
+      if (checkoutUid === null || checkoutUid.length < 3) {
+        return null;
+      }
+
+      const result = peekLike({
+        path: '/api/1/users/me/screens/empty_with_checkout_uid',
+        headers: new Headers({
+          'Content-Type': 'application/json; charset=utf-8',
+        }),
+        body: JSON.stringify({ checkout_uid: checkoutUid }),
+      });
+      return {
+        promise: result.promise.then((r) => {
+          const query = window.location.search;
+          if (query.length < 1) {
+            return r;
+          }
+          const args = new URLSearchParams(query.substring(1));
+          if (!args.has('checkout_uid')) {
+            return r;
+          }
+
+          args.delete('checkout_uid');
+          args.delete('checkout_success');
+          window.history.replaceState(
+            {},
+            document.title,
+            `${window.location.pathname}?${args.toString()}${window.location.hash}`
+          );
+          return r;
+        }),
+        done: result.done,
+        cancel: result.cancel,
+      };
+    }
   }, [peek, peekLike]);
 
   useEffect(() => {
