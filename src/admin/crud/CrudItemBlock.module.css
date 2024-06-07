@@ -22,14 +22,16 @@
 
 .titleAndControls {
   width: 100%;
-  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .controls {
-  position: absolute;
-  right: 0;
-  top: 0;
   display: flex;
+  flex-flow: row nowrap;
   gap: 10px;
   justify-content: flex-start;
 }

@@ -12,7 +12,11 @@ import {
   useStandardTransitionsState,
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
-import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import {
+  ValueWithCallbacks,
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { PlayerCTA, PlayerForeground } from '../../../../shared/content/player/PlayerForeground';
@@ -89,6 +93,7 @@ export const AudioInterstitial = ({
     },
   });
   const title = useReactManagedValueAsValueWithCallbacks(screen.parameters.title);
+  const subtitle = useReactManagedValueAsValueWithCallbacks(screen.parameters.subtitle);
 
   useValueWithCallbacksEffect(mediaInfo.paused, (paused) => {
     trace({ type: 'paused-changed', paused, time: mediaInfo.currentTime.get() });
@@ -114,7 +119,21 @@ export const AudioInterstitial = ({
           mediaInfo={mediaInfo}
           transcript={transcript}
           title={title}
-          cta={cta}
+          subtitle={
+            screen.parameters.subtitle === null
+              ? undefined
+              : (subtitle as ValueWithCallbacks<string>)
+          }
+          cta={screen.parameters.cta === null ? undefined : cta}
+          onClose={
+            !screen.parameters.close
+              ? undefined
+              : createWritableValueWithCallbacks(async () => {
+                  trace({ type: 'close-via-x', time: mediaInfo.currentTime.get() });
+                  onFinish();
+                })
+          }
+          assumeDark={screen.parameters.dark}
         />
       </GridContentContainer>
       <WipeTransitionOverlay wipe={transitionState.wipe} />

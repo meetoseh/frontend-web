@@ -5,6 +5,7 @@ import { SchemaRawInput } from '../wrapper/SchemaRawInput';
 import { SchemaObjectInput } from '../object/SchemaObjectInput';
 import { SchemaNumberSimpleInput } from '../number/SchemaNumberSimpleInput';
 import { SchemaFlatArrayInput } from '../array/SchemaFlatArrayInput';
+import { SchemaBooleanSimpleInput } from '../boolean/SchemaBooleanSimpleInput';
 
 /**
  * A very simple openapi 3.0.3 schema editor that supports as much of the
@@ -36,6 +37,8 @@ export const SchemaStandard = ({
     schema.type === 'double'
   ) {
     return <SchemaNumberSimpleInput {...subprops} />;
+  } else if (schema.type === 'boolean') {
+    return <SchemaBooleanSimpleInput {...subprops} />;
   } else {
     return <SchemaRawInput {...subprops} />;
   }

@@ -15,6 +15,9 @@ export type JourneyFeedbackAPIParams = {
     /** The transition to use if they click this option */
     exit: StandardScreenTransition;
 
+    /** If not null, included in the client parameters for the cta1 trigger */
+    emotion: string | null;
+
     /** The client flow slug to trigger when they hit the button */
     trigger: string | null;
   };
@@ -26,6 +29,9 @@ export type JourneyFeedbackAPIParams = {
 
     /** The transition to use if they click this option */
     exit: StandardScreenTransition;
+
+    /** If not null, included in the client parameters for the cta2 trigger */
+    emotion: string | null;
 
     /** The client flow slug to trigger when they hit the button */
     trigger: string | null;

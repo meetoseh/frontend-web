@@ -538,6 +538,8 @@ export const JourneyFeedback = ({
               beforeDone: async () => {
                 await storeResponseWrapper();
               },
+              parameters:
+                cta.emotion === null || cta.emotion === '' ? undefined : { emotion: cta.emotion },
             });
           }}>
           {screen.parameters.cta1.text}
@@ -559,6 +561,10 @@ export const JourneyFeedback = ({
                   beforeDone: async () => {
                     await storeResponseWrapper();
                   },
+                  parameters:
+                    cta.emotion === null || cta.emotion === ''
+                      ? undefined
+                      : { emotion: cta.emotion },
                 });
               }}>
               {screen.parameters.cta2.text}

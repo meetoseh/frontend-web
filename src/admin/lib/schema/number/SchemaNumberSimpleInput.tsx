@@ -9,7 +9,7 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
 
 /**
  * Allows the user to input a fixed number value to fill in the schema.
- * Only works if the schema is a string type.
+ * Only works if the schema is a number type.
  *
  * Supported validation properties:
  * - `maximum`
@@ -34,7 +34,7 @@ export const SchemaNumberSimpleInput = ({
 
   const errorVWC = useMappedValueWithCallbacks(
     value,
-    (text: string) => {
+    (text: any) => {
       const num = Number(text);
       if (Number.isNaN(num)) {
         return <>The input must be a number</>;

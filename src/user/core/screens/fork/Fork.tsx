@@ -19,6 +19,7 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { ForkResources } from './ForkResources';
 import { ForkMappedParams } from './ForkParams';
 import { RightCaret } from './icons/RightCaret';
+import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 
 /**
  * A basic fork screen with a header, message, and a series of choices
@@ -43,11 +44,13 @@ export const Fork = ({
         contentWidthVWC={ctx.contentWidth}
         left={transitionState.left}
         opacity={transitionState.opacity}
-        gridSizeVWC={ctx.windowSizeImmediate}>
+        gridSizeVWC={ctx.windowSizeImmediate}
+        justifyContent="flex-start">
+        <VerticalSpacer height={0} flexGrow={1} />
         <div className={styles.header}>{screen.parameters.header}</div>
-        <div style={{ height: '16px' }} />
+        <VerticalSpacer height={16} />
         <div className={styles.message}>{screen.parameters.message}</div>
-        <div style={{ height: '32px' }} />
+        <VerticalSpacer height={32} />
         <div className={styles.options}>
           {screen.parameters.options.map((option, i) => (
             <button
@@ -85,6 +88,7 @@ export const Fork = ({
             </button>
           ))}
         </div>
+        <VerticalSpacer height={0} flexGrow={1} />
       </GridContentContainer>
       <WipeTransitionOverlay wipe={transitionState.wipe} />
     </GridFullscreenContainer>

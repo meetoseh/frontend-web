@@ -5,11 +5,20 @@ export type VideoInterstitialAPIParams = {
   /** The title message at the bottom, typically for context */
   title: string;
 
+  /** Optional short subtitle above the title, e.g., author */
+  subtitle: string | null;
+
   /** The full screen video to show */
   video: ScreenContentAPI;
 
   /** The call-to-action text on the button or null for no button. */
   cta: string | null;
+
+  /** If true, a X button is rendered in the top-right */
+  close: boolean;
+
+  /** If true, adjusts styling to be less defensive about the background color, assuming its dark instead */
+  dark: boolean;
 
   /** entrance transition */
   entrance: StandardScreenTransition;
