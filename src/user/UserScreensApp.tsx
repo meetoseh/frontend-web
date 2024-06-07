@@ -144,7 +144,8 @@ const UserScreensAppInner = ({
     screenContext,
     screens,
     logging:
-      process.env.REACT_APP_ENVIRONMENT === 'dev'
+      process.env.REACT_APP_ENVIRONMENT === 'dev' ||
+      localStorage.getItem('debug-screens') === 'true'
         ? {
             log: console.log,
             info: console.info,

@@ -15,6 +15,7 @@ import { Result } from '../../../shared/requests/RequestHandler';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
 import { delayCancelableUntilResolved } from '../../../shared/lib/delayCancelableUntilResolved';
 import { createUID } from '../../../shared/lib/createUID';
+import { Buffer } from 'buffer';
 
 export type UseScreenQueueProps = {
   /**
@@ -328,7 +329,9 @@ export const useScreenQueue = ({
 
         const loopUid = ++loopCounter;
         logging.info(
-          `${effectUid} | ${loopUid} - core loop iteration with active slug ${requestedSlug}`
+          `${effectUid} | ${loopUid} - core loop iteration with active slug ${requestedSlug} for screen ${debugGetSub(
+            state.result.activeJwt
+          )}`
         );
 
         if (activeScreen === undefined) {
@@ -819,4 +822,16 @@ export const useScreenQueue = ({
 type RefreshResult = {
   active: Result<PeekedScreen<string, object>>;
   prefetch: Result<PeekedScreen<string, object>>[];
+};
+
+const debugGetSub = (jwt: string): string | null => {
+  try {
+    const claimsBase64 = jwt.split('.')[1];
+    const claimsJson = Buffer.from(claimsBase64, 'base64').toString('utf8');
+    const claims = JSON.parse(claimsJson);
+    return claims.sub ?? null;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 };
