@@ -1,4 +1,4 @@
-import { ReactElement, useContext } from 'react';
+import { ReactElement, useCallback, useContext } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
@@ -28,6 +28,7 @@ import { makePrettyResponse } from '../journey_feedback/lib/makePrettyResponse';
 import { GridImageBackground } from '../../../../shared/components/GridImageBackground';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { JourneyFeedback } from '../../../journey/components/JourneyFeedback';
+import { storeResponse } from '../journey_feedback/lib/storeResponse';
 
 /**
  * A basic screen where the user can rate a class
@@ -75,6 +76,15 @@ export const RateClass = ({
   });
 
   const canContinueVWC = useMappedValueWithCallbacks(responseVWC, (r) => r !== null);
+  const storeResponseWrapper = useCallback((): Promise<boolean> => {
+    return storeResponse({
+      responseVWC,
+      trace,
+      ctx,
+      feedbackErrorVWC,
+      journey: screen.parameters.journey,
+    });
+  }, [responseVWC, trace, ctx, feedbackErrorVWC, screen.parameters.journey]);
 
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
@@ -111,18 +121,23 @@ export const RateClass = ({
 
                 const triggerSlug =
                   [
-                    screen.parameters.cta.trigger.hated,
-                    screen.parameters.cta.trigger.disliked,
-                    screen.parameters.cta.trigger.liked,
                     screen.parameters.cta.trigger.loved,
-                  ][resp] ?? null;
+                    screen.parameters.cta.trigger.liked,
+                    screen.parameters.cta.trigger.disliked,
+                    screen.parameters.cta.trigger.hated,
+                  ][resp - 1] ?? null;
 
                 screenOut(
                   workingVWC,
                   startPop,
                   transition,
                   screen.parameters.cta.exit,
-                  triggerSlug
+                  triggerSlug,
+                  {
+                    beforeDone: async () => {
+                      await storeResponseWrapper();
+                    },
+                  }
                 );
               }}
               disabled={!canContinue}>

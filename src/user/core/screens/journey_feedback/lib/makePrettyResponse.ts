@@ -5,5 +5,5 @@
 export const makePrettyResponse = (response: number | null): string => {
   return response === null
     ? 'null'
-    : ['hated', 'disliked', 'liked', 'loved'][response] ?? 'unknown';
+    : ['loved', 'liked', 'disliked', 'hated'][response - 1] ?? 'unknown';
 };
