@@ -13,6 +13,7 @@ import { screenOut } from '../../user/core/lib/screenOut';
 import { TransitionPropAsOwner } from '../lib/TransitionProp';
 import { BottomNavBar } from '../../user/bottomNav/BottomNavBar';
 import { ScreenStartPop } from '../../user/core/models/Screen';
+import { VerticalSpacer } from './VerticalSpacer';
 
 export const GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT = 54;
 export const GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT = 67;
@@ -41,6 +42,7 @@ export const GridSimpleNavigationForeground = ({
   series,
   account,
   title,
+  noTop,
 }: {
   workingVWC: WritableValueWithCallbacks<boolean>;
   gridSize: ValueWithCallbacks<{ width: number; height: number }>;
@@ -48,12 +50,6 @@ export const GridSimpleNavigationForeground = ({
   trace: (event: any) => void;
   transitionState: StandardScreenTransitionState;
   transition: TransitionPropAsOwner<StandardScreenTransition['type'], StandardScreenTransition>;
-  back:
-    | {
-        exit: StandardScreenTransition;
-        trigger: string | null;
-      }
-    | (() => void);
   home:
     | {
         exit: StandardScreenTransition;
@@ -75,38 +71,56 @@ export const GridSimpleNavigationForeground = ({
       }
     | (() => void)
     | null;
-  title: string | ReactElement;
-}): ReactElement => (
+} & (
+  | {
+      back:
+        | {
+            exit: StandardScreenTransition;
+            trigger: string | null;
+          }
+        | (() => void);
+      title: string | ReactElement;
+      noTop?: false;
+    }
+  | {
+      back?: undefined;
+      title?: undefined;
+      noTop: true;
+    }
+)): ReactElement => (
   <GridContentContainer
     contentWidthVWC={useMappedValueWithCallbacks(gridSize, (s) => s.width)}
     left={transitionState.left}
     opacity={transitionState.opacity}
     gridSizeVWC={gridSize}
-    justifyContent="space-between"
+    justifyContent="flex-start"
     noPointerEvents>
-    <div className={styles.header}>
-      <div className={styles.backWrapper}>
-        <IconButton
-          icon={<Back />}
-          srOnlyName="Back"
-          onClick={(e) => {
-            e.preventDefault();
+    {!noTop ? (
+      <div className={styles.header}>
+        <div className={styles.backWrapper}>
+          <IconButton
+            icon={<Back />}
+            srOnlyName="Back"
+            onClick={(e) => {
+              e.preventDefault();
 
-            if (typeof back === 'function') {
-              back();
-              return;
-            }
+              if (typeof back === 'function') {
+                back();
+                return;
+              }
 
-            screenOut(workingVWC, startPop, transition, back.exit, back.trigger, {
-              beforeDone: async () => {
-                trace({ type: 'back' });
-              },
-            });
-          }}
-        />
+              screenOut(workingVWC, startPop, transition, back.exit, back.trigger, {
+                beforeDone: async () => {
+                  trace({ type: 'back' });
+                },
+              });
+            }}
+          />
+        </div>
+        <div className={styles.headerText}>{title}</div>
       </div>
-      <div className={styles.headerText}>{title}</div>
-    </div>
+    ) : null}
+    <VerticalSpacer height={0} flexGrow={1} />
     <BottomNavBar
       active={
         home === null ? 'home' : series === null ? 'series' : account === null ? 'account' : 'home'

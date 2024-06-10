@@ -11,6 +11,7 @@ import {
 } from '../../../../../shared/lib/Callbacks';
 import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 import { Checkbox } from '../../../../../shared/forms/Checkbox';
+import { CrudSwappableElement } from '../../../../lib/CrudSwappableElement';
 
 /**
  * Allows the user to fill out an object by filling out each of its properties
@@ -42,6 +43,11 @@ export const ClientScreenSchemaFlatObjectInput = ({
   if (typeof value?.get !== 'function') {
     throw new Error('bad value here');
   }
+  const isNullAndNullableVWC = useMappedValueWithCallbacks(
+    value,
+    (v) => !!(v === null && schema.nullable),
+    { inputEqualityFn: () => false }
+  );
 
   const properties = useMemo((): Map<string, { required: boolean; schema: any }> => {
     const result = new Map<string, { required: boolean; schema: any }>();
@@ -88,81 +94,110 @@ export const ClientScreenSchemaFlatObjectInput = ({
         {name && <div className={styles.title}>{name}</div>}
         {schema.description && <div className={styles.description}>{schema.description}</div>}
       </div>
-      {!haveOptionalProperties ? null : (
-        <div className={styles.optionalProperties}>
-          {Array.from(properties.entries()).map(([prop, { required }]) => (
-            <IncludedCheckbox
-              key={prop}
-              prop={prop}
-              required={required}
-              includedPropertiesVWC={includingPropertiesVWC}
-              setValue={(v) => {
-                if (v) {
-                  const newValue = { ...value.get() };
-                  const p = properties.get(prop);
-                  if (p === undefined) {
-                    console.warn('tried to include a property that does not exist', prop);
-                    return;
+      {!!schema.nullable && (
+        <div className={styles.nullable}>
+          <RenderGuardedComponent
+            props={isNullAndNullableVWC}
+            component={(isNull) => (
+              <Checkbox
+                label="Null"
+                value={isNull}
+                setValue={(v) => {
+                  if (v) {
+                    setVWC(value, null);
+                  } else {
+                    setVWC(value, schema.example ?? schema.default ?? {});
                   }
-                  newValue[prop] = p.schema.default;
-                  setVWC(value, newValue);
-                } else {
-                  const fixed = value.get();
-                  if (prop in fixed) {
-                    const newValue = { ...fixed };
-                    delete newValue[prop];
-                    setVWC(value, newValue);
-                    return;
-                  }
-
-                  const newVariableMap = new Map(variable.get());
-                  newVariableMap.delete(prettySchemaPath(path.concat(prop)));
-                  setVWC(variable, newVariableMap);
-                }
-              }}
-            />
-          ))}
+                }}
+              />
+            )}
+          />
         </div>
       )}
-      <div className={styles.properties}>
-        <RenderGuardedComponent
-          props={includingPropertiesVWC}
-          component={(includedSet) => {
-            const included = Array.from(includedSet);
-            included.sort();
 
-            const parts: ReactElement[] = [];
-            included.forEach((prop) => {
-              const propInfo = properties.get(prop);
-              if (propInfo === undefined) {
-                return;
-              }
-              const vwc: WritableValueWithCallbacks<any> = {
-                get: () => value.get()?.[prop],
-                set: (v) => {
-                  const newValue = { ...value.get() };
-                  newValue[prop] = v;
-                  setVWC(value, newValue);
-                },
-                callbacks: value.callbacks,
-              };
+      <CrudSwappableElement
+        version={isNullAndNullableVWC}
+        truthy={() => <></>}
+        falsey={() => (
+          <>
+            {!haveOptionalProperties ? null : (
+              <div className={styles.optionalProperties}>
+                {Array.from(properties.entries()).map(([prop, { required }]) => (
+                  <IncludedCheckbox
+                    key={prop}
+                    prop={prop}
+                    required={required}
+                    includedPropertiesVWC={includingPropertiesVWC}
+                    setValue={(v) => {
+                      if (v) {
+                        const newValue = { ...value.get() };
+                        const p = properties.get(prop);
+                        if (p === undefined) {
+                          console.warn('tried to include a property that does not exist', prop);
+                          return;
+                        }
+                        newValue[prop] = p.schema.default;
+                        setVWC(value, newValue);
+                      } else {
+                        const fixed = value.get();
+                        if (prop in fixed) {
+                          const newValue = { ...fixed };
+                          delete newValue[prop];
+                          setVWC(value, newValue);
+                          return;
+                        }
 
-              parts.push(
-                <Fragment key={prop}>
-                  {delegator({
-                    value: vwc,
-                    path: [...path, prop],
-                    schema: propInfo.schema,
-                    delegator,
-                  })}
-                </Fragment>
-              );
-            });
+                        const newVariableMap = new Map(variable.get());
+                        newVariableMap.delete(prettySchemaPath(path.concat(prop)));
+                        setVWC(variable, newVariableMap);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            <div className={styles.properties}>
+              <RenderGuardedComponent
+                props={includingPropertiesVWC}
+                component={(includedSet) => {
+                  const included = Array.from(includedSet);
+                  included.sort();
 
-            return <>{parts}</>;
-          }}
-        />
-      </div>
+                  const parts: ReactElement[] = [];
+                  included.forEach((prop) => {
+                    const propInfo = properties.get(prop);
+                    if (propInfo === undefined) {
+                      return;
+                    }
+                    const vwc: WritableValueWithCallbacks<any> = {
+                      get: () => value.get()?.[prop],
+                      set: (v) => {
+                        const newValue = { ...value.get() };
+                        newValue[prop] = v;
+                        setVWC(value, newValue);
+                      },
+                      callbacks: value.callbacks,
+                    };
+
+                    parts.push(
+                      <Fragment key={prop}>
+                        {delegator({
+                          value: vwc,
+                          path: [...path, prop],
+                          schema: propInfo.schema,
+                          delegator,
+                        })}
+                      </Fragment>
+                    );
+                  });
+
+                  return <>{parts}</>;
+                }}
+              />
+            </div>
+          </>
+        )}
+      />
     </div>
   );
 };

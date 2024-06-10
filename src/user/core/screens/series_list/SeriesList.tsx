@@ -37,6 +37,11 @@ import { useStyleVWC } from '../../../../shared/hooks/useStyleVWC';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { Button } from '../../../../shared/forms/Button';
 import { largestPhysicalPerLogical } from '../../../../shared/images/DisplayRatioHelper';
+import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
+import {
+  GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT,
+  GridSimpleNavigationForeground,
+} from '../../../../shared/components/GridSimpleNavigationForeground';
 
 type TooltipPlaceholder = { readonly uid: 'tooltip' };
 
@@ -48,6 +53,7 @@ export const SeriesList = ({
   ctx,
   screen,
   resources,
+  trace,
   startPop,
 }: ScreenComponentProps<
   'series_list',
@@ -67,6 +73,8 @@ export const SeriesList = ({
         return;
       }
 
+      trace({ type: 'click', target: 'course', course: { uid: course.uid, title: course.title } });
+
       setVWC(workingVWC, true);
       const finishPop =
         screen.parameters.seriesTrigger === null
@@ -84,7 +92,7 @@ export const SeriesList = ({
       await playExitTransition(transition).promise;
       finishPop();
     },
-    [workingVWC, screen, transition, startPop]
+    [workingVWC, screen, transition, startPop, trace]
   );
 
   const boundComponent = useMemo<
@@ -110,7 +118,10 @@ export const SeriesList = ({
 
   const listHeight = useMappedValueWithCallbacks(
     ctx.windowSizeImmediate,
-    (size) => size.height - 32
+    (size) =>
+      size.height -
+      32 -
+      (screen.parameters.bottom ? GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT : 0)
   );
 
   const mappedListVWC = useMappedValueWithCallbacks(
@@ -201,7 +212,24 @@ export const SeriesList = ({
             )
           }
         />
+        {screen.parameters.bottom && (
+          <VerticalSpacer height={GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT} />
+        )}
       </GridContentContainer>
+      {screen.parameters.bottom && (
+        <GridSimpleNavigationForeground
+          workingVWC={workingVWC}
+          startPop={startPop}
+          gridSize={ctx.windowSizeImmediate}
+          transitionState={transitionState}
+          transition={transition}
+          trace={trace}
+          home={screen.parameters.bottom.home}
+          series={null}
+          account={screen.parameters.bottom.account}
+          noTop
+        />
+      )}
       {screen.parameters.cta !== null && (
         <div className={styles.cta} style={ctaStyleVWC.get()} ref={(r) => setVWC(ctaRef, r)}>
           <div
@@ -218,6 +246,7 @@ export const SeriesList = ({
                 }
 
                 setVWC(workingVWC, true);
+                trace({ type: 'click', target: 'cta' });
                 const trigger = screen.parameters.cta?.trigger ?? null;
                 const finishPop = startPop(
                   trigger === null
@@ -233,6 +262,10 @@ export const SeriesList = ({
               }}>
               {screen.parameters.cta.text}
             </Button>
+            <VerticalSpacer height={32} />
+            {screen.parameters.bottom && (
+              <VerticalSpacer height={GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT} />
+            )}
           </div>
         </div>
       )}

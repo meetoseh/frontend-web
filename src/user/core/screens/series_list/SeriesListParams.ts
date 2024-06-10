@@ -24,6 +24,25 @@ export type SeriesListAPIParams = {
   /** The call to action, if any, displayed as a bottom button */
   cta: SeriesListAPIParamsCTA | null;
 
+  /** If null, no bottom bar is displayed. Otherwise, configures the bottom bar */
+  bottom: {
+    /** For if the user taps the home button in the bottom bar */
+    home: {
+      /** The trigger with no parameters */
+      trigger: string | null;
+      /** The exit transition to use */
+      exit: StandardScreenTransition;
+    };
+
+    /** For if the user taps the account button in the bottom bar */
+    account: {
+      /** The trigger with no parameters */
+      trigger: string | null;
+      /** The exit transition to use */
+      exit: StandardScreenTransition;
+    };
+  } | null;
+
   /** entrance transition */
   entrance: StandardScreenTransition;
 
