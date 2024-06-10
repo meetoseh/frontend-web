@@ -1,6 +1,6 @@
-import { ReactElement } from 'react';
+import { ReactElement, useEffect } from 'react';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { ValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { ExternalCourse } from '../lib/ExternalCourse';
 import styles from './CourseCoverItem.module.css';
 import { OsehImageProps, OsehImagePropsLoadable } from '../../../shared/images/OsehImageProps';
@@ -14,6 +14,8 @@ import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
 import { largestPhysicalPerLogical } from '../../../shared/images/DisplayRatioHelper';
 import { AspectRatioComparer } from '../../../shared/images/LogicalSize';
+import { createValueWithCallbacksEffect } from '../../../shared/hooks/createValueWithCallbacksEffect';
+import { setVWC } from '../../../shared/lib/setVWC';
 
 export type CourseCoverItemProps = {
   /**
@@ -50,6 +52,9 @@ export type CourseCoverItemProps = {
    * areas.
    */
   onClick?: () => void;
+
+  /** If specified, overrides the normal size calculation for the image */
+  size?: ValueWithCallbacks<{ width: number; height: number }>;
 };
 
 const compareAspectRatio: AspectRatioComparer = (a, b) => a.height / a.width - b.height / b.width;
@@ -63,23 +68,52 @@ export const CourseCoverItem = ({
   mapItems,
   imageHandler,
   onClick,
+  size: sizeRaw,
 }: CourseCoverItemProps): ReactElement => {
-  const windowSizeVWC = useWindowSizeValueWithCallbacks();
+  const windowSizeVWC = useWindowSizeValueWithCallbacks(
+    sizeRaw === undefined ? undefined : { type: 'react-rerender', props: { width: 0, height: 0 } }
+  );
+
+  const sizeVWC = useWritableValueWithCallbacks<{ width: number; height: number }>(() => ({
+    width: 0,
+    height: 0,
+  }));
+
+  useEffect(() => {
+    if (sizeRaw === undefined) {
+      return createValueWithCallbacksEffect(windowSizeVWC, (size) => {
+        const width = Math.min(342, size.width - 24);
+        setVWC(
+          sizeVWC,
+          {
+            width,
+            height:
+              Math.floor(width * (427 / 342) * largestPhysicalPerLogical) /
+              largestPhysicalPerLogical,
+          },
+          (a, b) => a.width === b.width && a.height === b.height
+        );
+        return undefined;
+      });
+    }
+
+    return createValueWithCallbacksEffect(sizeRaw, (size) => {
+      setVWC(sizeVWC, size, (a, b) => a.width === b.width && a.height === b.height);
+      return undefined;
+    });
+  }, [sizeRaw, windowSizeVWC, sizeVWC]);
+
   const backgroundProps = useMappedValuesWithCallbacks(
-    [item, windowSizeVWC],
+    [item, sizeVWC],
     (): OsehImagePropsLoadable => {
       const itm = item.get();
-      const windowSize = windowSizeVWC.get();
-
-      const width = Math.min(342, windowSize.width - 48);
-      const height =
-        Math.floor(width * (427 / 342) * largestPhysicalPerLogical) / largestPhysicalPerLogical;
+      const size = sizeVWC.get();
 
       return {
         uid: itm.backgroundImage.uid,
         jwt: itm.backgroundImage.jwt,
-        displayWidth: width,
-        displayHeight: height,
+        displayWidth: size.width,
+        displayHeight: size.height,
         alt: '',
       };
     }

@@ -95,6 +95,11 @@ export const SeriesList = ({
     [workingVWC, screen, transition, startPop, trace]
   );
 
+  const size = useMappedValuesWithCallbacks([ctx.contentWidth, resources.imageHeight], () => ({
+    width: ctx.contentWidth.get(),
+    height: resources.imageHeight.get(),
+  }));
+
   const boundComponent = useMemo<
     (
       item: ValueWithCallbacks<ExternalCourse | TooltipPlaceholder>,
@@ -112,6 +117,7 @@ export const SeriesList = ({
         imageHandler={resources.imageHandler}
         ctx={ctx}
         screen={screen}
+        size={size}
       />
     );
   }, [showCourse, resources.imageHandler, resources.list, ctx, screen]);
@@ -286,6 +292,7 @@ const CourseCoverItemComponent = ({
   imageHandler,
   ctx,
   screen,
+  size,
 }: {
   gotoCourse: (course: ExternalCourse) => void;
   item: ValueWithCallbacks<ExternalCourse | TooltipPlaceholder>;
@@ -297,6 +304,7 @@ const CourseCoverItemComponent = ({
   imageHandler: OsehImageStateRequestHandler;
   ctx: ScreenContext;
   screen: PeekedScreen<string, SeriesListMappedParams>;
+  size: ValueWithCallbacks<{ width: number; height: number }>;
 }): ReactElement => {
   const isTooltipVWC = useMappedValueWithCallbacks(itemVWC, (item) => item.uid === 'tooltip');
   return (
@@ -312,6 +320,7 @@ const CourseCoverItemComponent = ({
             replaceItem={replaceItem}
             gotoCourse={gotoCourseOuter}
             imageHandler={imageHandler}
+            size={size}
           />
         )
       }
@@ -355,6 +364,7 @@ const CourseCoverItemComponentInner = ({
   setItem,
   replaceItem,
   imageHandler,
+  size,
 }: {
   gotoCourse: (course: ExternalCourse) => void;
   item: ValueWithCallbacks<ExternalCourse>;
@@ -364,6 +374,7 @@ const CourseCoverItemComponentInner = ({
     newItem: (oldItem: ExternalCourse) => ExternalCourse
   ) => void;
   imageHandler: OsehImageStateRequestHandler;
+  size: ValueWithCallbacks<{ width: number; height: number }>;
 }): ReactElement => {
   useRefreshedExternalCourse(itemVWC, setItem, 'list');
 
@@ -385,6 +396,7 @@ const CourseCoverItemComponentInner = ({
       mapItems={mapItems}
       onClick={gotoCourse}
       imageHandler={imageHandler}
+      size={size}
     />
   );
 };

@@ -75,11 +75,20 @@ export const useWindowSizeValueWithCallbacks = (
       timeout = setTimeout(onDebounced, 100);
     };
 
+    const onForcedSizeChange = () => {
+      if (timeout !== null) {
+        clearTimeout(timeout);
+      }
+      onDebounced();
+    };
+
     window.addEventListener('resize', onResize);
+    forcedSizeVWC.callbacks.add(onForcedSizeChange);
 
     return () => {
       active = false;
       window.removeEventListener('resize', onResize);
+      forcedSizeVWC.callbacks.remove(onForcedSizeChange);
 
       if (timeout !== null) {
         clearTimeout(timeout);
