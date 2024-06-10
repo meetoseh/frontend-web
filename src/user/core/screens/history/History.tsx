@@ -241,7 +241,7 @@ const HistoryItemComponent = ({
   ) => void;
   imageHandler: OsehImageStateRequestHandler;
   ctx: ScreenContext;
-  screen: PeekedScreen<'history', HistoryMappedParams>;
+  screen: PeekedScreen<string, HistoryMappedParams>;
   list: ValueWithCallbacks<InfiniteListing<MinimalJourney> | null>;
   previous: ValueWithCallbacks<MinimalJourney | null>;
 }): ReactElement => {

@@ -16,6 +16,7 @@ import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../../shar
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { useMediaInfo } from '../../../../shared/content/useMediaInfo';
 import { PlayerCTA, PlayerForeground } from '../../../../shared/content/player/PlayerForeground';
+import { useOsehTranscriptValueWithCallbacks } from '../../../../shared/transcripts/useOsehTranscriptValueWithCallbacks';
 
 /**
  * Displays the full screen welcome video
@@ -78,14 +79,21 @@ export const WelcomeVideo = ({
 
   const coverImageStateVWC = useMappedValueWithCallbacks(resources, (r) => r.coverImage);
 
+  const transcriptRefVWC = useMappedValueWithCallbacks(
+    resources,
+    (r) => r.onboardingVideo.result?.transcript ?? null,
+    {
+      outputEqualityFn: (a, b) =>
+        a === null || b === null ? a === b : a.uid === b.uid && a.jwt === b.jwt,
+    }
+  );
+  const rawTranscriptVWC = useOsehTranscriptValueWithCallbacks(
+    adaptValueWithCallbacksAsVariableStrategyProps(transcriptRefVWC)
+  );
+
   const transcript = useCurrentTranscriptPhrases({
-    transcriptRef: useMappedValueWithCallbacks(
-      resources,
-      (r) => r.onboardingVideo.result?.transcript ?? null,
-      {
-        outputEqualityFn: (a, b) =>
-          a === null || b === null ? a === b : a.uid === b.uid && a.jwt === b.jwt,
-      }
+    transcript: useMappedValueWithCallbacks(rawTranscriptVWC, (v) =>
+      v.type === 'loading' ? null : v.type === 'success' ? v.transcript : undefined
     ),
   });
   const mediaInfo = useMediaInfo({

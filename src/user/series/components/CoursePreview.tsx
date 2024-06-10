@@ -32,6 +32,7 @@ import { useInitializedTransitionProp } from '../../../shared/lib/TransitionProp
 import { OpacityTransitionOverlay } from '../../../shared/components/OpacityTransitionOverlay';
 import { WipeTransitionOverlay } from '../../../shared/components/WipeTransitionOverlay';
 import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
+import { useOsehTranscriptValueWithCallbacks } from '../../../shared/transcripts/useOsehTranscriptValueWithCallbacks';
 
 export type CoursePreviewProps = {
   course: ExternalCoursePreviewable;
@@ -142,8 +143,14 @@ export const CoursePreview = ({
 
   useErrorModal(modalContext.modals, videoErrorVWC, 'loading video');
 
+  const rawTranscriptVWC = useOsehTranscriptValueWithCallbacks({
+    type: 'react-rerender',
+    props: course.introVideoTranscript,
+  });
   const transcript = useCurrentTranscriptPhrases({
-    transcriptRef: useReactManagedValueAsValueWithCallbacks(course.introVideoTranscript),
+    transcript: useMappedValueWithCallbacks(rawTranscriptVWC, (v) =>
+      v.type === 'loading' ? null : v.type === 'success' ? v.transcript : undefined
+    ),
   });
 
   const videoInfo = useMediaInfo({

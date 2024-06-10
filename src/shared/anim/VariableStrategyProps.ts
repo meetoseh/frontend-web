@@ -101,7 +101,7 @@ export const useVariableStrategyPropsAsValueWithCallbacks = <P>(
     if (props.type === 'react-rerender') {
       setVWC(result, props.props, optsRef.current.equalityFn);
     }
-  }, [props]);
+  }, [props, result]);
 
   // we don't need to remount when the getter changes as its still required to
   // invoke or change the callbacks

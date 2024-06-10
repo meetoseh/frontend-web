@@ -16,7 +16,10 @@ import { OsehPublicImageRef } from '../../../shared/images/OsehPublicImageRef';
 import { PlaylistWithJWT } from '../../../shared/images/Playlist';
 import { InfiniteListing } from '../../../shared/lib/InfiniteListing';
 import { Emotion } from '../../../shared/models/Emotion';
+import { OnboardingVideo } from '../../../shared/models/OnboardingVideo';
 import { RequestHandler } from '../../../shared/requests/RequestHandler';
+import { OsehTranscript } from '../../../shared/transcripts/OsehTranscript';
+import { OsehTranscriptRef } from '../../../shared/transcripts/OsehTranscriptRef';
 import { CourseRef } from '../../favorites/lib/CourseRef';
 import { MinimalCourseJourney } from '../../favorites/lib/MinimalCourseJourney';
 import { MinimalJourney } from '../../favorites/lib/MinimalJourney';
@@ -250,5 +253,21 @@ export type Resources = {
     LoginContextValueLoggedIn,
     LoginContextValueLoggedIn,
     ReminderSettings
+  >;
+  /**
+   * Manages selecting the appropriate onboarding welcome video for the logged in user
+   */
+  onboardingVideoHandler: RequestHandler<
+    LoginContextValueLoggedIn,
+    LoginContextValueLoggedIn,
+    OnboardingVideo
+  >;
+  /**
+   * Manages downloading transcripts
+   */
+  transcriptHandler: RequestHandler<
+    Pick<OsehTranscriptRef, 'uid'>,
+    OsehTranscriptRef,
+    OsehTranscript
   >;
 };

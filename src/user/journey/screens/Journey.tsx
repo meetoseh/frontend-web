@@ -10,6 +10,7 @@ import { useMediaInfo } from '../../../shared/content/useMediaInfo';
 import { useCurrentTranscriptPhrases } from '../../../shared/transcripts/useCurrentTranscriptPhrases';
 import { PlayerForeground } from '../../../shared/content/player/PlayerForeground';
 import { useReactManagedValueAsValueWithCallbacks } from '../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
+import { useOsehTranscriptValueWithCallbacks } from '../../../shared/transcripts/useOsehTranscriptValueWithCallbacks';
 
 /**
  * Takes the meta information about a journey returned from any of the endpoints
@@ -35,9 +36,13 @@ export const Journey = ({
 }): ReactElement => {
   const windowSizeVWC = useWindowSizeValueWithCallbacks();
 
+  const rawTranscriptVWC = useOsehTranscriptValueWithCallbacks({
+    type: 'react-rerender',
+    props: journey.transcript,
+  });
   const transcript = useCurrentTranscriptPhrases({
-    transcriptRef: useReactManagedValueAsValueWithCallbacks(journey.transcript, (a, b) =>
-      a === null || b === null ? a === b : a.uid === b.uid && a.jwt === b.jwt
+    transcript: useMappedValueWithCallbacks(rawTranscriptVWC, (v) =>
+      v.type === 'loading' ? null : v.type === 'success' ? v.transcript : undefined
     ),
   });
   const mediaVWC = useMappedValueWithCallbacks(shared, (s) => s.audio);

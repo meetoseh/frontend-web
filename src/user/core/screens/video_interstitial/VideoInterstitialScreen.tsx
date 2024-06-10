@@ -11,6 +11,8 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { RequestResult, Result } from '../../../../shared/requests/RequestHandler';
 import { createChainedRequest } from '../../../../shared/requests/createChainedRequest';
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
+import { OsehTranscript } from '../../../../shared/transcripts/OsehTranscript';
+import { OsehTranscriptRef } from '../../../../shared/transcripts/OsehTranscriptRef';
 import { OsehScreen } from '../../models/Screen';
 import { screenContentKeyMap } from '../../models/ScreenContent';
 import { VideoInterstitial } from './VideoInterstitial';
@@ -96,9 +98,59 @@ export const VideoInterstitialScreen: OsehScreen<
       }
     );
 
+    const getTranscript = () =>
+      ctx.resources.transcriptHandler.request({
+        ref: screen.parameters.video.transcript,
+        refreshRef: (): CancelablePromise<Result<OsehTranscriptRef>> => {
+          if (!activeVWC.get()) {
+            return {
+              promise: Promise.resolve({
+                type: 'expired',
+                data: undefined,
+                error: <>Screen is not mounted</>,
+                retryAt: undefined,
+              }),
+              done: () => true,
+              cancel: () => {},
+            };
+          }
+
+          return mapCancelable(
+            refreshScreen(),
+            (s): Result<OsehTranscriptRef> =>
+              s.type !== 'success'
+                ? s
+                : s.data.parameters.video.transcript === null
+                ? {
+                    type: 'error',
+                    data: undefined,
+                    error: <>transcript is no longer available</>,
+                    retryAt: undefined,
+                  }
+                : {
+                    type: 'success',
+                    data: s.data.parameters.video.transcript,
+                    error: undefined,
+                    retryAt: undefined,
+                  }
+          );
+        },
+      });
+
+    const transcriptRequestVWC =
+      createWritableValueWithCallbacks<RequestResult<OsehTranscript> | null>(
+        screen.parameters.video.transcript === null ? null : getTranscript()
+      );
+    const [transcriptVWC, cleanupTranscriptUnwrapper] = unwrapRequestResult(
+      transcriptRequestVWC,
+      (d) => d.data,
+      (d) => (d === null ? undefined : null)
+    );
+
     return {
       ready: createWritableValueWithCallbacks(true),
       video: videoVWC,
+      transcript: transcriptVWC,
       dispose: () => {
         setVWC(activeVWC, false);
         cleanupVideoDataUnwrapper();
@@ -107,6 +159,12 @@ export const VideoInterstitialScreen: OsehScreen<
         if (data !== null) {
           data.release();
           setVWC(videoDataRequestVWC, null);
+        }
+        cleanupTranscriptUnwrapper();
+        const transcript = transcriptRequestVWC.get();
+        if (transcript !== null) {
+          transcript.release();
+          setVWC(transcriptRequestVWC, null);
         }
       },
     };

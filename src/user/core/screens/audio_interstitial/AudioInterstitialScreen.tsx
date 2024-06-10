@@ -11,6 +11,8 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { RequestResult, Result } from '../../../../shared/requests/RequestHandler';
 import { createChainedRequest } from '../../../../shared/requests/createChainedRequest';
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
+import { OsehTranscript } from '../../../../shared/transcripts/OsehTranscript';
+import { OsehTranscriptRef } from '../../../../shared/transcripts/OsehTranscriptRef';
 import { initBackground } from '../../lib/initBackground';
 import { OsehScreen } from '../../models/Screen';
 import { screenContentKeyMap } from '../../models/ScreenContent';
@@ -100,11 +102,60 @@ export const AudioInterstitialScreen: OsehScreen<
       }
     );
     const [background, cleanupBackground] = initBackground(ctx, screen, refreshScreen);
+    const getTranscript = () =>
+      ctx.resources.transcriptHandler.request({
+        ref: screen.parameters.audio.transcript,
+        refreshRef: (): CancelablePromise<Result<OsehTranscriptRef>> => {
+          if (!activeVWC.get()) {
+            return {
+              promise: Promise.resolve({
+                type: 'expired',
+                data: undefined,
+                error: <>Screen is not mounted</>,
+                retryAt: undefined,
+              }),
+              done: () => true,
+              cancel: () => {},
+            };
+          }
+
+          return mapCancelable(
+            refreshScreen(),
+            (s): Result<OsehTranscriptRef> =>
+              s.type !== 'success'
+                ? s
+                : s.data.parameters.audio.transcript === null
+                ? {
+                    type: 'error',
+                    data: undefined,
+                    error: <>transcript is no longer available</>,
+                    retryAt: undefined,
+                  }
+                : {
+                    type: 'success',
+                    data: s.data.parameters.audio.transcript,
+                    error: undefined,
+                    retryAt: undefined,
+                  }
+          );
+        },
+      });
+
+    const transcriptRequestVWC =
+      createWritableValueWithCallbacks<RequestResult<OsehTranscript> | null>(
+        screen.parameters.audio.transcript === null ? null : getTranscript()
+      );
+    const [transcriptVWC, cleanupTranscriptUnwrapper] = unwrapRequestResult(
+      transcriptRequestVWC,
+      (d) => d.data,
+      (d) => (d === null ? undefined : null)
+    );
 
     return {
       ready: createWritableValueWithCallbacks(true),
       background,
       audio: audioVWC,
+      transcript: transcriptVWC,
       dispose: () => {
         setVWC(activeVWC, false);
         cleanupDataUnwrapper();
@@ -114,6 +165,12 @@ export const AudioInterstitialScreen: OsehScreen<
         if (data !== null) {
           data.release();
           setVWC(dataRequestVWC, null);
+        }
+        cleanupTranscriptUnwrapper();
+        const transcript = transcriptRequestVWC.get();
+        if (transcript !== null) {
+          transcript.release();
+          setVWC(transcriptRequestVWC, null);
         }
       },
     };

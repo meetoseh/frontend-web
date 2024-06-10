@@ -52,7 +52,7 @@ export const AudioInterstitial = ({
 
   const audioVWC = resources.audio;
   const transcript = useCurrentTranscriptPhrases({
-    transcriptRef: useReactManagedValueAsValueWithCallbacks(screen.parameters.audio.transcript),
+    transcript: resources.transcript,
   });
   const mediaInfo = useMediaInfo({
     mediaVWC: audioVWC,

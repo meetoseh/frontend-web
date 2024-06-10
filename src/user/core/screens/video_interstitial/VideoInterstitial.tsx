@@ -44,7 +44,7 @@ export const VideoInterstitial = ({
 }: ScreenComponentProps<
   'video_interstitial',
   VideoInterstitialResources,
-  VideoInterstitialMappedParams
+  Omit<VideoInterstitialMappedParams, 'video'>
 >): ReactElement => {
   const transition = useTransitionProp((): StandardScreenTransition => screen.parameters.entrance);
   useEntranceTransition(transition);
@@ -113,7 +113,7 @@ export const VideoInterstitial = ({
   );
 
   const transcript = useCurrentTranscriptPhrases({
-    transcriptRef: useReactManagedValueAsValueWithCallbacks(screen.parameters.video.transcript),
+    transcript: resources.transcript,
   });
   const mediaInfo = useMediaInfo({
     mediaVWC: videoVWC,

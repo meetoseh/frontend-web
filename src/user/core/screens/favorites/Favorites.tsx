@@ -239,7 +239,7 @@ const HistoryItemComponent = ({
   ) => void;
   imageHandler: OsehImageStateRequestHandler;
   ctx: ScreenContext;
-  screen: PeekedScreen<'favorites', FavoritesMappedParams>;
+  screen: PeekedScreen<string, FavoritesMappedParams>;
   list: ValueWithCallbacks<InfiniteListing<MinimalJourney> | null>;
 }): ReactElement => {
   const separator = useWritableValueWithCallbacks(() => false);

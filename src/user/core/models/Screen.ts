@@ -68,7 +68,7 @@ export type ScreenComponentProps<
   /** The shared context between all screens */
   ctx: ScreenContext;
   /** The instance of the screen to render */
-  screen: PeekedScreen<SlugT, MappedParamT>;
+  screen: PeekedScreen<string, MappedParamT>;
   /** The resources associated with the instance of the screen */
   resources: InstanceResourcesT;
   /**

@@ -296,7 +296,7 @@ const CourseCoverItemComponent = ({
   ) => void;
   imageHandler: OsehImageStateRequestHandler;
   ctx: ScreenContext;
-  screen: PeekedScreen<'series_list', SeriesListMappedParams>;
+  screen: PeekedScreen<string, SeriesListMappedParams>;
 }): ReactElement => {
   const isTooltipVWC = useMappedValueWithCallbacks(itemVWC, (item) => item.uid === 'tooltip');
   return (
@@ -324,7 +324,7 @@ const Tooltip = ({
   screen,
 }: {
   ctx: ScreenContext;
-  screen: PeekedScreen<'series_list', SeriesListMappedParams>;
+  screen: PeekedScreen<string, SeriesListMappedParams>;
 }): ReactElement => {
   const tooltipRefVWC = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   const tooltipStyleVWC = useMappedValueWithCallbacks(ctx.contentWidth, (width) => ({

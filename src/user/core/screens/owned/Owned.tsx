@@ -256,7 +256,7 @@ const HistoryItemComponent = ({
   ) => void;
   imageHandler: OsehImageStateRequestHandler;
   ctx: ScreenContext;
-  screen: PeekedScreen<'owned', OwnedMappedParams>;
+  screen: PeekedScreen<string, OwnedMappedParams>;
   trace: (event: any) => void;
   list: ValueWithCallbacks<InfiniteListing<MinimalCourseJourney> | null>;
   previous: ValueWithCallbacks<MinimalCourseJourney | null>;

@@ -3,7 +3,7 @@ import { CancelablePromise } from '../lib/CancelablePromise';
 import { constructCancelablePromise } from '../lib/CancelablePromiseConstructor';
 import { createCancelablePromiseFromCallbacks } from '../lib/createCancelablePromiseFromCallbacks';
 import { setVWC } from '../lib/setVWC';
-import { RequestHandler, RequestResult } from './RequestHandler';
+import { RequestHandler, RequestResult, Result } from './RequestHandler';
 
 export type ChainedRequestMapperSync<PrevDataT, RefT> = {
   sync: (prevData: PrevDataT) => RefT;
@@ -47,16 +47,16 @@ export const createChainedRequest = <
 >(
   createPrevious: () => RequestResult<PrevDataT>,
   handler: RequestHandler<RefForUIDT, RefT, DataT>,
-  mapper: ChainedRequestMapper<PrevDataT, RefT>,
+  mapper: ChainedRequestMapper<PrevDataT, RefT | null>,
   opts?: {
-    onRefChanged?: (newRef: RefT | null) => void;
+    onRefChanged?: (newRef: RefT | null, prevData: PrevDataT | null) => void;
   }
 ): RequestResult<DataT> => {
   const releasedVWC = createWritableValueWithCallbacks(false);
   let previous: RequestResult<PrevDataT> | null = null as RequestResult<PrevDataT> | null;
 
   const onRefChanged = opts?.onRefChanged ?? (() => {});
-  onRefChanged(null);
+  onRefChanged(null, null);
 
   const rawResult = handler.request({
     ref: null,
@@ -93,6 +93,21 @@ export const createChainedRequest = <
             previous = createPrevious();
             shouldRefresh = false;
           }
+
+          const makeResult = (mapped: RefT | null): Result<RefT> =>
+            mapped === null
+              ? {
+                  type: 'error',
+                  data: undefined,
+                  error: <>This reference cannot chain</>,
+                  retryAt: undefined,
+                }
+              : {
+                  type: 'success',
+                  data: mapped,
+                  error: undefined,
+                  retryAt: undefined,
+                };
 
           while (true) {
             const prev = previous;
@@ -167,7 +182,7 @@ export const createChainedRequest = <
             } else if (data.type === 'success') {
               if (shouldRefresh) {
                 shouldRefresh = false;
-                onRefChanged(null);
+                onRefChanged(null, null);
                 data.reportExpired();
                 await Promise.race([changed.promise, canceled.promise, released.promise]);
                 changed.cancel();
@@ -177,15 +192,10 @@ export const createChainedRequest = <
               if (mapper.sync !== undefined) {
                 changed.cancel();
                 const mapped = mapper.sync(data.data);
-                onRefChanged(mapped);
+                onRefChanged(mapped, data.data);
                 state.finishing = true;
                 state.done = true;
-                resolve({
-                  type: 'success',
-                  data: mapped,
-                  error: undefined,
-                  retryAt: undefined,
-                });
+                resolve(makeResult(mapped));
                 return;
               }
 
@@ -195,15 +205,10 @@ export const createChainedRequest = <
                   continue;
                 }
 
-                onRefChanged(mapped);
+                onRefChanged(mapped, data.data);
                 state.finishing = true;
                 state.done = true;
-                resolve({
-                  type: 'success',
-                  data: mapped,
-                  error: undefined,
-                  retryAt: undefined,
-                });
+                resolve(makeResult(mapped));
                 return;
               }
 
@@ -227,15 +232,10 @@ export const createChainedRequest = <
 
               changed.cancel();
 
-              onRefChanged(mappedData);
+              onRefChanged(mappedData, data.data);
               state.finishing = true;
               state.done = true;
-              resolve({
-                type: 'success',
-                data: mappedData,
-                error: undefined,
-                retryAt: undefined,
-              });
+              resolve(makeResult(mappedData));
             } else {
               ((d: never) => {
                 throw new Error(`unknown data: ${d}`);
@@ -257,7 +257,7 @@ export const createChainedRequest = <
       if (previous !== null) {
         previous.release();
         previous = null;
-        onRefChanged(null);
+        onRefChanged(null, null);
       }
     },
   };

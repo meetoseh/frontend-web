@@ -48,6 +48,7 @@ import { ChoicesScreen } from './core/screens/choices/ChoicesScreen';
 import { StartMergeScreen } from './core/screens/start_merge/StartMergeScreen';
 import { ResolveMergeConflictScreen } from './core/screens/resolve_merge_conflict/ResolveMergeConflictScreen';
 import { CompletionScreen } from './core/screens/completion/CompletionScreen';
+import { VideoInterstitialOnboardingScreen } from './core/screens/video_interstitial_onboarding/VideoInterstitialOnboardingScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -122,6 +123,7 @@ const screens = [
   StartMergeScreen,
   ResolveMergeConflictScreen,
   CompletionScreen,
+  VideoInterstitialOnboardingScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
