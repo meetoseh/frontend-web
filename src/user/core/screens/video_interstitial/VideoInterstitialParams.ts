@@ -14,7 +14,7 @@ export type VideoInterstitialAPIParams = {
   /** The call-to-action text on the button or null for no button. */
   cta: string | null;
 
-  /** If true, a X button is rendered in the top-right */
+  /** If true, a X button is rendered in the top-right, which does the same thing as the skip button */
   close: boolean;
 
   /** If true, adjusts styling to be less defensive about the background color, assuming its dark instead */

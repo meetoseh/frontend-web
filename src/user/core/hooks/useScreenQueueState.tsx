@@ -565,7 +565,10 @@ export const useScreenQueueState = (): ScreenQueueState => {
   useEffect(() => {
     const peeker = peekFirst();
     peeker.promise.catch((e) => {
-      if (e instanceof Error && e.message.startsWith('canceled')) {
+      if (
+        e instanceof Error &&
+        (e.message.startsWith('canceled') || e.message.includes('not logged in'))
+      ) {
         return;
       }
       console.error(e);

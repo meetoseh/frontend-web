@@ -17,8 +17,7 @@ export type OfferingPriceRef = {
 
 /**
  * Creates a request handler capable of fetching the price corresponding to
- * a particular product. This is only required on the web; in the react-native
- * app this is taken care of by revenue cat
+ * a particular product.
  */
 export const createOfferingPriceRequestHandler = ({
   logging = 'none',

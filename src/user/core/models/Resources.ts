@@ -87,10 +87,8 @@ export type Resources = {
     OsehImageExportCropped
   >;
   /**
-   * Manages downloading content playlists, i.e., the web broadly compatible
-   * equivalent to m3u8 files (lists out all the available encodings of a video
-   * or audio file). This isn't necessary on the web as we directly supply the
-   * api path for the m3u8 file to play to the video player
+   * For the web, this downloads the equivalent to an m3u8 file. On native,
+   * this is just a small transformation of the input.
    */
   contentPlaylistHandler: RequestHandler<
     { uid: string },
@@ -98,11 +96,13 @@ export type Resources = {
     OsehContentPlaylist
   >;
   /**
-   * Manages downloading video data for the video player
+   * Manages downloading video data for the video player. Not used in native,
+   * as we need to mount the component in order to start the download.
    */
   videoDataHandler: RequestHandler<ContentFileWebExportRef, ContentFileWebExportRef, VideoFileData>;
   /**
-   * Manages downloading audio data for the audio player
+   * Manages downloading audio data for the audio player.  Not used in native,
+   * as we need to mount the component in order to start the download.
    */
   audioDataHandler: RequestHandler<ContentFileWebExportRef, ContentFileWebExportRef, AudioFileData>;
   /**
