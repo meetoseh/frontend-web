@@ -1,11 +1,3 @@
-.shareContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
 .shareHeader {
   padding: 12px;
   display: flex;
