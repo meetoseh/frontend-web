@@ -1,5 +1,13 @@
 import { LoginContextValueLoggedIn } from '../../../shared/contexts/LoginContext';
-import { RequestHandler, RequestResult } from '../../../shared/requests/RequestHandler';
+import { createValueWithCallbacksEffect } from '../../../shared/hooks/createValueWithCallbacksEffect';
+import { createWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import { constructCancelablePromise } from '../../../shared/lib/CancelablePromiseConstructor';
+import { setVWC } from '../../../shared/lib/setVWC';
+import {
+  RequestHandler,
+  RequestResult,
+  RequestResultConcrete,
+} from '../../../shared/requests/RequestHandler';
 import { ScreenContext } from '../hooks/useScreenContext';
 
 /**
@@ -21,38 +29,96 @@ export const createMappedLoginContextRequest = <
   handler: RequestHandler<RefForUIDT, RefT, DataT>;
   mapper: (user: LoginContextValueLoggedIn) => RefT;
 }): RequestResult<DataT> => {
-  const loginContextRaw = ctx.login.value.get();
-  if (loginContextRaw.state !== 'logged-in') {
-    throw new Error('createLoginContextRequest but not logged in');
-  }
-  const loginContext = loginContextRaw;
-  return handler.request({
-    ref: mapper(loginContext),
-    refreshRef: () => {
-      const latestLoginContext = ctx.login.value.get();
-      if (latestLoginContext.state !== 'logged-in') {
-        return {
-          promise: Promise.resolve({
-            type: 'error',
-            data: undefined,
-            error: <>Not logged in</>,
-            retryAt: undefined,
-          }),
-          done: () => true,
-          cancel: () => {},
-        };
-      }
-
-      return {
-        promise: Promise.resolve({
-          type: 'success',
-          data: mapper(latestLoginContext),
-          error: undefined,
-          retryAt: undefined,
-        }),
-        done: () => true,
-        cancel: () => {},
-      };
-    },
+  const dataVWC = createWritableValueWithCallbacks<RequestResultConcrete<DataT>>({
+    type: 'loading',
+    data: undefined,
+    error: undefined,
   });
+
+  const cleanupRequester = createValueWithCallbacksEffect(ctx.login.value, (loginStateRaw) => {
+    if (loginStateRaw.state === 'loading') {
+      setVWC(dataVWC, { type: 'loading', data: undefined, error: undefined });
+      return () => {};
+    }
+
+    if (loginStateRaw.state !== 'logged-in') {
+      setVWC(dataVWC, {
+        type: 'error',
+        data: undefined,
+        error: <>Not logged in</>,
+      });
+      return () => {};
+    }
+
+    const loginState = loginStateRaw;
+    const req = handler.request({
+      ref: mapper(loginState),
+      refreshRef: () =>
+        constructCancelablePromise({
+          body: async (state, resolve, reject) => {
+            if (state.finishing) {
+              state.done = true;
+              reject(new Error('canceled'));
+              return;
+            }
+
+            const newState = ctx.login.value.get();
+            if (Object.is(newState, loginState)) {
+              state.finishing = true;
+              state.done = true;
+              resolve({
+                type: 'error',
+                data: undefined,
+                error: <>Login context has not changed and thus cannot be refreshed</>,
+                retryAt: undefined,
+              });
+              return;
+            }
+
+            if (newState.state !== 'logged-in') {
+              state.finishing = true;
+              state.done = true;
+              resolve({
+                type: 'error',
+                data: undefined,
+                error: <>Not logged in</>,
+                retryAt: undefined,
+              });
+              return;
+            }
+
+            state.finishing = true;
+            state.done = true;
+            resolve({
+              type: 'success',
+              data: mapper(newState),
+              error: undefined,
+              retryAt: undefined,
+            });
+          },
+        }),
+    });
+
+    const cleanupRequestMapper = createValueWithCallbacksEffect(req.data, (d) => {
+      setVWC(dataVWC, d);
+      return undefined;
+    });
+
+    return () => {
+      cleanupRequestMapper();
+      req.release();
+    };
+  });
+
+  return {
+    data: dataVWC,
+    release: () => {
+      cleanupRequester();
+      setVWC(dataVWC, {
+        type: 'released',
+        data: undefined,
+        error: undefined,
+      });
+    },
+  };
 };

@@ -2,7 +2,6 @@ import { Fragment, ReactElement } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import {
   TransitionPropAsOwner,
-  playExitTransition,
   useEntranceTransition,
   useTransitionProp,
 } from '../../../../shared/lib/TransitionProp';
@@ -36,6 +35,9 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 import { Check } from './icons/Check';
 import { formatDurationClock } from '../../../../shared/lib/networkResponseUtils';
 import { trackClassTaken } from '../home/lib/trackClassTaken';
+import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
+import { screenOut } from '../../lib/screenOut';
+import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
 
 /**
  * Displays the series details page on a specific series
@@ -66,39 +68,35 @@ export const SeriesDetails = ({
         left={transitionState.left}
         opacity={transitionState.opacity}
         gridSizeVWC={ctx.windowSizeImmediate}>
-        <div style={{ height: '20px' }} />
+        <VerticalSpacer height={20} />
         <div className={styles.backWrapper}>
           <button
             type="button"
             className={styles.back}
-            onClick={async (e) => {
+            onClick={(e) => {
               e.preventDefault();
-              if (workingVWC.get()) {
-                return;
-              }
-
-              setVWC(workingVWC, true);
-              const finishPop = startPop(
-                screen.parameters.buttons.back.trigger === null
-                  ? null
-                  : {
-                      slug: screen.parameters.buttons.back.trigger,
-                      parameters: {},
-                    }
+              screenOut(
+                workingVWC,
+                startPop,
+                transition,
+                screen.parameters.buttons.back.exit,
+                screen.parameters.buttons.back.trigger,
+                {
+                  beforeDone: async () => {
+                    trace({ type: 'back' });
+                  },
+                }
               );
-              setVWC(transition.animation, screen.parameters.buttons.back.exit);
-              await playExitTransition(transition).promise;
-              finishPop();
             }}>
             <span className={assistiveStyles.srOnly}>Back</span>
             <Back />
           </button>
         </div>
-        <div style={{ height: '20px' }} />
+        <VerticalSpacer height={20} />
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             <div className={styles.title}>{screen.parameters.series.title}</div>
-            <div style={{ height: '2px' }} />
+            <VerticalSpacer height={2} />
             <div className={styles.instructor}>{screen.parameters.series.instructor.name}</div>
           </div>
           <div className={styles.headerRight}>
@@ -114,71 +112,65 @@ export const SeriesDetails = ({
             />
           </div>
         </div>
-        <div style={{ height: '24px' }} />
+        <VerticalSpacer height={24} />
         <div className={styles.description}>{screen.parameters.series.description}</div>
         {!screen.parameters.series.hasEntitlement &&
           screen.parameters.series.revenueCatEntitlement === 'pro' && (
             <>
-              <div style={{ height: '24px' }} />
+              <VerticalSpacer height={24} />
               <Button
                 type="button"
                 variant="filled-premium"
                 onClick={async (e) => {
                   e.preventDefault();
-                  if (workingVWC.get()) {
-                    return;
-                  }
-
-                  setVWC(workingVWC, true);
-                  const finishPop =
-                    screen.parameters.buttons.buyNow.trigger === null
-                      ? startPop(null)
-                      : startPop(
-                          {
-                            slug: screen.parameters.buttons.buyNow.trigger,
-                            parameters: {
-                              series: {
-                                uid: screen.parameters.series.uid,
-                                jwt: screen.parameters.series.jwt,
-                              },
-                            },
-                          },
-                          '/api/1/users/me/screens/pop_to_series'
-                        );
-                  setVWC(transition.animation, screen.parameters.buttons.buyNow.exit);
-                  await playExitTransition(transition).promise;
-                  finishPop();
+                  screenOut(
+                    workingVWC,
+                    startPop,
+                    transition,
+                    screen.parameters.buttons.buyNow.exit,
+                    screen.parameters.buttons.buyNow.trigger,
+                    {
+                      endpoint: '/api/1/users/me/screens/pop_to_series',
+                      parameters: {
+                        series: {
+                          uid: screen.parameters.series.uid,
+                          jwt: screen.parameters.series.jwt,
+                        },
+                      },
+                      beforeDone: async () => {
+                        trace({ type: 'upgrade' });
+                      },
+                    }
+                  );
                 }}>
                 Unlock with OSEH+
               </Button>
             </>
           )}
-        <div style={{ height: '24px' }} />
+        <VerticalSpacer height={24} />
         <div className={styles.numClasses}>
           {screen.parameters.series.numJourneys.toLocaleString()} Classes
         </div>
-        <div style={{ height: '8px' }} />
-        <div className={styles.classes}>
-          {Array(screen.parameters.series.numJourneys)
-            .fill(null)
-            .map((_, idx) => {
-              return (
-                <Fragment key={idx}>
-                  {idx > 0 && <div style={{ height: '8px' }} />}
-                  <Journey
-                    ctx={ctx}
-                    screen={screen}
-                    resources={resources}
-                    startPop={startPop}
-                    trace={trace}
-                    transition={transition}
-                    idx={idx}
-                  />
-                </Fragment>
-              );
-            })}
-        </div>
-        <div style={{ height: '24px' }} />
+        <VerticalSpacer height={8} />
+        {Array(screen.parameters.series.numJourneys)
+          .fill(null)
+          .map((_, idx) => {
+            return (
+              <Fragment key={idx}>
+                {idx > 0 && <VerticalSpacer height={8} />}
+                <Journey
+                  ctx={ctx}
+                  screen={screen}
+                  resources={resources}
+                  startPop={startPop}
+                  trace={trace}
+                  transition={transition}
+                  idx={idx}
+                />
+              </Fragment>
+            );
+          })}
+        <VerticalSpacer height={24} />
       </GridContentContainer>
     </GridFullscreenContainer>
   );
@@ -191,6 +183,7 @@ const Journey = ({
   idx,
   startPop,
   transition,
+  trace,
 }: ScreenComponentProps<'series_details', SeriesDetailsResources, SeriesDetailsMappedParams> & {
   idx: number;
   transition: TransitionPropAsOwner<StandardScreenTransition['type'], StandardScreenTransition>;
@@ -290,7 +283,14 @@ const Journey = ({
             <RenderGuardedComponent
               props={takenBeforeVWC}
               component={(takenBefore) =>
-                takenBefore ? <div className={styles.journeyPlayedText}>Played</div> : <></>
+                takenBefore ? (
+                  <>
+                    <div className={styles.journeyPlayedText}>Played</div>
+                    <HorizontalSpacer width={8} />
+                  </>
+                ) : (
+                  <></>
+                )
               }
             />
             <RenderGuardedComponent
@@ -310,15 +310,15 @@ const Journey = ({
             />
           </div>
         </div>
-        <div style={{ height: '7px' }} />
-        <div className={styles.journeyDescriptionWrapper}>
-          <div className={styles.journeyDescription}>
-            <RenderGuardedComponent
-              props={useMappedValueWithCallbacks(journeyVWC, (j) => j?.journey?.description ?? '')}
-              component={(description) => <>{description}</>}
-            />
-          </div>
+        <VerticalSpacer height={7} />
+        <VerticalSpacer height={0} flexGrow={1} />
+        <div className={styles.journeyDescription}>
+          <RenderGuardedComponent
+            props={useMappedValueWithCallbacks(journeyVWC, (j) => j?.journey?.description ?? '')}
+            component={(description) => <>{description}</>}
+          />
         </div>
+        <VerticalSpacer height={0} flexGrow={1} />
       </div>
     </div>
   );
@@ -329,40 +329,38 @@ const Journey = ({
       className={styles.journeyButton}
       onClick={async (e) => {
         e.preventDefault();
-        if (workingVWC.get()) {
-          return;
-        }
-
         const journey = journeyVWC.get();
         if (journey === null) {
           return;
         }
 
-        setVWC(workingVWC, true);
-        const finishPop = (() => {
-          if (screen.parameters.buttons.takeClass.trigger === null) {
-            return startPop(null);
-          }
-          trackClassTaken(ctx);
-          return startPop(
-            {
-              slug: screen.parameters.buttons.takeClass.trigger,
-              parameters: {
-                series: {
-                  uid: screen.parameters.series.uid,
-                  jwt: screen.parameters.series.jwt,
-                },
-                journey: {
-                  uid: journey.journey.uid,
-                },
+        screenOut(
+          workingVWC,
+          startPop,
+          transition,
+          screen.parameters.buttons.takeClass.exit,
+          screen.parameters.buttons.takeClass.trigger,
+          {
+            endpoint: '/api/1/users/me/screens/pop_to_series_class',
+            parameters: {
+              series: {
+                uid: screen.parameters.series.uid,
+                jwt: screen.parameters.series.jwt,
+              },
+              journey: {
+                uid: journey.journey.uid,
               },
             },
-            '/api/1/users/me/screens/pop_to_series_class'
-          );
-        })();
-        setVWC(transition.animation, screen.parameters.buttons.takeClass.exit);
-        await playExitTransition(transition).promise;
-        finishPop();
+            beforeDone: async () => {
+              trace({ type: 'journey', uid: journey.journey.uid, title: journey.journey.title });
+            },
+            afterDone: () => {
+              if (screen.parameters.buttons.takeClass.trigger !== null) {
+                trackClassTaken(ctx);
+              }
+            },
+          }
+        );
       }}>
       {inner}
     </button>

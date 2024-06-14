@@ -202,6 +202,13 @@ export class LeastRecentlyUsedCache<K, V> {
       return true;
     }
   }
+
+  /**
+   * @returns all of the items that are in this lookup
+   */
+  keys(): IterableIterator<K> {
+    return this.lookup.keys();
+  }
 }
 
 type LRUNode<K, V> = {

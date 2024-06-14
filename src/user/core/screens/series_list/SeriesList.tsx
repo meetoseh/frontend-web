@@ -2,11 +2,7 @@ import { CSSProperties, ReactElement, useCallback, useMemo } from 'react';
 import { PeekedScreen, ScreenComponentProps } from '../../models/Screen';
 import { SeriesListMappedParams } from './SeriesListParams';
 import { SeriesListResources } from './SeriesListResources';
-import {
-  playExitTransition,
-  useEntranceTransition,
-  useTransitionProp,
-} from '../../../../shared/lib/TransitionProp';
+import { useEntranceTransition, useTransitionProp } from '../../../../shared/lib/TransitionProp';
 import {
   StandardScreenTransition,
   useStandardTransitionsState,
@@ -42,6 +38,7 @@ import {
   GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT,
   GridSimpleNavigationForeground,
 } from '../../../../shared/components/GridSimpleNavigationForeground';
+import { screenOut } from '../../lib/screenOut';
 
 type TooltipPlaceholder = { readonly uid: 'tooltip' };
 
@@ -69,28 +66,26 @@ export const SeriesList = ({
 
   const showCourse = useCallback(
     async (course: ExternalCourse) => {
-      if (workingVWC.get()) {
-        return;
-      }
-
-      trace({ type: 'click', target: 'course', course: { uid: course.uid, title: course.title } });
-
-      setVWC(workingVWC, true);
-      const finishPop =
-        screen.parameters.seriesTrigger === null
-          ? startPop(null)
-          : startPop(
-              {
-                slug: screen.parameters.seriesTrigger,
-                parameters: {
-                  series: { uid: course.uid, jwt: course.jwt },
-                },
-              },
-              '/api/1/users/me/screens/pop_to_series'
-            );
-      setVWC(transition.animation, screen.parameters.exit);
-      await playExitTransition(transition).promise;
-      finishPop();
+      screenOut(
+        workingVWC,
+        startPop,
+        transition,
+        screen.parameters.exit,
+        screen.parameters.seriesTrigger,
+        {
+          endpoint: '/api/1/users/me/screens/pop_to_series',
+          parameters: {
+            series: { uid: course.uid, jwt: course.jwt },
+          },
+          beforeDone: async () => {
+            trace({
+              type: 'click',
+              target: 'course',
+              course: { uid: course.uid, title: course.title },
+            });
+          },
+        }
+      );
     },
     [workingVWC, screen, transition, startPop, trace]
   );
@@ -120,7 +115,7 @@ export const SeriesList = ({
         size={size}
       />
     );
-  }, [showCourse, resources.imageHandler, resources.list, ctx, screen]);
+  }, [showCourse, resources.imageHandler, resources.list, ctx, screen, size]);
 
   const listHeight = useMappedValueWithCallbacks(
     ctx.windowSizeImmediate,
@@ -247,24 +242,18 @@ export const SeriesList = ({
               variant="filled-white"
               onClick={async (e) => {
                 e.preventDefault();
-                if (workingVWC.get()) {
-                  return;
-                }
-
-                setVWC(workingVWC, true);
-                trace({ type: 'click', target: 'cta' });
-                const trigger = screen.parameters.cta?.trigger ?? null;
-                const finishPop = startPop(
-                  trigger === null
-                    ? null
-                    : {
-                        slug: trigger,
-                        parameters: {},
-                      }
+                screenOut(
+                  workingVWC,
+                  startPop,
+                  transition,
+                  screen.parameters.exit,
+                  screen.parameters.cta?.trigger ?? null,
+                  {
+                    beforeDone: async () => {
+                      trace({ type: 'click', target: 'cta' });
+                    },
+                  }
                 );
-                setVWC(transition.animation, screen.parameters.exit);
-                await playExitTransition(transition).promise;
-                finishPop();
               }}>
               {screen.parameters.cta.text}
             </Button>

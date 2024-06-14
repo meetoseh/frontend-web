@@ -1,4 +1,4 @@
-import { ReactElement } from 'react';
+import { Fragment, ReactElement } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGrayBackground';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
@@ -28,6 +28,7 @@ import { Series } from '../upgrade/icons/Series';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
 
 /**
  * Gives the user basic information about their membership status, and directs
@@ -144,7 +145,7 @@ export const Membership = ({
         opacity={transitionState.opacity}
         gridSizeVWC={ctx.windowSizeImmediate}
         justifyContent="flex-start">
-        <VerticalSpacer height={GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT + 24} />
+        <VerticalSpacer height={GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT + 32} />
         <RenderGuardedComponent
           props={resources.pro}
           component={(entitlement) => {
@@ -161,24 +162,23 @@ export const Membership = ({
               return (
                 <>
                   <div className={styles.statusDetails}>You do not have an Oseh+ subscription</div>
-                  <div className={styles.upgradeContainer}>
-                    <Button
-                      type="button"
-                      fullWidth
-                      variant="filled-premium"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        screenOut(
-                          workingVWC,
-                          startPop,
-                          transition,
-                          screen.parameters.upgrade.exit,
-                          screen.parameters.upgrade.trigger
-                        );
-                      }}>
-                      Upgrade to Oseh+
-                    </Button>
-                  </div>
+                  <VerticalSpacer height={24} />
+                  <Button
+                    type="button"
+                    fullWidth
+                    variant="filled-premium"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      screenOut(
+                        workingVWC,
+                        startPop,
+                        transition,
+                        screen.parameters.upgrade.exit,
+                        screen.parameters.upgrade.trigger
+                      );
+                    }}>
+                    Upgrade to Oseh+
+                  </Button>
                 </>
               );
             }
@@ -199,28 +199,33 @@ export const Membership = ({
               return (
                 <>
                   <div className={styles.statusDetails}>You have lifetime access to Oseh+</div>
-                  <div className={styles.lifetimeProps}>
-                    <div className={styles.lifetimePropsTitle}>You can...</div>
-                    <div className={styles.valueProps}>
-                      {[
-                        { icon: <Clock />, text: 'Take longer classes' },
-                        {
-                          icon: <Sheet />,
-                          text: 'Access the entire library',
-                        },
-                        {
-                          icon: <Series />,
-                          text: 'Explore expert-led series',
-                        },
-                        { icon: <>🧘</>, text: 'Reclaim your calm' },
-                      ].map(({ icon, text }, idx) => (
-                        <div key={idx} className={styles.valueProp}>
-                          <div className={styles.valuePropIcon}>{icon}</div>
-                          <div className={styles.valuePropText}>{text}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <VerticalSpacer height={24} />
+                  <div className={styles.lifetimePropsTitle}>You can...</div>
+                  <VerticalSpacer height={8} />
+                  {[
+                    { icon: <Clock />, text: 'Take longer classes' },
+                    {
+                      icon: <Sheet />,
+                      text: 'Access the entire library',
+                    },
+                    {
+                      icon: <Series />,
+                      text: 'Explore expert-led series',
+                    },
+                    {
+                      icon: <div style={{ fontSize: 17, lineHeight: 24 }}>🧘</div>,
+                      text: 'Reclaim your calm',
+                    },
+                  ].map(({ icon, text }, idx) => (
+                    <Fragment key={idx}>
+                      {idx !== 0 && <VerticalSpacer height={8} />}
+                      <div className={styles.valueProp}>
+                        {icon}
+                        <HorizontalSpacer width={8} />
+                        <div className={styles.valuePropText}>{text}</div>
+                      </div>
+                    </Fragment>
+                  ))}
                 </>
               );
             }
@@ -271,23 +276,22 @@ export const Membership = ({
               return (
                 <>
                   {details}
-                  <div className={styles.customerPortalContainer}>
-                    <RenderGuardedComponent
-                      props={manageUrlProps}
-                      component={(props) => (
-                        <Button
-                          type="button"
-                          variant="filled-white"
-                          fullWidth
-                          onClick={props.onClick}
-                          onLinkClick={props.onLinkClick}
-                          disabled={props.disabled}
-                          spinner={props.spinner}>
-                          Go to Customer Portal
-                        </Button>
-                      )}
-                    />
-                  </div>
+                  <VerticalSpacer height={24} />
+                  <RenderGuardedComponent
+                    props={manageUrlProps}
+                    component={(props) => (
+                      <Button
+                        type="button"
+                        variant="filled-white"
+                        fullWidth
+                        onClick={props.onClick}
+                        onLinkClick={props.onLinkClick}
+                        disabled={props.disabled}
+                        spinner={props.spinner}>
+                        Go to Customer Portal
+                      </Button>
+                    )}
+                  />
                 </>
               );
             }
@@ -296,15 +300,18 @@ export const Membership = ({
               return (
                 <>
                   {details}
+                  <VerticalSpacer height={24} />
+                  <div className={styles.storeInfoTitle}>Manage through the App Store:</div>
+                  <VerticalSpacer height={8} />
                   <div className={styles.storeInfo}>
-                    <div className={styles.storeInfoTitle}>Manage through the App Store:</div>
-                    <ol className={styles.storeInfoDetailsList}>
-                      <li>On your apple device, visit the App Store</li>
-                      <li>Tap Settings</li>
-                      <li>Tap Subscriptions</li>
-                      <li>Tap Oseh</li>
-                    </ol>
+                    • On your apple device, visit the App Store
                   </div>
+                  <VerticalSpacer height={4} />
+                  <div className={styles.storeInfo}>• Tap Settings</div>
+                  <VerticalSpacer height={4} />
+                  <div className={styles.storeInfo}>• Tap Subscriptions</div>
+                  <VerticalSpacer height={4} />
+                  <div className={styles.storeInfo}>• Tap Oseh</div>
                 </>
               );
             }
@@ -313,19 +320,19 @@ export const Membership = ({
               return (
                 <>
                   {details}
+                  <VerticalSpacer height={24} />
+                  <div className={styles.storeInfoTitle}>Manage through Google Play:</div>
+                  <VerticalSpacer height={8} />
                   <div className={styles.storeInfo}>
-                    <div className={styles.storeInfoTitle}>Manage through Google Play:</div>
-                    <ol className={styles.storeInfoDetailsList}>
-                      <li>
-                        On your Android device, go to{' '}
-                        <a href="https://play.google.com/store/account/subscriptions">
-                          subscriptions in Google Play
-                        </a>
-                      </li>
-                      <li>Find Oseh in the list of subscriptions</li>
-                      <li>Click Manage</li>
-                    </ol>
+                    • On your Android device, go to{' '}
+                    <a href="https://play.google.com/store/account/subscriptions">
+                      subscriptions in Google Play
+                    </a>
                   </div>
+                  <VerticalSpacer height={4} />
+                  <div className={styles.storeInfo}>• Find Oseh in the list of subscriptions</div>
+                  <VerticalSpacer height={4} />
+                  <div className={styles.storeInfo}>• Click Manage</div>
                 </>
               );
             }
@@ -333,10 +340,9 @@ export const Membership = ({
             return (
               <>
                 {details}
-                <div className={styles.storeInfo}>
-                  <div className={styles.storeInfoTitle}>
-                    Your membership will renew through {entitlement.activeInfo.platform}
-                  </div>
+                <VerticalSpacer height={24} />
+                <div className={styles.storeInfoTitle}>
+                  Your membership will renew through {entitlement.activeInfo.platform}
                 </div>
               </>
             );

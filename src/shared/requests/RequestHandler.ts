@@ -1567,7 +1567,16 @@ export class RequestHandler<
     ) => { type: 'data'; data: DataT } | { type: 'make-request'; data: undefined }
   ) {
     const refUid = this.getRefUid(ref);
-    this.logNest('evictOrReplace', refUid);
+    this.evictOrReplaceByRefUid(refUid, data);
+  }
+
+  private evictOrReplaceByRefUid(
+    refUid: string,
+    data?: (
+      old: DataT | undefined
+    ) => { type: 'data'; data: DataT } | { type: 'make-request'; data: undefined }
+  ) {
+    this.logNest('evictOrReplaceByRefUid', refUid);
     try {
       const stale = this.staleDataByRefUid.get(refUid);
       if (stale !== undefined) {
@@ -1634,6 +1643,27 @@ export class RequestHandler<
       locked.latest = null;
       this.progressData(refUid);
       this.cleanupOldLatest(oldLatest?.data);
+    } finally {
+      this.logPop();
+    }
+  }
+
+  /**
+   * Evicts everything currently in the cache, canceling active requests, and also
+   * removing all stale data. If there are active requests still remaining for any
+   * of the evicted data, a new request will be started to replace it.
+   */
+  evictAll() {
+    this.logNest('evictAll');
+    try {
+      this.log('called');
+      const toEvictRefUids: string[] = [];
+      toEvictRefUids.push(...Array.from(this.lockedDataByRefUid.keys()));
+      toEvictRefUids.push(...Array.from(this.staleDataByRefUid.keys()));
+      this.log(`found ${toEvictRefUids.length} ref uids to evict...`);
+      for (const refUid of toEvictRefUids) {
+        this.evictOrReplaceByRefUid(refUid);
+      }
     } finally {
       this.logPop();
     }

@@ -66,13 +66,6 @@
   color: #eaeaeb;
 }
 
-.classes {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-}
-
 .journey {
   display: grid;
   grid-template: 1fr / 1fr;
@@ -94,7 +87,6 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: space-between;
 }
 
 .journeyHeader {
@@ -135,7 +127,6 @@
   line-height: 19px;
   letter-spacing: 0.25px;
   color: #c8cdd0;
-  margin-right: 8px;
 }
 
 .journeyDuration {
@@ -147,14 +138,6 @@
   padding: 2px 4px;
   background: #191c1d80;
   border-radius: 4px;
-}
-
-.journeyDescriptionWrapper {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: stretch;
 }
 
 .journeyDescription {

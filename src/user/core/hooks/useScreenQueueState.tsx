@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useEffect, useMemo } from 'react';
+import { ReactElement, useCallback, useContext, useMemo } from 'react';
 import { PeekedScreen } from '../models/Screen';
 import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
@@ -14,6 +14,7 @@ import { apiFetch } from '../../../shared/ApiConstants';
 import { VISITOR_SOURCE } from '../../../shared/lib/visitorSource';
 import { describeErrorFromResponse, describeFetchError } from '../../../shared/forms/ErrorBlock';
 import { setVWC } from '../../../shared/lib/setVWC';
+import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 
 export type UseScreenQueueStateResult = {
   /** The screen that the user should see */
@@ -562,19 +563,41 @@ export const useScreenQueueState = (): ScreenQueueState => {
     }
   }, [peek, peekLike]);
 
-  useEffect(() => {
-    const peeker = peekFirst();
-    peeker.promise.catch((e) => {
-      if (
-        e instanceof Error &&
-        (e.message.startsWith('canceled') || e.message.includes('not logged in'))
-      ) {
-        return;
-      }
-      console.error(e);
-    });
-    return peeker.cancel;
-  }, [peek, peekFirst]);
+  const loggedInStateSticky = useWritableValueWithCallbacks<boolean>(() => false);
+  useValueWithCallbacksEffect(loginContextRaw.value, (ctx) => {
+    if (ctx.state === 'logged-in') {
+      setVWC(loggedInStateSticky, true);
+    } else if (ctx.state === 'logged-out') {
+      setVWC(loggedInStateSticky, false);
+    }
+    return undefined;
+  });
+
+  useValueWithCallbacksEffect(
+    loggedInStateSticky,
+    useCallback(
+      (loggedIn) => {
+        if (!loggedIn) {
+          setVWC(valueVWC, {
+            type: 'loading',
+          });
+          return undefined;
+        }
+        const peeker = peekFirst();
+        peeker.promise.catch((e) => {
+          if (
+            e instanceof Error &&
+            (e.message.startsWith('canceled') || e.message.includes('not logged in'))
+          ) {
+            return;
+          }
+          console.error(e);
+        });
+        return peeker.cancel;
+      },
+      [peekFirst, valueVWC]
+    )
+  );
 
   return useMemo(() => ({ value: valueVWC, peek, trace, pop }), [valueVWC, peek, trace, pop]);
 };
