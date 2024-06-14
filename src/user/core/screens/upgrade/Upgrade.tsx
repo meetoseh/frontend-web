@@ -43,6 +43,7 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { screenOut } from '../../lib/screenOut';
+import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 
 /**
  * The upgrade screen, based on the users current offer but with a configurable
@@ -111,17 +112,24 @@ export const Upgrade = ({
         justifyContent="space-between"
         gridSizeVWC={ctx.windowSizeImmediate}>
         <div className={styles.top}>
-          <div style={{ height: '20px' }} />
+          <VerticalSpacer height={20} />
           <button
             type="button"
             className={styles.back}
             onClick={async (e) => {
               e.preventDefault();
-              screenOut(workingVWC, startPop, transition, screen.parameters.exit, screen.parameters.back, {
-                beforeDone: async () => {
-                  trace({ type: 'back' });
+              screenOut(
+                workingVWC,
+                startPop,
+                transition,
+                screen.parameters.exit,
+                screen.parameters.back,
+                {
+                  beforeDone: async () => {
+                    trace({ type: 'back' });
+                  },
                 }
-              })
+              );
             }}>
             <span className={assistiveStyles.srOnly}>Back</span>
             <Back />
@@ -129,7 +137,7 @@ export const Upgrade = ({
         </div>
         <div className={styles.foreground}>
           <div className={styles.header}>{screen.parameters.header}</div>
-          <div style={{ height: '16px' }} />
+          <VerticalSpacer height={16} />
           <div className={styles.valueProps}>
             <div className={styles.valueProp}>
               <div className={styles.valuePropIcon}>
@@ -137,21 +145,21 @@ export const Upgrade = ({
               </div>
               <div className={styles.valuePropText}>Unlock longer classes</div>
             </div>
-            <div style={{ height: '12px' }} />
+            <VerticalSpacer height={12} />
             <div className={styles.valueProp}>
               <div className={styles.valuePropIcon}>
                 <Sheet />
               </div>
               <div className={styles.valuePropText}>Access the entire library</div>
             </div>
-            <div style={{ height: '12px' }} />
+            <VerticalSpacer height={12} />
             <div className={styles.valueProp}>
               <div className={styles.valuePropIcon}>
                 <Series />
               </div>
               <div className={styles.valuePropText}>Explore expert-led series</div>
             </div>
-            <div style={{ height: '12px' }} />
+            <VerticalSpacer height={12} />
             <div className={styles.valueProp}>
               <div className={styles.valuePropIcon}>
                 <Browse />
@@ -159,7 +167,7 @@ export const Upgrade = ({
               <div className={styles.valuePropText}>Enhanced content browsing</div>
             </div>
           </div>
-          <div style={{ height: '40px' }} />
+          <VerticalSpacer height={40} />
           <RenderGuardedComponent
             props={useMappedValuesWithCallbacks([resources.offering, resources.prices], () => ({
               offering: resources.offering.get(),
@@ -181,7 +189,7 @@ export const Upgrade = ({
                   return (
                     <Fragment key={idx}>
                       {idx !== 0 && offering?.packages?.length > 2 && (
-                        <div style={{ height: '16px' }} />
+                        <VerticalSpacer height={16} />
                       )}
                       <RenderGuardedComponent
                         props={priceVWC}
@@ -204,7 +212,7 @@ export const Upgrade = ({
               </div>
             )}
           />
-          <div style={{ height: '24px' }} />
+          <VerticalSpacer height={24} />
           <Button
             type="button"
             variant="filled-premium"
@@ -274,16 +282,16 @@ export const Upgrade = ({
             }}>
             Subscribe
           </Button>
-          <div style={{ height: '16px' }} />
+          <VerticalSpacer height={16} />
           <a href="https://www.oseh.com/terms" className={styles.disclaimer}>
             <div className={styles.disclaimerTitle}>Cancel anytime.</div>
-            <div style={{ height: '2px' }} />
+            <VerticalSpacer height={2} />
             <div className={styles.disclaimerBody}>
               You will be notified before subscription renewal.
             </div>
             <div className={styles.disclaimerTerms}>Terms & Conditions</div>
           </a>
-          <div style={{ height: '32px' }} />
+          <VerticalSpacer height={32} />
         </div>
       </GridContentContainer>
       <WipeTransitionOverlay wipe={transitionState.wipe} />
