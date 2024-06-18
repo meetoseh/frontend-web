@@ -17,6 +17,7 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
  * - `minimum`
  * - `exclusiveMinimum`
  * - `enum`
+ * - `multipleOf`
  */
 export const SchemaNumberSimpleInput = ({
   path,
@@ -70,6 +71,13 @@ export const SchemaNumberSimpleInput = ({
         const enumValues = schema.enum;
         if (Array.isArray(enumValues) && !enumValues.includes(num)) {
           return <>The number must be one of: {enumValues.join(', ')}</>;
+        }
+      }
+
+      if ('multipleOf' in schema) {
+        const multipleOf = schema.multipleOf;
+        if (num % multipleOf !== 0) {
+          return <>The number must be a multiple of {multipleOf}</>;
         }
       }
 

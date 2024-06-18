@@ -18,6 +18,8 @@ export const SchemaEnumDiscriminatedObjectInput = ({
   value,
   path,
   delegator,
+  rootValue,
+  rootSchema,
 }: SchemaInputProps): ReactElement => {
   if (schema.type !== 'object') {
     throw new Error('SchemaEnumDiscriminatedObjectInput only works with object schemas');
@@ -158,6 +160,8 @@ export const SchemaEnumDiscriminatedObjectInput = ({
               value: value,
               path: path,
               delegator: delegator,
+              rootValue,
+              rootSchema,
             })
           )
         }

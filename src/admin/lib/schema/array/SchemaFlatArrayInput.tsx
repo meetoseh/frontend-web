@@ -19,6 +19,8 @@ export const SchemaFlatArrayInput = ({
   schema,
   value,
   delegator,
+  rootValue,
+  rootSchema,
 }: SchemaInputProps): ReactElement => {
   if (schema.type !== 'array') {
     throw new Error('SchemaFlatArrayInput only works with array schemas');
@@ -55,6 +57,8 @@ export const SchemaFlatArrayInput = ({
                   itemSchema={schema.items}
                   arrayValue={value}
                   delegator={delegator}
+                  rootValue={rootValue}
+                  rootSchema={rootSchema}
                 />
               );
             }
@@ -98,6 +102,8 @@ const Item = ({
   itemSchema,
   arrayValue,
   delegator,
+  rootValue,
+  rootSchema,
 }: {
   idx: number;
   arrayPath: SchemaInputProps['path'];
@@ -105,6 +111,8 @@ const Item = ({
   itemSchema: SchemaInputProps['schema'];
   arrayValue: SchemaInputProps['value'];
   delegator: SchemaInputProps['delegator'];
+  rootValue: SchemaInputProps['rootValue'];
+  rootSchema: SchemaInputProps['rootSchema'];
 }): ReactElement => {
   const itemValue = useMappedValueWithCallbacks(arrayValue, (v) => v?.[idx]);
   const writableItemValue = useMemo(
@@ -150,6 +158,8 @@ const Item = ({
         schema: itemSchema,
         value: writableItemValue,
         delegator,
+        rootValue,
+        rootSchema,
       })}
     </div>
   );

@@ -16,12 +16,16 @@ export const SchemaStandard = ({
   path,
   value,
   delegator,
+  rootValue,
+  rootSchema,
 }: SchemaInputPropsTopLevel): ReactElement => {
   const subprops: SchemaInputProps = {
     schema,
     path: path ?? [],
     value,
     delegator: delegator ?? ((props) => <SchemaStandard {...props} />),
+    rootValue: rootValue ?? value,
+    rootSchema: rootSchema ?? schema,
   };
 
   if (schema.type === 'object') {

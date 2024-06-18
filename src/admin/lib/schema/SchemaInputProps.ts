@@ -26,9 +26,19 @@ export type SchemaInputProps = {
    * The component to use when there are subschemas that need to be filled in.
    */
   delegator: (props: SchemaInputProps) => ReactElement;
+
+  /** The root value being edited; generally used in more sophisticated components */
+  rootValue: WritableValueWithCallbacks<any>;
+  /** the root schema being edited; generally used in more sophisticated components */
+  rootSchema: any;
 };
 
-export type SchemaInputPropsTopLevel = Omit<SchemaInputProps, 'delegator' | 'path'> & {
+export type SchemaInputPropsTopLevel = Omit<
+  SchemaInputProps,
+  'delegator' | 'path' | 'rootValue' | 'rootSchema'
+> & {
   path?: (string | number)[];
   delegator?: SchemaInputProps['delegator'];
+  rootValue?: WritableValueWithCallbacks<any>;
+  rootSchema?: any;
 };

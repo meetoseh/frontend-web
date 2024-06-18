@@ -22,6 +22,8 @@ export const showClientFlowImageUploader = (
   opts: {
     /** Usually from the x-processor hint */
     processor: { job: string; list: string };
+    /** The resolved dynamic size from the x-dynamic-size hint, or null if dynamic sizing is not supported */
+    dynamicSize: { width: number; height: number } | null;
     /** The openapi 3.0.3 schema description for the variable */
     description: string;
   }
@@ -49,6 +51,7 @@ export const showClientFlowImageUploader = (
         path: '/api/1/admin/client_flows/image/',
         additionalBodyParameters: {
           job: opts.processor.job,
+          ...(opts.dynamicSize === null ? {} : { dynamic_size: opts.dynamicSize }),
         },
       },
       accept: 'image/*',
@@ -60,7 +63,11 @@ export const showClientFlowImageUploader = (
           additionalFilters: {
             list_slug: {
               operator: 'eq',
-              value: opts.processor.list,
+              value:
+                opts.processor.list +
+                (opts.dynamicSize === null
+                  ? ''
+                  : `@${opts.dynamicSize.width}x${opts.dynamicSize.height}`),
             },
           },
         }

@@ -16,8 +16,10 @@ export type ClientScreenSchemaInputProps = Omit<SchemaInputProps, 'delegator'> &
 
 export type ClientScreenSchemaInputPropsTopLevel = Omit<
   ClientScreenSchemaInputProps,
-  'withCopyDelegator' | 'noCopyDelegator' | 'path'
+  'withCopyDelegator' | 'noCopyDelegator' | 'path' | 'rootValue' | 'rootSchema'
 > & {
   path?: (string | number)[];
   delegator?: SchemaInputProps['delegator'];
+  rootValue?: WritableValueWithCallbacks<any>;
+  rootSchema?: any;
 };

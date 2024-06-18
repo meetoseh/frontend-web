@@ -32,6 +32,8 @@ export const ClientScreenSchemaFlatObjectInput = ({
   value,
   variable,
   withCopyDelegator: delegator,
+  rootValue,
+  rootSchema,
 }: ClientScreenSchemaInputProps): ReactElement => {
   if (schema.type !== 'object') {
     throw new Error('SchemaObjectInput only works with object schemas');
@@ -186,6 +188,8 @@ export const ClientScreenSchemaFlatObjectInput = ({
                           path: [...path, prop],
                           schema: propInfo.schema,
                           delegator,
+                          rootValue,
+                          rootSchema,
                         })}
                       </Fragment>
                     );

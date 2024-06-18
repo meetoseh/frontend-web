@@ -17,6 +17,7 @@ import { setVWC } from '../../../../../shared/lib/setVWC';
 import { showClientFlowImageUploader } from '../../../images/showClientFlowImageUploader';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
 import { ErrorBlock } from '../../../../../shared/forms/ErrorBlock';
+import { useMappedValuesWithCallbacks } from '../../../../../shared/hooks/useMappedValuesWithCallbacks';
 
 /**
  * Allows the user to select or upload an image to fill a string prop.
@@ -53,11 +54,79 @@ export const ClientScreenSchemaImageInput = (props: ClientScreenSchemaInputProps
 const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
   const modalContext = useContext(ModalContext);
   const loginContextRaw = useContext(LoginContext);
+  const dynamicSize = props.schema['x-dynamic-size'] as
+    | {
+        width: string[];
+        height: string[];
+      }
+    | undefined;
   const processor = props.schema['x-processor'] as { job: string; list: string };
-  const preview = (props.schema['x-preview'] as { width: number; height: number } | undefined) ?? {
+  const previewRaw = (props.schema['x-preview'] as
+    | { width: number; height: number }
+    | undefined) ?? {
     width: 200,
     height: 200,
   };
+
+  const resolvedDynamicSizeVWC = useMappedValueWithCallbacks(
+    props.rootValue,
+    (rootValue) => {
+      if (dynamicSize === undefined) {
+        return undefined;
+      }
+      const rawWidth = walkPath(props.rootSchema, rootValue, dynamicSize.width);
+      const rawHeight = walkPath(props.rootSchema, rootValue, dynamicSize.height);
+
+      const width = Number.isNaN(rawWidth) ? 100 : Number(rawWidth);
+      const height = Number.isNaN(rawHeight) ? 100 : Number(rawHeight);
+      return {
+        width,
+        height,
+      };
+    },
+    {
+      outputEqualityFn: (a, b) =>
+        a === undefined || b === undefined ? a === b : a.width === b.width && a.height === b.height,
+    }
+  );
+
+  const previewVWC = useMappedValueWithCallbacks(
+    resolvedDynamicSizeVWC,
+    (dynamicSize) => {
+      if (dynamicSize === undefined) {
+        return previewRaw;
+      }
+
+      if (dynamicSize.width < 200 && dynamicSize.height < 200) {
+        return {
+          width: dynamicSize.width,
+          height: dynamicSize.height,
+        };
+      }
+
+      if (dynamicSize.width <= dynamicSize.height) {
+        return {
+          width: Math.floor(200 * (dynamicSize.width / dynamicSize.height)),
+          height: 200,
+        };
+      }
+
+      return {
+        width: 200,
+        height: Math.floor(200 * (dynamicSize.height / dynamicSize.width)),
+      };
+    },
+    {
+      inputEqualityFn: () => false,
+    }
+  );
+
+  const listVWC = useMappedValueWithCallbacks(
+    resolvedDynamicSizeVWC,
+    (dynamicSize) =>
+      processor.list +
+      (dynamicSize === undefined ? '' : `@${dynamicSize.width}x${dynamicSize.height}`)
+  );
 
   const imageNR = useNetworkResponse(
     (active, loginContext) =>
@@ -66,6 +135,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
         if (uid === null || uid === undefined || uid === '' || typeof uid !== 'string') {
           return null;
         }
+        const list = listVWC.get();
 
         const response = await apiFetch(
           '/api/1/admin/client_flows/image/search',
@@ -82,7 +152,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
                 },
                 list_slug: {
                   operator: 'eq',
-                  value: processor.list,
+                  value: list,
                 },
               },
             }),
@@ -101,7 +171,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
         return convertUsingMapper(data.items[0], clientFlowImageKeyMap);
       }),
     {
-      dependsOn: [props.value],
+      dependsOn: [props.value, listVWC],
     }
   );
 
@@ -113,12 +183,29 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
         {props.schema.description && (
           <div className={styles.description}>{props.schema.description}</div>
         )}
+        <RenderGuardedComponent
+          props={resolvedDynamicSizeVWC}
+          component={(dynamicSize) => {
+            if (dynamicSize === undefined) {
+              return <></>;
+            }
+
+            return (
+              <div className={styles.description}>
+                Resolved dynamic size: {`${dynamicSize.width} width x ${dynamicSize.height} height`}
+              </div>
+            );
+          }}
+        />
       </div>
       <div className={styles.content}>
         <div className={styles.image}>
           <RenderGuardedComponent
-            props={imageNR}
-            component={(image) => {
+            props={useMappedValuesWithCallbacks([imageNR, previewVWC], () => ({
+              image: imageNR.get(),
+              preview: previewVWC.get(),
+            }))}
+            component={({ image, preview }) => {
               if (image.type === 'error') {
                 return <ErrorBlock>{image.error}</ErrorBlock>;
               }
@@ -149,8 +236,8 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
               e.preventDefault();
               const choice = await showClientFlowImageSelector(
                 modalContext.modals,
-                processor.list,
-                preview
+                listVWC.get(),
+                previewVWC.get()
               ).promise;
               if (choice !== null && choice !== undefined) {
                 setVWC(props.value, choice.imageFile.uid);
@@ -168,6 +255,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
                 loginContextRaw,
                 {
                   processor,
+                  dynamicSize: resolvedDynamicSizeVWC.get() ?? null,
                   description: props.schema.description ?? '(no description)',
                 }
               ).promise;
@@ -182,3 +270,44 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
     </div>
   );
 };
+
+/**
+ * Recursively determines the value at the given path, filling in default
+ * values as required
+ */
+function walkPath(schema: any, value: any, path: string[]): any {
+  if (schema === undefined || typeof schema !== 'object') {
+    console.warn('walkPath filling in unknown schema');
+    schema = { type: 'object' };
+  }
+
+  if ((value === null || value === undefined) && schema.default !== undefined) {
+    value = schema.default;
+  }
+
+  if (path.length === 0) {
+    return value;
+  }
+
+  if (
+    schema.type === 'object' &&
+    'x-enum-discriminator' in schema &&
+    typeof schema['x-enum-discriminator'] === 'string' &&
+    value !== null &&
+    value !== undefined &&
+    schema['x-enum-discriminator'] in value
+  ) {
+    const chosen = value[schema['x-enum-discriminator']];
+    for (const choice of schema.oneOf ?? []) {
+      if (chosen === choice.properties?.[schema['x-enum-discriminator']].enum[0]) {
+        return walkPath(choice, value, path);
+      }
+    }
+  }
+
+  if (value === null || value === undefined || typeof value !== 'object' || !(path[0] in value)) {
+    return walkPath(schema.properties?.[path[0]], undefined, path.slice(1));
+  }
+
+  return walkPath(schema.properties?.[path[0]], value[path[0]], path.slice(1));
+}

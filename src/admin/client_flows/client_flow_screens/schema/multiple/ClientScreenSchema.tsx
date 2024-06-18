@@ -23,6 +23,8 @@ export const ClientScreenSchema = ({
   variable,
   noCopy,
   imageHandler,
+  rootValue,
+  rootSchema,
 }: ClientScreenSchemaInputPropsTopLevel & { noCopy?: boolean }): ReactElement => {
   const subprops = {
     schema,
@@ -30,6 +32,8 @@ export const ClientScreenSchema = ({
     value,
     variable,
     imageHandler,
+    rootValue: rootValue ?? value,
+    rootSchema: rootSchema ?? schema,
   };
 
   const fancyProps: ClientScreenSchemaInputProps = {

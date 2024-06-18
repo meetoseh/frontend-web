@@ -20,6 +20,8 @@ export const ClientScreenSchemaCopyInput = (props: ClientScreenSchemaInputProps)
       path: props.path,
       value: props.value,
       delegator: props.withCopyDelegator,
+      rootValue: props.rootValue,
+      rootSchema: props.rootSchema,
     });
   }
   return <ClientScreenSchemaCopyInputInner {...props} />;
@@ -32,6 +34,8 @@ const ClientScreenSchemaCopyInputInner = ({
   variable,
   noCopyDelegator,
   withCopyDelegator,
+  rootValue,
+  rootSchema,
 }: ClientScreenSchemaInputProps): ReactElement => {
   const outputPath = outputPathRaw as string[];
 
@@ -249,7 +253,14 @@ const ClientScreenSchemaCopyInputInner = ({
         props={isCopyVWC}
         component={(v) =>
           !v ? (
-            noCopyDelegator({ schema, path: outputPathRaw, value, delegator: withCopyDelegator })
+            noCopyDelegator({
+              schema,
+              path: outputPathRaw,
+              value,
+              delegator: withCopyDelegator,
+              rootValue,
+              rootSchema,
+            })
           ) : (
             <>
               <div className={styles.meta}>

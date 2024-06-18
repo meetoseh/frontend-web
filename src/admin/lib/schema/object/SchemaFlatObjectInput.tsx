@@ -23,6 +23,8 @@ export const SchemaFlatObjectInput = ({
   schema,
   value,
   delegator,
+  rootValue,
+  rootSchema,
 }: SchemaInputProps): ReactElement => {
   if (schema.type !== 'object') {
     throw new Error('SchemaObjectInput only works with object schemas');
@@ -130,6 +132,8 @@ export const SchemaFlatObjectInput = ({
                     path: [...path, prop],
                     schema: propInfo.schema,
                     delegator,
+                    rootValue,
+                    rootSchema,
                   })}
                 </Fragment>
               );
