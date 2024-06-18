@@ -97,31 +97,30 @@ export const Settings = ({
       },
     })
   );
-  const upgradeLink = useMappedValueWithCallbacks(
+  const upgradeOrManageMembershipLink = useMappedValueWithCallbacks(
     resources.pro,
     (entitlement): SettingLink | null =>
-      entitlement !== null && !entitlement.isActive
+      entitlement === null
+        ? makeTriggerLink({
+            key: 'upgrade-placeholder',
+            text: 'Loading membership status',
+            trigger: null,
+          })
+        : !entitlement.isActive
         ? makeTriggerLink({
             key: 'upgrade',
             text: 'Upgrade to Oseh+',
             trigger: screen.parameters.upgrade.trigger,
           })
-        : null
-  );
-  const manageMembershipLink = useMappedValueWithCallbacks(
-    resources.pro,
-    (entitlement): SettingLink | null =>
-      entitlement?.isActive
-        ? makeTriggerLink({
+        : makeTriggerLink({
             key: 'manage-membership',
             text: 'Manage Membership',
             trigger: screen.parameters.membership.trigger,
           })
-        : null
   );
   const accountLinks = useMemo(
-    () => [upgradeLink, myLibraryLink, manageMembershipLink, logoutLink],
-    [upgradeLink, myLibraryLink, manageMembershipLink, logoutLink]
+    () => [myLibraryLink, upgradeOrManageMembershipLink, logoutLink],
+    [myLibraryLink, upgradeOrManageMembershipLink, logoutLink]
   );
 
   const remindersLink = useWritableValueWithCallbacks(() =>

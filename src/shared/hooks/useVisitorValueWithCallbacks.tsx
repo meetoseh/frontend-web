@@ -84,8 +84,8 @@ export const getUTMFromURL = (): UTM | null => {
   };
 };
 
-type VisitorLoading = { loading: true };
-type VisitorLoaded = {
+export type VisitorLoading = { loading: true };
+export type VisitorLoaded = {
   loading: false;
   uid: string | null;
 };

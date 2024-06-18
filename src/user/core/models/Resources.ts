@@ -32,6 +32,11 @@ import { SeriesListRequest } from '../../series/lib/createSeriesListRequestHandl
 import { Identity } from '../features/settings/hooks/useIdentities';
 import { PurchasesStoreProduct } from '../features/upgrade/models/PurchasesStoreProduct';
 import { RevenueCatOffering } from '../features/upgrade/models/RevenueCatOffering';
+import {
+  TouchLink,
+  TouchLinkRequest,
+  TouchLinkRequestMinimal,
+} from '../lib/createTouchLinkRequestHandler';
 import { FavoritesListRequest } from '../screens/favorites/lib/createFavoritesListRequestHandler';
 import { HistoryListRequest } from '../screens/history/lib/createHistoryListRequestHandler';
 import { HomeCopy } from '../screens/home/lib/createHomeCopyRequestHandler';
@@ -270,4 +275,8 @@ export type Resources = {
     OsehTranscriptRef,
     OsehTranscript
   >;
+  /**
+   * Manages touch links
+   */
+  touchLinkHandler: RequestHandler<TouchLinkRequestMinimal, TouchLinkRequest, TouchLink>;
 };

@@ -49,6 +49,8 @@ import { StartMergeScreen } from './core/screens/start_merge/StartMergeScreen';
 import { ResolveMergeConflictScreen } from './core/screens/resolve_merge_conflict/ResolveMergeConflictScreen';
 import { CompletionScreen } from './core/screens/completion/CompletionScreen';
 import { VideoInterstitialOnboardingScreen } from './core/screens/video_interstitial_onboarding/VideoInterstitialOnboardingScreen';
+import { useHandleTouchLink } from './core/lib/handleTouchLink';
+import { FastUnsubscribeLoginApp } from './login/FastUnsubscribeLoginApp';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -139,8 +141,9 @@ const UserScreensAppInner = ({
   const loginContextRaw = useContext(LoginContext);
   const fontsLoaded = useFonts(requiredFonts);
 
-  const screenQueueState = useScreenQueueState();
   const screenContext = useScreenContext(usesWebp, usesSvg);
+  const touchLink = useHandleTouchLink({ ctx: screenContext });
+  const screenQueueState = useScreenQueueState({ touchLink });
   const screenQueue = useScreenQueue({
     screenQueueState,
     screenContext,
@@ -294,7 +297,31 @@ const UserScreensAppInner = ({
       props={needLoginScreen}
       component={(needLogin) => {
         if (needLogin) {
-          return <LoginApp />;
+          return (
+            <RenderGuardedComponent
+              props={touchLink.loggedOutPage}
+              component={(page) => {
+                if (page === undefined) {
+                  return <SplashScreen type="wordmark" />;
+                }
+
+                if (page === null) {
+                  return <LoginApp />;
+                }
+
+                if (page.pageIdentifier === 'unsubscribe') {
+                  return (
+                    <FastUnsubscribeLoginApp
+                      ctx={screenContext}
+                      page={page as typeof page & { pageIdentifier: 'unsubscribe' }}
+                    />
+                  );
+                }
+
+                return <LoginApp />;
+              }}
+            />
+          );
         }
 
         return (

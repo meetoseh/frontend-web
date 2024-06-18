@@ -40,6 +40,7 @@ import { createReminderChannelsRequestHandler } from '../screens/reminder_times/
 import { createReminderSettingsRequestHandler } from '../screens/reminder_times/lib/createReminderSettingsHandler';
 import { createOnboardingVideoRequestHandler } from '../screens/video_interstitial_onboarding/lib/createOnboardingVideoRequestHandler';
 import { createTranscriptRequestHandler } from '../screens/video_interstitial/lib/createTranscriptRequestHandler';
+import { createTouchLinkRequestHandler } from '../lib/createTouchLinkRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -256,6 +257,9 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const transcriptHandler = useWritableValueWithCallbacks(() =>
     createTranscriptRequestHandler({ logging, maxStale: 100 })
   );
+  const touchLinkHandler = useWritableValueWithCallbacks(() =>
+    createTouchLinkRequestHandler({ logging, maxStale: 2 })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -290,6 +294,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       reminderSettingsHandler: reminderSettingsHandler.get(),
       onboardingVideoHandler: onboardingVideoHandler.get(),
       transcriptHandler: transcriptHandler.get(),
+      touchLinkHandler: touchLinkHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -323,6 +328,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       reminderSettingsHandler,
       onboardingVideoHandler,
       transcriptHandler,
+      touchLinkHandler,
     ]
   );
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);

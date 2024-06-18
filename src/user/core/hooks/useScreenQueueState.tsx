@@ -1,6 +1,10 @@
 import { ReactElement, useCallback, useContext, useMemo } from 'react';
 import { PeekedScreen } from '../models/Screen';
-import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
+import {
+  ValueWithCallbacks,
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
 import { Result } from '../../../shared/requests/RequestHandler';
 import { LoginContext, LoginContextValueLoggedIn } from '../../../shared/contexts/LoginContext';
@@ -15,6 +19,7 @@ import { VISITOR_SOURCE } from '../../../shared/lib/visitorSource';
 import { describeErrorFromResponse, describeFetchError } from '../../../shared/forms/ErrorBlock';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { HandleTouchLinkResult } from '../lib/handleTouchLink';
 
 export type UseScreenQueueStateResult = {
   /** The screen that the user should see */
@@ -92,7 +97,11 @@ export type ScreenQueueState = {
  * LoginContext and InterestsContext is available, and immediately starts a peek
  * operation.
  */
-export const useScreenQueueState = (): ScreenQueueState => {
+export const useScreenQueueState = ({
+  touchLink,
+}: {
+  touchLink: HandleTouchLinkResult;
+}): ScreenQueueState => {
   const loginContextRaw = useContext(LoginContext);
   const interestsContext = useContext(InterestsContext);
 
@@ -463,8 +472,8 @@ export const useScreenQueueState = (): ScreenQueueState => {
     if (result !== null) {
       return result;
     }
-    /* TODO /l/* and /a/* links */
-    return peek();
+
+    return handleCode();
 
     function handleMergeToken(): CancelablePromise<Result<UseScreenQueueStateState>> | null {
       const fragment = window.location.hash;
@@ -561,6 +570,106 @@ export const useScreenQueueState = (): ScreenQueueState => {
         cancel: result.cancel,
       };
     }
+
+    function handleCode(): CancelablePromise<Result<UseScreenQueueStateState>> {
+      return constructCancelablePromise({
+        body: async (state, resolve, reject) => {
+          const canceled = createCancelablePromiseFromCallbacks(state.cancelers);
+          canceled.promise.catch(() => {});
+          if (state.finishing) {
+            canceled.cancel();
+            state.done = true;
+            reject(new Error('canceled'));
+            return;
+          }
+
+          const touchLinkNotLoading = waitForValueWithCallbacksConditionCancelable(
+            touchLink.pendingTouchLink,
+            (v) => v !== undefined
+          );
+          touchLinkNotLoading.promise.catch(() => {});
+          await Promise.race([touchLinkNotLoading.promise, canceled.promise]);
+          if (state.finishing) {
+            canceled.cancel();
+            touchLinkNotLoading.cancel();
+            state.done = true;
+            reject(new Error('canceled'));
+            return;
+          }
+
+          if (!touchLinkNotLoading.done()) {
+            throw new Error('impossible');
+          }
+          const touchLinkCodeToUse = await touchLinkNotLoading.promise;
+          if (state.finishing) {
+            canceled.cancel();
+            state.done = true;
+            reject(new Error('canceled'));
+            return;
+          }
+
+          if (touchLinkCodeToUse === undefined) {
+            throw new Error('impossible');
+          }
+
+          const peeker =
+            touchLinkCodeToUse === null
+              ? peek
+              : () =>
+                  peekLike({
+                    path: '/api/1/users/me/screens/apply_touch_link',
+                    headers: new Headers({
+                      'Content-Type': 'application/json; charset=utf-8',
+                    }),
+                    body: JSON.stringify({
+                      code: touchLinkCodeToUse.code,
+                      click_uid: touchLinkCodeToUse.clickUid ?? null,
+                    }),
+                  });
+
+          canceled.cancel();
+
+          const peekResult = peeker();
+          state.cancelers.add(peekResult.cancel);
+          if (state.finishing) {
+            peekResult.cancel();
+          }
+
+          try {
+            const result = await peekResult.promise;
+            if (touchLinkCodeToUse !== null) {
+              const user = loginContextRaw.value.get();
+              if (user.state !== 'logged-in') {
+                throw new Error('logout right after successful peek is unsupported');
+              }
+              touchLink.onPendingTouchLinkApplied(touchLinkCodeToUse, user);
+              const differentCode = waitForValueWithCallbacksConditionCancelable(
+                touchLink.pendingTouchLink,
+                (v) => !Object.is(v, touchLinkCodeToUse)
+              );
+              state.cancelers.add(differentCode.cancel);
+              if (state.finishing) {
+                differentCode.cancel();
+              }
+              try {
+                await differentCode.promise;
+              } finally {
+                state.cancelers.remove(differentCode.cancel);
+              }
+            }
+            state.finishing = true;
+            state.done = true;
+            resolve(result);
+          } catch (e) {
+            state.finishing = true;
+            state.done = true;
+            reject(e);
+          } finally {
+            state.cancelers.remove(peekResult.cancel);
+          }
+        },
+      });
+    }
   }, [peek, peekLike]);
 
   const loggedInStateSticky = useWritableValueWithCallbacks<boolean>(() => false);
@@ -583,17 +692,58 @@ export const useScreenQueueState = (): ScreenQueueState => {
           });
           return undefined;
         }
-        const peeker = peekFirst();
-        peeker.promise.catch((e) => {
-          if (
-            e instanceof Error &&
-            (e.message.startsWith('canceled') || e.message.includes('not logged in'))
-          ) {
-            return;
+        const active = createWritableValueWithCallbacks(true);
+        handle();
+        return () => {
+          setVWC(active, false);
+        };
+
+        async function handle() {
+          while (true) {
+            if (!active.get()) {
+              return;
+            }
+            const peeker = peekFirst();
+            active.callbacks.add(peeker.cancel);
+            try {
+              await peeker.promise;
+            } catch (e) {
+              if (
+                e instanceof Error &&
+                (e.message.startsWith('canceled') || e.message.includes('not logged in'))
+              ) {
+                return;
+              }
+              console.error(e);
+              return;
+            } finally {
+              active.callbacks.remove(peeker.cancel);
+            }
+
+            if (!active.get()) {
+              return;
+            }
+
+            const newCode = waitForValueWithCallbacksConditionCancelable(
+              touchLink.pendingTouchLink,
+              (v) => v !== undefined && v !== null
+            );
+            active.callbacks.add(newCode.cancel);
+            if (!active.get()) {
+              newCode.cancel();
+            }
+            try {
+              await newCode.promise;
+            } catch (e) {
+              if (!active.get()) {
+                return;
+              }
+              throw e;
+            } finally {
+              active.callbacks.remove(newCode.cancel);
+            }
           }
-          console.error(e);
-        });
-        return peeker.cancel;
+        }
       },
       [peekFirst, valueVWC]
     )
