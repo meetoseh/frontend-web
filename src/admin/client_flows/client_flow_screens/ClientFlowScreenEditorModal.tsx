@@ -1,4 +1,4 @@
-import { CSSProperties, ReactElement, useCallback, useContext, useEffect } from 'react';
+import { CSSProperties, Fragment, ReactElement, useCallback, useContext, useEffect } from 'react';
 import {
   Callbacks,
   ValueWithCallbacks,
@@ -8,6 +8,7 @@ import {
 import { Saveable } from '../../../shared/models/Saveable';
 import {
   ClientFlowScreen,
+  ClientFlowScreenFlag,
   ClientFlowScreenVariableInput,
   serializeClientFlowScreen,
 } from './ClientFlowScreen';
@@ -40,6 +41,7 @@ import { adaptActiveVWCToAbortSignal } from '../../../shared/lib/adaptActiveVWCT
 import { prettySchemaPath } from '../../lib/schema/prettySchemaPath';
 import { ClientScreenSchema } from './schema/multiple/ClientScreenSchema';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { VerticalSpacer } from '../../../shared/components/VerticalSpacer';
 
 export type ClientFlowScreenEditorModalProps = {
   /** The flow this screen is within, so that we can perform tests */
@@ -619,6 +621,7 @@ const Content = ({
   const testServerParametersObjectVWC = useWritableValueWithCallbacks(
     () => flow.get().serverSchema.example ?? {}
   );
+  const flagsVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.flags);
 
   const testErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   useErrorModal(modalContext.modals, testErrorVWC, 'while testing flow screen');
@@ -697,7 +700,7 @@ const Content = ({
           )}
         </div>
       </CrudFormElement>
-      <div style={{ height: '32px' }} />
+      <VerticalSpacer height={32} />
       <RenderGuardedComponent
         props={screenNR}
         component={(screen) =>
@@ -732,7 +735,7 @@ const Content = ({
           )
         }
       />
-      <div style={{ height: '24px' }} />
+      <VerticalSpacer height={24} />
       <ClientScreenSchema
         schema={{
           type: 'array',
@@ -761,7 +764,31 @@ const Content = ({
         noCopy
         imageHandler={imageHandler}
       />
-      <div style={{ height: '400px' }} />
+      <VerticalSpacer height={40} />
+      <CrudFormElement title="Flags">
+        <VerticalSpacer height={8} />
+        {(
+          [
+            [ClientFlowScreenFlag.SHOWS_ON_IOS, 'Shows on iOS'],
+            [ClientFlowScreenFlag.SHOWS_ON_ANDROID, 'Shows on Android'],
+            [ClientFlowScreenFlag.SHOWS_ON_WEB, 'Shows on Web'],
+          ] as const
+        ).map(([flag, label], idx) => (
+          <Fragment key={flag}>
+            {idx !== 0 && <VerticalSpacer height={4} />}
+            <BitCheckbox
+              label={label}
+              flag={flag}
+              source={{
+                get: () => flagsVWC.get(),
+                set: (v) => flowScreenSaveable.onClientChange({ ...valueVWC.get(), flags: v }),
+                callbacks: flagsVWC.callbacks,
+              }}
+            />
+          </Fragment>
+        ))}
+      </CrudFormElement>
+      <VerticalSpacer height={400} />
       <CrudFormElement title="Fixed">
         <RawJSONEditor
           canonicalVWC={fixedValueVWC}
@@ -877,5 +904,32 @@ const Content = ({
         </div>
       </div>
     </div>
+  );
+};
+
+const BitCheckbox = ({
+  label,
+  flag,
+  source,
+}: {
+  label: string;
+  flag: number;
+  source: WritableValueWithCallbacks<number>;
+}): ReactElement => {
+  return (
+    <RenderGuardedComponent
+      props={useMappedValueWithCallbacks(source, (v) => (v & flag) === flag, {
+        inputEqualityFn: () => false,
+      })}
+      component={(checked) => (
+        <Checkbox
+          label={label}
+          value={checked}
+          setValue={(v) => {
+            setVWC(source, v ? source.get() | flag : source.get() & ~flag);
+          }}
+        />
+      )}
+    />
   );
 };

@@ -229,8 +229,8 @@ function App() {
           }
         />
         <Route path="/favorites" element={stdApp} />
-        <Route path="/l/*" element={stdApp} /> {/* TODO */}
-        <Route path="/a/*" element={stdApp} /> {/* TODO */}
+        <Route path="/l/*" element={stdApp} />
+        <Route path="/a/*" element={stdApp} />
         <Route path="/clear" element={<ClearCache />} />
         <Route path="/debug-features" element={<DebugFeatures />} />
       </Routes>

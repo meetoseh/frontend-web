@@ -2,6 +2,7 @@ import { ReactElement, useContext, useEffect } from 'react';
 import { ModalContext } from '../../shared/contexts/ModalContext';
 import {
   WritableValueWithTypedCallbacks,
+  downgradeTypedVWC,
   useWritableValueWithCallbacks,
 } from '../../shared/lib/Callbacks';
 import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
@@ -21,6 +22,7 @@ import { adaptCallbacksToAbortSignal } from '../../shared/lib/adaptCallbacksToAb
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import {
   ClientFlowScreen,
+  ClientFlowScreenFlag,
   serializeClientFlowScreen,
 } from './client_flow_screens/ClientFlowScreen';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
@@ -482,58 +484,79 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
         </div>
         <div className={styles.screens}>
           <div className={styles.screensTitle}>Screens</div>
-          <DraggableTable
-            thead={
-              <thead>
-                <tr>
-                  <th scope="col">Name</th>
-                </tr>
-              </thead>
-            }
-            items={screensFastTWVWC}
-            render={renderScreenRow}
-            keyFn={screenKeyFn}
-            onExpandRow={async (item) => {
-              const index = screensFastTWVWC
-                .get()
-                .findIndex((x) => x.clientSideUid === item.clientSideUid);
-              const saveable = createSaveable({
-                initial: item,
-                beforeSave: (screen) => screen,
-                save: (screen) => {
-                  const screens = screensFastTWVWC.get();
-                  const original = screens[index];
-                  screens[index] = screen;
-                  screensFastTWVWC.callbacks.call({
-                    type: 'replace',
-                    index,
-                    original,
-                    replaced: screen,
+          <RenderGuardedComponent
+            props={useMappedValueWithCallbacks(downgradeTypedVWC(screensFastTWVWC), (screens) =>
+              screens.some(
+                (s) =>
+                  s.flags !==
+                  (ClientFlowScreenFlag.SHOWS_ON_IOS |
+                    ClientFlowScreenFlag.SHOWS_ON_ANDROID |
+                    ClientFlowScreenFlag.SHOWS_ON_WEB)
+              )
+            )}
+            component={(includingFlags) => (
+              <DraggableTable
+                key={includingFlags ? 1 : 0}
+                thead={
+                  <thead>
+                    <tr>
+                      <th scope="col">Name</th>
+                      {includingFlags && (
+                        <>
+                          <th scope="col">iOS</th>
+                          <th scope="col">Android</th>
+                          <th scope="col">Web</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                }
+                items={screensFastTWVWC}
+                render={renderScreenRow.bind(undefined, includingFlags)}
+                keyFn={screenKeyFn}
+                onExpandRow={async (item) => {
+                  const index = screensFastTWVWC
+                    .get()
+                    .findIndex((x) => x.clientSideUid === item.clientSideUid);
+                  const saveable = createSaveable({
+                    initial: item,
+                    beforeSave: (screen) => screen,
+                    save: (screen) => {
+                      const screens = screensFastTWVWC.get();
+                      const original = screens[index];
+                      screens[index] = screen;
+                      screensFastTWVWC.callbacks.call({
+                        type: 'replace',
+                        index,
+                        original,
+                        replaced: screen,
+                      });
+                      return {
+                        promise: Promise.resolve(screen),
+                        cancel: () => {},
+                        done: () => true,
+                      };
+                    },
                   });
-                  return {
-                    promise: Promise.resolve(screen),
-                    cancel: () => {},
-                    done: () => true,
+                  let onDelete = () => {};
+                  const popup = showClientFlowScreenEditor(
+                    modalContext.modals,
+                    draftVWC,
+                    saveable,
+                    () => onDelete()
+                  );
+                  onDelete = () => {
+                    popup.cancel();
+                    screensFastTWVWC.get().splice(index, 1);
+                    screensFastTWVWC.callbacks.call({
+                      type: 'remove',
+                      index,
+                      item,
+                    });
                   };
-                },
-              });
-              let onDelete = () => {};
-              const popup = showClientFlowScreenEditor(
-                modalContext.modals,
-                draftVWC,
-                saveable,
-                () => onDelete()
-              );
-              onDelete = () => {
-                popup.cancel();
-                screensFastTWVWC.get().splice(index, 1);
-                screensFastTWVWC.callbacks.call({
-                  type: 'remove',
-                  index,
-                  item,
-                });
-              };
-            }}
+                }}
+              />
+            )}
           />
           <Button
             type="button"
@@ -551,6 +574,10 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                   variable: [],
                 },
                 allowedTriggers: [],
+                flags:
+                  ClientFlowScreenFlag.SHOWS_ON_IOS |
+                  ClientFlowScreenFlag.SHOWS_ON_ANDROID |
+                  ClientFlowScreenFlag.SHOWS_ON_WEB,
               };
               screensFastTWVWC.get().push(newScreen);
               screensFastTWVWC.callbacks.call({
@@ -765,10 +792,19 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
   );
 };
 
-const renderScreenRow = (item: ClientFlowScreen): ReactElement => {
+const renderScreenRow = (includingFlags: boolean, item: ClientFlowScreen): ReactElement => {
+  const yes = '✓';
+  const no = '✗';
   return (
     <>
       <td>{item.name ?? item.screen.slug}</td>
+      {includingFlags && (
+        <>
+          <td>{(item.flags & ClientFlowScreenFlag.SHOWS_ON_IOS) !== 0 ? yes : no}</td>
+          <td>{(item.flags & ClientFlowScreenFlag.SHOWS_ON_ANDROID) !== 0 ? yes : no}</td>
+          <td>{(item.flags & ClientFlowScreenFlag.SHOWS_ON_WEB) !== 0 ? yes : no}</td>
+        </>
+      )}
     </>
   );
 };

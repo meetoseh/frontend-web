@@ -163,6 +163,22 @@ export const serializeClientFlowScreenScreen = (x: ClientFlowScreenScreen): any 
   variable: serializeClientFlowScreenScreenVariable(x.variable),
 });
 
+/**
+ * Describes the bits on the `flags` field on a client flow screen. Set bits
+ * do nothing, whereas unset bits prevent the screen from being shown in
+ * the related context
+ */
+export enum ClientFlowScreenFlag {
+  /** If unset, the screen should be skipped at peek time on the iOS platform */
+  SHOWS_ON_IOS = 1 << 0,
+
+  /** If unset, the screen should be skipped at peek time on the Android platform */
+  SHOWS_ON_ANDROID = 1 << 1,
+
+  /** If unset, the screen should be skipped at peek time on the web platform */
+  SHOWS_ON_WEB = 1 << 2,
+}
+
 export type ClientFlowScreen = {
   /**
    * An arbitrary random string we associated with this client flow screen on the client
@@ -175,6 +191,8 @@ export type ClientFlowScreen = {
   screen: ClientFlowScreenScreen;
   /** Which client flows can be triggered by the client when popping this screen */
   allowedTriggers: string[];
+  /** A bitfield of flags; see ClientFlowScreenFlag */
+  flags: number;
 };
 
 export const clientFlowScreenKeyMap: CrudFetcherMapper<ClientFlowScreen> = (v: any) => ({
@@ -182,10 +200,12 @@ export const clientFlowScreenKeyMap: CrudFetcherMapper<ClientFlowScreen> = (v: a
   name: v.name,
   screen: convertUsingMapper(v.screen, clientFlowScreenScreenKeyMap),
   allowedTriggers: v.allowed_triggers,
+  flags: v.flags,
 });
 
 export const serializeClientFlowScreen = (x: ClientFlowScreen): any => ({
   screen: serializeClientFlowScreenScreen(x.screen),
-  name: x.name ?? null,
+  name: x.name === '' ? null : x.name ?? null,
   allowed_triggers: x.allowedTriggers,
+  flags: x.flags,
 });
