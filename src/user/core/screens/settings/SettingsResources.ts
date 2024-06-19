@@ -1,6 +1,6 @@
 import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { Identity } from '../../features/settings/hooks/useIdentities';
 import { ScreenResources } from '../../models/Screen';
+import { Identity } from './hooks/useIdentities';
 import { Entitlement } from './lib/createEntitlementRequestHandler';
 
 export type SettingsResources = ScreenResources & {

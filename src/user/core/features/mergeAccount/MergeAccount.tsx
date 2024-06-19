@@ -10,7 +10,7 @@ import { useFullHeight } from '../../../../shared/hooks/useFullHeight';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
-import { ProvidersList, ProvidersListItem } from '../login/components/ProvidersList';
+import { ProvidersList, ProvidersListItem } from '../../../login/components/ProvidersList';
 
 export const MergeAccount = ({
   resources,

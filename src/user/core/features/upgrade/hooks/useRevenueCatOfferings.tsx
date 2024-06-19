@@ -4,13 +4,16 @@ import {
   ValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../../../shared/lib/Callbacks';
-import { RevenueCatOfferings, revenueCatOfferingsKeyMap } from '../models/RevenueCatOfferings';
-import { RevenueCatOffering } from '../models/RevenueCatOffering';
+import {
+  RevenueCatOfferings,
+  revenueCatOfferingsKeyMap,
+} from '../../../screens/upgrade/models/RevenueCatOfferings';
+import { RevenueCatOffering } from '../../../screens/upgrade/models/RevenueCatOffering';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../../../shared/ApiConstants';
-import { RevenueCatPlatform } from '../lib/RevenueCatPlatform';
+import { RevenueCatPlatform } from '../../../screens/upgrade/lib/RevenueCatPlatform';
 import { convertUsingMapper } from '../../../../../admin/crud/CrudFetcher';
 import {
   VariableStrategyProps,

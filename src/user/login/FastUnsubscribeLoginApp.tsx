@@ -12,7 +12,7 @@ import { useOauthProviderUrlsValueWithCallbacks } from './hooks/useOauthProvider
 import { ModalContext } from '../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
-import { ProvidersList } from '../core/features/login/components/ProvidersList';
+import { ProvidersList } from './components/ProvidersList';
 import { TextInput } from '../../shared/forms/TextInput';
 import { setVWC } from '../../shared/lib/setVWC';
 import { useWorkingModal } from '../../shared/hooks/useWorkingModal';

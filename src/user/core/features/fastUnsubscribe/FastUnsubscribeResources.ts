@@ -1,6 +1,6 @@
 import { ReactElement } from 'react';
 import { DailyReminders } from './FastUnsubscribeLoggedIn';
-import { ProvidersListItem } from '../login/components/ProvidersList';
+import { ProvidersListItem } from '../../../login/components/ProvidersList';
 
 export type FastUnsubscribeVariant = 'logged-in' | 'logged-out';
 

@@ -1,10 +1,10 @@
 import { ReactElement } from 'react';
 import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { Channel } from './RequestNotificationTimeState';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import styles from './ChannelSelector.module.css';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { ChannelIcon } from './ChannelIcon';
+import { Channel } from './lib/Channel';
 
 /**
  * Renders the specified channels with the given active channel highlighted.

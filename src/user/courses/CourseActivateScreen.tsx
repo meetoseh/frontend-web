@@ -19,7 +19,7 @@ import { OsehImageFromStateValueWithCallbacks } from '../../shared/images/OsehIm
 import { useStaleOsehImageOnSwap } from '../../shared/images/useStaleOsehImageOnSwap';
 import { OauthProvider } from '../login/lib/OauthProvider';
 import { useOauthProviderUrlsValueWithCallbacks } from '../login/hooks/useOauthProviderUrlsValueWithCallbacks';
-import { ProvidersList } from '../core/features/login/components/ProvidersList';
+import { ProvidersList } from '../login/components/ProvidersList';
 import { ModalContext } from '../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { setLoginRedirect } from '../login/lib/LoginRedirectStore';

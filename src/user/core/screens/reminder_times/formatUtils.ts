@@ -1,5 +1,5 @@
 import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
-import { Channel } from './RequestNotificationTimeState';
+import { Channel } from './lib/Channel';
 
 /**
  * Determines the appropriate display name for the given channel.

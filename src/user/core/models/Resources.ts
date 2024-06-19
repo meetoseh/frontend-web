@@ -29,9 +29,8 @@ import { ExternalCourse } from '../../series/lib/ExternalCourse';
 import { CourseJourneys } from '../../series/lib/createSeriesJourneysRequestHandler';
 import { CourseLikeState } from '../../series/lib/createSeriesLikeStateRequestHandler';
 import { SeriesListRequest } from '../../series/lib/createSeriesListRequestHandler';
-import { Identity } from '../features/settings/hooks/useIdentities';
-import { PurchasesStoreProduct } from '../features/upgrade/models/PurchasesStoreProduct';
-import { RevenueCatOffering } from '../features/upgrade/models/RevenueCatOffering';
+import { PurchasesStoreProduct } from '../screens/upgrade/models/PurchasesStoreProduct';
+import { RevenueCatOffering } from '../screens/upgrade/models/RevenueCatOffering';
 import {
   TouchLink,
   TouchLinkRequest,
@@ -55,6 +54,7 @@ import { MembershipUrl } from '../screens/membership/lib/createManageMembershipU
 import { OwnedListRequest } from '../screens/owned/lib/createOwnedListRequestHandler';
 import { ReminderChannelsInfo } from '../screens/reminder_times/lib/createReminderChannelsHandler';
 import { ReminderSettings } from '../screens/reminder_times/lib/createReminderSettingsHandler';
+import { Identity } from '../screens/settings/hooks/useIdentities';
 import {
   Entitlement,
   EntitlementRef,

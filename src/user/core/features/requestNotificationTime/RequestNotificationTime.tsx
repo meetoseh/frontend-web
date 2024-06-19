@@ -28,14 +28,14 @@ import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
-import { nameForChannel } from './formatUtils';
-import { ChannelSelector } from './ChannelSelector';
-import { TimeRange } from './EditTimeRange';
-import { EditReminderTime } from './EditReminderTime';
-import { DEFAULT_DAYS, DEFAULT_TIME_RANGE } from './constants';
+import { DEFAULT_DAYS, DEFAULT_TIME_RANGE } from '../../screens/reminder_times/constants';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { YesNoModal } from '../../../../shared/components/YesNoModal';
 import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
+import { TimeRange } from '../../screens/reminder_times/EditTimeRange';
+import { nameForChannel } from '../../screens/reminder_times/formatUtils';
+import { ChannelSelector } from '../../screens/reminder_times/ChannelSelector';
+import { EditReminderTime } from '../../screens/reminder_times/EditReminderTime';
 
 /**
  * Asks the user what times they want to receive notifications on various

@@ -16,7 +16,7 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { InterestsContext } from '../../../../shared/contexts/InterestsContext';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { IconButton } from '../../../../shared/forms/IconButton';
-import { ProvidersList } from '../login/components/ProvidersList';
+import { ProvidersList } from '../../../login/components/ProvidersList';
 
 /**
  * The component used for the logged out variant of the fast unsubscribe

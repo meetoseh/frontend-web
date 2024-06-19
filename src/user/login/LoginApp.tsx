@@ -8,7 +8,7 @@ import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImag
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../shared/contexts/ModalContext';
-import { ProvidersList } from '../core/features/login/components/ProvidersList';
+import { ProvidersList } from './components/ProvidersList';
 import { useFullHeight } from '../../shared/hooks/useFullHeight';
 import { useWritableValueWithCallbacks } from '../../shared/lib/Callbacks';
 import { OauthProvider } from './lib/OauthProvider';

@@ -3,7 +3,7 @@ import { useMappedValueWithCallbacks } from '../../../../../shared/hooks/useMapp
 import { ValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
 import { combineClasses } from '../../../../../shared/lib/combineClasses';
 import { StreakInfo } from '../../../../journey/models/StreakInfo';
-import { VisualGoal, VisualGoalState } from '../../../features/homeScreen/components/VisualGoal';
+import { VisualGoal, VisualGoalState } from './VisualGoal';
 import styles from './GoalPill.module.css';
 
 /**

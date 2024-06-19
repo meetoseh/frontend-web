@@ -8,7 +8,7 @@ import { RequestHandler, Result } from '../../../../../shared/requests/RequestHa
 import {
   PurchasesStoreProduct,
   purchasesStoreProductKeyMap,
-} from '../../../features/upgrade/models/PurchasesStoreProduct';
+} from '../models/PurchasesStoreProduct';
 
 export type OfferingPriceRef = {
   user: LoginContextValueLoggedIn;

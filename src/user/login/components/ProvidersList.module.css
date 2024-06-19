@@ -1,5 +1,5 @@
 .iconGoogle {
-  composes: icon from '../../../../../shared/icons.module.css';
+  composes: icon from '../../../shared/icons.module.css';
   width: 18px;
   height: 19px;
   background-image: url('../icons/google.svg');
@@ -9,7 +9,7 @@
 }
 
 .iconSignInWithApple {
-  composes: icon from '../../../../../shared/icons.module.css';
+  composes: icon from '../../../shared/icons.module.css';
   width: 18px;
   height: 19px;
   background-image: url('../icons/apple.svg');
@@ -20,7 +20,7 @@
 
 .iconDirect,
 .iconDev {
-  composes: icon from '../../../../../shared/icons.module.css';
+  composes: icon from '../../../shared/icons.module.css';
   width: 20px;
   height: 18px;
   background-image: url('../icons/email.svg');

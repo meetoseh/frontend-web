@@ -1,4 +1,4 @@
-import { Channel } from '../RequestNotificationTimeState';
+import { Channel } from '../lib/Channel';
 import { PartialEmailIcon } from './PartialEmailIcon';
 import { PartialIconProps } from './PartialIconProps';
 import { PartialPhoneIcon } from './PartialPhoneIcon';

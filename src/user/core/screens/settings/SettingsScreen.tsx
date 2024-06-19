@@ -4,13 +4,13 @@ import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbac
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RequestResult } from '../../../../shared/requests/RequestHandler';
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
-import { Identity } from '../../features/settings/hooks/useIdentities';
 import { createLoginContextRequest } from '../../lib/createLoginContextRequest';
 import { createMappedLoginContextRequest } from '../../lib/createMappedLoginContextRequest';
 import { OsehScreen } from '../../models/Screen';
 import { Settings } from './Settings';
 import { SettingsAPIParams, SettingsMappedParams, settingsParamsKeyMap } from './SettingsParams';
 import { SettingsResources } from './SettingsResources';
+import { Identity } from './hooks/useIdentities';
 import { Entitlement } from './lib/createEntitlementRequestHandler';
 
 /**

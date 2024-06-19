@@ -20,12 +20,12 @@ import { RenderGuardedComponent } from '../../../../shared/components/RenderGuar
 import { ErrorBlock, describeError } from '../../../../shared/forms/ErrorBlock';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
-import { RevenueCatPackage } from './models/RevenueCatPackage';
-import { PurchasesStoreProduct } from './models/PurchasesStoreProduct';
+import { RevenueCatPackage } from '../../screens/upgrade/models/RevenueCatPackage';
+import { PurchasesStoreProduct } from '../../screens/upgrade/models/PurchasesStoreProduct';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { Button } from '../../../../shared/forms/Button';
 import { useStartSession } from '../../../../shared/hooks/useInappNotificationSession';
-import { RevenueCatPlatform } from './lib/RevenueCatPlatform';
+import { RevenueCatPlatform } from '../../screens/upgrade/lib/RevenueCatPlatform';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { apiFetch } from '../../../../shared/ApiConstants';

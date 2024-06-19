@@ -3,7 +3,7 @@ import { getJwtExpiration } from '../../../../../shared/lib/getJwtExpiration';
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { createGetDataFromRefUsingSignal } from '../../../../../shared/images/createGetDataFromRefUsingSignal';
 import { LoginContextValueLoggedIn } from '../../../../../shared/contexts/LoginContext';
-import { Identity } from '../../../features/settings/hooks/useIdentities';
+import { Identity } from '../hooks/useIdentities';
 
 /**
  * Creates a request handler for the identities the user can use to login

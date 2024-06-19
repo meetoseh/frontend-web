@@ -3,7 +3,7 @@ import { UseRevenueCatOfferingsResult } from './useRevenueCatOfferings';
 import {
   PurchasesStoreProduct,
   purchasesStoreProductKeyMap,
-} from '../models/PurchasesStoreProduct';
+} from '../../../screens/upgrade/models/PurchasesStoreProduct';
 import {
   Callbacks,
   ValueWithCallbacks,

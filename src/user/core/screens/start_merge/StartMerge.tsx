@@ -16,7 +16,7 @@ import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { StartMergeResources } from './StartMergeResources';
 import { StartMergeMappedParams } from './StartMergeParams';
-import { ProvidersList, ProvidersListItem } from '../../features/login/components/ProvidersList';
+import { ProvidersList, ProvidersListItem } from '../../../login/components/ProvidersList';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 
 /**

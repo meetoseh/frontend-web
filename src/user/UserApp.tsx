@@ -13,7 +13,7 @@ import { setVWC } from '../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../shared/hooks/useMappedValuesWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../shared/hooks/useValuesWithCallbacksEffect';
 import { useValueWithCallbacksEffect } from '../shared/hooks/useValueWithCallbacksEffect';
-import { usePurchaseSuccessfulModal } from './core/features/upgrade/hooks/usePurchaseSuccessfulModal';
+import { usePurchaseSuccessfulModal } from './core/screens/upgrade/hooks/usePurchaseSuccessfulModal';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 
 export default function UserApp(): ReactElement {

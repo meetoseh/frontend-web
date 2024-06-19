@@ -18,8 +18,9 @@ import { SlideInModal } from '../../../../shared/components/SlideInModal';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { EditDays } from './EditDays';
 import { makeDaysOfWeekPretty, makeTimeRangePretty, nameForChannel } from './formatUtils';
-import { Channel } from './RequestNotificationTimeState';
+import { Channel } from './lib/Channel';
 import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
+import { RightCaret } from '../fork/icons/RightCaret';
 
 export type EditReminderTimeProps = {
   /**
@@ -286,6 +287,7 @@ export const EditReminderTime = ({
               )}
             />
           </span>
+          <RightCaret />
         </button>
         <button
           type="button"
@@ -319,6 +321,7 @@ export const EditReminderTime = ({
               )}
             />
           </span>
+          <RightCaret />
         </button>
       </div>
     </div>

@@ -3,7 +3,6 @@ import {
   ValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
-import { Channel } from './RequestNotificationTimeState';
 import { useAnimatedValueWithCallbacks } from '../../../../shared/anim/useAnimatedValueWithCallbacks';
 import {
   BezierAnimator,
@@ -18,6 +17,7 @@ import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWi
 import styles from './ChannelIcon.module.css';
 import { PartialIconForChannel } from './partialIcons/PartialIconForChannel';
 import { nameForChannel } from './formatUtils';
+import { Channel } from './lib/Channel';
 
 /**
  * The configurable properties when rendering an icon for a channel.

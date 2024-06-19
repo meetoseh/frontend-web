@@ -15,7 +15,7 @@ import { useOauthProviderUrlsValueWithCallbacks } from '../../../login/hooks/use
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
-import { ProvidersList } from '../login/components/ProvidersList';
+import { ProvidersList } from '../../../login/components/ProvidersList';
 
 const backgroundUid = 'oseh_if_sqEZCjA1sP6vaIrzz5Lvsw';
 

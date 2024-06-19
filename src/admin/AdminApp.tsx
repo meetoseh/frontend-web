@@ -15,7 +15,6 @@ import { Journeys } from './journeys/Journeys';
 import { JourneySubcategories } from './journeys/subcategories/JourneySubcategories';
 import { ModalProvider } from '../shared/contexts/ModalContext';
 import { IntroductoryJourneys } from './journeys/intros/IntroductoryJourneys';
-import { VipChatRequests } from './vip_chat_requests/VipChatRequests';
 import { Users } from './users/Users';
 import { BigUser } from './users/big/BigUser';
 import { useOsehImageStateRequestHandler } from '../shared/images/useOsehImageStateRequestHandler';
@@ -50,7 +49,6 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="journeys/intro" element={<IntroductoryJourneys />} />
       <Route path="users" element={<Users />} />
       <Route path="user" element={<BigUser />} />
-      <Route path="vip_chat_requests" element={<VipChatRequests />} />
       <Route path="sharing_dashboard" element={<AdminSharingDashboard />} />
       <Route path="notifs_dashboard" element={<AdminNotifsDashboard />} />
       <Route path="sms_dashboard" element={<AdminSMSDashboard />} />

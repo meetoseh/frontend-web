@@ -1,7 +1,7 @@
 import { OsehImageExportCropped } from '../../../../shared/images/OsehImageExportCropped';
 import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { PurchasesStoreProduct } from '../../features/upgrade/models/PurchasesStoreProduct';
-import { RevenueCatOffering } from '../../features/upgrade/models/RevenueCatOffering';
+import { PurchasesStoreProduct } from './models/PurchasesStoreProduct';
+import { RevenueCatOffering } from './models/RevenueCatOffering';
 import { ScreenResources } from '../../models/Screen';
 
 export type UpgradeResources = ScreenResources & {

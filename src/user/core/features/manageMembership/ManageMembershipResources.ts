@@ -1,5 +1,5 @@
 import { ReactElement } from 'react';
-import { Period } from '../upgrade/models/PurchasesStoreProduct';
+import { Period } from '../../screens/upgrade/models/PurchasesStoreProduct';
 
 export type MMRecurrenceRecurring = {
   type: 'recurring';

@@ -23,7 +23,6 @@ import { InterestsAutoProvider } from './shared/contexts/InterestsContext';
 import { AnxietyLanding } from './user/landing/AnxietyLanding';
 import { ModalProvider } from './shared/contexts/ModalContext';
 import { ClearCache } from './user/connectivity/ClearCache';
-import { DebugFeatures } from './dbg/features/DebugFeatures';
 import { getLoginRedirect, setLoginRedirect } from './user/login/lib/LoginRedirectStore';
 import UserScreensApp from './user/UserScreensApp';
 
@@ -232,7 +231,6 @@ function App() {
         <Route path="/l/*" element={stdApp} />
         <Route path="/a/*" element={stdApp} />
         <Route path="/clear" element={<ClearCache />} />
-        <Route path="/debug-features" element={<DebugFeatures />} />
       </Routes>
     </BrowserRouter>
   );

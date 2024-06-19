@@ -4,7 +4,7 @@ import {
   WritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
-import { ProvidersListItem } from '../../core/features/login/components/ProvidersList';
+import { ProvidersListItem } from '../components/ProvidersList';
 import { OauthProvider } from '../lib/OauthProvider';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../shared/lib/setVWC';

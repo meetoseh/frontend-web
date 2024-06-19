@@ -24,16 +24,13 @@ import {
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
 import { screenOut } from '../../lib/screenOut';
-import { ChannelSelector } from '../../features/requestNotificationTime/ChannelSelector';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { Channel } from './lib/Channel';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import styles from './ReminderTimes.module.css';
-import { EditReminderTime } from '../../features/requestNotificationTime/EditReminderTime';
-import { TimeRange } from '../../features/requestNotificationTime/EditTimeRange';
 import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
-import { DEFAULT_DAYS, DEFAULT_TIME_RANGE } from '../../features/requestNotificationTime/constants';
+import { DEFAULT_DAYS, DEFAULT_TIME_RANGE } from './constants';
 import { Button } from '../../../../shared/forms/Button';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { Back } from '../../../../shared/components/icons/Back';
@@ -46,6 +43,9 @@ import { screenWithWorking } from '../../lib/screenWithWorking';
 import { showYesNoModal } from '../../../../shared/lib/showYesNoModal';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useWorkingModal } from '../../../../shared/hooks/useWorkingModal';
+import { ChannelSelector } from './ChannelSelector';
+import { TimeRange } from './EditTimeRange';
+import { EditReminderTime } from './EditReminderTime';
 
 /**
  * Allows the user to update their notification settings

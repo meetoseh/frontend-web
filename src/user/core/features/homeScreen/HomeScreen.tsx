@@ -21,7 +21,7 @@ import { useWindowSizeValueWithCallbacks } from '../../../../shared/hooks/useWin
 import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { DAYS_OF_WEEK } from '../../../../shared/models/DayOfWeek';
-import { VisualGoal, VisualGoalState } from './components/VisualGoal';
+import { VisualGoal, VisualGoalState } from '../../screens/home/components/VisualGoal';
 import { useAnimationTargetAndRendered } from '../../../../shared/anim/useAnimationTargetAndRendered';
 import { ease } from '../../../../shared/lib/Bezier';
 import { BezierAnimator, TrivialAnimator } from '../../../../shared/anim/AnimationLoop';

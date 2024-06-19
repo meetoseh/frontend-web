@@ -75,13 +75,6 @@ export const AdminNavDesktopSideContent = ({
             active={currentPath === '/admin/journeys/intro'}
           />
           <AdminNavDesktopSideLink
-            iconClass={styles.iconVIPChatRequests}
-            text="VIP Chat Requests"
-            url="/admin/vip_chat_requests"
-            active={currentPath === '/admin/vip_chat_requests'}
-            padTextTop={4}
-          />
-          <AdminNavDesktopSideLink
             iconClass={styles.iconSharing}
             text="Sharing"
             url="/admin/sharing_dashboard"

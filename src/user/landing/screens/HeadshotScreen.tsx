@@ -4,7 +4,7 @@ import styles from './HeadshotScreen.module.css';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { useOauthProviderUrlsValueWithCallbacks } from '../../login/hooks/useOauthProviderUrlsValueWithCallbacks';
 import { useWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
-import { ProvidersList } from '../../core/features/login/components/ProvidersList';
+import { ProvidersList } from '../../login/components/ProvidersList';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';

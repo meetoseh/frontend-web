@@ -1,9 +1,9 @@
 import { ReactElement, useMemo } from 'react';
-import { OauthProvider } from '../../../../login/lib/OauthProvider';
+import { OauthProvider } from '../lib/OauthProvider';
 import {
   ButtonWithIcon,
   ButtonsWithIconsColumn,
-} from '../../../../../shared/components/ButtonsWithIconsColumn';
+} from '../../../shared/components/ButtonsWithIconsColumn';
 import styles from './ProvidersList.module.css';
 
 /**
