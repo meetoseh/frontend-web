@@ -170,6 +170,37 @@ export const SeriesDetails = ({
               </Fragment>
             );
           })}
+
+        {screen.parameters.buttons.rewatchIntro !== null && (
+          <>
+            <VerticalSpacer height={40} />
+            <Button
+              type="button"
+              variant="outlined-white"
+              onClick={(e) => {
+                e.preventDefault();
+                const cta = screen.parameters.buttons.rewatchIntro;
+                if (cta === null) {
+                  return;
+                }
+
+                screenOut(workingVWC, startPop, transition, cta.exit, cta.trigger, {
+                  beforeDone: async () => {
+                    trace({ type: 'rewatch_intro' });
+                  },
+                  endpoint: '/api/1/users/me/screens/pop_to_series',
+                  parameters: {
+                    series: {
+                      uid: screen.parameters.series.uid,
+                      jwt: screen.parameters.series.jwt,
+                    },
+                  },
+                });
+              }}>
+              Watch Introduction
+            </Button>
+          </>
+        )}
         <VerticalSpacer height={24} />
       </GridContentContainer>
     </GridFullscreenContainer>
