@@ -772,6 +772,8 @@ const Content = ({
             [ClientFlowScreenFlag.SHOWS_ON_IOS, 'Shows on iOS'],
             [ClientFlowScreenFlag.SHOWS_ON_ANDROID, 'Shows on Android'],
             [ClientFlowScreenFlag.SHOWS_ON_WEB, 'Shows on Web'],
+            [ClientFlowScreenFlag.SHOWS_FOR_FREE, 'Shows if no Oseh+'],
+            [ClientFlowScreenFlag.SHOWS_FOR_PRO, 'Shows if Oseh+'],
           ] as const
         ).map(([flag, label], idx) => (
           <Fragment key={flag}>

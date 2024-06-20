@@ -78,6 +78,7 @@ export const ClientFlowPicker = ({
       setSelected={setSelected}
       disabled={disabled ?? false}
       variant="up"
+      limit={5}
     />
   );
 };

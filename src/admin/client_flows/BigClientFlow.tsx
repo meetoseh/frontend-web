@@ -485,34 +485,49 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
         <div className={styles.screens}>
           <div className={styles.screensTitle}>Screens</div>
           <RenderGuardedComponent
-            props={useMappedValueWithCallbacks(downgradeTypedVWC(screensFastTWVWC), (screens) =>
-              screens.some(
+            props={useMappedValueWithCallbacks(downgradeTypedVWC(screensFastTWVWC), (screens) => ({
+              platforms: screens.some(
                 (s) =>
-                  s.flags !==
+                  (s.flags &
+                    (ClientFlowScreenFlag.SHOWS_ON_IOS |
+                      ClientFlowScreenFlag.SHOWS_ON_ANDROID |
+                      ClientFlowScreenFlag.SHOWS_ON_WEB)) !==
                   (ClientFlowScreenFlag.SHOWS_ON_IOS |
                     ClientFlowScreenFlag.SHOWS_ON_ANDROID |
                     ClientFlowScreenFlag.SHOWS_ON_WEB)
-              )
-            )}
-            component={(includingFlags) => (
+              ),
+              proStatus: screens.some(
+                (s) =>
+                  (s.flags &
+                    (ClientFlowScreenFlag.SHOWS_FOR_FREE | ClientFlowScreenFlag.SHOWS_FOR_PRO)) !=
+                  (ClientFlowScreenFlag.SHOWS_FOR_FREE | ClientFlowScreenFlag.SHOWS_FOR_PRO)
+              ),
+            }))}
+            component={({ platforms, proStatus }) => (
               <DraggableTable
-                key={includingFlags ? 1 : 0}
+                key={(platforms ? 1 : 0) | (proStatus ? 2 : 0)}
                 thead={
                   <thead>
                     <tr>
                       <th scope="col">Name</th>
-                      {includingFlags && (
+                      {platforms && (
                         <>
                           <th scope="col">iOS</th>
                           <th scope="col">Android</th>
                           <th scope="col">Web</th>
                         </>
                       )}
+                      {proStatus && (
+                        <>
+                          <th scope="col">Free</th>
+                          <th scope="col">Pro</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                 }
                 items={screensFastTWVWC}
-                render={renderScreenRow.bind(undefined, includingFlags)}
+                render={renderScreenRow.bind(undefined, platforms, proStatus)}
                 keyFn={screenKeyFn}
                 onExpandRow={async (item) => {
                   const index = screensFastTWVWC
@@ -577,7 +592,9 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                 flags:
                   ClientFlowScreenFlag.SHOWS_ON_IOS |
                   ClientFlowScreenFlag.SHOWS_ON_ANDROID |
-                  ClientFlowScreenFlag.SHOWS_ON_WEB,
+                  ClientFlowScreenFlag.SHOWS_ON_WEB |
+                  ClientFlowScreenFlag.SHOWS_FOR_FREE |
+                  ClientFlowScreenFlag.SHOWS_FOR_PRO,
               };
               screensFastTWVWC.get().push(newScreen);
               screensFastTWVWC.callbacks.call({
@@ -792,17 +809,27 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
   );
 };
 
-const renderScreenRow = (includingFlags: boolean, item: ClientFlowScreen): ReactElement => {
+const renderScreenRow = (
+  platforms: boolean,
+  proStatus: boolean,
+  item: ClientFlowScreen
+): ReactElement => {
   const yes = '✓';
   const no = '✗';
   return (
     <>
       <td>{item.name ?? item.screen.slug}</td>
-      {includingFlags && (
+      {platforms && (
         <>
           <td>{(item.flags & ClientFlowScreenFlag.SHOWS_ON_IOS) !== 0 ? yes : no}</td>
           <td>{(item.flags & ClientFlowScreenFlag.SHOWS_ON_ANDROID) !== 0 ? yes : no}</td>
           <td>{(item.flags & ClientFlowScreenFlag.SHOWS_ON_WEB) !== 0 ? yes : no}</td>
+        </>
+      )}
+      {proStatus && (
+        <>
+          <td>{(item.flags & ClientFlowScreenFlag.SHOWS_FOR_FREE) !== 0 ? yes : no}</td>
+          <td>{(item.flags & ClientFlowScreenFlag.SHOWS_FOR_PRO) !== 0 ? yes : no}</td>
         </>
       )}
     </>

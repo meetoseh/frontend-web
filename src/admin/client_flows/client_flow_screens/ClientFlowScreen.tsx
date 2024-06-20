@@ -177,6 +177,12 @@ export enum ClientFlowScreenFlag {
 
   /** If unset, the screen should be skipped at peek time on the web platform */
   SHOWS_ON_WEB = 1 << 2,
+
+  /** If unset, the screen should be skipped if the user does not have Oseh+ */
+  SHOWS_FOR_FREE = 1 << 3,
+
+  /** If unset, the screen should be skipped if the user has Oseh+ */
+  SHOWS_FOR_PRO = 1 << 4,
 }
 
 export type ClientFlowScreen = {

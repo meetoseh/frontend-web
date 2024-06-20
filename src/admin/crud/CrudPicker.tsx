@@ -68,6 +68,11 @@ type CrudPickerProps<T> = {
    * @default 'down'
    */
   variant?: 'down' | 'up';
+
+  /**
+   * Maximum number of items to show
+   */
+  limit?: number;
 };
 
 /**
@@ -86,6 +91,7 @@ export function CrudPicker<T extends { uid: string }>({
   disabled = false,
   doFocus = null,
   variant = 'down',
+  limit = 10,
 }: CrudPickerProps<T>): ReactElement {
   const loginContextRaw = useContext(LoginContext);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -146,7 +152,7 @@ export function CrudPicker<T extends { uid: string }>({
           const fetchCanceller = fetcher.resetAndLoadWithCancelCallback(
             filterMaker(query),
             sort,
-            10,
+            limit,
             loginContext,
             async (e) => {
               if (!active) {
