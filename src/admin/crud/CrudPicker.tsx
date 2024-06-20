@@ -175,7 +175,7 @@ export function CrudPicker<T extends { uid: string }>({
           bonusCancellers.push(fetchCanceller);
         }
       },
-      [query, disabled, fetcher, filterMaker, sort]
+      [query, disabled, fetcher, filterMaker, sort, limit]
     )
   );
 

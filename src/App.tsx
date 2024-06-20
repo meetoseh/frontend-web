@@ -1,6 +1,5 @@
 import './shared/icons.module.css';
 import './shared/buttons.module.css';
-import UserApp from './user/UserApp';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AdminApp, AdminRoutes } from './admin/AdminApp';
 import { useEffect, useRef, useState } from 'react';
@@ -98,13 +97,12 @@ function App() {
     return <SplashScreen type="wordmark" />;
   }
 
-  const stdApp = process.env.REACT_APP_ENVIRONMENT === 'dev' ? <UserScreensApp /> : <UserApp />;
+  const stdApp = <UserScreensApp />;
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={stdApp} />
-        <Route path="/newapp" element={<UserScreensApp />} />
         <Route path="/upgrade" element={stdApp} />
         <Route path="/settings" element={stdApp} />
         <Route path="/settings/manage-membership" element={stdApp} />

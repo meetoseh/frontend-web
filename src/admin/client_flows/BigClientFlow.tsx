@@ -499,7 +499,7 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
               proStatus: screens.some(
                 (s) =>
                   (s.flags &
-                    (ClientFlowScreenFlag.SHOWS_FOR_FREE | ClientFlowScreenFlag.SHOWS_FOR_PRO)) !=
+                    (ClientFlowScreenFlag.SHOWS_FOR_FREE | ClientFlowScreenFlag.SHOWS_FOR_PRO)) !==
                   (ClientFlowScreenFlag.SHOWS_FOR_FREE | ClientFlowScreenFlag.SHOWS_FOR_PRO)
               ),
             }))}
