@@ -21,10 +21,21 @@ import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestRe
 import { PurchasesStoreProduct } from './models/PurchasesStoreProduct';
 import { RevenueCatOffering } from './models/RevenueCatOffering';
 import { OsehScreen } from '../../models/Screen';
-import { screenImageKeyMap } from '../../models/ScreenImage';
+import { ScreenImageParsed, screenImageKeyMap } from '../../models/ScreenImage';
 import { Upgrade } from './Upgrade';
-import { UpgradeAPIParams, UpgradeMappedParams } from './UpgradeParams';
+import { UpgradeAPIParams, UpgradeCopy, UpgradeMappedParams } from './UpgradeParams';
 import { UpgradeResources } from './UpgradeResources';
+import { ParsedPeriod, extractTrialLength } from './lib/purchasesStoreProductHelper';
+
+type Copy = UpgradeCopy<ScreenImageParsed>;
+const LOADING_UPGRADE_COPY: Copy = {
+  header: 'Your offer is loading...',
+  image: null,
+  body: {
+    type: 'checklist',
+    items: ['Loading...', 'Loading...', 'Loading...'],
+  },
+};
 
 /**
  * Upgrade screen with back button and custom message. Skips immediately
@@ -54,93 +65,6 @@ export const UpgradeScreen: OsehScreen<
     const [imageSizeDebouncedVWC, cleanupImageSizeDebounced] = createDelayedValueWithCallbacks(
       imageSizeImmediateVWC,
       100
-    );
-
-    const getPlaylist = () =>
-      ctx.resources.privatePlaylistHandler.request({
-        ref: { uid: screen.parameters.image.uid, jwt: screen.parameters.image.jwt },
-        refreshRef: (): CancelablePromise<Result<OsehImageRef>> => {
-          if (!activeVWC.get()) {
-            return {
-              promise: Promise.resolve({
-                type: 'expired',
-                data: undefined,
-                error: <>Screen is not mounted</>,
-                retryAt: undefined,
-              }),
-              done: () => true,
-              cancel: () => {},
-            };
-          }
-
-          return mapCancelable(
-            refreshScreen(),
-            (s): Result<OsehImageRef> =>
-              s.type !== 'success'
-                ? s
-                : {
-                    type: 'success',
-                    data: { uid: s.data.parameters.image.uid, jwt: s.data.parameters.image.jwt },
-                    error: undefined,
-                    retryAt: undefined,
-                  }
-          );
-        },
-      });
-
-    const getExport = () =>
-      createChainedRequest(getPlaylist, ctx.resources.imageDataHandler, {
-        sync: (playlist) =>
-          getPlaylistImageExportRefUsingFixedSize({
-            size: {
-              displayWidth: imageSizeImmediateVWC.get().width,
-              displayHeight: imageSizeImmediateVWC.get().height,
-            },
-            playlist,
-            usesWebp: ctx.usesWebp,
-            usesSvg: ctx.usesSvg,
-          }),
-        async: undefined,
-        cancelable: undefined,
-      });
-
-    const getExportCropped = () =>
-      createChainedRequest(getExport, ctx.resources.imageCropHandler, {
-        sync: (exp) => ({
-          export: exp,
-          cropTo: {
-            displayWidth: imageSizeImmediateVWC.get().width,
-            displayHeight: imageSizeImmediateVWC.get().height,
-          } as DisplaySize,
-        }),
-        async: undefined,
-        cancelable: undefined,
-      });
-
-    const imageVWC = createWritableValueWithCallbacks<RequestResult<OsehImageExportCropped> | null>(
-      null
-    );
-    const cleanupImageRequester = createValueWithCallbacksEffect(
-      imageSizeDebouncedVWC,
-      () => {
-        const req = getExportCropped();
-        setVWC(imageVWC, req);
-        return () => {
-          req.release();
-          if (Object.is(imageVWC.get(), req)) {
-            setVWC(imageVWC, null);
-          }
-        };
-      },
-      {
-        applyBeforeCancel: true,
-      }
-    );
-
-    const [imageUnwrappedVWC, cleanupImageUnwrapper] = unwrapRequestResult(
-      imageVWC,
-      (d) => d.data,
-      () => null
     );
 
     const offeringVWC = createWritableValueWithCallbacks<RequestResult<RevenueCatOffering> | null>(
@@ -262,8 +186,191 @@ export const UpgradeScreen: OsehScreen<
       return () => cleanup.forEach((c) => c());
     });
 
+    const activePackageIdxVWC = createWritableValueWithCallbacks<number>(0);
+    const cleanupActivePackageFixer = createValueWithCallbacksEffect(
+      offeringUnwrappedVWC,
+      (offer) => {
+        const activePackageIdx = activePackageIdxVWC.get();
+        if (offer === null || offer === undefined || offer.packages.length <= activePackageIdx) {
+          setVWC(activePackageIdxVWC, 0);
+        }
+        return undefined;
+      }
+    );
+
+    const trialLengthVWC = createWritableValueWithCallbacks<ParsedPeriod | null>(null);
+    const copyVWC = createWritableValueWithCallbacks<Copy>(
+      Object.assign({}, LOADING_UPGRADE_COPY, { header: 'uninitd' })
+    );
+
+    const cleanupTrialAndCopyExtractor = createValuesWithCallbacksEffect(
+      [offeringUnwrappedVWC, pricesUnwrappedVWC, activePackageIdxVWC],
+      () => {
+        const offer = offeringUnwrappedVWC.get();
+        const prices = pricesUnwrappedVWC.get();
+
+        if (offer === null) {
+          trialLengthVWC.set(null);
+          setVWC(copyVWC, LOADING_UPGRADE_COPY, Object.is);
+          trialLengthVWC.callbacks.call(undefined);
+          return undefined;
+        }
+
+        const activePackage = offer.packages[activePackageIdxVWC.get()];
+        if (activePackage === undefined) {
+          trialLengthVWC.set(null);
+          setVWC(copyVWC, LOADING_UPGRADE_COPY, Object.is);
+          trialLengthVWC.callbacks.call(undefined);
+          return undefined;
+        }
+
+        const priceVWC = prices.get(activePackage.platformProductIdentifier);
+        if (priceVWC === undefined) {
+          trialLengthVWC.set(null);
+          setVWC(copyVWC, LOADING_UPGRADE_COPY, Object.is);
+          trialLengthVWC.callbacks.call(undefined);
+          return undefined;
+        }
+
+        return createValueWithCallbacksEffect(priceVWC, (price) => {
+          if (price === null) {
+            trialLengthVWC.set(null);
+            setVWC(copyVWC, LOADING_UPGRADE_COPY, Object.is);
+            trialLengthVWC.callbacks.call(undefined);
+            return undefined;
+          }
+
+          const trial = extractTrialLength(price);
+          trialLengthVWC.set(trial);
+          setVWC(
+            copyVWC,
+            trial === null
+              ? screen.parameters.immediate
+              : trial.unit === 'd' && trial.count === 7
+              ? screen.parameters.trial.days7
+              : screen.parameters.trial.default,
+            Object.is
+          );
+          trialLengthVWC.callbacks.call(undefined);
+          return undefined;
+        });
+      }
+    );
+
+    const getPlaylist = () =>
+      ctx.resources.privatePlaylistHandler.request({
+        ref: copyVWC.get().image,
+        refreshRef: (): CancelablePromise<Result<OsehImageRef>> => {
+          if (!activeVWC.get()) {
+            return {
+              promise: Promise.resolve({
+                type: 'expired',
+                data: undefined,
+                error: <>Screen is not mounted</>,
+                retryAt: undefined,
+              }),
+              done: () => true,
+              cancel: () => {},
+            };
+          }
+
+          return mapCancelable(refreshScreen(), (s): Result<OsehImageRef> => {
+            if (s.type !== 'success') {
+              return s;
+            }
+
+            const screen = s.data;
+            const raw = (() => {
+              const trial = trialLengthVWC.get();
+              if (trial === null || trial.count === 0) {
+                return screen.parameters.immediate.image;
+              }
+
+              if (trial.unit === 'd' && trial.count === 7) {
+                return screen.parameters.trial.days7.image;
+              }
+              return screen.parameters.trial.default.image;
+            })();
+
+            if (raw === null) {
+              return {
+                type: 'error',
+                data: undefined,
+                error: <>No longer needed</>,
+                retryAt: undefined,
+              };
+            }
+
+            return {
+              type: 'success',
+              data: raw,
+              error: undefined,
+              retryAt: undefined,
+            };
+          });
+        },
+      });
+    const getExport = () =>
+      createChainedRequest(getPlaylist, ctx.resources.imageDataHandler, {
+        sync: (playlist) =>
+          getPlaylistImageExportRefUsingFixedSize({
+            size: {
+              displayWidth: imageSizeImmediateVWC.get().width,
+              displayHeight: imageSizeImmediateVWC.get().height,
+            },
+            playlist,
+            usesWebp: ctx.usesWebp,
+            usesSvg: ctx.usesSvg,
+          }),
+        async: undefined,
+        cancelable: undefined,
+      });
+    const getExportCropped = () =>
+      createChainedRequest(getExport, ctx.resources.imageCropHandler, {
+        sync: (exp) => ({
+          export: exp,
+          cropTo: {
+            displayWidth: imageSizeImmediateVWC.get().width,
+            displayHeight: imageSizeImmediateVWC.get().height,
+          } as DisplaySize,
+        }),
+        async: undefined,
+        cancelable: undefined,
+      });
+
+    const imageVWC = createWritableValueWithCallbacks<RequestResult<OsehImageExportCropped> | null>(
+      null
+    );
+    const cleanupImageRequester = createValuesWithCallbacksEffect(
+      [copyVWC, imageSizeDebouncedVWC],
+      () => {
+        const copy = copyVWC.get();
+        if (copy.image === null) {
+          return undefined;
+        }
+
+        const req = getExportCropped();
+        setVWC(imageVWC, req);
+        return () => {
+          req.release();
+          if (Object.is(imageVWC.get(), req)) {
+            setVWC(imageVWC, null);
+          }
+        };
+      }
+    );
+
+    const [imageUnwrappedVWC, cleanupImageUnwrapper] = unwrapRequestResult(
+      imageVWC,
+      (d) => d.data,
+      () => null
+    );
+
     return {
       ready: createWritableValueWithCallbacks(true),
+      activePackageIdx: activePackageIdxVWC,
+      copy: copyVWC,
+      trial: trialLengthVWC,
       imageSizeImmediate: imageSizeImmediateVWC,
       image: imageUnwrappedVWC,
       offering: offeringUnwrappedVWC,
@@ -273,13 +380,15 @@ export const UpgradeScreen: OsehScreen<
         setVWC(activeVWC, false);
         cleanupImageSizeImmediate();
         cleanupImageSizeDebounced();
-        cleanupImageRequester();
-        cleanupImageUnwrapper();
         cleanupOfferingRequester();
         cleanupOfferingUnwrapper();
         cleanupShouldSkipEffect();
         cleanupPricesEffect();
         cleanupPricesUnwrapperEffect();
+        cleanupActivePackageFixer();
+        cleanupTrialAndCopyExtractor();
+        cleanupImageRequester();
+        cleanupImageUnwrapper();
       },
     };
   },

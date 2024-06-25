@@ -2,24 +2,13 @@
   grid-area: 1 / 1 / -1 / -1;
   background: linear-gradient(180deg, rgba(1, 1, 1, 0) 0%, rgba(1, 1, 1, 1) 100%);
 }
-.top {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-}
 
 .back {
   composes: unstyled from '../../../../shared/buttons.module.css';
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.foreground {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  align-self: flex-start;
 }
 
 .header {
@@ -30,33 +19,56 @@
   color: white;
 }
 
-.valueProps {
+.checklistItem {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  flex-wrap: row nowrap;
   justify-content: flex-start;
-}
-
-.valueProp {
-  display: flex;
-  flex-flow: row nowrap;
   align-items: center;
-  justify-content: flex-start;
 }
 
-.valuePropIcon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-right: 12px;
-}
-
-.valuePropText {
+.checklistText {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-size: 17px;
-  line-height: 20px;
+  line-height: 20.4px;
   color: #eaeaeb;
+}
+
+.sequenceItem {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.sequenceIcon {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 20.4px;
+  color: #eaeaeb;
+}
+
+.sequenceText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.sequenceTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 20.4px;
+  color: #eaeaeb;
+}
+.sequenceBody {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #c8cdd0;
 }
 
 .offers {
@@ -121,6 +133,15 @@
 
 .offerActive .offerFrequency {
   color: #383838;
+}
+
+.oneOfferWithTrialInfo {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  text-align: center;
+  color: #eaeaeb;
 }
 
 .disclaimer {

@@ -77,6 +77,7 @@ if os.environ["ENVIRONMENT"] == "dev":
         if (
             raw_path.startswith("/shared")
             or raw_path.startswith("/s/")
+            or raw_path.startswith("/iab/")
             or raw_path
             in (
                 "/sitemap.xml",
