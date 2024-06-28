@@ -2,6 +2,7 @@ import { ReactElement } from 'react';
 import { TouchPointSchemaInputPropsTopLevel } from '../TouchPointSchemaInputProps';
 import { SchemaStandard } from '../../../lib/schema/multiple/SchemaStandard';
 import { TouchPointSchemaStringInput } from '../string/TouchPointSchemaStringInput';
+import { TouchPointSchemaImageInput } from '../string/TouchPointSchemaImageInput';
 
 /**
  * Fills in the values for a touch point email schema, as would be done when
@@ -28,6 +29,9 @@ export const TouchPointSchema = ({
   };
 
   if (schema.type === 'string') {
+    if (schema.format === 'x-image') {
+      return <TouchPointSchemaImageInput {...subprops} />;
+    }
     return <TouchPointSchemaStringInput {...subprops} />;
   }
 
