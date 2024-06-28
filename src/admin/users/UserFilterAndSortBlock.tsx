@@ -210,6 +210,44 @@ export const UserFilterAndSortBlock = ({
     [setFilter, createdAtStartDateInLocalTime, createdAtEndDateInLocalTime]
   );
 
+  const onCreatedAtStartDateChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.valueAsDate) {
+        const localeDate = isoDateStringToLocaleDate(e.target.value);
+        setFilter((oldFilter) => ({
+          ...oldFilter,
+          created_at: {
+            operator: 'bt',
+            value: [
+              localeDate.getTime() / 1000,
+              createdAtEndDateInLocalTime.getTime() / 1000 + 86400,
+            ],
+          },
+        }));
+      }
+    },
+    [setFilter, createdAtEndDateInLocalTime]
+  );
+
+  const onCreatedAtEndDateChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.valueAsDate) {
+        const localeDate = isoDateStringToLocaleDate(e.target.value);
+        setFilter((oldFilter) => ({
+          ...oldFilter,
+          created_at: {
+            operator: 'bt',
+            value: [
+              createdAtStartDateInLocalTime.getTime() / 1000,
+              localeDate.getTime() / 1000 + 86400,
+            ],
+          },
+        }));
+      }
+    },
+    [setFilter, createdAtStartDateInLocalTime]
+  );
+
   const [filteringUTM, utmSource, utmMedium, utmCampaign, utmTerm, utmContent] = useMemo<
     [boolean, string, string, string, string, string]
   >(() => {
@@ -309,42 +347,93 @@ export const UserFilterAndSortBlock = ({
     [setFilter, utmSource, utmMedium, utmCampaign, utmTerm, utmContent]
   );
 
-  const onCreatedAtStartDateChange = useCallback(
+  const [filteringLastSeenAt, lastSeenAtStartDateInLocalTime, lastSeenAtEndDateInLocalTime] =
+    useMemo<[boolean, Date, Date]>(() => {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      if (filter.last_seen_at === null || filter.last_seen_at === undefined) {
+        return [false, startOfDay, startOfDay];
+      }
+
+      if (filter.last_seen_at.operator !== 'bt') {
+        return [false, startOfDay, startOfDay];
+      }
+
+      if (filter.last_seen_at.value.length !== 2) {
+        return [false, startOfDay, startOfDay];
+      }
+
+      const date1 = new Date(filter.last_seen_at.value[0] * 1000);
+      const date2 = new Date((filter.last_seen_at.value[1] - 86400) * 1000);
+      if (isNaN(date1.getTime()) || isNaN(date2.getTime())) {
+        return [false, startOfDay, startOfDay];
+      }
+      return [true, date1, date2];
+    }, [filter.last_seen_at]);
+
+  const setLastSeenAtFilter = useCallback(
+    (checked: boolean) => {
+      setFilter((oldFilter) => {
+        if (checked) {
+          return {
+            ...oldFilter,
+            last_seen_at: {
+              operator: 'bt',
+              value: [
+                lastSeenAtStartDateInLocalTime.getTime() / 1000,
+                lastSeenAtEndDateInLocalTime.getTime() / 1000 + 86400,
+              ],
+            },
+          };
+        } else {
+          const res = { ...oldFilter };
+          if (res.last_seen_at !== undefined) {
+            delete res.last_seen_at;
+          }
+          return res;
+        }
+      });
+    },
+    [setFilter, lastSeenAtStartDateInLocalTime, lastSeenAtEndDateInLocalTime]
+  );
+
+  const onLastSeenAtStartDateChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.valueAsDate) {
         const localeDate = isoDateStringToLocaleDate(e.target.value);
         setFilter((oldFilter) => ({
           ...oldFilter,
-          created_at: {
+          last_seen_at: {
             operator: 'bt',
             value: [
               localeDate.getTime() / 1000,
-              createdAtEndDateInLocalTime.getTime() / 1000 + 86400,
+              lastSeenAtEndDateInLocalTime.getTime() / 1000 + 86400,
             ],
           },
         }));
       }
     },
-    [setFilter, createdAtEndDateInLocalTime]
+    [setFilter, lastSeenAtEndDateInLocalTime]
   );
 
-  const onCreatedAtEndDateChange = useCallback(
+  const onLastSeenAtEndDateChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.valueAsDate) {
         const localeDate = isoDateStringToLocaleDate(e.target.value);
         setFilter((oldFilter) => ({
           ...oldFilter,
-          created_at: {
+          last_seen_at: {
             operator: 'bt',
             value: [
-              createdAtStartDateInLocalTime.getTime() / 1000,
+              lastSeenAtStartDateInLocalTime.getTime() / 1000,
               localeDate.getTime() / 1000 + 86400,
             ],
           },
         }));
       }
     },
-    [setFilter, createdAtStartDateInLocalTime]
+    [setFilter, lastSeenAtStartDateInLocalTime]
   );
 
   return (
@@ -477,6 +566,30 @@ export const UserFilterAndSortBlock = ({
                 type="date"
                 value={dateToLocaleISODateString(createdAtEndDateInLocalTime)}
                 onChange={onCreatedAtEndDateChange}
+              />
+            </CrudFormElement>
+          </div>
+        </CrudFormElement>
+        <CrudFormElement title="Last Seen">
+          <Checkbox value={filteringLastSeenAt} setValue={setLastSeenAtFilter} label="Filter" />
+          <div
+            className={styles.fromToContainer}
+            style={filteringLastSeenAt ? undefined : { display: 'none' }}>
+            <CrudFormElement title="From">
+              <input
+                className={styles.dateInput}
+                type="date"
+                value={dateToLocaleISODateString(lastSeenAtStartDateInLocalTime)}
+                onChange={onLastSeenAtStartDateChange}
+              />
+            </CrudFormElement>
+
+            <CrudFormElement title="To">
+              <input
+                className={styles.dateInput}
+                type="date"
+                value={dateToLocaleISODateString(lastSeenAtEndDateInLocalTime)}
+                onChange={onLastSeenAtEndDateChange}
               />
             </CrudFormElement>
           </div>

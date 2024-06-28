@@ -1,7 +1,8 @@
 import { ReactElement, useContext, useEffect } from 'react';
-import { ModalContext } from '../../shared/contexts/ModalContext';
+import { ModalContext, addModalWithCallbackToRemove } from '../../shared/contexts/ModalContext';
 import {
   WritableValueWithTypedCallbacks,
+  createWritableValueWithCallbacks,
   downgradeTypedVWC,
   useWritableValueWithCallbacks,
 } from '../../shared/lib/Callbacks';
@@ -9,7 +10,7 @@ import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { ClientFlow, clientFlowKeyMap } from './ClientFlow';
 import { adaptActiveVWCToAbortSignal } from '../../shared/lib/adaptActiveVWCToAbortSignal';
 import { apiFetch } from '../../shared/ApiConstants';
-import { convertUsingMapper } from '../crud/CrudFetcher';
+import { CrudFetcherFilter, convertUsingMapper } from '../crud/CrudFetcher';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../shared/lib/setVWC';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
@@ -42,6 +43,16 @@ import { showClientFlowScreenEditor } from './client_flow_screens/showClientFlow
 import { describeError } from '../../shared/forms/ErrorBlock';
 import { showUserPicker } from '../users/showUserPicker';
 import { showTextInputModal } from '../../shared/components/showTextInputModal';
+import {
+  UserFilterAndSortBlock,
+  defaultFilter,
+  defaultSort,
+} from '../users/UserFilterAndSortBlock';
+import { adaptValueWithCallbacksAsSetState } from '../../shared/lib/adaptValueWithCallbacksAsSetState';
+import { createCancelablePromiseFromCallbacks } from '../../shared/lib/createCancelablePromiseFromCallbacks';
+import { ModalWrapper } from '../../shared/ModalWrapper';
+import { WorkingOverlay } from '../../shared/components/WorkingOverlay';
+import { VerticalSpacer } from '../../shared/components/VerticalSpacer';
 
 /**
  * Shows detailed information about a specific client flow specified by the slug in the URL
@@ -799,6 +810,117 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                   disabled={disabled}
                   spinner={spinner}>
                   Clone Flow
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  disabled={disabled}
+                  spinner={spinner}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    const loginContext = loginContextRaw.value.get();
+                    if (loginContext.state !== 'logged-in') {
+                      return;
+                    }
+                    setVWC(workingVWC, true);
+
+                    try {
+                      const filterVWC =
+                        createWritableValueWithCallbacks<CrudFetcherFilter>(defaultFilter);
+                      const confirmed = createWritableValueWithCallbacks(false);
+                      const cancelled = createWritableValueWithCallbacks(false);
+                      const confirmedCancelable = createCancelablePromiseFromCallbacks(
+                        confirmed.callbacks
+                      );
+                      confirmedCancelable.promise.catch(() => {});
+                      const cancelledCancelable = createCancelablePromiseFromCallbacks(
+                        cancelled.callbacks
+                      );
+                      cancelledCancelable.promise.catch(() => {});
+                      const removeModal = addModalWithCallbackToRemove(
+                        modalContext.modals,
+                        <ModalWrapper
+                          onClosed={() => {
+                            setVWC(cancelled, true);
+                          }}>
+                          <div style={{ padding: '24px', maxWidth: 'min(80vw, 600px)' }}>
+                            <p style={{ fontFamily: "'Open Sans', sans-serif" }}>
+                              Select the filters in the same way you filter users, then this will
+                              trigger this flow on everyone matching the filters. It will post
+                              progress to the #ops channel, and when done it will post to the
+                              #oseh-bot channel. Ignore the sort select, it will not be used.
+                            </p>
+                            <VerticalSpacer height={24} />
+                            <RenderGuardedComponent
+                              props={filterVWC}
+                              component={(filter) => (
+                                <UserFilterAndSortBlock
+                                  sort={defaultSort}
+                                  setSort={() => {}}
+                                  filter={filter}
+                                  setFilter={adaptValueWithCallbacksAsSetState(filterVWC)}
+                                />
+                              )}
+                            />
+                            <VerticalSpacer height={24} />
+                            <Button
+                              type="button"
+                              variant="outlined-danger"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setVWC(confirmed, true);
+                              }}
+                              fullWidth>
+                              Trigger
+                            </Button>
+                          </div>
+                        </ModalWrapper>
+                      );
+                      await Promise.race([
+                        confirmedCancelable.promise,
+                        cancelledCancelable.promise,
+                      ]);
+                      confirmedCancelable.cancel();
+                      cancelledCancelable.cancel();
+                      removeModal();
+                      if (cancelled.get()) {
+                        return;
+                      }
+                      const removeOverlay = addModalWithCallbackToRemove(
+                        modalContext.modals,
+                        <WorkingOverlay />
+                      );
+                      try {
+                        const response = await apiFetch(
+                          '/api/1/client_flows/oneoff_flow',
+                          {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json; charset=utf-8',
+                            },
+                            body: JSON.stringify({
+                              slug: slugVWC.get(),
+                              client_parameters: draftVWC.get().clientSchema.example,
+                              server_parameters: draftVWC.get().serverSchema.example,
+                              filters: filterVWC.get(),
+                            }),
+                            keepalive: true,
+                          },
+                          loginContext
+                        );
+                        if (!response.ok) {
+                          throw response;
+                        }
+                      } catch (e) {
+                        setVWC(testErrorVWC, await describeError(e));
+                      } finally {
+                        removeOverlay();
+                      }
+                    } finally {
+                      setVWC(workingVWC, false);
+                    }
+                  }}>
+                  Trigger on Many
                 </Button>
               </>
             )}
