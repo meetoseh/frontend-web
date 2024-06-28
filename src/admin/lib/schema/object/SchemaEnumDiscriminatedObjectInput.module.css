@@ -49,6 +49,15 @@
   composes: sortSelect from '../../../crud/standard.module.css';
 }
 
+.selectError {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 16.8px;
+  font-weight: 400;
+  color: #ba1a1a;
+  margin-top: 8px;
+}
+
 .selectDescription {
   font-family: 'Open Sans', sans-serif;
   font-size: 14px;

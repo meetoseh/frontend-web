@@ -36,6 +36,11 @@ import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
+import { walkObject } from './lib/walkObject';
+import { deepSet } from './lib/deepSet';
+import { TouchPointSchema } from './schema/multiple/TouchPointSchema';
+import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { prettySchemaPath } from '../lib/schema/prettySchemaPath';
 
 export type TouchPointMessagesSectionProps = {
   messages: {
@@ -52,6 +57,7 @@ export type TouchPointMessagesSectionProps = {
       PriorityDraggableTableMutationEvent<TouchPointEmailMessage> | undefined
     >;
   };
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 /**
@@ -709,6 +715,7 @@ const ExpandedPushModal = (props: {
 type EmailTabContentBonusProps = {
   emailTemplatesLoadPreventedVWC: WritableValueWithCallbacks<boolean>;
   emailTemplatesNR: ReturnType<typeof useEmailTemplates>;
+  imageHandler: OsehImageStateRequestHandler;
 };
 
 const EmailTabContent = (
@@ -748,6 +755,7 @@ const EmailTabContent = (
                 items={props.messages.email}
                 emailTemplatesLoadPreventedVWC={props.emailTemplatesLoadPreventedVWC}
                 emailTemplatesNR={props.emailTemplatesNR}
+                imageHandler={props.imageHandler}
               />
             </ModalWrapper>
           );
@@ -865,20 +873,30 @@ const ExpandedEmailModal = (
     }
   );
 
-  const flattenedSchemaVWC = useMappedValueWithCallbacks(templateInfoVWC, (templateInfo) => {
+  const schemaVWC = useMappedValueWithCallbacks(templateInfoVWC, (templateInfo) => {
     if (templateInfo === undefined || templateInfo.schema === undefined) {
       return undefined;
     }
-    return flattenSchema(templateInfo.schema);
+    return templateInfo.schema as any;
   });
 
   const templateParametersFixedVWC = useMappedValueWithCallbacks(
     messageVWC,
-    (m) => m?.templateParametersFixed ?? {}
+    (m) => (m?.templateParametersFixed ?? {}) as any
   );
   const templateParametersSubstitutedVWC = useMappedValueWithCallbacks(
     messageVWC,
     (m) => m?.templateParametersSubstituted ?? []
+  );
+  const templateParametersSubstitutedMapVWC = useMappedValueWithCallbacks(
+    templateParametersSubstitutedVWC,
+    (arr) => {
+      const result = new Map<string, TouchPointTemplateParameterSubstitution>();
+      for (const item of arr) {
+        result.set(prettySchemaPath(item.key), item);
+      }
+      return result;
+    }
   );
 
   const loginContextRaw = useContext(LoginContext);
@@ -968,10 +986,6 @@ const ExpandedEmailModal = (
                   templateParametersFixed: {},
                   templateParametersSubstituted: [],
                 };
-                const setNewMessage = (m: TouchPointEmailMessage) => {
-                  newMessage = m;
-                };
-
                 const allTemplates = props.emailTemplatesNR.get();
                 if (allTemplates.type !== 'success') {
                   setMessage(newMessage);
@@ -979,22 +993,26 @@ const ExpandedEmailModal = (
                 }
 
                 const newTemplateInfo = allTemplates.result.bySlug[newTemplate];
-                if (newTemplateInfo === undefined || newTemplateInfo.schema === undefined) {
-                  setMessage(newMessage);
-                  return;
-                }
-
-                const newFlattenedSchema = flattenSchema(newTemplateInfo.schema);
-                if (newFlattenedSchema === undefined) {
-                  setMessage(newMessage);
-                  return;
-                }
-
-                for (const { path, data, example } of newFlattenedSchema) {
-                  if (data.type === 'string' && typeof example === 'string') {
-                    setMessageStringParameter(newMessage, setNewMessage, path, example);
+                const example = newTemplateInfo?.schema?.example ?? {};
+                walkObject(example, (path, data) => {
+                  if (typeof data === 'string') {
+                    const parameters = extractParameters(data);
+                    if (parameters.length === 0) {
+                      deepSet(newMessage.templateParametersFixed, path, data);
+                    } else {
+                      if (path.some((v) => typeof v !== 'string')) {
+                        throw new Error(`unsupported substitition path target: ${path}`);
+                      }
+                      newMessage.templateParametersSubstituted.push({
+                        key: path as string[],
+                        format: data,
+                        parameters,
+                      });
+                    }
+                  } else {
+                    deepSet(newMessage.templateParametersFixed, path, data);
                   }
-                }
+                });
 
                 setMessage(newMessage);
               }}>
@@ -1029,12 +1047,6 @@ const ExpandedEmailModal = (
                 <div className={styles.modalLabel}>Description</div>
                 <div className={styles.modalHelp}>{templateInfo.description}</div>
               </div>
-              {templateInfo.availableSubstitutions !== undefined && (
-                <div>
-                  <div className={styles.modalLabel}>Available Substitutions</div>
-                  <div className={styles.modalHelp}>{templateInfo.availableSubstitutions}</div>
-                </div>
-              )}
 
               {templateInfo.schema === undefined ? (
                 <div>
@@ -1042,50 +1054,41 @@ const ExpandedEmailModal = (
                   <div className={styles.modalHelp}>No schema available</div>
                 </div>
               ) : (
-                <RenderGuardedComponent
-                  props={flattenedSchemaVWC}
-                  component={(flatSchema) =>
-                    flatSchema === undefined ? (
-                      <div>
-                        <div className={styles.modalLabel}>Schema</div>
-                        <div className={styles.modalHelp}>
-                          Schema is too complex for this editor
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {flatSchema.map(({ path, data, title, description, example }) => {
-                          const key = path.join('.');
-                          if (data.type === 'string') {
-                            const extra = data as any as { maxLength?: number };
-                            return (
-                              <div key={key}>
-                                <StringParameterEditor
-                                  title={title}
-                                  description={description}
-                                  path={path}
-                                  message={messageVWC}
-                                  setMessage={setMessage}
-                                  maxLength={extra.maxLength}
-                                  example={example}
-                                />
-                              </div>
-                            );
-                          }
-                          return (
-                            <div key={key}>
-                              <div className={styles.modalLabel}>{title}</div>
-                              <div className={styles.modalHelp}>{description}</div>
-                              <div
-                                className={combineClasses(styles.modalHelp, styles.modalHelpError)}>
-                                Editing currently unsupported for this data type: {data.type}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </>
-                    )
-                  }
+                <TouchPointSchema
+                  schema={templateInfo.schema}
+                  value={{
+                    get: templateParametersFixedVWC.get,
+                    callbacks: templateParametersFixedVWC.callbacks,
+                    set: (v) => {
+                      const msg = messageVWC.get();
+                      if (msg === undefined) {
+                        return;
+                      }
+
+                      setMessage({
+                        ...msg,
+                        templateParametersFixed: v,
+                      });
+                    },
+                  }}
+                  imageHandler={props.imageHandler}
+                  variable={{
+                    get: templateParametersSubstitutedMapVWC.get,
+                    callbacks: templateParametersSubstitutedMapVWC.callbacks,
+                    set: (v) => {
+                      const msg = messageVWC.get();
+                      if (msg === undefined) {
+                        return;
+                      }
+
+                      setMessage({
+                        ...msg,
+                        templateParametersSubstituted: Array.from(v.values()).sort((a, b) =>
+                          prettySchemaPath(a.key).localeCompare(prettySchemaPath(b.key))
+                        ),
+                      });
+                    },
+                  }}
                 />
               )}
             </div>
@@ -1213,141 +1216,15 @@ const extractParameters = (message: string): string[] => {
     return [];
   }
 
-  return matches.map((m) => m.slice(1, -1));
+  return matches.map((m) => m.slice(1, -1)).map((s) => pythonToDot(s));
 };
 
-type FlattenedSchema = {
-  path: string[];
-  data: OASSimpleDataType;
-  title: string;
-  description: string;
-  example?: any;
-}[];
-
-const flattenSchema = (schema: OASSchema): FlattenedSchema | undefined => {
-  // add more support only as necessary
-  if (!('type' in schema) || schema.type !== 'object') {
-    return undefined;
-  }
-
-  const res: FlattenedSchema = [];
-  const stack: [string[], OASObjectDataType & { example?: any }][] = [[[], schema]];
-
-  while (true) {
-    const next = stack.pop();
-    if (next === undefined) {
-      break;
-    }
-
-    const [path, data] = next;
-    for (const [key, value] of Object.entries(data.properties)) {
-      if (!('type' in value)) {
-        console.warn('unsupported property:', value, 'at', path.concat([key]));
-        return undefined;
-      }
-
-      if (value.type === 'object') {
-        stack.push([path.concat([key]), value]);
-        continue;
-      }
-
-      if (value.type === 'array') {
-        console.warn('unsupported property:', value, 'at', path.concat([key]));
-        return undefined;
-      }
-
-      res.push({
-        path: path.concat([key]),
-        data: value,
-        title: value.title ?? key,
-        description: value.description ?? '(no description provided)',
-        example: (value as any).example,
-      });
-    }
-  }
-
-  return res;
-};
-
-const StringParameterEditor = (props: {
-  title: string;
-  description: string;
-  path: string[];
-  message: ValueWithCallbacks<TouchPointEmailMessage | undefined>;
-  setMessage: (msg: TouchPointEmailMessage) => void;
-  maxLength?: number;
-  example?: string;
-}): ReactElement => {
-  const valueVWC = useMappedValueWithCallbacks(props.message, (message) => {
-    if (message === undefined) {
-      return '';
-    }
-
-    const fixedParams = message.templateParametersFixed;
-    let remainingPath = props.path.slice();
-    let current: any = fixedParams;
-    while (true) {
-      let next = remainingPath.shift();
-      if (next === undefined) {
-        break;
-      }
-      current = current[next];
-      if (current === undefined) {
-        break;
-      }
-    }
-    if (current !== undefined) {
-      if (typeof current !== 'string') {
-        throw new Error(
-          'unexpected type in fixed parameter list for ' + JSON.stringify(props.path)
-        );
-      }
-      return current;
-    }
-
-    const dynamicParams = message.templateParametersSubstituted;
-    for (let i = 0; i < dynamicParams.length; i++) {
-      const dynamicParam = dynamicParams[i];
-      if (
-        dynamicParam.key.length !== props.path.length ||
-        dynamicParam.key.some((k, i) => k !== props.path[i])
-      ) {
-        continue;
-      }
-
-      return dynamicParam.format;
-    }
-
-    // unset
-    return '';
-  });
-
-  return (
-    <RenderGuardedComponent
-      props={valueVWC}
-      component={(value) => (
-        <TextInput
-          label={props.title}
-          value={value}
-          help={props.description}
-          disabled={false}
-          inputStyle="normal"
-          onChange={(newValue) => {
-            const msg = props.message.get();
-            if (msg === undefined) {
-              return;
-            }
-
-            setMessageStringParameter(msg, props.setMessage, props.path, newValue);
-          }}
-          html5Validation={{
-            maxLength: props.maxLength,
-          }}
-        />
-      )}
-      applyInstantly
-    />
-  );
+/**
+ * Converts a python style parameter reference foo[bar][baz] to
+ * dots foo.bar.baz
+ */
+const pythonToDot = (pyParam: string): string => {
+  return pyParam.replace(/\[/g, '.').replace(/\]/g, '');
 };
 
 const setMessageStringParameter = (

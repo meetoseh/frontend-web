@@ -33,6 +33,10 @@
   align-items: stretch;
 }
 
+.eventParameters {
+  max-width: 600px;
+}
+
 .topRow {
   display: flex;
   flex-flow: row wrap;

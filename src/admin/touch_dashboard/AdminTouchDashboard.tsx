@@ -46,7 +46,11 @@ export const AdminTouchDashboard = (): ReactElement => {
               underlying channels (email, sms, and push). A touch point describes the messages that
               should be sent in response to an event, and sending a touch is another way of saying
               emitting a touch point event. Touch points may require different event information, so
-              there is still some customization based on the type of event that is emitted.
+              there is still some customization based on the type of event that is emitted. To
+              improve the admin experience, touch points specify what event parameters they expect
+              via an OpenAPI 3.0.3 schema object, which is double checked right before sending. If
+              this validation fails, the touch is skipped without mutating the users state, and we
+              call the touch "improper".
             </p>
             <p>
               Our touch system accepts user identifiers rather than contact information like phone
@@ -187,6 +191,19 @@ export const AdminTouchDashboard = (): ReactElement => {
                         format: formatNetworkNumber,
                       },
                       {
+                        key: 'improper_sms',
+                        name: 'Improper (SMS)',
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of those attempted for the SMS channel, how many were skipped because
+                              the event parameters did not match the touch points event schema.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                        format: formatNetworkNumber,
+                      },
+                      {
                         key: 'attempted_push',
                         name: 'Attempted (Push)',
                         format: formatNetworkNumber,
@@ -220,6 +237,19 @@ export const AdminTouchDashboard = (): ReactElement => {
                         format: formatNetworkNumber,
                       },
                       {
+                        key: 'improper_push',
+                        name: 'Improper (Push)',
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of those attempted for the push channel, how many were skipped because
+                              the event parameters did not match the touch points event schema.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                        format: formatNetworkNumber,
+                      },
+                      {
                         key: 'attempted_email',
                         name: 'Attempted (Email)',
                         format: formatNetworkNumber,
@@ -247,6 +277,20 @@ export const AdminTouchDashboard = (): ReactElement => {
                               Of those attempted for the Email channel, how many we could not find
                               any email addresses to send to. We only consider verified email
                               addresses.
+                            </div>
+                          </TogglableSmoothExpandable>
+                        ),
+                        format: formatNetworkNumber,
+                      },
+                      {
+                        key: 'improper_email',
+                        name: 'Improper (Email)',
+                        description: (
+                          <TogglableSmoothExpandable>
+                            <div className={styles.blockStatisticInfo}>
+                              Of those attempted for the email channel, how many were skipped
+                              because the event parameters did not match the touch points event
+                              schema.
                             </div>
                           </TogglableSmoothExpandable>
                         ),

@@ -285,6 +285,7 @@ export type OASComplexSchema =
 export type OASSchema = (OASBasicSchema | OASComplexSchema) & {
   title?: string;
   description?: string;
+  example?: any;
 };
 
 export type OASReference = {

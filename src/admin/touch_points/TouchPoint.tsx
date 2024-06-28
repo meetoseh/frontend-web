@@ -194,16 +194,25 @@ const touchPointBaseKeyMap: CrudFetcherKeyMap<TouchPointBase> = {
 };
 
 export type TouchPointNoMessages = TouchPointBase & {
+  eventSchema: null;
   messages: null;
   messagesEtag: null;
 };
 
 export const touchPointNoMessagesKeyMap: CrudFetcherMapper<TouchPointNoMessages> = {
   ...touchPointBaseKeyMap,
+  event_schema: 'eventSchema',
   messages_etag: 'messagesEtag',
 };
 
 export type TouchPointWithMessages = TouchPointBase & {
+  /**
+   * The OpenAPI 3.0.3 schema that the event parameters must adhere to when
+   * the event with the given slug is triggered. This can be used for autocomplete
+   * and validation of the messages within the admin interface, and is enforced
+   * on backend triggers before actually triggering the touch point.
+   */
+  eventSchema: any;
   /** The messages which are sent by this touch point according to its selection strategy */
   messages: TouchPointMessages;
   /** A strong etag-like value for messages; changes iff messages changes, but is shorter */
@@ -212,6 +221,7 @@ export type TouchPointWithMessages = TouchPointBase & {
 
 export const touchPointWithMessagesKeyMap: CrudFetcherMapper<TouchPointWithMessages> = {
   ...touchPointBaseKeyMap,
+  event_schema: 'eventSchema',
   messages: (_, v) => ({ key: 'messages', value: convertUsingMapper(v, touchPointMessagesKeyMap) }),
   messages_etag: 'messagesEtag',
 };

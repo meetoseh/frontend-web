@@ -24,6 +24,9 @@ import { TouchPointSelectionStrategySelect } from './components/TouchPointSelect
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 import { Button } from '../../shared/forms/Button';
 import { showYesNoModal } from '../../shared/lib/showYesNoModal';
+import { RawJSONEditor } from '../lib/schema/RawJSONEditor';
+import { VerticalSpacer } from '../../shared/components/VerticalSpacer';
+import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 
 export const BigTouchPoint = (): ReactElement => {
   const modalContext = useContext(ModalContext);
@@ -114,6 +117,7 @@ const Content = ({
 }): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
+  const imageHandler = useOsehImageStateRequestHandler({});
   const savingVWC = useWritableValueWithCallbacks(() => false);
   const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const sms = useWritableValueWithCallbacks(
@@ -139,6 +143,19 @@ const Content = ({
     return undefined;
   });
 
+  const eventSchemaVWC = useWritableValueWithCallbacks(() => touchPoint.eventSchema);
+  useValueWithCallbacksEffect(networkResponse, (nr) => {
+    setVWC(
+      eventSchemaVWC,
+      nr.result?.eventSchema ?? {
+        type: 'object',
+        example: {},
+        additionalProperties: false,
+      }
+    );
+    return undefined;
+  });
+
   const saveRequiredVWC = useWritableValueWithCallbacks(() => false);
   const doSave = useCallback(async (): Promise<void> => {
     if (savingVWC.get()) {
@@ -154,6 +171,7 @@ const Content = ({
     setVWC(errorVWC, null);
     const old = touchPoint;
     const newSlug = slugVWC.get();
+    const newSchema = eventSchemaVWC.get();
     try {
       const response = await apiFetch(
         '/api/1/touch_points/',
@@ -166,11 +184,13 @@ const Content = ({
             uid: old.uid,
             precondition: {
               event_slug: old.eventSlug,
+              event_schema: old.eventSchema,
               selection_strategy: old.selectionStrategy,
               messages_etag: old.messagesEtag,
             },
             patch: {
               event_slug: newSlug,
+              event_schema: newSchema,
               selection_strategy: selectionStrategyVWC.get(),
               messages: {
                 sms: sms.get().map((m) => ({
@@ -388,8 +408,21 @@ const Content = ({
           </div>
         </div>
       </div>
+      <div className={styles.eventParameters}>
+        <CrudItemBlock title="Event Parameter Schema" controls={null}>
+          <VerticalSpacer height={8} />
+          <RawJSONEditor
+            canonicalVWC={eventSchemaVWC}
+            setValue={(v) => {
+              setVWC(eventSchemaVWC, v);
+              setVWC(saveRequiredVWC, true);
+            }}
+            rows={10}
+          />
+        </CrudItemBlock>
+      </div>
       <CrudItemBlock title="Messages" controls={null} containsNested>
-        <TouchPointMessagesSection messages={messages} />
+        <TouchPointMessagesSection messages={messages} imageHandler={imageHandler} />
       </CrudItemBlock>
     </div>
   );

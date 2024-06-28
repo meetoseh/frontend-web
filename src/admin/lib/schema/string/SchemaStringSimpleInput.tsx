@@ -26,9 +26,23 @@ export const SchemaStringSimpleInput = ({
     throw new Error('SchemaStringSimple only works with string schemas');
   }
 
+  const cleanedValue = useMappedValueWithCallbacks(value, (text) => {
+    if (text === undefined || text === null || typeof text !== 'string') {
+      return schema.default ?? '';
+    }
+    return text;
+  });
+
   const errorVWC = useMappedValueWithCallbacks(
     value,
     (text) => {
+      if (text === undefined || text === null) {
+        return 'Stored value has not been set (make any edit to override)';
+      }
+      if (typeof text !== 'string') {
+        return 'Stored value is not a string (make any edit to override)';
+      }
+
       if ('maxLength' in schema) {
         const maxLength = schema.maxLength;
         if (
@@ -78,8 +92,8 @@ export const SchemaStringSimpleInput = ({
   return (
     <div className={styles.container}>
       <RenderGuardedComponent
-        props={useMappedValuesWithCallbacks([value, isErrorVWC], () => ({
-          text: value.get() ?? '',
+        props={useMappedValuesWithCallbacks([cleanedValue, isErrorVWC], () => ({
+          text: cleanedValue.get() ?? '',
           inputStyle: (isErrorVWC.get() ? 'error' : 'normal') as 'error' | 'normal',
         }))}
         component={(v) => (

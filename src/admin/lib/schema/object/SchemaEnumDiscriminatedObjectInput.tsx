@@ -4,6 +4,7 @@ import { SchemaInputProps } from '../SchemaInputProps';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { setVWC } from '../../../../shared/lib/setVWC';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 
 /**
  * For an object schema with no properties, an `x-enum-discriminator` property,
@@ -76,10 +77,53 @@ export const SchemaEnumDiscriminatedObjectInput = ({
     return result;
   }, [oneOf, discriminator]);
 
-  const choiceVWC = useMappedValueWithCallbacks(
-    value,
-    (v) => (v ?? {})[discriminator] ?? orderedOptions[0]
-  );
+  const choiceVWC = useMappedValueWithCallbacks(value, (v) => {
+    if (v === undefined || v === null) {
+      return orderedOptions[0];
+    }
+
+    if (typeof v !== 'object') {
+      return orderedOptions[0];
+    }
+
+    if (!v.hasOwnProperty(discriminator)) {
+      return orderedOptions[0];
+    }
+
+    return v[discriminator];
+  });
+  const choiceErrorVWC = useMappedValuesWithCallbacks([value, choiceVWC], () => {
+    const v = value.get();
+    if (v === undefined || v === null) {
+      return <>This value is not actually stored. Change it to update.</>;
+    }
+    if (typeof v !== 'object') {
+      return (
+        <>This value is not actually stored. The stored value is invalid. Change it to update.</>
+      );
+    }
+    if (!v.hasOwnProperty(discriminator)) {
+      return (
+        <>
+          This value is not actually stored. The stored value is missing the discriminator. Change
+          it to update.
+        </>
+      );
+    }
+    const stored = v[discriminator];
+    if (stored !== choiceVWC.get()) {
+      return (
+        <>
+          This value is not actually stored The stored value is {`${value.get()}`}. Change it to
+          update.
+        </>
+      );
+    }
+    if (!orderedOptions.includes(stored)) {
+      return <>This value is not one of the options. Change it to update.</>;
+    }
+    return undefined;
+  });
   const choiceIndexVWC = useMappedValueWithCallbacks(choiceVWC, (choice) =>
     orderedOptions.indexOf(choice)
   );
@@ -118,7 +162,9 @@ export const SchemaEnumDiscriminatedObjectInput = ({
               onChange={(e) => {
                 const newChoice = e.target.value;
                 const newValueIdx = orderedOptions.indexOf(newChoice);
-                const newValue = oneOf[newValueIdx].example;
+                const newValue = oneOf[newValueIdx].example ?? {
+                  [discriminator]: newChoice,
+                };
                 setVWC(value, newValue);
               }}>
               {orderedOptions.map((option) => (
@@ -131,19 +177,16 @@ export const SchemaEnumDiscriminatedObjectInput = ({
           applyInstantly
         />
         <RenderGuardedComponent
+          props={choiceErrorVWC}
+          component={(error) =>
+            error === undefined ? <></> : <div className={styles.selectError}>{error}</div>
+          }
+        />
+        <RenderGuardedComponent
           props={choiceIndexVWC}
           component={(choiceIndex) => (
             <div className={styles.selectDescription}>
-              {choiceIndex === -1 ? (
-                <RenderGuardedComponent
-                  props={choiceVWC}
-                  component={(choice) => (
-                    <>Invalid choice: {choice}. Change the select to switch to a valid option.</>
-                  )}
-                />
-              ) : (
-                schema.oneOf[choiceIndex].description ?? ''
-              )}
+              {choiceIndex === -1 ? <></> : schema.oneOf[choiceIndex].description ?? ''}
             </div>
           )}
         />
