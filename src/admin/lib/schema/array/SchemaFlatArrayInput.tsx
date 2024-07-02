@@ -135,7 +135,26 @@ const Item = ({
 
   return (
     <div className={styles.item}>
-      <div className={styles.itemRemove}>
+      <div className={styles.itemActions}>
+        {idx !== 0 && (
+          <Button
+            type="button"
+            variant="link-small"
+            onClick={(e) => {
+              e.preventDefault();
+              const oldArrayValue = arrayValue.get();
+              if (oldArrayValue === undefined || oldArrayValue.length <= idx) {
+                return;
+              }
+              const newArrayValue = [...oldArrayValue];
+              const me = newArrayValue.splice(idx, 1);
+              newArrayValue.splice(idx - 1, 0, me[0]);
+              arrayValue.set(newArrayValue);
+              arrayValue.callbacks.call(undefined);
+            }}>
+            Move Up
+          </Button>
+        )}
         <Button
           type="button"
           variant="link-small"

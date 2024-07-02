@@ -143,6 +143,44 @@ if os.environ["ENVIRONMENT"] == "dev":
             headers=headers,
         )
 
+    @app.post("{full_path:path}", include_in_schema=False)
+    async def post_catch_all(request: Request, full_path: str):
+        raw_path = cast(str, request.scope["raw_path"].decode("utf-8"))
+        raw_query_params = request.scope["query_string"].decode("utf-8")
+        raw_content_type = request.headers.get("Content-Type", "")
+        raw_authorization = request.headers.get("Authorization", "")
+        raw_body = await request.body()
+        raw_loc = f"{raw_path}?{raw_query_params}" if raw_query_params else raw_path
+
+        if raw_path.startswith("/api/3/"):
+            full_url = email_templates_url + raw_loc
+        else:
+            return Response(status_code=405)
+
+        try:
+            raw_response = requests.post(
+                full_url,
+                data=raw_body,
+                headers={
+                    "Content-Type": raw_content_type,
+                    "Authorization": raw_authorization,
+                },
+                verify=False,
+                allow_redirects=False,
+            )
+        except:
+            return Response(status_code=500)
+
+        headers = dict(
+            (k, v) for (k, v) in raw_response.headers.items() if k in forwarded_headers
+        )
+
+        return Response(
+            content=raw_response.content,
+            status_code=raw_response.status_code,
+            headers=headers,
+        )
+
 
 background_tasks = set()
 

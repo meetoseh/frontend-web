@@ -7,12 +7,15 @@ import styles from './TouchPointSchemaStringInput.module.css';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { TextInput } from '../../../../shared/forms/TextInput';
 import { setVWC } from '../../../../shared/lib/setVWC';
+import { CrudFormElement } from '../../../crud/CrudFormElement';
+import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 
 /**
  * Allows the user to input a fixed or formatted (python curly brackets style,
  * e.g, 'foo {standard[name][full]}') to fill in the schema.
  *
- * Only works if the schema is a string type.
+ * Only works if the schema is a string type. If the format is `string-long`,
+ * renders using a textarea instead of a text input.
  *
  * Supported validation properties when not using string formatting:
  * - `maxLength`
@@ -29,6 +32,7 @@ export const TouchPointSchemaStringInput = ({
   if (schema.type !== 'string') {
     throw new Error('TouchPointSchemaStringInput only works with string schemas');
   }
+  const prefersTextArea = schema.format === 'string-long';
   const outputPrettyPath = useMemo(() => prettySchemaPath(outputPath), [outputPath]);
   const variableVWC = useMappedValueWithCallbacks(variableMapVWC, (v) => v.get(outputPrettyPath));
   const isVariableVWC = useMappedValueWithCallbacks(variableVWC, (v) => v !== undefined);
@@ -122,6 +126,39 @@ export const TouchPointSchemaStringInput = ({
   );
   const isErrorVWC = useMappedValueWithCallbacks(errorVWC, (error) => error !== null);
 
+  const setText = (v: string) => {
+    const params = extractParameters(v);
+    if (params.length > 0) {
+      const newVariableMap = new Map(variableMapVWC.get());
+      newVariableMap.set(outputPrettyPath, {
+        format: v,
+        key: outputPath as string[],
+        parameters: params,
+      });
+
+      setVWC(variableMapVWC, newVariableMap);
+      setVWC(valueVWC, undefined);
+    } else {
+      if (variableVWC.get() !== undefined) {
+        const newVariableMap = new Map(variableMapVWC.get());
+        newVariableMap.delete(outputPrettyPath);
+
+        setVWC(variableMapVWC, newVariableMap);
+      }
+      setVWC(valueVWC, v);
+    }
+  };
+  const label = schema.title ?? outputPath[outputPath.length - 1] ?? '(no title or path)';
+  const help = (
+    <>
+      {schema.description && <p>{schema.description}</p>}
+      <RenderGuardedComponent
+        props={errorVWC}
+        component={(error) => (error === null ? <></> : <p>{error}</p>)}
+      />
+    </>
+  );
+
   return (
     <div className={styles.container}>
       <RenderGuardedComponent
@@ -130,55 +167,56 @@ export const TouchPointSchemaStringInput = ({
           inputStyle: (isErrorVWC.get() ? 'error' : 'normal') as 'error' | 'normal',
           validates: !isVariableVWC.get(),
         }))}
-        component={(v) => (
-          <TextInput
-            type="text"
-            value={v.text}
-            inputStyle={v.inputStyle}
-            onChange={(v) => {
-              const params = extractParameters(v);
-              if (params.length > 0) {
-                const newVariableMap = new Map(variableMapVWC.get());
-                newVariableMap.set(outputPrettyPath, {
-                  format: v,
-                  key: outputPath as string[],
-                  parameters: params,
-                });
+        component={(v) => {
+          if (Array.isArray(schema.enum) && schema.enum.includes(v.text)) {
+            return (
+              <CrudFormElement title={label} noTopMargin>
+                <VerticalSpacer height={4} />
+                <select
+                  value={v.text}
+                  className={styles.select}
+                  onChange={(e) => setText(e.target.value)}>
+                  {schema.enum.map((e: string) => (
+                    <option key={e} value={e}>
+                      {e}
+                    </option>
+                  ))}
+                </select>
+              </CrudFormElement>
+            );
+          }
 
-                setVWC(variableMapVWC, newVariableMap);
-                setVWC(valueVWC, undefined);
-              } else {
-                if (variableVWC.get() !== undefined) {
-                  const newVariableMap = new Map(variableMapVWC.get());
-                  newVariableMap.delete(outputPrettyPath);
-
-                  setVWC(variableMapVWC, newVariableMap);
-                }
-                setVWC(valueVWC, v);
+          const html5Validation = v.validates
+            ? {
+                maxLength: schema.maxLength,
+                minLength: schema.minLength,
+                pattern: schema.pattern,
               }
-            }}
-            label={schema.title ?? outputPath[outputPath.length - 1] ?? '(no title or path)'}
-            help={
-              <>
-                {schema.description && <p>{schema.description}</p>}
-                <RenderGuardedComponent
-                  props={errorVWC}
-                  component={(error) => (error === null ? <></> : <p>{error}</p>)}
-                />
-              </>
-            }
-            html5Validation={
-              v.validates
-                ? {
-                    maxLength: schema.maxLength,
-                    minLength: schema.minLength,
-                    pattern: schema.pattern,
-                  }
-                : {}
-            }
-            disabled={false}
-          />
-        )}
+            : {};
+
+          return prefersTextArea ? (
+            <CrudFormElement title={label} noTopMargin>
+              <VerticalSpacer height={4} />
+              <textarea
+                className={styles.textArea}
+                value={v.text}
+                onChange={(e) => setText(e.target.value)}
+                rows={5}
+              />
+            </CrudFormElement>
+          ) : (
+            <TextInput
+              type="text"
+              value={v.text}
+              inputStyle={v.inputStyle}
+              onChange={setText}
+              label={label}
+              help={help}
+              html5Validation={html5Validation}
+              disabled={false}
+            />
+          );
+        }}
         applyInstantly
       />
     </div>

@@ -5,3 +5,16 @@
   justify-content: flex-start;
   gap: 8px;
 }
+
+.textArea {
+  width: 100%;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  padding: 4px;
+}
+
+.select {
+  composes: sortSelect from '../../../crud/standard.module.css';
+}

@@ -151,7 +151,15 @@ export const SchemaEnumDiscriminatedObjectInput = ({
       </div>
       <div className={styles.selectContainer}>
         <div className={styles.selectTitle}>
-          {schema.oneOf[0].properties[discriminator].title ?? discriminator}
+          <RenderGuardedComponent
+            props={choiceIndexVWC}
+            component={(choiceIndex) => (
+              <>
+                {schema.oneOf[choiceIndex >= 0 ? choiceIndex : 0].properties[discriminator].title ??
+                  discriminator}
+              </>
+            )}
+          />
         </div>
         <RenderGuardedComponent
           props={choiceVWC}

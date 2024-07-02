@@ -422,7 +422,11 @@ const Content = ({
         </CrudItemBlock>
       </div>
       <CrudItemBlock title="Messages" controls={null} containsNested>
-        <TouchPointMessagesSection messages={messages} imageHandler={imageHandler} />
+        <TouchPointMessagesSection
+          touchPointSchema={eventSchemaVWC}
+          messages={messages}
+          imageHandler={imageHandler}
+        />
       </CrudItemBlock>
     </div>
   );

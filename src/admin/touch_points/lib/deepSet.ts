@@ -1,4 +1,8 @@
 export const deepSet = (obj: any, path: (string | number)[], value: any) => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
   if (path.length === 0) {
     return value;
   }
