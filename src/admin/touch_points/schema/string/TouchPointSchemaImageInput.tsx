@@ -64,6 +64,9 @@ const Content = ({
   const sizeVWC = useReactManagedValueAsValueWithCallbacks(
     schema['x-size'] as { width: number; height: number }
   );
+  const cleanedValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v, {
+    outputEqualityFn: (a, b) => a === b,
+  });
   const imageNR = useNetworkResponse(
     (active, loginContext) =>
       adaptActiveVWCToAbortSignal(active, async (signal) => {
@@ -112,7 +115,7 @@ const Content = ({
         return convertUsingMapper(data.items[0], emailImageKeyMap);
       }),
     {
-      dependsOn: [valueVWC, sizeVWC],
+      dependsOn: [cleanedValueVWC, sizeVWC],
     }
   );
   const name = schema.title ?? outputPath[outputPath.length - 1];
