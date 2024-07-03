@@ -1379,6 +1379,18 @@ const ExpandedEmailModal = (
 
                 const loginContext = loginContextUnch;
 
+                const touchPointSchema = props.touchPointSchema.get();
+                if (touchPointSchema === null || touchPointSchema === undefined) {
+                  setVWC(sendTestErrorVWC, <>no touch event schema found</>);
+                  return;
+                }
+
+                const exampleProps = touchPointSchema.example;
+                if (exampleProps === null || exampleProps === undefined) {
+                  setVWC(sendTestErrorVWC, <>no example of touch event parameters found</>);
+                  return;
+                }
+
                 setVWC(sendTestErrorVWC, null);
                 setVWC(sendingTestVWC, true);
                 try {
@@ -1390,13 +1402,16 @@ const ExpandedEmailModal = (
                         'Content-Type': 'application/json; charset=utf-8',
                       },
                       body: JSON.stringify({
-                        priority: 1,
-                        uid: '',
-                        subject_format: subjectFormatVWC.get(),
-                        subject_parameters: subjectParametersVWC.get(),
-                        template: templateVWC.get(),
-                        template_parameters_fixed: templateParametersFixedVWC.get(),
-                        template_parameters_substituted: templateParametersSubstitutedVWC.get(),
+                        event_parameters: exampleProps,
+                        message: {
+                          priority: 1,
+                          uid: '',
+                          subject_format: subjectFormatVWC.get(),
+                          subject_parameters: subjectParametersVWC.get(),
+                          template: templateVWC.get(),
+                          template_parameters_fixed: templateParametersFixedVWC.get(),
+                          template_parameters_substituted: templateParametersSubstitutedVWC.get(),
+                        },
                       }),
                     },
                     loginContext
