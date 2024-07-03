@@ -83,7 +83,7 @@ export const touchPointPushMessageKeyMap: CrudFetcherMapper<TouchPointPushMessag
 
 export type TouchPointTemplateParameterSubstitution = {
   /** The path to the key to set */
-  key: string[];
+  key: (string | number)[];
 
   /**
    * The format for the value of the key, python {}-style with named parameters

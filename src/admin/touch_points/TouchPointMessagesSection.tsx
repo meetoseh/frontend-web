@@ -1321,9 +1321,33 @@ const ExpandedEmailModal = (
 
                       setMessage({
                         ...msg,
-                        templateParametersSubstituted: Array.from(v.values()).sort((a, b) =>
-                          prettySchemaPath(a.key).localeCompare(prettySchemaPath(b.key))
-                        ),
+                        templateParametersSubstituted: Array.from(v.values()).sort((a, b) => {
+                          for (let i = 0; i < a.key.length && i < b.key.length; i++) {
+                            const aVal = a.key[i];
+                            const bVal = b.key[i];
+
+                            if (typeof aVal === 'string' || typeof bVal === 'string') {
+                              const cmp = `${aVal}`.localeCompare(`${bVal}`);
+                              if (cmp !== 0) {
+                                return cmp;
+                              }
+                            }
+
+                            if (aVal < bVal) {
+                              return -1;
+                            } else if (aVal > bVal) {
+                              return 1;
+                            }
+                          }
+
+                          if (a.key.length < b.key.length) {
+                            return -1;
+                          }
+                          if (a.key.length > b.key.length) {
+                            return 1;
+                          }
+                          return 0;
+                        }),
                       });
                     },
                   }}
@@ -1495,99 +1519,6 @@ const extractParameters = (message: string): string[] => {
  */
 const pythonToDot = (pyParam: string): string => {
   return pyParam.replace(/\[/g, '.').replace(/\]/g, '');
-};
-
-const setMessageStringParameter = (
-  msg: TouchPointEmailMessage,
-  setMessage: (msg: TouchPointEmailMessage) => void,
-  path: string[],
-  newValue: string
-) => {
-  const params = extractParameters(newValue);
-  if (params.length === 0) {
-    // make sure we're not in the dynamic list
-    const dynamicParams = msg.templateParametersSubstituted;
-    const dynamicParamsFiltered = dynamicParams.filter(
-      (dp) => dp.key.length !== path.length || dp.key.some((k, i) => k !== path[i])
-    );
-
-    // inject into fixed list, copying as we go
-    const fixedParams =
-      newValue === ''
-        ? removePath(msg.templateParametersFixed, path)
-        : { ...msg.templateParametersFixed };
-    if (newValue !== '') {
-      let remainingPath = path.slice();
-      let current: any = fixedParams;
-      while (true) {
-        let next = remainingPath.shift();
-        if (next === undefined) {
-          break;
-        }
-        if (remainingPath.length === 0) {
-          current[next] = newValue;
-          break;
-        }
-        current[next] = { ...current[next] };
-        current = current[next];
-      }
-    }
-
-    setMessage({
-      ...msg,
-      templateParametersFixed: fixedParams,
-      templateParametersSubstituted: dynamicParamsFiltered,
-    });
-  } else {
-    const dynamicParams = msg.templateParametersSubstituted;
-    const dynamicParamsFiltered = dynamicParams.filter(
-      (dp) => dp.key.length !== path.length || dp.key.some((k, i) => k !== path[i])
-    );
-    dynamicParamsFiltered.push({
-      key: path,
-      format: newValue,
-      parameters: params,
-    });
-
-    const fixedParams = removePath(msg.templateParametersFixed, path);
-    setMessage({
-      ...msg,
-      templateParametersFixed: fixedParams,
-      templateParametersSubstituted: dynamicParamsFiltered,
-    });
-  }
-};
-
-const removePath = (obj: any, path: string[]): any => {
-  if (path.length === 0) {
-    return obj;
-  }
-
-  const key = path[0];
-  if (!(key in obj)) {
-    return obj;
-  }
-
-  if (path.length === 1) {
-    const newObj = { ...obj };
-    delete newObj[key];
-    return newObj;
-  }
-
-  const newObj = { ...obj };
-  newObj[key] = removePath(newObj[key], path.slice(1));
-
-  let isEmpty = true;
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-  for (const _unused in newObj[key]) {
-    isEmpty = false;
-    break;
-  }
-  if (isEmpty) {
-    delete newObj[key];
-  }
-
-  return newObj;
 };
 
 const removeMessage = <T extends TouchPointMessageBase>(
