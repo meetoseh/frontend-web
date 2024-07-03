@@ -264,6 +264,10 @@ export const Membership = ({
                 P3M: 'quarterly membership',
                 P6M: 'semiannual membership',
                 P1Y: 'annual membership',
+                PT5M: '5-minute (weekly or monthly test) membership',
+                PT10M: '10-minute (quarterly test) membership',
+                PT15M: '15-minute (semiannual test) membership',
+                PT30M: '30-minute (annual test) membership',
               }[entitlement.activeInfo.recurrence.period.iso8601] ?? 'membership';
             const details = (
               <div className={styles.statusDetails}>

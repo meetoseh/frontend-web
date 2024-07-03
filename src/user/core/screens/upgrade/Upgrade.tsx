@@ -47,6 +47,9 @@ import {
   extractPaidIntervalLength,
   extractTrialLength,
 } from './lib/purchasesStoreProductHelper';
+import { Close } from '../interactive_prompt_screen/icons/Close';
+import { ScreenContext } from '../../hooks/useScreenContext';
+import { ContentContainer } from '../../../../shared/components/ContentContainer';
 
 type Copy = UpgradeCopy<ScreenImageParsed>;
 
@@ -84,11 +87,22 @@ export const Upgrade = ({
   const subscribeErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   useErrorModal(modalContext.modals, subscribeErrorVWC, 'starting checkout session');
 
+  const onBack = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    screenOut(workingVWC, startPop, transition, screen.parameters.exit, screen.parameters.back, {
+      beforeDone: async () => {
+        trace({ type: 'back' });
+      },
+    });
+  };
+
+  const windowWidthVWC = useMappedValueWithCallbacks(ctx.windowSizeImmediate, (s) => s.width);
+
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
       <GridBlackBackground />
       <GridContentContainer
-        contentWidthVWC={useMappedValueWithCallbacks(ctx.windowSizeImmediate, (s) => s.width)}
+        contentWidthVWC={windowWidthVWC}
         left={transitionState.left}
         opacity={transitionState.opacity}
         justifyContent="flex-start"
@@ -105,40 +119,33 @@ export const Upgrade = ({
         </GridFullscreenContainer>
       </GridContentContainer>
       <GridContentContainer
-        contentWidthVWC={ctx.contentWidth}
+        contentWidthVWC={windowWidthVWC}
         left={transitionState.left}
         opacity={transitionState.opacity}
         justifyContent="flex-start"
         gridSizeVWC={ctx.windowSizeImmediate}>
-        <VerticalSpacer height={20} />
-        <button
-          type="button"
-          className={styles.back}
-          onClick={async (e) => {
-            e.preventDefault();
-            screenOut(
-              workingVWC,
-              startPop,
-              transition,
-              screen.parameters.exit,
-              screen.parameters.back,
-              {
-                beforeDone: async () => {
-                  trace({ type: 'back' });
-                },
-              }
-            );
-          }}>
-          <span className={assistiveStyles.srOnly}>Back</span>
-          <Back />
-        </button>
+        {screen.parameters.backVariant === 'back' ? (
+          <div className={styles.topBack}>
+            <button type="button" className={styles.back} onClick={onBack}>
+              <span className={assistiveStyles.srOnly}>Back</span>
+              <Back />
+            </button>
+          </div>
+        ) : (
+          <div className={styles.topX}>
+            <button type="button" className={styles.x} onClick={onBack}>
+              <span className={assistiveStyles.srOnly}>Close</span>
+              <Close tight />
+            </button>
+          </div>
+        )}
         <VerticalSpacer height={16} flexGrow={1} />
         <RenderGuardedComponent
           props={useMappedValuesWithCallbacks([resources.copy, resources.trial], () => ({
             copy: resources.copy.get(),
             trial: resources.trial.get(),
           }))}
-          component={(params) => <Marketing {...params} />}
+          component={(params) => <Marketing {...params} ctx={ctx} />}
         />
         <RenderGuardedComponent
           props={useMappedValuesWithCallbacks(
@@ -152,156 +159,181 @@ export const Upgrade = ({
           component={({ offering, prices, trial }) => (
             <>
               {trial !== null && trial.count > 0 && offering?.packages.length === 1 ? (
-                <div className={styles.oneOfferWithTrialInfo}>
-                  Unlimited access for {makeTrialPretty(trial)}, then{' '}
-                  {(() => {
-                    const priceVWC = prices.get(offering.packages[0].platformProductIdentifier);
-                    if (priceVWC === undefined) {
-                      return 'loading...';
-                    }
-                    const price = priceVWC.get();
-                    if (price === null) {
-                      return 'loading...';
-                    }
-                    const paidInterval = extractPaidIntervalLength(price);
-                    const perStr =
-                      paidInterval === null
-                        ? ' for life'
-                        : ISO8601_PERIOD_TO_SHORTHAND[paidInterval.iso8601] ??
-                          ` / ${paidInterval.iso8601}`;
+                <>
+                  <ContentContainer
+                    contentWidthVWC={ctx.contentWidth}
+                    alignSelf="center"
+                    justifyContent="flex-start">
+                    <div className={styles.oneOfferWithTrialInfo}>
+                      Unlimited access for {makeTrialPretty(trial)}, then{' '}
+                      {(() => {
+                        const priceVWC = prices.get(offering.packages[0].platformProductIdentifier);
+                        if (priceVWC === undefined) {
+                          return 'loading...';
+                        }
+                        const price = priceVWC.get();
+                        if (price === null) {
+                          return 'loading...';
+                        }
+                        const paidInterval = extractPaidIntervalLength(price);
+                        const perStr =
+                          paidInterval === null
+                            ? ' for life'
+                            : ISO8601_PERIOD_TO_SHORTHAND[paidInterval.iso8601] ??
+                              ` / ${paidInterval.iso8601}`;
 
-                    return `${price.priceString}${perStr}`;
-                  })()}
-                </div>
+                        return `${price.priceString}${perStr}`;
+                      })()}
+                    </div>
+                  </ContentContainer>
+                  <VerticalSpacer height={2} flexGrow={1} maxHeight={16} />
+                </>
               ) : (
-                <div
-                  className={combineClasses(
-                    styles.offers,
-                    offering === null || offering === undefined
-                      ? undefined
-                      : styles[`offers${offering.packages.length}`]
-                  )}>
-                  {offering?.packages?.map((pkg, idx) => {
-                    const priceVWC = prices.get(pkg.platformProductIdentifier);
-                    if (priceVWC === null || priceVWC === undefined) {
-                      return null;
-                    }
-                    return (
-                      <Fragment key={idx}>
-                        {idx !== 0 && offering?.packages?.length > 2 && (
-                          <VerticalSpacer height={16} />
-                        )}
-                        <RenderGuardedComponent
-                          props={priceVWC}
-                          component={(price) =>
-                            price === null ? (
-                              <></>
-                            ) : (
-                              <Offer
-                                pkg={pkg}
-                                price={price}
-                                idx={idx}
-                                activeIdxVWC={resources.activePackageIdx}
-                              />
-                            )
-                          }
-                        />
-                      </Fragment>
-                    );
-                  })}
-                </div>
+                <>
+                  <ContentContainer
+                    contentWidthVWC={ctx.contentWidth}
+                    alignSelf="center"
+                    justifyContent="flex-start">
+                    <div
+                      className={combineClasses(
+                        styles.offers,
+                        offering === null || offering === undefined
+                          ? undefined
+                          : styles[`offers${offering.packages.length}`]
+                      )}>
+                      {offering?.packages?.map((pkg, idx) => {
+                        const priceVWC = prices.get(pkg.platformProductIdentifier);
+                        if (priceVWC === null || priceVWC === undefined) {
+                          return null;
+                        }
+                        return (
+                          <Fragment key={idx}>
+                            {idx !== 0 && offering?.packages?.length > 2 && (
+                              <VerticalSpacer height={16} />
+                            )}
+                            <RenderGuardedComponent
+                              props={priceVWC}
+                              component={(price) =>
+                                price === null ? (
+                                  <></>
+                                ) : (
+                                  <Offer
+                                    pkg={pkg}
+                                    price={price}
+                                    idx={idx}
+                                    activeIdxVWC={resources.activePackageIdx}
+                                  />
+                                )
+                              }
+                            />
+                          </Fragment>
+                        );
+                      })}
+                    </div>
+                  </ContentContainer>
+                  <VerticalSpacer height={8} flexGrow={1} maxHeight={24} />
+                </>
               )}
             </>
           )}
         />
-        <VerticalSpacer height={24} />
-        <Button
-          type="button"
-          variant="filled-premium"
-          fullWidth
-          onClick={async (e) => {
-            e.preventDefault();
-            if (workingVWC.get()) {
-              return;
-            }
-
-            const idx = resources.activePackageIdx.get();
-            const pkg = resources.offering.get()?.packages?.[idx];
-            if (pkg === null || pkg === undefined) {
-              trace({ type: 'error', message: 'subscribe pressed but pkg is null or undefined' });
-              return;
-            }
-
-            const price = resources.prices.get().get(pkg.platformProductIdentifier)?.get();
-            if (price === null || price === undefined) {
-              trace({
-                type: 'error',
-                message: 'subscribe pressed but price is null or undefined',
-              });
-              return;
-            }
-
-            const loginContext = ctx.login.value.get();
-            if (loginContext.state !== 'logged-in') {
-              trace({ type: 'error', message: 'subscribe pressed but not logged in' });
-              return;
-            }
-
-            setVWC(workingVWC, true);
-            trace({ type: 'subscribeStart', pkg, price });
-            const exitPromise = playExitTransition(transition);
-            try {
-              const response = await apiFetch(
-                '/api/1/users/me/checkout/stripe/start',
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json; charset=utf-8',
-                  },
-                  body: JSON.stringify({
-                    package_id: pkg.identifier,
-                    cancel_path: '/upgrade',
-                    success_path: '/',
-                  }),
-                },
-                loginContext
-              );
-
-              if (!response.ok) {
-                throw response;
+        <ContentContainer
+          contentWidthVWC={ctx.contentWidth}
+          alignSelf="center"
+          justifyContent="flex-start">
+          <Button
+            type="button"
+            variant="filled-premium"
+            fullWidth
+            onClick={async (e) => {
+              e.preventDefault();
+              if (workingVWC.get()) {
+                return;
               }
 
-              startPop(null);
-              const data: { url: string } = await response.json();
-              trace({ type: 'subscribeRedirecting' });
-              window.location.href = data.url;
-            } catch (e) {
-              trace({ type: 'subscribeError', error: `${e}` });
-              setVWC(workingVWC, false);
-              exitPromise.cancel();
-              playEntranceTransition(transition);
-            }
-          }}>
-          <RenderGuardedComponent
-            props={resources.trial}
-            component={(trial) =>
-              trial === null || trial.count === 0 ? (
-                <>Subscribe</>
-              ) : (
-                <>Try {makeTrialPretty(trial)} free</>
-              )
-            }
-          />
-        </Button>
+              const idx = resources.activePackageIdx.get();
+              const pkg = resources.offering.get()?.packages?.[idx];
+              if (pkg === null || pkg === undefined) {
+                trace({ type: 'error', message: 'subscribe pressed but pkg is null or undefined' });
+                return;
+              }
+
+              const price = resources.prices.get().get(pkg.platformProductIdentifier)?.get();
+              if (price === null || price === undefined) {
+                trace({
+                  type: 'error',
+                  message: 'subscribe pressed but price is null or undefined',
+                });
+                return;
+              }
+
+              const loginContext = ctx.login.value.get();
+              if (loginContext.state !== 'logged-in') {
+                trace({ type: 'error', message: 'subscribe pressed but not logged in' });
+                return;
+              }
+
+              setVWC(workingVWC, true);
+              trace({ type: 'subscribeStart', pkg, price });
+              const exitPromise = playExitTransition(transition);
+              try {
+                const response = await apiFetch(
+                  '/api/1/users/me/checkout/stripe/start',
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json; charset=utf-8',
+                    },
+                    body: JSON.stringify({
+                      package_id: pkg.identifier,
+                      cancel_path: '/upgrade',
+                      success_path: '/',
+                    }),
+                  },
+                  loginContext
+                );
+
+                if (!response.ok) {
+                  throw response;
+                }
+
+                startPop(null);
+                const data: { url: string } = await response.json();
+                trace({ type: 'subscribeRedirecting' });
+                window.location.href = data.url;
+              } catch (e) {
+                trace({ type: 'subscribeError', error: `${e}` });
+                setVWC(workingVWC, false);
+                exitPromise.cancel();
+                playEntranceTransition(transition);
+              }
+            }}>
+            <RenderGuardedComponent
+              props={resources.trial}
+              component={(trial) =>
+                trial === null || trial.count === 0 ? (
+                  <>Subscribe</>
+                ) : (
+                  <>Try {makeTrialPretty(trial)} free</>
+                )
+              }
+            />
+          </Button>
+        </ContentContainer>
         <VerticalSpacer height={16} />
-        <a href="https://www.oseh.com/terms" className={styles.disclaimer}>
-          <div className={styles.disclaimerTitle}>Cancel anytime.</div>
-          <VerticalSpacer height={2} />
-          <div className={styles.disclaimerBody}>
-            You will be notified before subscription renewal.
-          </div>
-          <div className={styles.disclaimerTerms}>Terms & Conditions</div>
-        </a>
+        <ContentContainer
+          contentWidthVWC={ctx.contentWidth}
+          alignSelf="center"
+          justifyContent="flex-start">
+          <a href="https://www.oseh.com/terms" className={styles.disclaimer}>
+            <div className={styles.disclaimerTitle}>Cancel anytime.</div>
+            <VerticalSpacer height={2} />
+            <div className={styles.disclaimerBody}>
+              You will be notified before subscription renewal.
+            </div>
+            <div className={styles.disclaimerTerms}>Terms & Conditions</div>
+          </a>
+        </ContentContainer>
         <VerticalSpacer height={32} />
       </GridContentContainer>
       <WipeTransitionOverlay wipe={transitionState.wipe} />
@@ -309,37 +341,62 @@ export const Upgrade = ({
   );
 };
 
-const Marketing = ({ copy, trial }: { copy: Copy; trial: ParsedPeriod | null }): ReactElement => {
+const Marketing = ({
+  copy,
+  trial,
+  ctx,
+}: {
+  copy: Copy;
+  trial: ParsedPeriod | null;
+  ctx: ScreenContext;
+}): ReactElement => {
   return (
     <>
-      <div className={styles.header}>{substituteOfferInfo({ text: copy.header, trial })}</div>
-      {copy.body.type === 'checklist' && <MarketingChecklist items={copy.body.items} />}
-      {copy.body.type === 'sequence' && <MarketingSequence items={copy.body.items} />}
+      <ContentContainer
+        contentWidthVWC={ctx.contentWidth}
+        alignSelf="center"
+        justifyContent="flex-start">
+        <div className={styles.header}>{substituteOfferInfo({ text: copy.header, trial })}</div>
+      </ContentContainer>
+      {copy.body.type === 'checklist' && <MarketingChecklist items={copy.body.items} ctx={ctx} />}
+      {copy.body.type === 'sequence' && <MarketingSequence items={copy.body.items} ctx={ctx} />}
     </>
   );
 };
 
-const MarketingChecklist = ({ items }: { items: string[] }): ReactElement => (
+const MarketingChecklist = ({
+  items,
+  ctx,
+}: {
+  items: string[];
+  ctx: ScreenContext;
+}): ReactElement => (
   <>
     <VerticalSpacer height={16} />
-    {items.map((item, idx) => (
-      <Fragment key={idx}>
-        {idx !== 0 && <VerticalSpacer height={8} />}
-        <div className={styles.checklistItem}>
-          <div className={styles.checklistIcon}>
-            <Check />
+    <ContentContainer
+      contentWidthVWC={ctx.contentWidth}
+      alignSelf="center"
+      justifyContent="flex-start">
+      {items.map((item, idx) => (
+        <Fragment key={idx}>
+          {idx !== 0 && <VerticalSpacer height={8} />}
+          <div className={styles.checklistItem}>
+            <div className={styles.checklistIcon}>
+              <Check />
+            </div>
+            <HorizontalSpacer width={16} />
+            <div className={styles.checklistText}>{item}</div>
           </div>
-          <HorizontalSpacer width={16} />
-          <div className={styles.checklistText}>{item}</div>
-        </div>
-      </Fragment>
-    ))}
-    <VerticalSpacer height={40} />
+        </Fragment>
+      ))}
+    </ContentContainer>
+    <VerticalSpacer height={8} flexGrow={1} maxHeight={40} />
   </>
 );
 
 const MarketingSequence = ({
   items,
+  ctx,
 }: {
   items: {
     /** The icon utf-8 character */
@@ -349,24 +406,30 @@ const MarketingSequence = ({
     /** The body */
     body: string;
   }[];
+  ctx: ScreenContext;
 }): ReactElement => (
   <>
-    <VerticalSpacer height={48} />
-    {items.map((item, idx) => (
-      <Fragment key={idx}>
-        {idx !== 0 && <VerticalSpacer height={24} />}
-        <div className={styles.sequenceItem}>
-          <div className={styles.sequenceIcon}>{item.icon}</div>
-          <HorizontalSpacer width={16} />
-          <div className={styles.sequenceText}>
-            <div className={styles.sequenceTitle}>{item.title}</div>
-            <VerticalSpacer height={8} />
-            <div className={styles.sequenceBody}>{item.body}</div>
+    <VerticalSpacer height={8} flexGrow={1} maxHeight={48} />
+    <ContentContainer
+      contentWidthVWC={ctx.contentWidth}
+      alignSelf="center"
+      justifyContent="flex-start">
+      {items.map((item, idx) => (
+        <Fragment key={idx}>
+          {idx !== 0 && <VerticalSpacer height={24} />}
+          <div className={styles.sequenceItem}>
+            <div className={styles.sequenceIcon}>{item.icon}</div>
+            <HorizontalSpacer width={16} />
+            <div className={styles.sequenceText}>
+              <div className={styles.sequenceTitle}>{item.title}</div>
+              <VerticalSpacer height={8} />
+              <div className={styles.sequenceBody}>{item.body}</div>
+            </div>
           </div>
-        </div>
-      </Fragment>
-    ))}
-    <VerticalSpacer height={60} />
+        </Fragment>
+      ))}
+    </ContentContainer>
+    <VerticalSpacer height={8} flexGrow={1} maxHeight={60} />
   </>
 );
 

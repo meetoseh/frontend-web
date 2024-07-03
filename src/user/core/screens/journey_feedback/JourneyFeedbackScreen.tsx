@@ -43,7 +43,25 @@ export const JourneyFeedbackScreen: OsehScreen<
       screen,
       refreshScreen,
       paramMapper: (p) => p.journey.darkenedBackgroundImage,
-      sizeMapper: () => ({ width: ctx.contentWidth.get(), height: 237 }),
+      sizeMapper: (ws) => {
+        const width = ctx.contentWidth.get();
+        const effectiveHeight = ws.height;
+        const availableHeight =
+          effectiveHeight -
+          32 /* img to rating */ -
+          100 /* high estimate for rating */ -
+          60 /* high estimate for button height */ -
+          (screen.parameters.cta2 ? 16 + 60 : 0) -
+          32 /* bottom spacing */ -
+          40; /* avoid being cramped */
+
+        if (availableHeight > 390) {
+          return { width, height: 390 };
+        } else if (availableHeight > 314) {
+          return { width, height: 314 };
+        }
+        return { width, height: 237 };
+      },
     });
 
     const getIsShareable = () =>

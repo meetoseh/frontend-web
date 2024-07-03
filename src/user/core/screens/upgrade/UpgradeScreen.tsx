@@ -50,6 +50,7 @@ export const UpgradeScreen: OsehScreen<
   slug: 'upgrade',
   paramMapper: (params) => ({
     ...params,
+    backVariant: params.back_variant ?? 'back',
     image: convertUsingMapper(params.image, screenImageKeyMap),
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

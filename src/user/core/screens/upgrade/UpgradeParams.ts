@@ -74,6 +74,9 @@ type UpgradeParams<ImageT extends object> = {
   /** The client flow slug to trigger when they hit the back button with no parameters */
   back: string | null;
 
+  /** The display style for the back button */
+  backVariant: 'back' | 'x';
+
   checkout: {
     /**
      * On the web this is ignored and configured via empty_with_checkout_uid on the backend.
@@ -93,7 +96,9 @@ type UpgradeParams<ImageT extends object> = {
   };
 };
 
-export type UpgradeAPIParams = UpgradeParams<ScreenImageAPI>;
-export type UpgradeMappedParams = UpgradeParams<ScreenImageParsed> & {
+export type UpgradeAPIParams = Omit<UpgradeParams<ScreenImageAPI>, 'backVariant'> & {
+  back_variant?: 'back' | 'x';
+};
+export type UpgradeMappedParams = Omit<UpgradeParams<ScreenImageParsed>, 'back_variant'> & {
   __mapped?: true;
 };
