@@ -51,6 +51,8 @@ import { CompletionScreen } from './core/screens/completion/CompletionScreen';
 import { VideoInterstitialOnboardingScreen } from './core/screens/video_interstitial_onboarding/VideoInterstitialOnboardingScreen';
 import { useHandleTouchLink } from './core/lib/handleTouchLink';
 import { FastUnsubscribeLoginApp } from './login/FastUnsubscribeLoginApp';
+import { JournalChatScreen } from './core/screens/journal_chat/JournalChatScreen';
+import { SimpleHomeScreen } from './core/screens/simple_home/SimpleHomeScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -126,6 +128,8 @@ const screens = [
   ResolveMergeConflictScreen,
   CompletionScreen,
   VideoInterstitialOnboardingScreen,
+  JournalChatScreen,
+  SimpleHomeScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**

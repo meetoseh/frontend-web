@@ -22,8 +22,9 @@ import { EmotionsPicker } from './components/EmotionsPicker';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 
 /**
- * The standard home screen with options to take a class by emotion,
- * go to settings, or view the available series
+ * The version of the home screen with options to take a class by emotion, go to
+ * settings, or view the available series. This screen can be a bit busy, so
+ * `SimpleHome` is available as a simpler alternative.
  */
 export const Home = ({
   ctx,

@@ -29,6 +29,7 @@ import { useManageConnectWithProvider } from './hooks/useManageConnectWithProvid
 import { OauthProvider } from '../../../login/lib/OauthProvider';
 import styles from './Settings.module.css';
 import { Wordmark } from '../../../../shared/content/player/assets/Wordmark';
+import { purgeClientKeys } from '../../../../shared/journals/clientKeys';
 
 const entrance: StandardScreenTransition = { type: 'fade', ms: 350 };
 const exit: StandardScreenTransition = { type: 'fade', ms: 350 };
@@ -92,6 +93,7 @@ export const Settings = ({
         const loginContextUnch = ctx.login.value.get();
         if (loginContextUnch.state === 'logged-in') {
           ctx.login.setAuthTokens(null);
+          purgeClientKeys();
         }
         return new Promise(() => {});
       },

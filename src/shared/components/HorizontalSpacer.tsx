@@ -20,7 +20,7 @@ export const HorizontalSpacer = ({
       style={{
         width: `${width}px`,
         paddingLeft: `${width}px`,
-        ...(flexGrow !== undefined ? { flexGrow: `${flexGrow}px` } : {}),
+        ...(flexGrow !== undefined ? { flexGrow: `${flexGrow}` } : {}),
         ...(flexBasis !== undefined ? { flexBasis: `${flexBasis}px` } : {}),
       }}
     />
