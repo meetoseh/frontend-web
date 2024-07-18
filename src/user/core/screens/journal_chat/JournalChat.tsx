@@ -375,8 +375,7 @@ export const JournalChat = ({
                 <>
                   <VerticalSpacer height={32} flexGrow={0} />
                   {parts}
-                  {chat.transient?.type === 'thinking-bar' ||
-                  chat.transient?.type === 'thinking-spinner' ? (
+                  {chat.transient?.type === 'thinking-spinner' ? (
                     <>
                       <VerticalSpacer height={24} flexGrow={1} />
                       <div className={styles.spinnerContainer}>
@@ -384,6 +383,31 @@ export const JournalChat = ({
                           size={{ type: 'react-rerender', props: { width: 40 } }}
                         />
                       </div>
+                      <VerticalSpacer height={12} />
+                      <div className={styles.spinnerMessage}>{chat.transient.message}</div>
+                      <VerticalSpacer height={4} />
+                      {chat.transient.detail !== null && (
+                        <div className={styles.spinnerDetail}>{chat.transient.detail}</div>
+                      )}
+                      <VerticalSpacer height={24} flexGrow={1} />
+                    </>
+                  ) : undefined}
+                  {chat.transient?.type === 'thinking-bar' ? (
+                    <>
+                      <VerticalSpacer height={24} flexGrow={1} />
+                      <div className={styles.spinnerContainer}>
+                        <progress
+                          className={styles.progress}
+                          value={chat.transient.at}
+                          max={chat.transient.of}
+                        />
+                      </div>
+                      <VerticalSpacer height={12} />
+                      <div className={styles.spinnerMessage}>{chat.transient.message}</div>
+                      <VerticalSpacer height={4} />
+                      {chat.transient.detail !== null && (
+                        <div className={styles.spinnerDetail}>{chat.transient.detail}</div>
+                      )}
                       <VerticalSpacer height={24} flexGrow={1} />
                     </>
                   ) : undefined}

@@ -345,7 +345,9 @@ const manageWebsocketChatLoopWithoutRetries = ({
                     await getCurrentServerTimeMS()
                   );
                   const segmentData = JSON.parse(decryptedSegmentData);
-                  console.log(decryptedSegmentData);
+                  if (localStorage.getItem('journalChatPrintDecryptedSegments') === 'true') {
+                    console.log(decryptedSegmentData);
+                  }
 
                   for (const mutation of segmentData.mutations) {
                     if (mutation.key.length === 0) {
