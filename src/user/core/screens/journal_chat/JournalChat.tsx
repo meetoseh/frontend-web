@@ -1,4 +1,4 @@
-import { Fragment, ReactElement, useEffect } from 'react';
+import { Fragment, ReactElement, useEffect, useMemo } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGrayBackground';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
@@ -37,6 +37,7 @@ import { createChainedImageFromRef } from '../../lib/createChainedImageFromRef';
 import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createValueWithCallbacksEffect';
 import { Arrow } from './icons/Arrow';
 import { InlineOsehSpinner } from '../../../../shared/components/InlineOsehSpinner';
+import { ThinkingDots } from '../../../../shared/components/ThinkingDots';
 
 const SUGGESTIONS = [
   { text: 'I have a lot of anxiety right now', width: 160 },
@@ -149,6 +150,11 @@ export const JournalChat = ({
     }
     return undefined;
   });
+
+  const prefersDetailedSpinners = useMemo(
+    () => localStorage.getItem('journalChatDetailedSpinners') === 'true',
+    []
+  );
 
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
@@ -371,11 +377,14 @@ export const JournalChat = ({
                 }
               });
 
+              const prefersDetailedSpinners =
+                localStorage.getItem('journalChatDetailedSpinners') === 'true';
+
               return (
                 <>
                   <VerticalSpacer height={32} flexGrow={0} />
                   {parts}
-                  {chat.transient?.type === 'thinking-spinner' ? (
+                  {prefersDetailedSpinners && chat.transient?.type === 'thinking-spinner' ? (
                     <>
                       <VerticalSpacer height={24} flexGrow={1} />
                       <div className={styles.spinnerContainer}>
@@ -392,7 +401,7 @@ export const JournalChat = ({
                       <VerticalSpacer height={24} flexGrow={1} />
                     </>
                   ) : undefined}
-                  {chat.transient?.type === 'thinking-bar' ? (
+                  {prefersDetailedSpinners && chat.transient?.type === 'thinking-bar' ? (
                     <>
                       <VerticalSpacer height={24} flexGrow={1} />
                       <div className={styles.spinnerContainer}>
@@ -409,6 +418,13 @@ export const JournalChat = ({
                         <div className={styles.spinnerDetail}>{chat.transient.detail}</div>
                       )}
                       <VerticalSpacer height={24} flexGrow={1} />
+                    </>
+                  ) : undefined}
+                  {!prefersDetailedSpinners && chat.transient?.type?.startsWith('thinking') ? (
+                    <>
+                      <VerticalSpacer height={24} />
+                      <ThinkingDots />
+                      <VerticalSpacer height={24} />
                     </>
                   ) : undefined}
                 </>
