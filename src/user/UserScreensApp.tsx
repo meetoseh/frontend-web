@@ -53,6 +53,7 @@ import { useHandleTouchLink } from './core/lib/handleTouchLink';
 import { FastUnsubscribeLoginApp } from './login/FastUnsubscribeLoginApp';
 import { JournalChatScreen } from './core/screens/journal_chat/JournalChatScreen';
 import { SimpleHomeScreen } from './core/screens/simple_home/SimpleHomeScreen';
+import { LargeImageInterstitialScreen } from './core/screens/large_image_interstitial/LargeImageInterstitialScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -130,6 +131,7 @@ const screens = [
   VideoInterstitialOnboardingScreen,
   JournalChatScreen,
   SimpleHomeScreen,
+  LargeImageInterstitialScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**

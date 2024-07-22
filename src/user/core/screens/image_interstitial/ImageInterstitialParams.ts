@@ -5,7 +5,7 @@ export type ImageInterstitialAPIParams = {
   /** The message at the top of the screen, typically providing context */
   top: string;
 
-  /** The image to show at content width and natural height */
+  /** The image to show at content width and natural height (assuming 342w x 215h natural size)  */
   image: ScreenImageAPI;
 
   /** The header message */
