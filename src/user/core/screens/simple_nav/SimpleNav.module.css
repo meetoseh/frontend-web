@@ -1,0 +1,43 @@
+.close {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.primary {
+  border: none;
+  border-radius: 0;
+  background: none;
+  text-decoration: none;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 41.6px;
+  color: #eaeaeb;
+}
+
+.secondary {
+  border: none;
+  border-radius: 0;
+  background: none;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 20.4px;
+  color: #eaeaeb;
+  padding: 4px 0;
+}
