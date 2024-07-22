@@ -55,6 +55,7 @@ import { JournalChatScreen } from './core/screens/journal_chat/JournalChatScreen
 import { SimpleHomeScreen } from './core/screens/simple_home/SimpleHomeScreen';
 import { LargeImageInterstitialScreen } from './core/screens/large_image_interstitial/LargeImageInterstitialScreen';
 import { SimpleNavScreen } from './core/screens/simple_nav/SimpleNavScreen';
+import { ChatMessageExamplesScreen } from './core/screens/chat_message_examples/ChatMessageExamplesScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -134,6 +135,7 @@ const screens = [
   SimpleHomeScreen,
   LargeImageInterstitialScreen,
   SimpleNavScreen,
+  ChatMessageExamplesScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
