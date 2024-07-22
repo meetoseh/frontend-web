@@ -69,10 +69,10 @@ export const JournalChat = ({
   const workingVWC = useWritableValueWithCallbacks(() => false);
   const windowWidthVWC = useMappedValueWithCallbacks(ctx.windowSizeImmediate, (s) => s.width);
 
-  const inputVWC = createWritableValueWithCallbacks<HTMLTextAreaElement | null>(null);
-  const rawInputValueVWC = createWritableValueWithCallbacks<string>('');
+  const inputVWC = useWritableValueWithCallbacks<HTMLTextAreaElement | null>(() => null);
+  const rawInputValueVWC = useWritableValueWithCallbacks<string>(() => '');
 
-  const chatAreaRef = createWritableValueWithCallbacks<HTMLDivElement | null>(null);
+  const chatAreaRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
 
   const fixInput = () => {
     const input = inputVWC.get();

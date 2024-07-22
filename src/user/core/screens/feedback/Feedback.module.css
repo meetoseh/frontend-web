@@ -1,0 +1,71 @@
+.close {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.top {
+  text-align: left;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.header {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28.6px;
+  color: #eaeaeb;
+}
+
+.message {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  text-align: left;
+  color: #c8cdd0;
+}
+
+.details {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 16.8px;
+  text-align: left;
+  color: #c8cdd0;
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.input {
+  border: 1px solid #383838;
+  border-radius: 28px;
+  background: #191c1d;
+  padding: 10px 16px;
+  outline: none;
+  appearance: none;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: normal;
+  color: #eaeaeb;
+  resize: none;
+  overflow-y: hidden;
+  flex: 1 1 100%;
+}
+
+.input::placeholder {
+  color: #8b8e90;
+  letter-spacing: 0.25px;
+}
