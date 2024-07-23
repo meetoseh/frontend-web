@@ -119,6 +119,21 @@
   padding: 16px;
 }
 
+.journeyCardTopForegroundPaid {
+  padding: 2px 4px;
+  background: #191c1d80;
+  border-radius: 4px;
+  align-self: flex-end;
+}
+
+.journeyCardTopForegroundPaidText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  color: #eaeaeb;
+}
+
 .journeyCardTopForegroundTitle {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;

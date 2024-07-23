@@ -117,6 +117,7 @@ export const JournalChat = ({
     return undefined;
   });
 
+  const submittedVWC = useWritableValueWithCallbacks<boolean>(() => false);
   const onSubmit = () => {
     const ele = inputVWC.get();
     if (ele === null) {
@@ -128,8 +129,14 @@ export const JournalChat = ({
       return;
     }
 
+    if (submittedVWC.get()) {
+      return;
+    }
+
+    ele.blur();
     ele.value = '';
     setVWC(rawInputValueVWC, '');
+    setVWC(submittedVWC, true);
     fixInput();
     resources.trySubmitUserResponse(value);
   };
@@ -377,9 +384,6 @@ export const JournalChat = ({
                 }
               });
 
-              const prefersDetailedSpinners =
-                localStorage.getItem('journalChatDetailedSpinners') === 'true';
-
               return (
                 <>
                   <VerticalSpacer height={32} flexGrow={0} />
@@ -431,66 +435,87 @@ export const JournalChat = ({
               );
             }}
           />
+          <RenderGuardedComponent
+            props={submittedVWC}
+            component={(submitted) => <VerticalSpacer height={submitted ? 40 : 12} />}
+          />
         </ContentContainer>
-        <VerticalSpacer height={12} flexGrow={1} />
-        <div className={styles.hint}>Type a message below or tap a suggestion to get started</div>
-        <VerticalSpacer height={16} />
-        <div className={styles.suggestions}>
-          {SUGGESTIONS.map((suggestion, i) => (
-            <Fragment key={i}>
-              <HorizontalSpacer width={i === 0 ? 16 : 12} />
-              <button
-                type="button"
-                className={styles.suggestion}
-                onClick={(e) => {
-                  e.preventDefault();
+        <VerticalSpacer height={0} flexGrow={1} />
 
-                  const ele = inputVWC.get();
-                  if (ele === null) {
-                    return;
-                  }
+        <RenderGuardedComponent
+          props={submittedVWC}
+          component={(submitted) =>
+            submitted ? (
+              <></>
+            ) : (
+              <>
+                <div className={styles.hint}>
+                  Type a message below or tap a suggestion to get started
+                </div>
+                <VerticalSpacer height={16} />
+                <div className={styles.suggestions}>
+                  {SUGGESTIONS.map((suggestion, i) => (
+                    <Fragment key={i}>
+                      <HorizontalSpacer width={i === 0 ? 16 : 12} />
+                      <button
+                        type="button"
+                        className={styles.suggestion}
+                        onClick={(e) => {
+                          e.preventDefault();
 
-                  ele.value += suggestion.text;
-                  setVWC(rawInputValueVWC, ele.value);
-                  ele.style.height = '5px';
-                  ele.style.height = `${ele.scrollHeight}px`;
-                  ele.focus();
-                }}
-                style={{ width: `${suggestion.width}px`, flex: `${suggestion.width}px 0 0` }}>
-                {suggestion.text}
-              </button>
-              <HorizontalSpacer width={i === SUGGESTIONS.length - 1 ? 16 : 0} />
-            </Fragment>
-          ))}
-        </div>
-        <VerticalSpacer height={16} />
-        <ContentContainer contentWidthVWC={ctx.contentWidth}>
-          <form
-            className={styles.form}
-            onSubmit={(e) => {
-              e.preventDefault();
-              onSubmit();
-            }}>
-            <textarea
-              className={styles.input}
-              rows={1}
-              placeholder="How are you feeling today?"
-              ref={(r) => setVWC(inputVWC, r)}
-            />
-            <HorizontalSpacer width={6} />
-            <button
-              type="submit"
-              className={styles.submit}
-              onClick={(e) => {
-                e.preventDefault();
-                onSubmit();
-              }}>
-              <Submit />
-              <div className={assistiveStyles.srOnly}>Submit</div>
-            </button>
-          </form>
-        </ContentContainer>
-        <VerticalSpacer height={40} />
+                          const ele = inputVWC.get();
+                          if (ele === null) {
+                            return;
+                          }
+
+                          ele.value += suggestion.text;
+                          setVWC(rawInputValueVWC, ele.value);
+                          ele.style.height = '5px';
+                          ele.style.height = `${ele.scrollHeight}px`;
+                          ele.focus();
+                        }}
+                        style={{
+                          width: `${suggestion.width}px`,
+                          flex: `${suggestion.width}px 0 0`,
+                        }}>
+                        {suggestion.text}
+                      </button>
+                      <HorizontalSpacer width={i === SUGGESTIONS.length - 1 ? 16 : 0} />
+                    </Fragment>
+                  ))}
+                </div>
+                <VerticalSpacer height={16} />
+                <ContentContainer contentWidthVWC={ctx.contentWidth}>
+                  <form
+                    className={styles.form}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      onSubmit();
+                    }}>
+                    <textarea
+                      className={styles.input}
+                      rows={1}
+                      placeholder="How are you feeling today?"
+                      ref={(r) => setVWC(inputVWC, r)}
+                    />
+                    <HorizontalSpacer width={6} />
+                    <button
+                      type="submit"
+                      className={styles.submit}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onSubmit();
+                      }}>
+                      <Submit />
+                      <div className={assistiveStyles.srOnly}>Submit</div>
+                    </button>
+                  </form>
+                </ContentContainer>
+                <VerticalSpacer height={40} />
+              </>
+            )
+          }
+        />
       </GridContentContainer>
       <WipeTransitionOverlay wipe={transitionState.wipe} />
     </GridFullscreenContainer>
