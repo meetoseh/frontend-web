@@ -1,5 +1,10 @@
 import { createUID } from '../../../shared/lib/createUID';
 import { CrudFetcherMapper, convertUsingMapper } from '../../crud/CrudFetcher';
+import {
+  ClientFlowPredicate,
+  clientFlowPredicateMapper,
+  serializeClientFlowPredicate,
+} from './ClientFlowPredicate';
 
 export type ClientFlowScreenVariableInputStringFormat = {
   /**
@@ -199,6 +204,13 @@ export type ClientFlowScreen = {
   allowedTriggers: string[];
   /** A bitfield of flags; see ClientFlowScreenFlag */
   flags: number;
+  /** Rules which must be met for the screen to actually be shown */
+  rules: {
+    /** This predicate must be true at trigger time or the flow screen is not queued */
+    trigger: ClientFlowPredicate | null;
+    /** This predicate must be true at peek time or the flow screen is skipped */
+    peek: ClientFlowPredicate | null;
+  };
 };
 
 export const clientFlowScreenKeyMap: CrudFetcherMapper<ClientFlowScreen> = (v: any) => ({
@@ -207,6 +219,16 @@ export const clientFlowScreenKeyMap: CrudFetcherMapper<ClientFlowScreen> = (v: a
   screen: convertUsingMapper(v.screen, clientFlowScreenScreenKeyMap),
   allowedTriggers: v.allowed_triggers,
   flags: v.flags,
+  rules: {
+    trigger:
+      v.rules.trigger !== null && v.rules.trigger !== undefined
+        ? convertUsingMapper(v.rules.trigger, clientFlowPredicateMapper)
+        : null,
+    peek:
+      v.rules.peek !== null && v.rules.peek !== undefined
+        ? convertUsingMapper(v.rules.peek, clientFlowPredicateMapper)
+        : null,
+  },
 });
 
 export const serializeClientFlowScreen = (x: ClientFlowScreen): any => ({
@@ -214,4 +236,8 @@ export const serializeClientFlowScreen = (x: ClientFlowScreen): any => ({
   name: x.name === '' ? null : x.name ?? null,
   allowed_triggers: x.allowedTriggers,
   flags: x.flags,
+  rules: {
+    trigger: x.rules.trigger === null ? null : serializeClientFlowPredicate(x.rules.trigger),
+    peek: x.rules.peek === null ? null : serializeClientFlowPredicate(x.rules.peek),
+  },
 });

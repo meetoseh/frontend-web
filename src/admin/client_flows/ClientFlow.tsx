@@ -1,6 +1,11 @@
 import { CrudFetcherMapper, convertUsingMapper } from '../crud/CrudFetcher';
 import { ClientFlowFlags } from './ClientFlowFlags';
 import {
+  ClientFlowRule,
+  clientFlowRuleMapper,
+  serializeClientFlowRule,
+} from './client_flow_screens/ClientFlowRule';
+import {
   ClientFlowScreen,
   clientFlowScreenKeyMap,
   serializeClientFlowScreen,
@@ -40,6 +45,12 @@ export type ClientFlow = {
    */
   screens: ClientFlowScreen[];
 
+  /**
+   * Rules to apply at trigger time for this flow; a more configurable variant of
+   * rules that are often in flags, for rules that can't be described in a single bit
+   */
+  rules: ClientFlowRule[];
+
   /** The boolean flags, generally related to access */
   flags: ClientFlowFlags | 0;
 
@@ -54,6 +65,10 @@ export const clientFlowKeyMap: CrudFetcherMapper<ClientFlow> = {
     key: 'screens',
     value: (v as any[]).map((x) => convertUsingMapper(x, clientFlowScreenKeyMap)),
   }),
+  rules: (_, v) => ({
+    key: 'rules',
+    value: (v as any[]).map((x) => convertUsingMapper(x, clientFlowRuleMapper)),
+  }),
   created_at: (_, v) => ({ key: 'createdAt', value: new Date(v * 1000) }),
 };
 
@@ -66,6 +81,7 @@ export const serializeClientFlow = (x: ClientFlow): any => ({
   server_schema: x.serverSchema,
   replaces: x.replaces,
   screens: x.screens.map((x) => serializeClientFlowScreen(x)),
+  rules: x.rules.map((x) => serializeClientFlowRule(x)),
   flags: x.flags,
   created_at: x.createdAt.getTime() / 1000,
 });

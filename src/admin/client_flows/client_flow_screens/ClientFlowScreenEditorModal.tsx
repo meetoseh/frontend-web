@@ -608,6 +608,7 @@ const Content = ({
   const fixedValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.fixed);
   const variableValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.screen.variable);
   const allowedTriggersValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.allowedTriggers);
+  const rulesValueVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.rules);
   const mappedVariableValueVWC = useMappedValueWithCallbacks(variableValueVWC, (v) => {
     const result = new Map<string, ClientFlowScreenVariableInput>();
     for (const variableInput of v) {
@@ -820,6 +821,17 @@ const Content = ({
             flowScreenSaveable.onClientChange({
               ...valueVWC.get(),
               allowedTriggers: v,
+            })
+          }
+        />
+      </CrudFormElement>
+      <CrudFormElement title="Rules">
+        <RawJSONEditor
+          canonicalVWC={rulesValueVWC}
+          setValue={(v) =>
+            flowScreenSaveable.onClientChange({
+              ...valueVWC.get(),
+              rules: v,
             })
           }
         />

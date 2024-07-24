@@ -53,6 +53,7 @@ import { createCancelablePromiseFromCallbacks } from '../../shared/lib/createCan
 import { ModalWrapper } from '../../shared/ModalWrapper';
 import { WorkingOverlay } from '../../shared/components/WorkingOverlay';
 import { VerticalSpacer } from '../../shared/components/VerticalSpacer';
+import { ClientFlowRule, serializeClientFlowRule } from './client_flow_screens/ClientFlowRule';
 
 /**
  * Shows detailed information about a specific client flow specified by the slug in the URL
@@ -174,6 +175,7 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                       server_schema: oldFlow.serverSchema,
                       replaces: oldFlow.replaces,
                       screens: oldFlow.screens.map((s) => serializeClientFlowScreen(s)),
+                      rules: oldFlow.rules.map((s) => serializeClientFlowRule(s)),
                       flags: oldFlow.flags,
                     },
                     patch: {
@@ -184,6 +186,7 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                       server_schema: flow.serverSchema,
                       replaces: flow.replaces,
                       screens: flow.screens.map((s) => serializeClientFlowScreen(s)),
+                      rules: flow.rules.map((s) => serializeClientFlowRule(s)),
                       flags: flow.flags,
                     },
                   }),
@@ -271,6 +274,25 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
   });
 
   const flagsVWC = useMappedValueWithCallbacks(draftVWC, (v) => v.flags);
+  const canonicalRulesVWC = useMappedValueWithCallbacks(draftVWC, (v) => ({
+    source: JSON.stringify(v.rules, null, 2),
+    parsed: v.rules,
+  }));
+  const rulesVWC = useWritableValueWithCallbacks<OpenAPIEditableSchema>(() => ({
+    type: 'parsed',
+    source: canonicalRulesVWC.get().source,
+    parsed: canonicalRulesVWC.get().parsed,
+  }));
+  useValueWithCallbacksEffect(rulesVWC, (v) => {
+    if (v.type === 'parsed' && v.source !== canonicalRulesVWC.get().source) {
+      clientFlowSaveable.onClientChange({
+        ...draftVWC.get(),
+        rules: v.parsed as ClientFlowRule[],
+      });
+    }
+    return undefined;
+  });
+
   const draftStateVWC = useMappedValueWithCallbacks(clientFlowSaveable.state, (s) => s.type);
   useEffect(() => {
     screensFastTWVWC.callbacks.add(onUpdate);
@@ -492,6 +514,13 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
               )}
             />
           </CrudFormElement>
+          <CrudFormElement title="Rules" noTopMargin>
+            <CrudSwappableElement
+              version={isCustomVWC}
+              truthy={() => <OpenAPISchemaEditor schema={rulesVWC} />}
+              falsey={() => <OpenAPISchemaViewer schema={canonicalRulesVWC} />}
+            />
+          </CrudFormElement>
         </div>
         <div className={styles.screens}>
           <div className={styles.screensTitle}>Screens</div>
@@ -600,6 +629,7 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                   variable: [],
                 },
                 allowedTriggers: [],
+                rules: { trigger: null, peek: null },
                 flags:
                   ClientFlowScreenFlag.SHOWS_ON_IOS |
                   ClientFlowScreenFlag.SHOWS_ON_ANDROID |
