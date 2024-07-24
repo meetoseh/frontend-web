@@ -812,6 +812,7 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                               screens: draftVWC
                                 .get()
                                 .screens.map((s) => serializeClientFlowScreen(s)),
+                              rules: draftVWC.get().rules.map((s) => serializeClientFlowRule(s)),
                               flags: draftVWC.get().flags,
                             },
                           }),
