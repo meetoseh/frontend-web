@@ -20,6 +20,7 @@ import { describeErrorFromResponse, describeFetchError } from '../../../shared/f
 import { setVWC } from '../../../shared/lib/setVWC';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 import { HandleTouchLinkResult } from '../lib/handleTouchLink';
+import { SCREEN_VERSION } from '../../../shared/lib/screenVersion';
 
 export type UseScreenQueueStateResult = {
   /** The screen that the user should see */
@@ -221,7 +222,9 @@ export const useScreenQueueState = ({
               let response: Response;
               try {
                 response = await apiFetch(
-                  `${path}?platform=${encodeURIComponent(VISITOR_SOURCE)}`,
+                  `${path}?platform=${encodeURIComponent(
+                    VISITOR_SOURCE
+                  )}&version=${encodeURIComponent(SCREEN_VERSION)}`,
                   {
                     method: 'POST',
                     headers: fullHeaders,
@@ -444,7 +447,9 @@ export const useScreenQueueState = ({
   const trace = useCallback(
     (from: UseScreenQueueStateState & { type: 'success' }, event: object) => {
       apiFetch(
-        `/api/1/users/me/screens/trace?platform=${encodeURIComponent(VISITOR_SOURCE)}`,
+        `/api/1/users/me/screens/trace?platform=${encodeURIComponent(
+          VISITOR_SOURCE
+        )}&version=${encodeURIComponent(SCREEN_VERSION)}`,
         {
           method: 'POST',
           headers: {
@@ -670,7 +675,7 @@ export const useScreenQueueState = ({
         },
       });
     }
-  }, [peek, peekLike]);
+  }, [peek, peekLike, loginContextRaw.value, touchLink]);
 
   const loggedInStateSticky = useWritableValueWithCallbacks<boolean>(() => false);
   useValueWithCallbacksEffect(loginContextRaw.value, (ctx) => {
@@ -745,7 +750,7 @@ export const useScreenQueueState = ({
           }
         }
       },
-      [peekFirst, valueVWC]
+      [peekFirst, valueVWC, touchLink]
     )
   );
 
