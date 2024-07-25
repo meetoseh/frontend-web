@@ -234,6 +234,7 @@ export const JournalChat = ({
         <ContentContainer
           contentWidthVWC={ctx.contentWidth}
           scrolls
+          scrollWidth={windowWidthVWC}
           justifyContent="flex-start"
           refVWC={chatAreaRef}>
           <RenderGuardedComponent

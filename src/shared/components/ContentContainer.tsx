@@ -22,6 +22,7 @@ export const ContentContainer = ({
   justifyContent,
   alignSelf,
   scrolls,
+  scrollWidth,
   children,
   refVWC,
 }: PropsWithChildren<
@@ -33,13 +34,31 @@ export const ContentContainer = ({
     | {
         justifyContent?: CSSProperties['justifyContent'];
         scrolls?: undefined;
+        scrollWidth?: undefined;
       }
     | {
         justifyContent: 'flex-start';
         scrolls: true;
+        /** The width of the container where the user can scroll */
+        scrollWidth: ValueWithCallbacks<number>;
       }
   )
 >): ReactElement => {
+  const wrapperRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
+  const wrapperStyleVWC = useMappedValuesWithCallbacks(
+    scrollWidth === undefined ? [] : [scrollWidth],
+    () => {
+      if (scrollWidth === undefined) {
+        return {};
+      }
+
+      return {
+        width: `${scrollWidth.get()}px`,
+      };
+    }
+  );
+  useStyleVWC(wrapperRef, wrapperStyleVWC);
+
   const contentRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
   const contentStyleVWC = useMappedValuesWithCallbacks(
     [contentWidthVWC, useReactManagedValueAsValueWithCallbacks(justifyContent)],
@@ -62,12 +81,25 @@ export const ContentContainer = ({
     });
   }, [refVWC, contentRef]);
 
-  return (
+  const inner = (
     <div
-      className={combineClasses(styles.container, scrolls ? styles.scrolls : undefined)}
+      className={styles.container}
       ref={(r) => setVWC(contentRef, r)}
       style={contentStyleVWC.get()}>
       {children}
     </div>
   );
+
+  if (scrolls) {
+    return (
+      <div
+        className={styles.scrollWrapper}
+        ref={(r) => setVWC(wrapperRef, r)}
+        style={wrapperStyleVWC.get()}>
+        {inner}
+      </div>
+    );
+  }
+
+  return inner;
 };

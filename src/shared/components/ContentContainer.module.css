@@ -5,7 +5,11 @@
   align-items: stretch;
 }
 
-.scrolls {
+.scrollWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   flex: 0 1 auto;
   overflow-y: auto;
   -ms-overflow-style: none; /* IE and Edge */
