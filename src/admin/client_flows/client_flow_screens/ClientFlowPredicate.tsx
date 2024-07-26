@@ -12,9 +12,18 @@ export type ClientFlowPredicate = {
   accountAge?: SimpleFilterItem | null;
 };
 
-export const clientFlowPredicateMapper: CrudFetcherMapper<ClientFlowPredicate> = {
-  time_in_queue: 'timeInQueue',
-  account_age: 'accountAge',
+export const clientFlowPredicateMapper: CrudFetcherMapper<ClientFlowPredicate> = (raw) => {
+  const result = {} as any;
+  if (raw.version !== undefined && raw.version !== null) {
+    result.version = raw.version;
+  }
+  if (raw.time_in_queue !== undefined && raw.time_in_queue !== null) {
+    result.timeInQueue = raw.time_in_queue;
+  }
+  if (raw.account_age !== undefined && raw.account_age !== null) {
+    result.accountAge = raw.account_age;
+  }
+  return result as ClientFlowPredicate;
 };
 export const serializeClientFlowPredicate = (x: ClientFlowPredicate): any => ({
   ...(x.version !== undefined && x.version !== null ? { version: x.version } : {}),
