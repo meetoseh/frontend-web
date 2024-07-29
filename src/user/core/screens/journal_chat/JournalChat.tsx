@@ -1,4 +1,4 @@
-import { Fragment, ReactElement, useEffect, useMemo } from 'react';
+import { Fragment, ReactElement, useEffect, useMemo, useRef } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGrayBackground';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
@@ -38,6 +38,7 @@ import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createV
 import { Arrow } from './icons/Arrow';
 import { InlineOsehSpinner } from '../../../../shared/components/InlineOsehSpinner';
 import { ThinkingDots } from '../../../../shared/components/ThinkingDots';
+import { trackClassTaken } from '../home/lib/trackClassTaken';
 
 const SUGGESTIONS = [
   { text: 'I have a lot of anxiety right now', width: 160 },
@@ -313,6 +314,12 @@ export const JournalChat = ({
                                   journey_uid: textPart.uid,
                                   upgrade_slug: screen.parameters.upgradeTrigger,
                                 },
+                                afterDone:
+                                  textPart.details.access !== 'paid-requires-upgrade'
+                                    ? async () => {
+                                        trackClassTaken(ctx);
+                                      }
+                                    : undefined,
                               }
                             );
                           }}>

@@ -6,6 +6,7 @@ import {
   WrappedJournalClientKey,
 } from '../../../../shared/journals/clientKeys';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { createCancelableTimeout } from '../../../../shared/lib/createCancelableTimeout';
 import { createFernet } from '../../../../shared/lib/fernet';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
 import { setVWC } from '../../../../shared/lib/setVWC';
@@ -182,7 +183,7 @@ export const JournalChatScreen: OsehScreen<
           setVWC(active, false);
         };
 
-        async function getGreeting() {
+        async function getGreeting(retry?: number) {
           const clientKeyRaw = await getOrCreateClientKey(user, ctx.interests.visitor);
           if (!active.get()) {
             return;
@@ -232,7 +233,20 @@ export const JournalChatScreen: OsehScreen<
           } catch (e) {
             if (active.get()) {
               console.warn('error getting greeting:', e);
-              setVWC(greetingVWC, undefined);
+
+              const finalState = greetingCancelable.state.get();
+              if (
+                finalState.type === 'failed' &&
+                finalState.resolutionHint === 'retry' &&
+                (retry ?? 0) < 3
+              ) {
+                const timeoutCancelable = createCancelableTimeout(5000);
+                timeoutCancelable.promise.catch(() => {});
+                await Promise.race([timeoutCancelable.promise, canceled.promise]);
+                getGreeting((retry ?? 0) + 1);
+              } else {
+                setVWC(greetingVWC, undefined);
+              }
             }
           } finally {
             cleanupAttacher();
