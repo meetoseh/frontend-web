@@ -39,6 +39,9 @@ export type SimpleHomeAPIParams = {
     /** The trigger to use with no parameters */
     trigger: string | null;
 
+    /** The endpoint to use or undefined/null to use the default pop endpoint */
+    endpoint?: string | null;
+
     /** The exit transition */
     exit: StandardScreenTransition;
   };
@@ -55,6 +58,9 @@ export type SimpleHomeAPIParams = {
 
     /** The trigger to use with no parameters */
     trigger: string | null;
+
+    /** The endpoint to use or undefined/null to use the default pop endpoint */
+    endpoint?: string | null;
 
     /** The exit transition */
     exit: StandardScreenTransition;

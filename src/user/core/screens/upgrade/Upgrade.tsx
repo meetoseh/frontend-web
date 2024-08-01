@@ -50,6 +50,7 @@ import {
 import { Close } from '../interactive_prompt_screen/icons/Close';
 import { ScreenContext } from '../../hooks/useScreenContext';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 type Copy = UpgradeCopy<ScreenImageParsed>;
 
@@ -89,11 +90,18 @@ export const Upgrade = ({
 
   const onBack = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    screenOut(workingVWC, startPop, transition, screen.parameters.exit, screen.parameters.back, {
-      beforeDone: async () => {
-        trace({ type: 'back' });
-      },
-    });
+    configurableScreenOut(
+      workingVWC,
+      startPop,
+      transition,
+      screen.parameters.exit,
+      screen.parameters.back,
+      {
+        beforeDone: async () => {
+          trace({ type: 'back' });
+        },
+      }
+    );
   };
 
   const windowWidthVWC = useMappedValueWithCallbacks(ctx.windowSizeImmediate, (s) => s.width);

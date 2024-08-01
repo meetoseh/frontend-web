@@ -1,3 +1,20 @@
+.deprecated {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  background-color: #00000020;
+  padding: 8px;
+}
+
+.deprecatedMessage {
+  padding: 16px;
+  background-color: #ff000020;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
 .container {
   display: flex;
   flex-direction: column;

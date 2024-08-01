@@ -29,6 +29,9 @@ export const SchemaStandard = ({
   };
 
   if (schema.type === 'object') {
+    if (schema.properties === undefined && !('x-enum-discriminator' in schema)) {
+      return <SchemaRawInput {...subprops} />;
+    }
     return <SchemaObjectInput {...subprops} />;
   } else if (schema.type === 'array') {
     return <SchemaFlatArrayInput {...subprops} />;

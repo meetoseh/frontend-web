@@ -4,27 +4,23 @@ import { JournalChatState } from './lib/JournalChatState';
 
 export type JournalChatResources = ScreenResources & {
   /**
-   * Null while the chat is loading, undefined if an error occurred, otherwise the
-   * state of the chat
+   * The current state of the chat; null while initially loading, undefined if an
+   * error occurred
    */
   chat: ValueWithCallbacks<JournalChatState | null | undefined>;
 
   /**
-   * The journal entry uid, if its been initialized successfully, otherwise null
-   * NOTE: For now, this is only initialized once the system response has been
-   * received as we don't have a full state machine for continuous messaging
+   * The journal entry uid we are looking at, null if unavailable
    */
   journalEntryUID: ValueWithCallbacks<string | null>;
 
   /**
-   * The JWT for accessing the journal entry, if available, otherwise null
-   * NOTE: For now, this is only initialized once the system response has been
-   * received as we don't have a full state machine for continuous messaging
+   * The latest JWT for accessing the journal entry, null if unavailable
    */
   journalEntryJWT: ValueWithCallbacks<string | null>;
 
   /**
-   * Can be used to submit the users reply
+   * Submits the users response, which will cause the chat state to get updated in turn
    */
   trySubmitUserResponse: (userResponse: string) => void;
 };

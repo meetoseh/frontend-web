@@ -8,12 +8,17 @@ import { Checkbox } from '../../../../../shared/forms/Checkbox';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { useWritableValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
 import { useValuesWithCallbacksEffect } from '../../../../../shared/hooks/useValuesWithCallbacksEffect';
+import { VerticalSpacer } from '../../../../../shared/components/VerticalSpacer';
 
 /**
  * Allows users to produce the value by copying from the standard, client,
  * or server parameters. If they do not, delegates
  */
 export const ClientScreenSchemaCopyInput = (props: ClientScreenSchemaInputProps): ReactElement => {
+  if (props.schema.deprecated) {
+    return <Deprecated {...props} />;
+  }
+
   if (props.path.some((v) => typeof v !== 'string')) {
     return props.noCopyDelegator({
       schema: props.schema,
@@ -25,6 +30,21 @@ export const ClientScreenSchemaCopyInput = (props: ClientScreenSchemaInputProps)
     });
   }
   return <ClientScreenSchemaCopyInputInner {...props} />;
+};
+
+const Deprecated = (props: ClientScreenSchemaInputProps): ReactElement => {
+  const copySchema = { ...props.schema };
+  delete copySchema.deprecated;
+
+  return (
+    <div className={styles.deprecated}>
+      <div className={styles.deprecatedMessage}>
+        This property is deprecated. Generally, that means it only effects old clients.
+      </div>
+      <VerticalSpacer height={8} />
+      <ClientScreenSchemaCopyInput {...props} schema={copySchema} />
+    </div>
+  );
 };
 
 const ClientScreenSchemaCopyInputInner = ({

@@ -1,4 +1,8 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerAPI,
+} from '../../models/ScreenConfigurableTrigger';
 import { ScreenImageAPI, ScreenImageParsed } from '../../models/ScreenImage';
 
 export type UpgradeCopy<ImageT extends object> = {
@@ -71,8 +75,8 @@ type UpgradeParams<ImageT extends object> = {
   /** exit transition for the back button. in native, this also applies to after checkout */
   exit: StandardScreenTransition;
 
-  /** The client flow slug to trigger when they hit the back button with no parameters */
-  back: string | null;
+  /** How to handle the back button */
+  back: ScreenConfigurableTrigger;
 
   /** The display style for the back button */
   backVariant: 'back' | 'x';
@@ -96,9 +100,11 @@ type UpgradeParams<ImageT extends object> = {
   };
 };
 
-export type UpgradeAPIParams = Omit<UpgradeParams<ScreenImageAPI>, 'backVariant'> & {
+export type UpgradeAPIParams = Omit<UpgradeParams<ScreenImageAPI>, 'backVariant' | 'back'> & {
   back_variant?: 'back' | 'x';
+  back: string | null;
+  back2: ScreenConfigurableTriggerAPI;
 };
-export type UpgradeMappedParams = Omit<UpgradeParams<ScreenImageParsed>, 'back_variant'> & {
+export type UpgradeMappedParams = UpgradeParams<ScreenImageParsed> & {
   __mapped?: true;
 };

@@ -118,6 +118,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
     },
     {
       inputEqualityFn: () => false,
+      outputEqualityFn: (a, b) => a.width === b.width && a.height === b.height,
     }
   );
 
@@ -128,10 +129,14 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
       (dynamicSize === undefined ? '' : `@${dynamicSize.width}x${dynamicSize.height}`)
   );
 
+  const cleanedValue = useMappedValueWithCallbacks(props.value, (v) => v, {
+    outputEqualityFn: (a, b) => a === b,
+  });
+
   const imageNR = useNetworkResponse(
     (active, loginContext) =>
       adaptActiveVWCToAbortSignal(active, async (signal) => {
-        const uid = props.value.get();
+        const uid = cleanedValue.get();
         if (uid === null || uid === undefined || uid === '' || typeof uid !== 'string') {
           return null;
         }
@@ -171,7 +176,7 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
         return convertUsingMapper(data.items[0], clientFlowImageKeyMap);
       }),
     {
-      dependsOn: [props.value, listVWC],
+      dependsOn: [cleanedValue, listVWC],
     }
   );
 

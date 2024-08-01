@@ -26,6 +26,10 @@ import { Upgrade } from './Upgrade';
 import { UpgradeAPIParams, UpgradeCopy, UpgradeMappedParams } from './UpgradeParams';
 import { UpgradeResources } from './UpgradeResources';
 import { ParsedPeriod, extractTrialLength } from './lib/purchasesStoreProductHelper';
+import {
+  convertScreenConfigurableTriggerWithOldVersion,
+  screenConfigurableTriggerFlowMapper,
+} from '../../models/ScreenConfigurableTrigger';
 
 type Copy = UpgradeCopy<ScreenImageParsed>;
 const LOADING_UPGRADE_COPY: Copy = {
@@ -50,6 +54,7 @@ export const UpgradeScreen: OsehScreen<
   slug: 'upgrade',
   paramMapper: (params) => ({
     ...params,
+    back: convertUsingMapper(params.back2, screenConfigurableTriggerFlowMapper),
     backVariant: params.back_variant ?? 'back',
     image: convertUsingMapper(params.image, screenImageKeyMap),
   }),

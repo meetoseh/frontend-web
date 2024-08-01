@@ -1,5 +1,3 @@
-// 'creating-entry' |'reading-greeting' | 'done' | 'failed';
-
 import { ReactElement } from 'react';
 import {
   createWritableValueWithCallbacks,
@@ -24,6 +22,7 @@ import {
   describeFetchError,
 } from '../../../../../shared/forms/ErrorBlock';
 import { manageWebsocketChatLoop } from './manageWebsocketChatLoop';
+import { SCREEN_VERSION } from '../../../../../shared/lib/screenVersion';
 
 export type ReplyToJournalEntryStateSavingUserReply = {
   /**
@@ -76,8 +75,8 @@ export type ReplyToJournalEntryStateDone = {
   journalEntryUID: string;
   /** The JWT that can be used to respond to the greeting once we have it */
   journalEntryJWT: string;
-  /** the part of the chat related to the systems response */
-  reply: JournalChatState;
+  /** the entire chat */
+  conversation: JournalChatState;
 };
 
 export type ReplyToJournalEntryStateFailed = {
@@ -211,6 +210,19 @@ export const replyToJournalEntry = (
         try {
           await wsPromise.promise;
         } catch (e) {
+          if (state.finishing) {
+            setVWC(result, {
+              type: 'failed',
+              at: 'reading-system-response',
+              atUnstable: 'websocket',
+              error: <>canceled</>,
+              resolutionHint: 'retry',
+            });
+            state.done = true;
+            reject(new Error('canceled'));
+            return;
+          }
+
           state.finishing = true;
           setVWC(result, {
             type: 'failed',
@@ -231,7 +243,7 @@ export const replyToJournalEntry = (
           type: 'done',
           journalEntryUID: created.journalEntryUID,
           journalEntryJWT: created.journalEntryJWT,
-          reply: chat.get(),
+          conversation: chat.get(),
         });
         state.done = true;
         resolve();
@@ -267,6 +279,7 @@ const saveJournalEntryUserReply = async (
         },
         body: JSON.stringify({
           platform: VISITOR_SOURCE,
+          version: SCREEN_VERSION,
           journal_entry_uid: journalEntryUID,
           journal_entry_jwt: journalEntryJWT,
           journal_client_key_uid: clientKey.uid,

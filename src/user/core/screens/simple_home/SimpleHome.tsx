@@ -159,7 +159,10 @@ export const SimpleHome = ({
                 startPop,
                 transition,
                 screen.parameters.cta.exit,
-                screen.parameters.cta.trigger
+                screen.parameters.cta.trigger,
+                {
+                  endpoint: screen.parameters.cta.endpoint ?? undefined,
+                }
               );
             }}>
             {screen.parameters.cta.text}
@@ -179,7 +182,9 @@ export const SimpleHome = ({
                     return;
                   }
                   trace({ type: 'cta2' });
-                  screenOut(workingVWC, startPop, transition, cta2.exit, cta2.trigger);
+                  screenOut(workingVWC, startPop, transition, cta2.exit, cta2.trigger, {
+                    endpoint: cta2.endpoint ?? undefined,
+                  });
                 }}>
                 {screen.parameters.cta2.text}
               </Button>

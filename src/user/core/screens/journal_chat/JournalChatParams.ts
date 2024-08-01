@@ -1,4 +1,5 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import { ScreenJournalEntryAPI, ScreenJournalEntryParsed } from '../../models/ScreenJournalChat';
 
 export type JournalChatAPIParams = {
   /** The text in the title, e.g. 'Check-in' */
@@ -26,6 +27,7 @@ export type JournalChatAPIParams = {
 
   upgrade_trigger: string;
   journey_trigger: string;
+  journal_entry?: ScreenJournalEntryAPI | null;
 
   /** entrance transition */
   entrance: StandardScreenTransition;
@@ -36,7 +38,7 @@ export type JournalChatAPIParams = {
 
 export type JournalChatMappedParams = Omit<
   JournalChatAPIParams,
-  'upgrade_trigger' | 'journey_trigger'
+  'upgrade_trigger' | 'journey_trigger' | 'journal_entry'
 > & {
   /**
    * The slug of the flow to trigger if the user taps on a journey
@@ -48,5 +50,9 @@ export type JournalChatMappedParams = Omit<
    * which does not require Oseh+, or when they have Oseh+
    */
   journeyTrigger: string;
+  /**
+   * The journal entry we are viewing the chat history of
+   */
+  journalEntry: ScreenJournalEntryParsed | null;
   __mapped: true;
 };

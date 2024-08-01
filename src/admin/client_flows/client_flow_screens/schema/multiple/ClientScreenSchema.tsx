@@ -74,7 +74,8 @@ export const ClientScreenSchema = ({
   if (
     schema.type === 'object' &&
     schema.format === undefined &&
-    !('x-enum-discriminator' in schema)
+    !('x-enum-discriminator' in schema) &&
+    schema.properties !== undefined
   ) {
     return <ClientScreenSchemaFlatObjectInput {...fancyProps} />;
   }
