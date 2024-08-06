@@ -6,6 +6,7 @@ import { RequestResult } from '../../../../shared/requests/RequestHandler';
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
 import { createLoginContextRequest } from '../../lib/createLoginContextRequest';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { ChooseAFeeling } from './ChooseAFeeling';
 import { ChooseAFeelingAPIParams, ChooseAFeelingMappedParams } from './ChooseAFeelingParams';
 import { ChooseAFeelingResources } from './ChooseAFeelingResources';
@@ -22,6 +23,7 @@ export const ChooseAFeelingScreen: OsehScreen<
   slug: 'choose_a_feeling',
   paramMapper: (params) => ({
     ...params,
+    trigger: convertScreenConfigurableTriggerWithOldVersion(params.trigger, params.triggerv75),
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

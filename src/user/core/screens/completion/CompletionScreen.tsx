@@ -1,5 +1,6 @@
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { Completion } from './Completion';
 import { CompletionAPIParams, CompletionMappedParams } from './CompletionParams';
 import { CompletionResources } from './CompletionResources';
@@ -16,6 +17,13 @@ export const CompletionScreen: OsehScreen<
   slug: 'completion',
   paramMapper: (params) => ({
     ...params,
+    cta: {
+      ...params.cta,
+      trigger: convertScreenConfigurableTriggerWithOldVersion(
+        params.cta.trigger,
+        params.cta.triggerv75
+      ),
+    },
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

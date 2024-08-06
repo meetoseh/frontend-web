@@ -29,6 +29,7 @@ import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWi
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * Gives the user basic information about their membership status, and directs
@@ -169,7 +170,7 @@ export const Membership = ({
                     variant="filled-premium"
                     onClick={(e) => {
                       e.preventDefault();
-                      screenOut(
+                      configurableScreenOut(
                         workingVWC,
                         startPop,
                         transition,

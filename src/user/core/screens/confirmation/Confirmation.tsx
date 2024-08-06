@@ -14,8 +14,8 @@ import {
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A basic confirmation screen with a header and message
@@ -53,7 +53,7 @@ export const Confirmation = ({
           variant="filled-white"
           onClick={async (e) => {
             e.preventDefault();
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,

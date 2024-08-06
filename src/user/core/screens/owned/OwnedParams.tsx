@@ -1,67 +1,36 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenTriggerWithExitAPI,
+  ScreenTriggerWithExitMapped,
+} from '../../lib/convertTriggerWithExit';
 
-export type OwnedAPIParams = {
+type OwnedParams<T> = {
   /** entrance transition */
   entrance: StandardScreenTransition;
 
   /** manages if they tap the back button at the top left */
-  back: {
-    /** the trigger with no parameters */
-    trigger: string | null;
-
-    /** the transition to use */
-    exit: StandardScreenTransition;
-  };
+  back: T;
 
   /**
    * manages if they tap one of the journeys; triggered with 'journey' in the
    * server params via the pop_to_history_journey endpoint
    */
-  journey: {
-    /** The trigger with 'journey' in the server params */
-    trigger: string | null;
-
-    /** The transition to use */
-    exit: StandardScreenTransition;
-  };
+  journey: T;
 
   /** manages if they tap the favorites option in the top nav */
-  favorites: {
-    /** the trigger with no parameters */
-    trigger: string | null;
-
-    /** The transition to use */
-    exit: StandardScreenTransition;
-  };
+  favorites: T;
 
   /** manages if they tap the history option in the top nav */
-  history: {
-    /** the trigger with no parameters */
-    trigger: string | null;
-
-    /** The transition to use */
-    exit: StandardScreenTransition;
-  };
+  history: T;
 
   /** manages if they tap the home option in the bottom nav */
-  home: {
-    /** the trigger with no parameters */
-    trigger: string | null;
-
-    /** the transition to use */
-    exit: StandardScreenTransition;
-  };
+  home: T;
 
   /** manages if they tap the series option in the bottom nav */
-  series: {
-    /** the trigger with no parameters */
-    trigger: string | null;
-
-    /** the transition to use */
-    exit: StandardScreenTransition;
-  };
+  series: T;
 };
 
-export type OwnedMappedParams = OwnedAPIParams & {
-  __mapped?: true;
+export type OwnedAPIParams = OwnedParams<ScreenTriggerWithExitAPI>;
+export type OwnedMappedParams = OwnedParams<ScreenTriggerWithExitMapped> & {
+  __mapped: true;
 };

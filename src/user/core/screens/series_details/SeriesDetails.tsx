@@ -38,6 +38,7 @@ import { trackClassTaken } from '../home/lib/trackClassTaken';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { screenOut } from '../../lib/screenOut';
 import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * Displays the series details page on a specific series
@@ -75,7 +76,7 @@ export const SeriesDetails = ({
             className={styles.back}
             onClick={(e) => {
               e.preventDefault();
-              screenOut(
+              configurableScreenOut(
                 workingVWC,
                 startPop,
                 transition,
@@ -123,7 +124,7 @@ export const SeriesDetails = ({
                 variant="filled-premium"
                 onClick={async (e) => {
                   e.preventDefault();
-                  screenOut(
+                  configurableScreenOut(
                     workingVWC,
                     startPop,
                     transition,
@@ -184,7 +185,7 @@ export const SeriesDetails = ({
                   return;
                 }
 
-                screenOut(workingVWC, startPop, transition, cta.exit, cta.trigger, {
+                configurableScreenOut(workingVWC, startPop, transition, cta.exit, cta.trigger, {
                   beforeDone: async () => {
                     trace({ type: 'rewatch_intro' });
                   },
@@ -365,7 +366,7 @@ const Journey = ({
           return;
         }
 
-        screenOut(
+        configurableScreenOut(
           workingVWC,
           startPop,
           transition,

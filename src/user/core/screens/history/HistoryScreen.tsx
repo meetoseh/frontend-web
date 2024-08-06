@@ -11,6 +11,7 @@ import { RequestResult, Result } from '../../../../shared/requests/RequestHandle
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
 import { MinimalJourney } from '../../../favorites/lib/MinimalJourney';
 import { OsehScreen } from '../../models/Screen';
+import { convertTriggerWithExit } from '../../lib/convertTriggerWithExit';
 import { History } from './History';
 import { HistoryAPIParams, HistoryMappedParams } from './HistoryParams';
 import { HistoryResources } from './HistoryResources';
@@ -30,7 +31,14 @@ export const HistoryScreen: OsehScreen<
 > = {
   slug: 'history',
   paramMapper: (params) => ({
-    ...params,
+    entrance: params.entrance,
+    back: convertTriggerWithExit(params.back),
+    journey: convertTriggerWithExit(params.journey),
+    favorites: convertTriggerWithExit(params.favorites),
+    owned: convertTriggerWithExit(params.owned),
+    home: convertTriggerWithExit(params.home),
+    series: convertTriggerWithExit(params.series),
+    __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {
     const activeVWC = createWritableValueWithCallbacks(true);

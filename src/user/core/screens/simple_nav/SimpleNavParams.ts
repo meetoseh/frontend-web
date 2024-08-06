@@ -1,6 +1,11 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 
-export type SimpleNavItemTrigger = {
+type SimpleNavItemTrigger<T> = T & {
   /**
    * - `trigger`: pops the screen when clicked
    */
@@ -8,9 +13,6 @@ export type SimpleNavItemTrigger = {
 
   /** The text for the nav item */
   text: string;
-
-  /** The flow to trigger if the link is clicked */
-  trigger: string | null;
 };
 
 export type SimpleNavItemLink = {
@@ -26,29 +28,43 @@ export type SimpleNavItemLink = {
   url: string;
 };
 
-export type SimpleNavItem = SimpleNavItemTrigger | SimpleNavItemLink;
+type SimpleNavItem<T> = SimpleNavItemTrigger<T> | SimpleNavItemLink;
 
-export type SimpleNavAPIParams = {
+type SimpleNavParams<T, CloseT> = CloseT & {
   /** entrance transition */
   entrance: StandardScreenTransition;
 
   /** exit transition; standard to keep params size down */
   exit: StandardScreenTransition;
 
-  /** The flow to trigger if the click the x at the upper right */
-  close: string | null;
-
   /**
    * The primary navigation options; larger and at the top
    */
-  primary: SimpleNavItem[];
+  primary: SimpleNavItem<T>[];
 
   /**
    * The secondary navigation options; smaller and at the bottom
    */
-  secondary: SimpleNavItem[];
+  secondary: SimpleNavItem<T>[];
 };
 
-export type SimpleNavMappedParams = SimpleNavAPIParams & {
+export type SimpleNavAPIParams = SimpleNavParams<
+  {
+    trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+    triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
+  },
+  {
+    close: ScreenConfigurableTriggerTransitioningPreferredAPI;
+    closev75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
+  }
+>;
+export type SimpleNavMappedParams = SimpleNavParams<
+  {
+    trigger: ScreenConfigurableTrigger;
+  },
+  {
+    close: ScreenConfigurableTrigger;
+  }
+> & {
   __mapped: true;
 };

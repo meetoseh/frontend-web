@@ -1,8 +1,13 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 import { ScreenJourneyMapped } from '../../models/ScreenJourney';
 
-export type JourneyFeedbackAPIParams = {
-  journey: unknown;
+type JourneyFeedbackParams<JourneyT, TriggerT> = {
+  journey: JourneyT;
 
   /** entrance transition */
   entrance: StandardScreenTransition;
@@ -15,31 +20,42 @@ export type JourneyFeedbackAPIParams = {
     /** The transition to use if they click this option */
     exit: StandardScreenTransition;
 
-    /** If not null, included in the client parameters for the cta1 trigger */
+    /**
+     * If not null, included in the client parameters for the cta1 trigger. Not
+     * really necessary with the new trigger param format, but helpful for older clients.
+     */
     emotion: string | null;
-
-    /** The client flow slug to trigger when they hit the button */
-    trigger: string | null;
-  };
+  } & TriggerT;
 
   /** the second, optional, less prominent button */
-  cta2: {
-    /** The text on the button */
-    text: string;
+  cta2:
+    | ({
+        /** The text on the button */
+        text: string;
 
-    /** The transition to use if they click this option */
-    exit: StandardScreenTransition;
+        /** The transition to use if they click this option */
+        exit: StandardScreenTransition;
 
-    /** If not null, included in the client parameters for the cta2 trigger */
-    emotion: string | null;
-
-    /** The client flow slug to trigger when they hit the button */
-    trigger: string | null;
-  } | null;
+        /**
+         * If not null, included in the client parameters for the cta2 trigger. Not
+         * really necessary with the new trigger param format, but helpful for older clients.
+         */
+        emotion: string | null;
+      } & TriggerT)
+    | null;
 };
 
-export type JourneyFeedbackMappedParams = Omit<JourneyFeedbackAPIParams, 'journey'> & {
-  /** The journey they are giving feedback for */
-  journey: ScreenJourneyMapped;
+export type JourneyFeedbackAPIParams = JourneyFeedbackParams<
+  unknown,
+  {
+    trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+    triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
+  }
+>;
+
+export type JourneyFeedbackMappedParams = JourneyFeedbackParams<
+  ScreenJourneyMapped,
+  { trigger: ScreenConfigurableTrigger }
+> & {
   __mapped: true;
 };

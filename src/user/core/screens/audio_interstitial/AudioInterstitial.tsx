@@ -27,6 +27,7 @@ import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWi
 import { AudioInterstitialResources } from './AudioInterstitialResources';
 import { AudioInterstitialMappedParams } from './AudioInterstitialParams';
 import { GridImageBackground } from '../../../../shared/components/GridImageBackground';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A basic audio interstitial
@@ -60,21 +61,13 @@ export const AudioInterstitial = ({
   });
 
   const onFinish = () => {
-    if (workingVWC.get()) {
-      return;
-    }
-
-    setVWC(workingVWC, true);
-    const finishPop = startPop(
-      screen.parameters.trigger === null
-        ? null
-        : {
-            slug: screen.parameters.trigger,
-            parameters: {},
-          }
+    configurableScreenOut(
+      workingVWC,
+      startPop,
+      transition,
+      screen.parameters.exit,
+      screen.parameters.trigger
     );
-    setVWC(transition.animation, screen.parameters.exit);
-    playExitTransition(transition).promise.finally(() => finishPop());
   };
 
   useValueWithCallbacksEffect(mediaInfo.ended, (ended) => {

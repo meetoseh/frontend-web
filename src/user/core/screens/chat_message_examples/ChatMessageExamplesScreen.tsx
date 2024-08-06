@@ -1,5 +1,6 @@
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { ChatMessageExamples } from './ChatMessageExamples';
 import {
   ChatMessageExamplesAPIParams,
@@ -19,6 +20,7 @@ export const ChatMessageExamplesScreen: OsehScreen<
   slug: 'chat_message_examples',
   paramMapper: (params) => ({
     ...params,
+    trigger: convertScreenConfigurableTriggerWithOldVersion(params.trigger, params.triggerv75),
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

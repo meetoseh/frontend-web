@@ -1,6 +1,10 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenTriggerWithExitAPI,
+  ScreenTriggerWithExitMapped,
+} from '../../lib/convertTriggerWithExit';
 
-export type SetNameAPIParams = {
+type SetNameParams<T> = {
   /** entrance transition */
   entrance: StandardScreenTransition;
 
@@ -14,30 +18,21 @@ export type SetNameAPIParams = {
   message: string | null;
 
   /** If not null, handles the back button at the bottom. If null, no back button is shown */
-  back: {
-    /** The client flow to trigger with no parameters */
-    trigger: string | null;
-
-    /** The text for the button */
-    text: string;
-
-    /** The exit transition to use */
-    exit: StandardScreenTransition;
-  } | null;
+  back:
+    | ({
+        /** The text for the button */
+        text: string;
+      } & T)
+    | null;
 
   /** Handles the button for saving */
   save: {
-    /** The client flow to trigger with no parameters */
-    trigger: string | null;
-
     /** The text for the button */
     text: string;
-
-    /** The exit transition to use */
-    exit: StandardScreenTransition;
-  };
+  } & T;
 };
 
-export type SetNameMappedParams = SetNameAPIParams & {
+export type SetNameAPIParams = SetNameParams<ScreenTriggerWithExitAPI>;
+export type SetNameMappedParams = SetNameParams<ScreenTriggerWithExitMapped> & {
   __mapped: true;
 };

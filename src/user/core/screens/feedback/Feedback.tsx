@@ -20,7 +20,6 @@ import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedV
 import styles from './Feedback.module.css';
 import { Close } from '../interactive_prompt_screen/icons/Close';
 import { IconButton } from '../../../../shared/forms/IconButton';
-import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../../shared/lib/setVWC';
@@ -36,6 +35,7 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * Presents the user the opportunity to give some free-form feedback
@@ -135,12 +135,13 @@ export const Feedback = ({
         trace({ type: 'submit-success' });
         const trigger = screen.parameters.trigger;
         const finishPop = startPop(
-          trigger === null
+          trigger.type === 'pop'
             ? null
             : {
-                slug: trigger,
-                parameters: {},
-              }
+                slug: trigger.flow,
+                parameters: trigger.parameters,
+              },
+          trigger.endpoint ?? undefined
         );
         await exitTransitionCancelable.promise;
         finishPop();
@@ -212,7 +213,7 @@ export const Feedback = ({
 
                 if (ele.value.trim() === '') {
                   trace({ type: 'close', details: 'nothing-written' });
-                  screenOut(
+                  configurableScreenOut(
                     null,
                     startPop,
                     transition,
@@ -234,7 +235,7 @@ export const Feedback = ({
                   return;
                 }
                 trace({ type: 'close', details: 'confirmed-discard' });
-                screenOut(
+                configurableScreenOut(
                   null,
                   startPop,
                   transition,
@@ -353,7 +354,7 @@ export const Feedback = ({
 
                     if (ele.value.trim() === '') {
                       trace({ type: 'cta2', details: 'nothing-written' });
-                      screenOut(
+                      configurableScreenOut(
                         null,
                         startPop,
                         transition,
@@ -375,7 +376,7 @@ export const Feedback = ({
                       return;
                     }
                     trace({ type: 'cta2', details: 'confirmed-discard' });
-                    screenOut(
+                    configurableScreenOut(
                       null,
                       startPop,
                       transition,

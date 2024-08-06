@@ -16,7 +16,6 @@ import {
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { VerifyPhoneResources } from './VerifyPhoneResources';
 import { VerifyPhoneMappedParams } from './VerifyPhoneParams';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
@@ -34,6 +33,7 @@ import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { useBeforeTime } from '../../../../shared/hooks/useBeforeTime';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { AutoBold } from '../../../../shared/components/AutoBold';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * Allows the user to verify a phone; triggers the back flow if the
@@ -119,13 +119,15 @@ export const VerifyPhone = ({
         // we can't know if it's unconfigured
         return { type: 'make-request', data: undefined };
       });
+      const trigger = screen.parameters.cta.trigger;
       const finishPop = startPop(
-        screen.parameters.cta.trigger === null
+        trigger.type === 'pop'
           ? null
           : {
-              slug: screen.parameters.cta.trigger,
-              parameters: {},
-            }
+              slug: trigger.flow,
+              parameters: trigger.parameters,
+            },
+        trigger.endpoint ?? undefined
       );
       await exitTransition.promise;
       finishPop();
@@ -142,7 +144,7 @@ export const VerifyPhone = ({
     }
 
     trace({ type: 'expired' });
-    screenOut(
+    configurableScreenOut(
       workingVWC,
       startPop,
       transition,
@@ -211,7 +213,7 @@ export const VerifyPhone = ({
         <VerticalSpacer height={0} flexGrow={1} />
         <BackContinue
           onBack={() => {
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,

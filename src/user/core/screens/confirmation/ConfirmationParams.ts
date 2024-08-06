@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 
 export type ConfirmationAPIParams = {
   /** The header message */
@@ -17,9 +22,11 @@ export type ConfirmationAPIParams = {
   exit: StandardScreenTransition;
 
   /** The client flow slug to trigger when they hit the button with no parameters */
-  trigger: string | null;
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 };
 
-export type ConfirmationMappedParams = ConfirmationAPIParams & {
-  __mapped?: true;
+export type ConfirmationMappedParams = Omit<ConfirmationAPIParams, 'trigger' | 'triggerv75'> & {
+  trigger: ScreenConfigurableTrigger;
+  __mapped: true;
 };

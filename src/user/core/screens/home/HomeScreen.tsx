@@ -15,6 +15,7 @@ import { createMappedRequestResult } from '../../lib/createMappedRequestResult';
 import { createChainedImageFromRef } from '../../lib/createChainedImageFromRef';
 import { StreakInfo } from '../../../journey/models/StreakInfo';
 import { Emotion } from '../../../../shared/models/Emotion';
+import { convertTriggerWithExit } from '../../lib/convertTriggerWithExit';
 
 /**
  * The standard home screen with home copy, emotion buttons, and bottom nav
@@ -22,7 +23,11 @@ import { Emotion } from '../../../../shared/models/Emotion';
 export const HomeScreen: OsehScreen<'home', HomeResources, HomeAPIParams, HomeMappedParams> = {
   slug: 'home',
   paramMapper: (params) => ({
-    ...params,
+    entrance: params.entrance,
+    emotion: convertTriggerWithExit(params.emotion),
+    series: convertTriggerWithExit(params.series),
+    account: convertTriggerWithExit(params.account),
+    goal: convertTriggerWithExit(params.goal),
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

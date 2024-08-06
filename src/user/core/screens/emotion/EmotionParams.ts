@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 
 export type EmotionAPIParams = {
   /** The header message, above the emotion */
@@ -16,7 +21,8 @@ export type EmotionAPIParams = {
   /** Handles if the user taps on the back button, or null for no back button */
   back: {
     /** The trigger to use with no parameters */
-    trigger: string | null;
+    trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+    triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 
     /** The exit transition */
     exit: StandardScreenTransition;
@@ -25,7 +31,8 @@ export type EmotionAPIParams = {
   /** Handles the first, non-premium CTA. */
   short: {
     /** The trigger to use. Passed emotion and journey in the server parameters */
-    trigger: string | null;
+    trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+    triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 
     /** The text for the button */
     text: string;
@@ -37,7 +44,8 @@ export type EmotionAPIParams = {
   /** Handles the second, premium CTA */
   long: {
     /** The trigger to use. Passed emotion and journey in the server parameters */
-    trigger: string | null;
+    trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+    triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 
     /** The text for the button */
     text: string;
@@ -47,6 +55,20 @@ export type EmotionAPIParams = {
   } | null;
 };
 
-export type EmotionMappedParams = EmotionAPIParams & {
+export type EmotionMappedParams = Omit<EmotionAPIParams, 'back' | 'short' | 'long'> & {
+  back: {
+    trigger: ScreenConfigurableTrigger;
+    exit: StandardScreenTransition;
+  } | null;
+  short: {
+    trigger: ScreenConfigurableTrigger;
+    text: string;
+    exit: StandardScreenTransition;
+  } | null;
+  long: {
+    trigger: ScreenConfigurableTrigger;
+    text: string;
+    exit: StandardScreenTransition;
+  } | null;
   __mapped: true;
 };

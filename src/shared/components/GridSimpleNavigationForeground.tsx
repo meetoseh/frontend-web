@@ -9,11 +9,12 @@ import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallback
 import styles from './GridSimpleNavigationForeground.module.css';
 import { IconButton } from '../forms/IconButton';
 import { Back } from './icons/Back';
-import { screenOut } from '../../user/core/lib/screenOut';
 import { TransitionPropAsOwner } from '../lib/TransitionProp';
 import { BottomNavBar } from '../../user/bottomNav/BottomNavBar';
 import { ScreenStartPop } from '../../user/core/models/Screen';
 import { VerticalSpacer } from './VerticalSpacer';
+import { ScreenConfigurableTrigger } from '../../user/core/models/ScreenConfigurableTrigger';
+import { configurableScreenOut } from '../../user/core/lib/configurableScreenOut';
 
 export const GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT = 54;
 export const GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT = 67;
@@ -53,21 +54,21 @@ export const GridSimpleNavigationForeground = ({
   home:
     | {
         exit: StandardScreenTransition;
-        trigger: string | null;
+        trigger: ScreenConfigurableTrigger;
       }
     | (() => void)
     | null;
   series:
     | {
         exit: StandardScreenTransition;
-        trigger: string | null;
+        trigger: ScreenConfigurableTrigger;
       }
     | (() => void)
     | null;
   account:
     | {
         exit: StandardScreenTransition;
-        trigger: string | null;
+        trigger: ScreenConfigurableTrigger;
       }
     | (() => void)
     | null;
@@ -76,7 +77,7 @@ export const GridSimpleNavigationForeground = ({
       back:
         | {
             exit: StandardScreenTransition;
-            trigger: string | null;
+            trigger: ScreenConfigurableTrigger;
           }
         | (() => void);
       title: string | ReactElement;
@@ -109,7 +110,7 @@ export const GridSimpleNavigationForeground = ({
                 return;
               }
 
-              screenOut(workingVWC, startPop, transition, back.exit, back.trigger, {
+              configurableScreenOut(workingVWC, startPop, transition, back.exit, back.trigger, {
                 beforeDone: async () => {
                   trace({ type: 'back' });
                 },
@@ -134,7 +135,7 @@ export const GridSimpleNavigationForeground = ({
                   home();
                   return;
                 }
-                screenOut(workingVWC, startPop, transition, home.exit, home.trigger, {
+                configurableScreenOut(workingVWC, startPop, transition, home.exit, home.trigger, {
                   beforeDone: async () => {
                     trace({ type: 'bottom-nav', key: 'home' });
                   },
@@ -149,11 +150,18 @@ export const GridSimpleNavigationForeground = ({
                   return;
                 }
 
-                screenOut(workingVWC, startPop, transition, series.exit, series.trigger, {
-                  beforeDone: async () => {
-                    trace({ type: 'bottom-nav', key: 'series' });
-                  },
-                });
+                configurableScreenOut(
+                  workingVWC,
+                  startPop,
+                  transition,
+                  series.exit,
+                  series.trigger,
+                  {
+                    beforeDone: async () => {
+                      trace({ type: 'bottom-nav', key: 'series' });
+                    },
+                  }
+                );
               },
         account:
           account === null
@@ -163,11 +171,18 @@ export const GridSimpleNavigationForeground = ({
                   account();
                   return;
                 }
-                screenOut(workingVWC, startPop, transition, account.exit, account.trigger, {
-                  beforeDone: async () => {
-                    trace({ type: 'bottom-nav', key: 'account' });
-                  },
-                });
+                configurableScreenOut(
+                  workingVWC,
+                  startPop,
+                  transition,
+                  account.exit,
+                  account.trigger,
+                  {
+                    beforeDone: async () => {
+                      trace({ type: 'bottom-nav', key: 'account' });
+                    },
+                  }
+                );
               },
       }}
     />

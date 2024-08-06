@@ -12,13 +12,13 @@ import {
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { EmotionResources } from './EmotionResources';
 import { EmotionMappedParams } from './EmotionParams';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { Back } from './icons/Back';
 import { trackClassTaken } from '../home/lib/trackClassTaken';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A relatively basic screen which presents an emotion and allows the user to
@@ -57,7 +57,7 @@ export const EmotionComponent = ({
                 if (btn === null) {
                   return;
                 }
-                screenOut(workingVWC, startPop, transition, btn.exit, btn.trigger);
+                configurableScreenOut(workingVWC, startPop, transition, btn.exit, btn.trigger);
               }}
             />
           )}
@@ -84,7 +84,7 @@ export const EmotionComponent = ({
                 if (btn === null) {
                   return;
                 }
-                screenOut(workingVWC, startPop, transition, btn.exit, btn.trigger, {
+                configurableScreenOut(workingVWC, startPop, transition, btn.exit, btn.trigger, {
                   endpoint: '/api/1/users/me/screens/pop_to_emotion_class',
                   parameters: {
                     emotion: screen.parameters.emotion,
@@ -109,7 +109,7 @@ export const EmotionComponent = ({
                 if (btn === null) {
                   return;
                 }
-                screenOut(workingVWC, startPop, transition, btn.exit, btn.trigger, {
+                configurableScreenOut(workingVWC, startPop, transition, btn.exit, btn.trigger, {
                   endpoint: '/api/1/users/me/screens/pop_to_emotion_class',
                   parameters: {
                     emotion: screen.parameters.emotion,

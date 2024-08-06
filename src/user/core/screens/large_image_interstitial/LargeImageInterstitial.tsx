@@ -18,8 +18,8 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import { ScreenTextContent } from '../../components/ScreenTextContent';
 import { Button } from '../../../../shared/forms/Button';
-import { screenOut } from '../../lib/screenOut';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A somewhat sophisticated image interstitial; top message, image, variable
@@ -90,7 +90,7 @@ export const LargeImageInterstitial = ({
               return;
             }
 
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,

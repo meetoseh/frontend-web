@@ -14,6 +14,7 @@ import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestRe
 import { OsehTranscript } from '../../../../shared/transcripts/OsehTranscript';
 import { OsehTranscriptRef } from '../../../../shared/transcripts/OsehTranscriptRef';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { screenContentKeyMap } from '../../models/ScreenContent';
 import { VideoInterstitial } from './VideoInterstitial';
 import {
@@ -34,6 +35,7 @@ export const VideoInterstitialScreen: OsehScreen<
   slug: 'video_interstitial',
   paramMapper: (params) => ({
     ...params,
+    trigger: convertScreenConfigurableTriggerWithOldVersion(params.trigger, params.triggerv75),
     video: convertUsingMapper(params.video, screenContentKeyMap),
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

@@ -3,6 +3,7 @@ import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbac
 import { interactivePromptKeyMap } from '../../../interactive_prompt/models/InteractivePrompt';
 import { initBackground } from '../../lib/initBackground';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { screenImageKeyMap } from '../../models/ScreenImage';
 import { InteractivePrompt } from './InteractivePrompt';
 import {
@@ -23,10 +24,14 @@ export const InteractivePromptScreen: OsehScreen<
 > = {
   slug: 'interactive_prompt',
   paramMapper: (params) => ({
-    ...params,
     prompt: convertUsingMapper(params.prompt, interactivePromptKeyMap),
     background:
       params.background === null ? null : convertUsingMapper(params.background, screenImageKeyMap),
+    countdown: params.countdown,
+    subtitle: params.subtitle,
+    entrance: params.entrance,
+    exit: params.exit,
+    trigger: convertScreenConfigurableTriggerWithOldVersion(params.trigger, params.triggerv75),
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

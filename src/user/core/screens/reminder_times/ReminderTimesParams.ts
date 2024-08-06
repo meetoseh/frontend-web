@@ -1,7 +1,12 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 import { Channel } from './lib/Channel';
 
-export type ReminderTimesAPIParams = {
+type ReminderTimesParams<T> = {
   /** The entrance transition */
   entrance: StandardScreenTransition;
 
@@ -28,9 +33,6 @@ export type ReminderTimesAPIParams = {
     /** The exit transition to use */
     exit: StandardScreenTransition;
 
-    /** The trigger with no parameters */
-    trigger: string | null;
-
     /** Handles what to do if they have unsaved changes when they hit the back button */
     draft:
       | {
@@ -53,7 +55,7 @@ export type ReminderTimesAPIParams = {
           /** The text for the discard button Can use [channel] for the channel. */
           discard: string;
         };
-  };
+  } & T;
 
   /** Configures the button at the bottom */
   cta: {
@@ -67,16 +69,10 @@ export type ReminderTimesAPIParams = {
     final: string;
 
     /**
-     * The trigger to call with no parameters if they press the button with
-     * the final text
-     */
-    trigger: string | null;
-
-    /**
      * The transition to use if they press the button with the final text
      */
     exit: StandardScreenTransition;
-  };
+  } & T;
 
   /**
    * Determines if we should use the standard bottom and top bar vs just
@@ -95,19 +91,20 @@ export type ReminderTimesAPIParams = {
         title: string;
 
         /** For if the user taps the home button in the bottom bar */
-        home: {
-          trigger: string | null;
-          // uses fade exit to avoid nesting x-enum-discriminator
-        };
+        home: T;
 
         /** For if the user taps the series button in the bottom bar */
-        series: {
-          trigger: string | null;
-          // uses fade exit to avoid nesting x-enum-discriminator
-        };
+        series: T;
       };
 };
 
-export type ReminderTimesMappedParams = ReminderTimesAPIParams & {
-  __mapped?: true;
+export type ReminderTimesAPIParams = ReminderTimesParams<{
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
+}>;
+
+export type ReminderTimesMappedParams = ReminderTimesParams<{
+  trigger: ScreenConfigurableTrigger;
+}> & {
+  __mapped: true;
 };

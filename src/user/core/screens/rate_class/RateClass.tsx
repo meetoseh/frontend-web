@@ -11,7 +11,6 @@ import {
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { RateClassResources } from './RateClassResources';
 import { RateClassMappedParams } from './RateClassParams';
@@ -29,6 +28,7 @@ import { GridImageBackground } from '../../../../shared/components/GridImageBack
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { JourneyFeedback } from '../../../journey/components/JourneyFeedback';
 import { storeResponse } from '../journey_feedback/lib/storeResponse';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A basic screen where the user can rate a class
@@ -119,20 +119,19 @@ export const RateClass = ({
                   return;
                 }
 
-                const triggerSlug =
-                  [
-                    screen.parameters.cta.trigger.loved,
-                    screen.parameters.cta.trigger.liked,
-                    screen.parameters.cta.trigger.disliked,
-                    screen.parameters.cta.trigger.hated,
-                  ][resp - 1] ?? null;
+                const trigger = [
+                  screen.parameters.cta.trigger.loved,
+                  screen.parameters.cta.trigger.liked,
+                  screen.parameters.cta.trigger.disliked,
+                  screen.parameters.cta.trigger.hated,
+                ][resp - 1] ?? { type: 'pop' };
 
-                screenOut(
+                configurableScreenOut(
                   workingVWC,
                   startPop,
                   transition,
                   screen.parameters.cta.exit,
-                  triggerSlug,
+                  trigger,
                   {
                     beforeDone: async () => {
                       await storeResponseWrapper();

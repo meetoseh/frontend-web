@@ -25,6 +25,7 @@ import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransit
 import { OpacityTransitionOverlay } from '../../../../shared/components/OpacityTransitionOverlay';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * The version of the home screen with the home copy and goal pill in
@@ -67,7 +68,7 @@ export const SimpleHome = ({
             onClick={(e) => {
               e.preventDefault();
               trace({ type: 'nav' });
-              screenOut(
+              configurableScreenOut(
                 workingVWC,
                 startPop,
                 transition,
@@ -83,7 +84,7 @@ export const SimpleHome = ({
             onClick={(e) => {
               e.preventDefault();
               trace({ type: 'favorites' });
-              screenOut(
+              configurableScreenOut(
                 workingVWC,
                 startPop,
                 transition,
@@ -106,7 +107,7 @@ export const SimpleHome = ({
             <GoalPill
               streak={resources.streak}
               updateGoal={() => {
-                screenOut(
+                configurableScreenOut(
                   workingVWC,
                   startPop,
                   transition,
@@ -154,15 +155,12 @@ export const SimpleHome = ({
             onClick={(e) => {
               e.preventDefault();
               trace({ type: 'cta' });
-              screenOut(
+              configurableScreenOut(
                 workingVWC,
                 startPop,
                 transition,
                 screen.parameters.cta.exit,
-                screen.parameters.cta.trigger,
-                {
-                  endpoint: screen.parameters.cta.endpoint ?? undefined,
-                }
+                screen.parameters.cta.trigger
               );
             }}>
             {screen.parameters.cta.text}
@@ -182,9 +180,7 @@ export const SimpleHome = ({
                     return;
                   }
                   trace({ type: 'cta2' });
-                  screenOut(workingVWC, startPop, transition, cta2.exit, cta2.trigger, {
-                    endpoint: cta2.endpoint ?? undefined,
-                  });
+                  configurableScreenOut(workingVWC, startPop, transition, cta2.exit, cta2.trigger);
                 }}>
                 {screen.parameters.cta2.text}
               </Button>

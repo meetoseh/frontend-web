@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 
 export type ChooseAFeelingAPIParams = {
   /** entrance transition */
@@ -29,12 +34,14 @@ export type ChooseAFeelingAPIParams = {
    * If direct is false, a regular trigger with the emotion in the client
    * parameters.
    */
-  trigger: string | null;
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 
   /** The exit transition */
   exit: StandardScreenTransition;
 };
 
-export type ChooseAFeelingMappedParams = ChooseAFeelingAPIParams & {
+export type ChooseAFeelingMappedParams = Omit<ChooseAFeelingAPIParams, 'trigger' | 'triggerv75'> & {
+  trigger: ScreenConfigurableTrigger;
   __mapped: true;
 };

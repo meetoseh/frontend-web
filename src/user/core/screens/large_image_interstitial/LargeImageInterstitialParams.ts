@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 import { ScreenImageAPI, ScreenImageParsed } from '../../models/ScreenImage';
 import {
   ScreenTextContentAPI,
@@ -28,12 +33,13 @@ export type LargeImageInterstitialAPIParams = {
   exit: StandardScreenTransition;
 
   /** The client flow slug to trigger when they hit the button with no parameters */
-  trigger: string | null;
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 };
 
 export type LargeImageInterstitialMappedParams = Omit<
   LargeImageInterstitialAPIParams,
-  'image' | 'assumed_content_height' | 'content'
+  'image' | 'assumed_content_height' | 'content' | 'trigger' | 'triggerv75'
 > & {
   /**
    * The image to show. We always use the content width for the width; for the
@@ -67,6 +73,9 @@ export type LargeImageInterstitialMappedParams = Omit<
    * default.
    */
   assumedContentHeight: number;
+
+  /** The trigger when the cta is pressed */
+  trigger: ScreenConfigurableTrigger;
 
   __mapped: true;
 };

@@ -14,7 +14,6 @@ import {
   ValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { MyLibraryTabs } from '../favorites/components/MyLibraryTabs';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
@@ -36,6 +35,7 @@ import {
   GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT,
   GridSimpleNavigationForeground,
 } from '../../../../shared/components/GridSimpleNavigationForeground';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * Allows the user to see their list of favorites, go to their history or owned
@@ -65,7 +65,7 @@ export const History = ({
 
   const showJourney = useCallback(
     async (journey: MinimalJourney) => {
-      screenOut(
+      configurableScreenOut(
         workingVWC,
         startPop,
         transition,
@@ -127,7 +127,7 @@ export const History = ({
           active="history"
           contentWidth={ctx.contentWidth}
           onFavorites={() => {
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,
@@ -144,7 +144,7 @@ export const History = ({
             );
           }}
           onOwned={() => {
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,

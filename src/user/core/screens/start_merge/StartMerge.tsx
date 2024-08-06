@@ -12,12 +12,12 @@ import {
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { StartMergeResources } from './StartMergeResources';
 import { StartMergeMappedParams } from './StartMergeParams';
 import { ProvidersList, ProvidersListItem } from '../../../login/components/ProvidersList';
 import { screenWithWorking } from '../../lib/screenWithWorking';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * Allows the user to merge their account using one of the indicated providers.
@@ -43,13 +43,10 @@ export const StartMerge = ({
     if (screen.parameters.providers.length === 0) {
       screenWithWorking(workingVWC, async () => {
         trace({ type: 'skip', reason: 'no providers in list' });
+        const trigger = screen.parameters.skip.trigger;
         startPop(
-          screen.parameters.skip.trigger === null
-            ? null
-            : {
-                slug: screen.parameters.skip.trigger,
-                parameters: {},
-              }
+          trigger.type === 'pop' ? null : { slug: trigger.flow, parameters: trigger.parameters },
+          trigger.endpoint ?? undefined
         )();
       });
     }
@@ -90,7 +87,7 @@ export const StartMerge = ({
           variant="outlined-white"
           onClick={(e) => {
             e.preventDefault();
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,

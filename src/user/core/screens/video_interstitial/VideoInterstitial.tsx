@@ -126,13 +126,15 @@ export const VideoInterstitial = ({
     }
 
     setVWC(workingVWC, true);
+    const trigger = screen.parameters.trigger;
     const finishPop = startPop(
-      screen.parameters.trigger === null
+      trigger.type === 'pop'
         ? null
         : {
-            slug: screen.parameters.trigger,
-            parameters: {},
-          }
+            slug: trigger.flow,
+            parameters: trigger.parameters,
+          },
+      trigger.endpoint ?? undefined
     );
     setVWC(transition.animation, screen.parameters.exit);
     playExitTransition(transition).promise.finally(() => finishPop());

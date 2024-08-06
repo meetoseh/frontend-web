@@ -23,7 +23,6 @@ import {
 } from '../../../../shared/components/GridSimpleNavigationForeground';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
-import { screenOut } from '../../lib/screenOut';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { Channel } from './lib/Channel';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
@@ -46,6 +45,9 @@ import { useWorkingModal } from '../../../../shared/hooks/useWorkingModal';
 import { ChannelSelector } from './ChannelSelector';
 import { TimeRange } from './EditTimeRange';
 import { EditReminderTime } from './EditReminderTime';
+import { screenOut } from '../../lib/screenOut';
+import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * Allows the user to update their notification settings
@@ -283,9 +285,9 @@ export const ReminderTimes = ({
   ]);
 
   const handleBack = useCallback(
-    ({ trigger, exit }: { trigger: string | null; exit: StandardScreenTransition }) => {
+    ({ trigger, exit }: { trigger: ScreenConfigurableTrigger; exit: StandardScreenTransition }) => {
       screenWithWorking(workingVWC, async () => {
-        const finish = () => screenOut(null, startPop, transition, exit, trigger);
+        const finish = () => configurableScreenOut(null, startPop, transition, exit, trigger);
         const save = prepareSave();
         if (save === null) {
           trace({ type: 'back', draft: false });
@@ -462,7 +464,7 @@ export const ReminderTimes = ({
             e.preventDefault();
             screenWithWorking(workingVWC, async () => {
               const exit = () =>
-                screenOut(
+                configurableScreenOut(
                   null,
                   startPop,
                   transition,

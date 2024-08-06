@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 import { ScreenContentAPI, ScreenContentParsed } from '../../models/ScreenContent';
 import { ScreenImageAPI, ScreenImageParsed } from '../../models/ScreenImage';
 
@@ -28,12 +33,13 @@ export type AudioInterstitialAPIParams = {
   exit: StandardScreenTransition;
 
   /** The client flow slug to trigger when they hit the button or the video ends */
-  trigger: string | null;
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 };
 
 export type AudioInterstitialMappedParams = Omit<
   AudioInterstitialAPIParams,
-  'audio' | 'background'
+  'audio' | 'background' | 'trigger' | 'triggerv75'
 > & {
   /** The audio to play */
   audio: ScreenContentParsed;
@@ -41,5 +47,8 @@ export type AudioInterstitialMappedParams = Omit<
   /** The background image or null for the dark gray gradient */
   background: ScreenImageParsed | null;
 
-  __mapped?: true;
+  /** The client flow slug to trigger when they hit the button or the video ends */
+  trigger: ScreenConfigurableTrigger;
+
+  __mapped: true;
 };

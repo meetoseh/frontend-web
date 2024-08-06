@@ -1,4 +1,8 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenTriggerWithExitAPI,
+  ScreenTriggerWithExitMapped,
+} from '../../lib/convertTriggerWithExit';
 
 export type SetGoalAPIParams = {
   /** entrance transition */
@@ -14,30 +18,24 @@ export type SetGoalAPIParams = {
   message: string;
 
   /** If not null, handles the back button at the bottom. If null, no back button is shown */
-  back: {
-    /** The client flow to trigger with no parameters */
-    trigger: string | null;
-
-    /** The text for the button */
-    text: string;
-
-    /** The exit transition to use */
-    exit: StandardScreenTransition;
-  } | null;
+  back:
+    | (ScreenTriggerWithExitAPI & {
+        /** The text for the button */
+        text: string;
+      })
+    | null;
 
   /** Handles the button for saving */
-  save: {
-    /** The client flow to trigger with no parameters */
-    trigger: string | null;
-
+  save: ScreenTriggerWithExitAPI & {
     /** The text for the button */
     text: string;
-
-    /** The exit transition to use */
-    exit: StandardScreenTransition;
   };
 };
 
-export type SetGoalMappedParams = SetGoalAPIParams & {
+export type SetGoalMappedParams = Omit<SetGoalAPIParams, 'back' | 'save'> & {
+  /** If not null, handles the back button at the bottom. If null, no back button is shown */
+  back: (ScreenTriggerWithExitMapped & { text: string }) | null;
+  /** Handles the button for saving */
+  save: ScreenTriggerWithExitMapped & { text: string };
   __mapped: true;
 };

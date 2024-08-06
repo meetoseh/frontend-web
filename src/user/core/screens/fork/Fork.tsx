@@ -4,22 +4,18 @@ import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGr
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
 import styles from './Fork.module.css';
-import {
-  playExitTransition,
-  useEntranceTransition,
-  useTransitionProp,
-} from '../../../../shared/lib/TransitionProp';
+import { useEntranceTransition, useTransitionProp } from '../../../../shared/lib/TransitionProp';
 import {
   StandardScreenTransition,
   useStandardTransitionsState,
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { setVWC } from '../../../../shared/lib/setVWC';
 import { ForkResources } from './ForkResources';
 import { ForkMappedParams } from './ForkParams';
 import { RightCaret } from './icons/RightCaret';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A basic fork screen with a header, message, and a series of choices
@@ -58,30 +54,21 @@ export const Fork = ({
               key={i}
               onClick={async (e) => {
                 e.preventDefault();
-                if (workingVWC.get()) {
-                  return;
-                }
-
-                setVWC(workingVWC, true);
-                const finishPop = startPop(
-                  option.trigger === null
-                    ? null
-                    : {
-                        slug: option.trigger,
-                        parameters: {},
-                      }
+                configurableScreenOut(
+                  workingVWC,
+                  startPop,
+                  transition,
+                  option.exit,
+                  option.trigger,
+                  {
+                    afterDone: () => {
+                      trace({
+                        type: 'fork_option_selected',
+                        option,
+                      });
+                    },
+                  }
                 );
-                setVWC(transition.animation, option.exit);
-                const exitTransitionCancelable = playExitTransition(transition);
-                try {
-                  trace({
-                    type: 'fork_option_selected',
-                    option,
-                  });
-                } finally {
-                  await exitTransitionCancelable.promise;
-                  finishPop();
-                }
               }}>
               <div className={styles.optionText}>{option.text}</div>
               <RightCaret />

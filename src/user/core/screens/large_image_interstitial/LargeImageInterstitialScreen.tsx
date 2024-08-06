@@ -4,6 +4,7 @@ import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbac
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { initImage } from '../../lib/initImage';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { screenImageKeyMap } from '../../models/ScreenImage';
 import { screenTextContentMapper } from '../../models/ScreenTextContentMapped';
 import { LargeImageInterstitial } from './LargeImageInterstitial';
@@ -26,10 +27,14 @@ export const LargeImageInterstitialScreen: OsehScreen<
 > = {
   slug: 'large_image_interstitial',
   paramMapper: (params) => ({
-    ...params,
+    top: params.top,
     image: convertUsingMapper(params.image, screenImageKeyMap),
-    assumedContentHeight: params.assumed_content_height,
     content: convertUsingMapper(params.content, screenTextContentMapper),
+    assumedContentHeight: params.assumed_content_height,
+    cta: params.cta,
+    entrance: params.entrance,
+    exit: params.exit,
+    trigger: convertScreenConfigurableTriggerWithOldVersion(params.trigger, params.triggerv75),
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

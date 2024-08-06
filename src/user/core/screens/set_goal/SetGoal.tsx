@@ -35,6 +35,8 @@ import { apiFetch } from '../../../../shared/ApiConstants';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
 import { BackContinue } from '../../../../shared/components/BackContinue';
+import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 const _CHOICES = [
   { slug: '1', text: '1 day', days: 1, element: <>1 day</> },
@@ -179,14 +181,14 @@ export const SetGoal = ({
     exit,
   }: {
     type: string;
-    trigger: string | null;
+    trigger: ScreenConfigurableTrigger;
     exit: StandardScreenTransition;
   }) => {
     screenWithWorking(workingVWC, async () => {
       const save = prepareSave();
       if (save === null) {
         trace({ type, draft: false });
-        await screenOut(null, startPop, transition, exit, trigger);
+        await configurableScreenOut(null, startPop, transition, exit, trigger);
         return;
       }
 
@@ -196,12 +198,13 @@ export const SetGoal = ({
       trace({ type, draft: false, step: 'save', result });
       if (result) {
         const finishPop = startPop(
-          trigger === null
+          trigger.type === 'pop'
             ? null
             : {
-                slug: trigger,
-                parameters: {},
-              }
+                slug: trigger.flow,
+                parameters: trigger.parameters,
+              },
+          trigger.endpoint ?? undefined
         );
         await exitTransition.promise;
         finishPop();

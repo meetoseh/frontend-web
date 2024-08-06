@@ -11,7 +11,6 @@ import {
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { ChooseAFeelingResources } from './ChooseAFeelingResources';
 import { ChooseAFeelingMappedParams } from './ChooseAFeelingParams';
@@ -19,6 +18,7 @@ import { EmotionsPicker } from '../home/components/EmotionsPicker';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
 import { trackClassTaken } from '../home/lib/trackClassTaken';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A basic screen where the user can choose an emotion
@@ -71,7 +71,7 @@ export const ChooseAFeeling = ({
           emotions={resources.emotions}
           question={null}
           onTapEmotion={(emotion) => {
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,

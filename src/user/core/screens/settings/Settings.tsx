@@ -14,7 +14,6 @@ import { SettingsResources } from './SettingsResources';
 import { SettingsMappedParams } from './SettingsParams';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
-import { screenOut } from '../../lib/screenOut';
 import {
   MappedValueWithCallbacksOpts,
   useMappedValueWithCallbacks,
@@ -30,6 +29,8 @@ import { OauthProvider } from '../../../login/lib/OauthProvider';
 import styles from './Settings.module.css';
 import { Wordmark } from '../../../../shared/content/player/assets/Wordmark';
 import { purgeClientKeys } from '../../../../shared/journals/clientKeys';
+import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 const entrance: StandardScreenTransition = { type: 'fade', ms: 350 };
 const exit: StandardScreenTransition = { type: 'fade', ms: 350 };
@@ -66,13 +67,13 @@ export const Settings = ({
   }: {
     key: string;
     text: string;
-    trigger: string | null;
+    trigger: ScreenConfigurableTrigger;
   }): SettingLink => ({
     text,
     key,
     onClick: () => {
       trace({ type: 'trigger-link', key, text, trigger });
-      screenOut(workingVWC, startPop, transition, exit, trigger);
+      configurableScreenOut(workingVWC, startPop, transition, exit, trigger);
       return undefined;
     },
   });
@@ -106,7 +107,7 @@ export const Settings = ({
         ? makeTriggerLink({
             key: 'upgrade-placeholder',
             text: 'Loading membership status',
-            trigger: null,
+            trigger: { type: 'pop', endpoint: null },
           })
         : !entitlement.isActive
         ? makeTriggerLink({
@@ -148,11 +149,17 @@ export const Settings = ({
       text: 'Contact Support',
       key: 'contact-support',
       onClick:
-        screen.parameters.support.trigger === null
+        screen.parameters.support === null || screen.parameters.support === undefined
           ? supportUrl
           : async () => {
+              const support = screen.parameters.support;
+              if (support === null || support === undefined) {
+                trace({ type: 'contact-support', error: 'should-be-link' });
+                return;
+              }
+
               trace({ type: 'contact-support', technique: 'trigger' });
-              screenOut(workingVWC, startPop, transition, exit, screen.parameters.support.trigger);
+              configurableScreenOut(workingVWC, startPop, transition, exit, support.trigger);
             },
       onLinkClick: () => {
         trace({ type: 'contact-support', technique: 'mailto', url: supportUrl });
@@ -323,11 +330,23 @@ export const Settings = ({
           clickHandlers={{
             home: () => {
               trace({ type: 'bottom-nav', key: 'home' });
-              screenOut(workingVWC, startPop, transition, exit, screen.parameters.home.trigger);
+              configurableScreenOut(
+                workingVWC,
+                startPop,
+                transition,
+                exit,
+                screen.parameters.home.trigger
+              );
             },
             series: () => {
               trace({ type: 'bottom-nav', key: 'series' });
-              screenOut(workingVWC, startPop, transition, exit, screen.parameters.series.trigger);
+              configurableScreenOut(
+                workingVWC,
+                startPop,
+                transition,
+                exit,
+                screen.parameters.series.trigger
+              );
             },
           }}
         />

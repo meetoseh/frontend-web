@@ -32,6 +32,8 @@ import { SetNameResources } from './SetNameResources';
 import { SetNameMappedParams } from './SetNameParams';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { TextInput } from '../../../../shared/forms/TextInput';
+import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A basic screen where the user can configure their name
@@ -143,14 +145,19 @@ export const SetName = ({
     exit,
   }: {
     type: string;
-    trigger: string | null;
+    trigger: ScreenConfigurableTrigger;
     exit: StandardScreenTransition;
   }) => {
     screenWithWorking(workingVWC, async () => {
       const save = prepareSave();
       if (save === null) {
-        trace({ type, draft: false });
-        await screenOut(null, startPop, transition, exit, trigger);
+        trace({
+          type,
+          draft: false,
+          givenName: givenNameVWC.get(),
+          familyName: familyNameVWC.get(),
+        });
+        await configurableScreenOut(null, startPop, transition, exit, trigger);
         return;
       }
 
@@ -160,12 +167,13 @@ export const SetName = ({
       trace({ type, draft: false, step: 'save', result });
       if (result) {
         const finishPop = startPop(
-          trigger === null
+          trigger.type === 'pop'
             ? null
             : {
-                slug: trigger,
-                parameters: {},
-              }
+                slug: trigger.flow,
+                parameters: trigger.parameters,
+              },
+          trigger.endpoint ?? undefined
         );
         await exitTransition.promise;
         finishPop();

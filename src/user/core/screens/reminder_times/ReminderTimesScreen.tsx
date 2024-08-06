@@ -5,6 +5,7 @@ import { RequestResult } from '../../../../shared/requests/RequestHandler';
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
 import { createLoginContextRequest } from '../../lib/createLoginContextRequest';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { ReminderTimes } from './ReminderTimes';
 import { ReminderTimesAPIParams, ReminderTimesMappedParams } from './ReminderTimesParams';
 import { ReminderTimesResources } from './ReminderTimesResources';
@@ -22,7 +23,47 @@ export const ReminderTimesScreen: OsehScreen<
 > = {
   slug: 'reminder_times',
   paramMapper: (params) => ({
-    ...params,
+    entrance: params.entrance,
+    channels: params.channels,
+    header: params.header,
+    message: params.message,
+    back: {
+      exit: params.back.exit,
+      trigger: convertScreenConfigurableTriggerWithOldVersion(
+        params.back.trigger,
+        params.back.triggerv75
+      ),
+      draft: params.back.draft,
+    },
+    cta: {
+      next: params.cta.next ?? null,
+      final: params.cta.final,
+      trigger: convertScreenConfigurableTriggerWithOldVersion(
+        params.cta.trigger,
+        params.cta.triggerv75
+      ),
+      exit: params.cta.exit,
+    },
+    nav:
+      params.nav.type === 'nav'
+        ? {
+            type: 'nav',
+            title: params.nav.title,
+            home: {
+              trigger: convertScreenConfigurableTriggerWithOldVersion(
+                params.nav.home.trigger,
+                params.nav.home.triggerv75
+              ),
+            },
+            series: {
+              trigger: convertScreenConfigurableTriggerWithOldVersion(
+                params.nav.series.trigger,
+                params.nav.series.triggerv75
+              ),
+            },
+          }
+        : params.nav,
+    __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {
     const getChannels = () =>

@@ -43,6 +43,7 @@ export const JournalChatScreen: OsehScreen<
       params.journal_entry === null || params.journal_entry === undefined
         ? null
         : convertUsingMapper(params.journal_entry, screenJournalEntryKeyMap),
+    autofill: params.autofill ?? '',
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

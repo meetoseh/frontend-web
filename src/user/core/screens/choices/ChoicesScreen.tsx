@@ -1,5 +1,6 @@
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { Choices } from './Choices';
 import { ChoicesAPIParams, ChoicesMappedParams } from './ChoicesParams';
 import { ChoicesResources } from './ChoicesResources';
@@ -16,6 +17,8 @@ export const ChoicesScreen: OsehScreen<
   slug: 'choices',
   paramMapper: (params) => ({
     ...params,
+    trigger: convertScreenConfigurableTriggerWithOldVersion(params.trigger, params.triggerv75),
+    includeChoice: params.include_choice,
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

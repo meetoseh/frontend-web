@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 import { ScreenContentAPI, ScreenContentParsed } from '../../models/ScreenContent';
 
 export type VideoInterstitialAPIParams = {
@@ -27,12 +32,17 @@ export type VideoInterstitialAPIParams = {
   exit: StandardScreenTransition;
 
   /** The client flow slug to trigger when they hit the button or the video ends */
-  trigger: string | null;
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 };
 
-export type VideoInterstitialMappedParams = Omit<VideoInterstitialAPIParams, 'video'> & {
+export type VideoInterstitialMappedParams = Omit<
+  VideoInterstitialAPIParams,
+  'video' | 'trigger' | 'triggerv75'
+> & {
   /** The full screen video to show */
   video: ScreenContentParsed;
-
+  /** The client flow slug to trigger when they hit the button or the video ends */
+  trigger: ScreenConfigurableTrigger;
   __mapped?: true;
 };

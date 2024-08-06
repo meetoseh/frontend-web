@@ -17,9 +17,9 @@ import { BottomNavBar } from '../../../bottomNav/BottomNavBar';
 import styles from './Home.module.css';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { GoalPill } from './components/GoalPill';
-import { screenOut } from '../../lib/screenOut';
 import { EmotionsPicker } from './components/EmotionsPicker';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * The version of the home screen with options to take a class by emotion, go to
@@ -90,7 +90,7 @@ export const Home = ({
               <GoalPill
                 streak={resources.streak}
                 updateGoal={() => {
-                  screenOut(
+                  configurableScreenOut(
                     workingVWC,
                     startPop,
                     transition,
@@ -106,7 +106,7 @@ export const Home = ({
         <EmotionsPicker
           emotions={resources.emotions}
           onTapEmotion={(emotion) => {
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,
@@ -134,7 +134,7 @@ export const Home = ({
           active="home"
           clickHandlers={{
             series: () => {
-              screenOut(
+              configurableScreenOut(
                 workingVWC,
                 startPop,
                 transition,
@@ -143,7 +143,7 @@ export const Home = ({
               );
             },
             account: () => {
-              screenOut(
+              configurableScreenOut(
                 workingVWC,
                 startPop,
                 transition,

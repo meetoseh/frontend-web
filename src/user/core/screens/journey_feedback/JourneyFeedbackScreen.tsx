@@ -6,6 +6,7 @@ import { RequestResult, Result } from '../../../../shared/requests/RequestHandle
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
 import { initImage } from '../../lib/initImage';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { screenJourneyMapper } from '../../models/ScreenJourney';
 import { JourneyFeedback } from './JourneyFeedback';
 import { JourneyFeedbackAPIParams, JourneyFeedbackMappedParams } from './JourneyFeedbackParams';
@@ -26,8 +27,29 @@ export const JourneyFeedbackScreen: OsehScreen<
 > = {
   slug: 'journey_feedback',
   paramMapper: (params) => ({
-    ...params,
     journey: convertUsingMapper(params.journey, screenJourneyMapper),
+    entrance: params.entrance,
+    cta1: {
+      text: params.cta1.text,
+      exit: params.cta1.exit,
+      emotion: params.cta1.emotion,
+      trigger: convertScreenConfigurableTriggerWithOldVersion(
+        params.cta1.trigger,
+        params.cta1.triggerv75
+      ),
+    },
+    cta2:
+      params.cta2 === null || params.cta2 === undefined
+        ? null
+        : {
+            text: params.cta2.text,
+            exit: params.cta2.exit,
+            emotion: params.cta2.emotion,
+            trigger: convertScreenConfigurableTriggerWithOldVersion(
+              params.cta2.trigger,
+              params.cta2.triggerv75
+            ),
+          },
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

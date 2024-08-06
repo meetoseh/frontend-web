@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 
 export type ChoicesAPIParams = {
   /** The message at the top of the screen, typically providing context */
@@ -32,9 +37,20 @@ export type ChoicesAPIParams = {
   exit: StandardScreenTransition;
 
   /** The client flow slug to trigger when they hit the button with no parameters */
-  trigger: string | null;
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
+
+  /** True to include client parameter 'checked' with an array of strings indicating the checked options */
+  include_choice: boolean;
 };
 
-export type ChoicesMappedParams = ChoicesAPIParams & {
+export type ChoicesMappedParams = Omit<
+  ChoicesAPIParams,
+  'trigger' | 'triggerv75' | 'include_choice'
+> & {
+  /** The client flow slug to trigger when they hit the button with no parameters */
+  trigger: ScreenConfigurableTrigger;
+  /** True to include client parameter 'checked' with the text of the choice */
+  includeChoice: boolean;
   __mapped: true;
 };

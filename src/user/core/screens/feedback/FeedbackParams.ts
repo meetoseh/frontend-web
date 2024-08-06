@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 
 export type FeedbackAPIParams = {
   /** Message at the top, usually to provide context */
@@ -24,11 +29,13 @@ export type FeedbackAPIParams = {
     /** The text to render */
     text: string;
     /** The trigger if the secondary cta is pressed, null otherwise */
-    trigger: string | null;
+    trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+    triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
   } | null;
 
   /** The trigger if they hit the x button at the upper right */
-  close: string | null;
+  close: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  closev75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 
   /**
    * An arbitrary identifier to associate with this feedback. Generally,
@@ -59,11 +66,21 @@ export type FeedbackAPIParams = {
   exit: StandardScreenTransition;
 
   /** The client flow slug to trigger when they hit the button with no parameters */
-  trigger: string | null;
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 };
 
-export type FeedbackMappedParams = Omit<FeedbackAPIParams, 'anonymous_label'> & {
+export type FeedbackMappedParams = Omit<
+  FeedbackAPIParams,
+  'anonymous_label' | 'close' | 'closev75' | 'trigger' | 'triggerv75' | 'cta2'
+> & {
   /** The label to use for the anonymous checkbox for opt-in or opt-out strategies */
   anonymousLabel: string;
+  cta2: {
+    text: string;
+    trigger: ScreenConfigurableTrigger;
+  } | null;
+  close: ScreenConfigurableTrigger;
+  trigger: ScreenConfigurableTrigger;
   __mapped: true;
 };

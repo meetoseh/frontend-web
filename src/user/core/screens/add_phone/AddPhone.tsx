@@ -24,13 +24,13 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { TextInput } from '../../../../shared/forms/TextInput';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
-import { screenOut } from '../../lib/screenOut';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { Button } from '../../../../shared/forms/Button';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useTimezone } from '../../../../shared/hooks/useTimezone';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * Allows the user to add a phone number; they need to verify the phone number
@@ -172,7 +172,7 @@ export const AddPhone = ({
               return;
             }
 
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,
@@ -203,7 +203,7 @@ export const AddPhone = ({
               variant="link-white"
               onClick={(e) => {
                 e.preventDefault();
-                screenOut(
+                configurableScreenOut(
                   workingVWC,
                   startPop,
                   transition,

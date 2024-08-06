@@ -14,6 +14,7 @@ import { OsehScreen } from '../../models/Screen';
 import { Favorites } from './Favorites';
 import { FavoritesAPIParams, FavoritesMappedParams } from './FavoritesParams';
 import { FavoritesResources } from './FavoritesResources';
+import { convertTriggerWithExit } from '../../lib/convertTriggerWithExit';
 import {
   FavoritesListRequest,
   createFavoritesListRequest,
@@ -30,7 +31,14 @@ export const FavoritesScreen: OsehScreen<
 > = {
   slug: 'favorites',
   paramMapper: (params) => ({
-    ...params,
+    entrance: params.entrance,
+    back: convertTriggerWithExit(params.back),
+    journey: convertTriggerWithExit(params.journey),
+    history: convertTriggerWithExit(params.history),
+    owned: convertTriggerWithExit(params.owned),
+    home: convertTriggerWithExit(params.home),
+    series: convertTriggerWithExit(params.series),
+    __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {
     const activeVWC = createWritableValueWithCallbacks(true);

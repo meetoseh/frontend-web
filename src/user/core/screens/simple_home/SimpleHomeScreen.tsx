@@ -12,7 +12,36 @@ import { SimpleHomeResources } from './SimpleHomeResources';
 import { SimpleHomeAPIParams, SimpleHomeMappedParams } from './SimpleHomeParams';
 import { HomeCopy } from '../home/lib/createHomeCopyRequestHandler';
 import { SimpleHome } from './SimpleHome';
+import {
+  convertTriggerWithExit,
+  ScreenTriggerWithExitAPI,
+  ScreenTriggerWithExitMapped,
+} from '../../lib/convertTriggerWithExit';
 
+const convertTriggerWithExitAndEndpoint = (
+  v: ScreenTriggerWithExitAPI & { endpoint?: string | null }
+): ScreenTriggerWithExitMapped => {
+  if (
+    v.endpoint === null ||
+    v.endpoint === undefined ||
+    (v.triggerv75 !== null && v.triggerv75 !== undefined) ||
+    (typeof v.trigger === 'object' && v.trigger !== null)
+  ) {
+    return convertTriggerWithExit(v);
+  }
+
+  if (v.trigger === null || v.trigger === undefined) {
+    return {
+      trigger: { type: 'pop', endpoint: v.endpoint },
+      exit: v.exit,
+    };
+  }
+
+  return {
+    trigger: { type: 'flow', flow: v.trigger, endpoint: v.endpoint, parameters: {} },
+    exit: v.exit,
+  };
+};
 /**
  * The home screen variant with a full screen background image, a header for navigation,
  * copy in the center, and a cta at the bottom.
@@ -25,7 +54,21 @@ export const SimpleHomeScreen: OsehScreen<
 > = {
   slug: 'simple_home',
   paramMapper: (params) => ({
-    ...params,
+    entrance: params.entrance,
+    settings: convertTriggerWithExit(params.settings),
+    goal: convertTriggerWithExit(params.goal),
+    favorites: convertTriggerWithExit(params.favorites),
+    cta: {
+      ...convertTriggerWithExitAndEndpoint(params.cta),
+      text: params.cta.text,
+    },
+    cta2:
+      params.cta2 === null || params.cta2 === undefined
+        ? null
+        : {
+            ...convertTriggerWithExitAndEndpoint(params.cta2),
+            text: params.cta2.text,
+          },
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

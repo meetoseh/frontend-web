@@ -22,8 +22,8 @@ import { ChoicesResources } from './ChoicesResources';
 import { ChoicesMappedParams } from './ChoicesParams';
 import { AutoBold } from '../../../../shared/components/AutoBold';
 import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
-import { screenOut } from '../../lib/screenOut';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * Asks the user a question and they select their response. Can choose one or
@@ -126,13 +126,16 @@ export const Choices = ({
                   return;
                 }
 
-                screenOut(
+                configurableScreenOut(
                   workingVWC,
                   startPop,
                   transition,
                   screen.parameters.exit,
                   screen.parameters.trigger,
                   {
+                    parameters: screen.parameters.includeChoice
+                      ? { checked: checkedVWC.get() }
+                      : undefined,
                     beforeDone: async () => {
                       trace({ type: 'cta', slug: screen.parameters.slug, value: checkedVWC.get() });
                     },

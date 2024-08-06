@@ -5,24 +5,20 @@ import { GridFullscreenContainer } from '../../../../shared/components/GridFulls
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
 import styles from './ImageInterstitial.module.css';
 import { Button } from '../../../../shared/forms/Button';
-import {
-  playExitTransition,
-  useEntranceTransition,
-  useTransitionProp,
-} from '../../../../shared/lib/TransitionProp';
+import { useEntranceTransition, useTransitionProp } from '../../../../shared/lib/TransitionProp';
 import {
   StandardScreenTransition,
   useStandardTransitionsState,
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { setVWC } from '../../../../shared/lib/setVWC';
 import { ImageInterstitialResources } from './ImageInterstitialResources';
 import { ImageInterstitialMappedParams } from './ImageInterstitialParams';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { OsehImageFromState } from '../../../../shared/images/OsehImageFromState';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A basic image interstitial; top message, image, header, subheader, button with CTA
@@ -88,22 +84,13 @@ export const ImageInterstitial = ({
             variant="filled-white"
             onClick={async (e) => {
               e.preventDefault();
-              if (workingVWC.get()) {
-                return;
-              }
-
-              setVWC(workingVWC, true);
-              const finishPop = startPop(
-                screen.parameters.trigger === null
-                  ? null
-                  : {
-                      slug: screen.parameters.trigger,
-                      parameters: {},
-                    }
+              configurableScreenOut(
+                workingVWC,
+                startPop,
+                transition,
+                screen.parameters.exit,
+                screen.parameters.trigger
               );
-              setVWC(transition.animation, screen.parameters.exit);
-              await playExitTransition(transition).promise;
-              finishPop();
             }}>
             {screen.parameters.cta}
           </Button>

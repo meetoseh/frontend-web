@@ -14,7 +14,7 @@ import { ChatMessageExamplesResources } from './ChatMessageExamplesResources';
 import styles from './ChatMessageExamples.module.css';
 import { Fragment, ReactElement } from 'react';
 import { Button } from '../../../../shared/forms/Button';
-import { screenOut } from '../../lib/screenOut';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * An interstitial screen designed specifically to help provide examples
@@ -67,7 +67,7 @@ export const ChatMessageExamples = ({
           variant="filled-white"
           onClick={(e) => {
             e.preventDefault();
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,

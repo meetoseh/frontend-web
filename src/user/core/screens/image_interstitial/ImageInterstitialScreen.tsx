@@ -17,6 +17,7 @@ import {
 } from '../../../../shared/requests/RequestHandler';
 import { createChainedRequest } from '../../../../shared/requests/createChainedRequest';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { screenImageKeyMap } from '../../models/ScreenImage';
 import { ImageInterstitial } from './ImageInterstitial';
 import {
@@ -36,8 +37,15 @@ export const ImageInterstitialScreen: OsehScreen<
 > = {
   slug: 'image_interstitial',
   paramMapper: (params) => ({
-    ...params,
+    top: params.top,
     image: convertUsingMapper(params.image, screenImageKeyMap),
+    header: params.header,
+    message: params.message,
+    cta: params.cta,
+    entrance: params.entrance,
+    exit: params.exit,
+    trigger: convertScreenConfigurableTriggerWithOldVersion(params.trigger, params.triggerv75),
+    __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {
     const activeVWC = createWritableValueWithCallbacks(true);

@@ -84,7 +84,7 @@ export const JournalChat = ({
   const windowWidthVWC = useMappedValueWithCallbacks(ctx.windowSizeImmediate, (s) => s.width);
 
   const inputVWC = useWritableValueWithCallbacks<HTMLTextAreaElement | null>(() => null);
-  const rawInputValueVWC = useWritableValueWithCallbacks<string>(() => '');
+  const rawInputValueVWC = useWritableValueWithCallbacks<string>(() => screen.parameters.autofill);
 
   const chatAreaRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
 
@@ -96,10 +96,21 @@ export const JournalChat = ({
     input.style.height = '5px';
     input.style.height = `${input.scrollHeight}px`;
   };
+
+  const setInitialValueVWC = useWritableValueWithCallbacks(() => false);
   useValueWithCallbacksEffect(inputVWC, (eleRaw) => {
     if (eleRaw === null) {
       return undefined;
     }
+
+    if (!setInitialValueVWC.get()) {
+      setVWC(setInitialValueVWC, true);
+
+      eleRaw.value = screen.parameters.autofill;
+      setVWC(rawInputValueVWC, screen.parameters.autofill);
+      fixInput();
+    }
+
     const ele = eleRaw;
     ele.addEventListener('input', onInputOrChange);
     ele.addEventListener('change', onInputOrChange);

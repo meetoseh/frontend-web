@@ -1,46 +1,27 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenTriggerWithExitAPI,
+  ScreenTriggerWithExitMapped,
+} from '../../lib/convertTriggerWithExit';
 
-export type MembershipAPIParams = {
+type MembershipParams<T> = {
   /** entrance transition */
   entrance: StandardScreenTransition;
 
   /** manages if they tap the back button at the top left */
-  back: {
-    /** the trigger with no parameters */
-    trigger: string | null;
-
-    /** the transition to use */
-    exit: StandardScreenTransition;
-  };
+  back: T;
 
   /** manages if they don't have Oseh+ and they press the upgrade button */
-  upgrade: {
-    /** the trigger with no parameters */
-    trigger: string | null;
-
-    /** the transition to use */
-    exit: StandardScreenTransition;
-  };
+  upgrade: T;
 
   /** manages if they tap the home option in the bottom nav */
-  home: {
-    /** the trigger with no parameters */
-    trigger: string | null;
-
-    /** the transition to use */
-    exit: StandardScreenTransition;
-  };
+  home: T;
 
   /** manages if they tap the series option in the bottom nav */
-  series: {
-    /** the trigger with no parameters */
-    trigger: string | null;
-
-    /** the transition to use */
-    exit: StandardScreenTransition;
-  };
+  series: T;
 };
 
-export type MembershipMappedParams = MembershipAPIParams & {
-  __mapped?: true;
+export type MembershipAPIParams = MembershipParams<ScreenTriggerWithExitAPI>;
+export type MembershipMappedParams = MembershipParams<ScreenTriggerWithExitMapped> & {
+  __mapped: true;
 };

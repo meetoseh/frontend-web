@@ -15,6 +15,7 @@ import { OsehTranscript } from '../../../../shared/transcripts/OsehTranscript';
 import { OsehTranscriptRef } from '../../../../shared/transcripts/OsehTranscriptRef';
 import { initBackground } from '../../lib/initBackground';
 import { OsehScreen } from '../../models/Screen';
+import { convertScreenConfigurableTriggerWithOldVersion } from '../../models/ScreenConfigurableTrigger';
 import { screenContentKeyMap } from '../../models/ScreenContent';
 import { screenImageKeyMap } from '../../models/ScreenImage';
 import { AudioInterstitial } from './AudioInterstitial';
@@ -38,6 +39,8 @@ export const AudioInterstitialScreen: OsehScreen<
     ...params,
     background: convertUsingMapper(params.background, screenImageKeyMap),
     audio: convertUsingMapper(params.audio, screenContentKeyMap),
+    trigger: convertScreenConfigurableTriggerWithOldVersion(params.trigger, params.triggerv75),
+    __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {
     const activeVWC = createWritableValueWithCallbacks(true);

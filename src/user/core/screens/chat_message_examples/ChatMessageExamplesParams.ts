@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 
 export type ChatMessageExamplesAPIParams = {
   /** The header text */
@@ -20,9 +25,14 @@ export type ChatMessageExamplesAPIParams = {
   exit: StandardScreenTransition;
 
   /** The client flow slug to trigger when they hit the button with no parameters */
-  trigger: string | null;
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 };
 
-export type ChatMessageExamplesMappedParams = ChatMessageExamplesAPIParams & {
+export type ChatMessageExamplesMappedParams = Omit<
+  ChatMessageExamplesAPIParams,
+  'trigger' | 'triggerv75'
+> & {
+  trigger: ScreenConfigurableTrigger;
   __mapped: true;
 };

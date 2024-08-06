@@ -4,6 +4,7 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { RequestResult } from '../../../../shared/requests/RequestHandler';
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
 import { StreakInfo } from '../../../journey/models/StreakInfo';
+import { convertTriggerWithExit } from '../../lib/convertTriggerWithExit';
 import { createLoginContextRequest } from '../../lib/createLoginContextRequest';
 import { OsehScreen } from '../../models/Screen';
 import { SetGoal } from './SetGoal';
@@ -21,7 +22,21 @@ export const SetGoalScreen: OsehScreen<
 > = {
   slug: 'set_goal',
   paramMapper: (params) => ({
-    ...params,
+    entrance: params.entrance,
+    top: params.top,
+    title: params.title,
+    message: params.message,
+    back:
+      params.back === null || params.back === undefined
+        ? null
+        : {
+            ...convertTriggerWithExit(params.back),
+            text: params.back.text,
+          },
+    save: {
+      ...convertTriggerWithExit(params.save),
+      text: params.save.text,
+    },
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

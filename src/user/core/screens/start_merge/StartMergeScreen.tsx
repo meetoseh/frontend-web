@@ -1,4 +1,5 @@
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { convertTriggerWithExit } from '../../lib/convertTriggerWithExit';
 import { OsehScreen } from '../../models/Screen';
 import { StartMerge } from './StartMerge';
 import { StartMergeAPIParams, StartMergeMappedParams } from './StartMergeParams';
@@ -16,7 +17,14 @@ export const StartMergeScreen: OsehScreen<
 > = {
   slug: 'start_merge',
   paramMapper: (params) => ({
-    ...params,
+    entrance: params.entrance,
+    header: params.header,
+    message: params.message,
+    providers: params.providers,
+    skip: {
+      ...convertTriggerWithExit(params.skip),
+      text: params.skip.text,
+    },
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

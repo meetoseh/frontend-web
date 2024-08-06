@@ -20,15 +20,33 @@ export const configurableScreenOut = async <T extends string, C extends { type: 
   exit: C,
   trigger: ScreenConfigurableTrigger,
   opts?: {
+    endpoint?: string;
+    parameters?: any;
     beforeDone?: () => Promise<void>;
     afterDone?: () => void;
     onError?: (error: unknown) => void;
   }
-): Promise<void> =>
-  screenOut(workingVWC, startPop, transition, exit, trigger.type === 'flow' ? trigger.flow : null, {
-    endpoint: trigger.type === 'flow' ? trigger.endpoint ?? undefined : undefined,
-    parameters: trigger.type === 'flow' ? trigger.parameters ?? undefined : undefined,
+): Promise<void> => {
+  const endpoint = trigger?.endpoint ?? opts?.endpoint;
+  const parameters = (() => {
+    const configuredParameters = trigger.type === 'flow' ? trigger.parameters : null;
+    const basicParameters = opts?.parameters ?? null;
+    if (configuredParameters === null && basicParameters === null) {
+      return undefined;
+    }
+    return Object.assign({}, basicParameters, configuredParameters);
+  })();
+  const flow =
+    trigger.type === 'flow'
+      ? trigger.flow
+      : endpoint !== undefined || parameters !== undefined
+      ? 'skip'
+      : null;
+  screenOut(workingVWC, startPop, transition, exit, flow, {
+    endpoint,
+    parameters,
     beforeDone: opts?.beforeDone,
     afterDone: opts?.afterDone,
     onError: opts?.onError,
   });
+};

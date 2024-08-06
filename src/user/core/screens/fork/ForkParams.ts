@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 
 type ForkAPIParamsOption = {
   /** The text to display for the option */
@@ -13,7 +18,8 @@ type ForkAPIParamsOption = {
   exit: StandardScreenTransition;
 
   /** The trigger if the option is selected */
-  trigger: string | null;
+  trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+  triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 };
 
 export type ForkAPIParams = {
@@ -30,6 +36,13 @@ export type ForkAPIParams = {
   options: ForkAPIParamsOption[];
 };
 
-export type ForkMappedParams = ForkAPIParams & {
-  __mapped?: true;
+type ForkMappedParamsOption = Omit<ForkAPIParamsOption, 'trigger' | 'triggerv75'> & {
+  /** The trigger if the option is selected */
+  trigger: ScreenConfigurableTrigger;
+};
+
+export type ForkMappedParams = Omit<ForkAPIParams, 'options'> & {
+  /** the options in the fork */
+  options: ForkMappedParamsOption[];
+  __mapped: true;
 };

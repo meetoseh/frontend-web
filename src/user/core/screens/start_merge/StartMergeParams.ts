@@ -1,7 +1,11 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
+import {
+  ScreenTriggerWithExitAPI,
+  ScreenTriggerWithExitMapped,
+} from '../../lib/convertTriggerWithExit';
 
-export type StartMergeAPIParams = {
+type StartMergeParams<T> = {
   /** entrance transition */
   entrance: StandardScreenTransition;
 
@@ -23,18 +27,13 @@ export type StartMergeAPIParams = {
   }[];
 
   /** The skip button configuration */
-  skip: {
+  skip: T & {
     /** The text on the button */
     text: string;
-
-    /** The flow which is triggered when the button is pressed, with no parameters */
-    trigger: string | null;
-
-    /** The transition to use when the button is pressed */
-    exit: StandardScreenTransition;
   };
 };
 
-export type StartMergeMappedParams = StartMergeAPIParams & {
+export type StartMergeAPIParams = StartMergeParams<ScreenTriggerWithExitAPI>;
+export type StartMergeMappedParams = StartMergeParams<ScreenTriggerWithExitMapped> & {
   __mapped: true;
 };

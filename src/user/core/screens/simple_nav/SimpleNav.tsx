@@ -19,6 +19,7 @@ import { IconButton } from '../../../../shared/forms/IconButton';
 import { Close } from '../interactive_prompt_screen/icons/Close';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A basic navigation screen with primary and secondary sections
@@ -51,7 +52,7 @@ export const SimpleNav = ({
             srOnlyName="Close"
             onClick={(e) => {
               e.preventDefault();
-              screenOut(
+              configurableScreenOut(
                 workingVWC,
                 startPop,
                 transition,
@@ -77,7 +78,7 @@ export const SimpleNav = ({
                   className={styles.primary}
                   onClick={(e) => {
                     e.preventDefault();
-                    screenOut(
+                    configurableScreenOut(
                       workingVWC,
                       startPop,
                       transition,
@@ -120,7 +121,7 @@ export const SimpleNav = ({
                   className={styles.secondary}
                   onClick={(e) => {
                     e.preventDefault();
-                    screenOut(
+                    configurableScreenOut(
                       workingVWC,
                       startPop,
                       transition,

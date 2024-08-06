@@ -12,12 +12,12 @@ import {
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { CompletionResources } from './CompletionResources';
 import { CompletionMappedParams } from './CompletionParams';
 import { GridConfetti } from '../../../../shared/components/GridConfetti';
 import HugeCheck from './icons/HugeCheck';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 /**
  * A basic completion screen that shows some confetti and includes a call to action
@@ -65,7 +65,7 @@ export const Completion = ({
           variant="filled-premium"
           onClick={async (e) => {
             e.preventDefault();
-            screenOut(
+            configurableScreenOut(
               workingVWC,
               startPop,
               transition,

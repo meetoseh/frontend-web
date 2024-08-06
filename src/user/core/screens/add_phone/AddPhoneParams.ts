@@ -1,4 +1,9 @@
 import { StandardScreenTransition } from '../../../../shared/hooks/useStandardTransitions';
+import {
+  ScreenConfigurableTrigger,
+  ScreenConfigurableTriggerTransitioningPreferredAPI,
+  ScreenConfigurableTriggerTransitioningTemporaryAPI,
+} from '../../models/ScreenConfigurableTrigger';
 
 export type AddPhoneAPIParams = {
   /** entrance transition */
@@ -41,7 +46,8 @@ export type AddPhoneAPIParams = {
      * contains the uid for checking the verification status and the time when
      * the code is unlikely to continue working after.
      */
-    trigger: string | null;
+    trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+    triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
 
     /** The exit transition to use */
     exit: StandardScreenTransition;
@@ -56,7 +62,8 @@ export type AddPhoneAPIParams = {
     exit: StandardScreenTransition;
 
     /** The trigger with no parameters */
-    trigger: string | null;
+    trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+    triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
   };
 
   /**
@@ -80,18 +87,44 @@ export type AddPhoneAPIParams = {
 
         /** For if the user taps the home button in the bottom bar */
         home: {
-          trigger: string | null;
+          trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+          triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
           // uses fade exit to avoid nesting x-enum-discriminator
         };
 
         /** For if the user taps the series button in the bottom bar */
         series: {
-          trigger: string | null;
+          trigger: ScreenConfigurableTriggerTransitioningPreferredAPI;
+          triggerv75: ScreenConfigurableTriggerTransitioningTemporaryAPI;
           // uses fade exit to avoid nesting x-enum-discriminator
         };
       };
 };
 
-export type AddPhoneMappedParams = AddPhoneAPIParams & {
+export type AddPhoneMappedParams = Omit<AddPhoneAPIParams, 'cta' | 'back' | 'nav'> & {
+  cta: {
+    text: string;
+    trigger: ScreenConfigurableTrigger;
+    exit: StandardScreenTransition;
+  };
+  back: {
+    exit: StandardScreenTransition;
+    trigger: ScreenConfigurableTrigger;
+  };
+  nav:
+    | {
+        type: 'no-nav';
+        back: string;
+      }
+    | {
+        type: 'nav';
+        title: string;
+        home: {
+          trigger: ScreenConfigurableTrigger;
+        };
+        series: {
+          trigger: ScreenConfigurableTrigger;
+        };
+      };
   __mapped: true;
 };

@@ -39,6 +39,7 @@ import {
   GridSimpleNavigationForeground,
 } from '../../../../shared/components/GridSimpleNavigationForeground';
 import { screenOut } from '../../lib/screenOut';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 type TooltipPlaceholder = { readonly uid: 'tooltip' };
 
@@ -66,7 +67,7 @@ export const SeriesList = ({
 
   const showCourse = useCallback(
     async (course: ExternalCourse) => {
-      screenOut(
+      configurableScreenOut(
         workingVWC,
         startPop,
         transition,
@@ -242,12 +243,17 @@ export const SeriesList = ({
               variant="filled-white"
               onClick={async (e) => {
                 e.preventDefault();
-                screenOut(
+                const cta = screen.parameters.cta;
+                if (cta === null) {
+                  return;
+                }
+
+                configurableScreenOut(
                   workingVWC,
                   startPop,
                   transition,
                   screen.parameters.exit,
-                  screen.parameters.cta?.trigger ?? null,
+                  cta.trigger,
                   {
                     beforeDone: async () => {
                       trace({ type: 'click', target: 'cta' });

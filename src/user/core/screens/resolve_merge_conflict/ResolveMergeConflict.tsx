@@ -38,6 +38,7 @@ import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
+import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 const TEST_MERGE_JWT = 'token';
 
@@ -100,23 +101,20 @@ export const ResolveMergeConflict = ({
       const timeToExpire = expiresAt - mountedAt;
       if (timeToExpire < 0) {
         trace({ type: 'expired', expiresAt, mountedAt, timeToExpire, resolves: 'instantly' });
-        screenWithWorking(workingVWC, async () => {
-          startPop(
-            screen.parameters.expired.trigger === null
-              ? null
-              : {
-                  slug: screen.parameters.expired.trigger,
-                  parameters: {},
-                }
-          )();
-        });
+        configurableScreenOut(
+          workingVWC,
+          startPop,
+          transition,
+          { type: 'fade', ms: 350 },
+          screen.parameters.expired.trigger
+        );
         return;
       }
 
       timeout = setTimeout(() => {
         timeout = null;
         trace({ type: 'expired', expiresAt, mountedAt, timeToExpire, resolves: 'timeout' });
-        screenOut(
+        configurableScreenOut(
           workingVWC,
           startPop,
           transition,
@@ -209,12 +207,12 @@ export const ResolveMergeConflict = ({
 
                 const emailHint = emailHintVWC.get();
                 const phoneHint = phoneHintVWC.get();
-                screenOut(
+                configurableScreenOut(
                   workingVWC,
                   startPop,
                   transition,
                   screen.parameters.cta.exit,
-                  screen.parameters.cta.trigger ?? 'skip',
+                  screen.parameters.cta.trigger,
                   {
                     endpoint: '/api/1/users/me/screens/empty_with_confirm_merge',
                     parameters: {
@@ -269,7 +267,7 @@ export const ResolveMergeConflict = ({
                   type="button"
                   variant="outlined-white"
                   onClick={() => {
-                    screenOut(
+                    configurableScreenOut(
                       workingVWC,
                       startPop,
                       transition,

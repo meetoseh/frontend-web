@@ -4,6 +4,7 @@ import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbac
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RequestResult } from '../../../../shared/requests/RequestHandler';
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
+import { convertTriggerWithExit } from '../../lib/convertTriggerWithExit';
 import { createLoginContextRequest } from '../../lib/createLoginContextRequest';
 import { createMappedLoginContextRequest } from '../../lib/createMappedLoginContextRequest';
 import { OsehScreen } from '../../models/Screen';
@@ -25,7 +26,11 @@ export const MembershipScreen: OsehScreen<
 > = {
   slug: 'membership',
   paramMapper: (params) => ({
-    ...params,
+    entrance: params.entrance,
+    back: convertTriggerWithExit(params.back),
+    upgrade: convertTriggerWithExit(params.upgrade),
+    home: convertTriggerWithExit(params.home),
+    series: convertTriggerWithExit(params.series),
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {
