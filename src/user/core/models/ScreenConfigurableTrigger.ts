@@ -63,7 +63,7 @@ export const screenConfigurableTriggerMapper: CrudFetcherMapper<ScreenConfigurab
 };
 
 export type ScreenConfigurableTriggerTransitioningPreferredAPI =
-  | ScreenConfigurableTriggerFlowAPI
+  | ScreenConfigurableTriggerAPI
   | string
   | null
   | undefined;
