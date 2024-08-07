@@ -60,6 +60,11 @@ import {
   EntitlementRef,
 } from '../screens/settings/lib/createEntitlementRequestHandler';
 import { OfferingPriceRef } from '../screens/upgrade/lib/createOfferingPriceRequestHandler';
+import {
+  JournalEntryManager,
+  JournalEntryManagerMinimalRef,
+  JournalEntryManagerRef,
+} from '../screens/journal_chat/lib/createJournalEntryManagerHandler';
 
 /**
  * Contains everything that any screen might want to eagerly preload. Generally,
@@ -279,4 +284,12 @@ export type Resources = {
    * Manages touch links
    */
   touchLinkHandler: RequestHandler<TouchLinkRequestMinimal, TouchLinkRequest, TouchLink>;
+  /**
+   * Manages streaming journal entries
+   */
+  journalEntryManagerHandler: RequestHandler<
+    JournalEntryManagerMinimalRef,
+    JournalEntryManagerRef,
+    JournalEntryManager
+  >;
 };

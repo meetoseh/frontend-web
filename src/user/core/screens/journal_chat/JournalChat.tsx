@@ -1,4 +1,4 @@
-import { Fragment, ReactElement, useEffect, useMemo, useRef } from 'react';
+import { Fragment, ReactElement, useEffect, useMemo } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGrayBackground';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
@@ -277,15 +277,18 @@ export const JournalChat = ({
               }
               if (chat === undefined) {
                 return (
-                  <div className={styles.systemMessage}>
-                    <div className={styles.systemMessagePic}>
-                      <SystemProfile />
+                  <>
+                    <VerticalSpacer height={32} flexGrow={0} />
+                    <div className={styles.systemMessage}>
+                      <div className={styles.systemMessagePic}>
+                        <SystemProfile />
+                      </div>
+                      <HorizontalSpacer width={16} />
+                      <div className={styles.systemMessageText}>
+                        An error occurred. Try again or contact support at hi@oseh.com
+                      </div>
                     </div>
-                    <HorizontalSpacer width={16} />
-                    <div className={styles.systemMessageText}>
-                      An error occurred. Try again or contact support at hi@oseh.com
-                    </div>
-                  </div>
+                  </>
                 );
               }
 

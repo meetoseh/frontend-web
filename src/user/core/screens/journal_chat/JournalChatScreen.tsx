@@ -1,25 +1,25 @@
 import { convertUsingMapper } from '../../../../admin/crud/CrudFetcher';
+import { createValuesWithCallbacksEffect } from '../../../../shared/hooks/createValuesWithCallbacksEffect';
 import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createValueWithCallbacksEffect';
 import { createMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
-import {
-  getOrCreateClientKey,
-  WrappedJournalClientKey,
-} from '../../../../shared/journals/clientKeys';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { createCancelableTimeout } from '../../../../shared/lib/createCancelableTimeout';
-import { createFernet } from '../../../../shared/lib/fernet';
+import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
+import { mapCancelable } from '../../../../shared/lib/mapCancelable';
+import { SCREEN_VERSION } from '../../../../shared/lib/screenVersion';
 import { setVWC } from '../../../../shared/lib/setVWC';
-import { waitForValueWithCallbacksConditionCancelable } from '../../../../shared/lib/waitForValueWithCallbacksCondition';
+import { RequestResult, Result } from '../../../../shared/requests/RequestHandler';
+import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
 import { OsehScreen } from '../../models/Screen';
-import { screenConfigurableTriggerMapper } from '../../models/ScreenConfigurableTrigger';
 import { screenJournalEntryKeyMap } from '../../models/ScreenJournalChat';
 import { JournalChat } from './JournalChat';
 import { JournalChatAPIParams, JournalChatMappedParams } from './JournalChatParams';
 import { JournalChatResources } from './JournalChatResources';
+import {
+  JournalEntryManager,
+  JournalEntryManagerRef,
+} from './lib/createJournalEntryManagerHandler';
 import { JournalChatState } from './lib/JournalChatState';
-import { replyToJournalEntry } from './lib/replyToJournalEntry';
-import { syncToJournalEntry, SyncToJournalEntryStateDone } from './lib/syncToJournalEntry';
 
 /**
  * Allows the user to chat with the system.
@@ -47,251 +47,183 @@ export const JournalChatScreen: OsehScreen<
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {
+    const activeVWC = createWritableValueWithCallbacks(true);
+
+    const getJournalEntryManager = (): RequestResult<JournalEntryManager> => {
+      if (screen.parameters.journalEntry === null) {
+        return {
+          data: createWritableValueWithCallbacks({
+            type: 'error',
+            data: undefined,
+            error: <>Journal entry not provided by server</>,
+            retryAt: undefined,
+          }),
+          release: () => {},
+        };
+      }
+
+      return ctx.resources.journalEntryManagerHandler.request({
+        ref: {
+          journalEntryUID: screen.parameters.journalEntry.uid,
+          journalEntryJWT: screen.parameters.journalEntry.jwt,
+        },
+        refreshRef: (): CancelablePromise<Result<JournalEntryManagerRef>> => {
+          if (!activeVWC.get()) {
+            return {
+              promise: Promise.resolve({
+                type: 'expired',
+                data: undefined,
+                error: <>Screen is not mounted</>,
+                retryAt: undefined,
+              }),
+              done: () => true,
+              cancel: () => {},
+            };
+          }
+
+          return mapCancelable(
+            refreshScreen(),
+            (s): Result<JournalEntryManagerRef> =>
+              s.type !== 'success'
+                ? s
+                : s.data.parameters.journalEntry === null
+                ? {
+                    type: 'error',
+                    data: undefined,
+                    error: <>Journal entry not provided by server</>,
+                    retryAt: undefined,
+                  }
+                : {
+                    type: 'success',
+                    data: {
+                      journalEntryUID: s.data.parameters.journalEntry.uid,
+                      journalEntryJWT: s.data.parameters.journalEntry.jwt,
+                    },
+                    error: undefined,
+                    retryAt: undefined,
+                  }
+          );
+        },
+      });
+    };
+
+    const journalEntryManagerVWC =
+      createWritableValueWithCallbacks<RequestResult<JournalEntryManager> | null>(null);
+    const cleanupJournalEntryManagerRequester = (() => {
+      const request = getJournalEntryManager();
+      setVWC(journalEntryManagerVWC, request);
+      return () => {
+        if (Object.is(journalEntryJWTVWC.get(), request)) {
+          setVWC(journalEntryJWTVWC, null);
+        }
+        request.release();
+      };
+    })();
+    const [journalEntryManagerUnwrappedVWC, cleanupJournalEntryManagerUnwrapper] =
+      unwrapRequestResult(
+        journalEntryManagerVWC,
+        (d) => d.data,
+        () => null
+      );
+
+    const [journalEntryUIDVWC, cleanupJournalEntryUIDUnwrapper] = createMappedValueWithCallbacks(
+      journalEntryManagerUnwrappedVWC,
+      (d) => d?.journalEntryUID ?? null
+    );
+    const journalEntryJWTVWC = createWritableValueWithCallbacks<string | null>(null);
+    const cleanupJournalEntryJWTUnwrapper = createValueWithCallbacksEffect(
+      journalEntryManagerUnwrappedVWC,
+      (d) => {
+        if (d === null) {
+          setVWC(journalEntryJWTVWC, null);
+          return undefined;
+        }
+
+        return createValueWithCallbacksEffect(d.journalEntryJWT, (jwt) => {
+          setVWC(journalEntryJWTVWC, jwt);
+          return undefined;
+        });
+      }
+    );
+
     const chatVWC = createWritableValueWithCallbacks<JournalChatState | null | undefined>(null);
-    const journalEntryUIDVWC = createWritableValueWithCallbacks<string | null>(
-      screen.parameters.journalEntry?.uid ?? null
+    const cleanupChatUnwrapper = createValueWithCallbacksEffect(
+      journalEntryManagerUnwrappedVWC,
+      (d) => {
+        if (d === null) {
+          setVWC(chatVWC, null);
+          return undefined;
+        }
+
+        return createValueWithCallbacksEffect(d.chat, (chat) => {
+          setVWC(chatVWC, chat);
+          return undefined;
+        });
+      }
     );
-    const journalEntryJWTVWC = createWritableValueWithCallbacks<string | null>(
-      screen.parameters.journalEntry?.jwt ?? null
+    const cleanupJournalEntryManagerRefresher = createValuesWithCallbacksEffect(
+      [
+        journalEntryManagerVWC,
+        journalEntryManagerUnwrappedVWC,
+        ctx.login.value,
+        ctx.interests.visitor.value,
+      ],
+      () => {
+        const requestRaw = journalEntryManagerVWC.get();
+        if (requestRaw === null) {
+          return;
+        }
+        const request = requestRaw.data;
+        const active = createWritableValueWithCallbacks(true);
+        handle();
+        return () => {
+          setVWC(active, false);
+        };
+
+        async function handle() {
+          if (!active.get()) {
+            return;
+          }
+          const d = journalEntryManagerUnwrappedVWC.get();
+
+          if (d === null) {
+            return undefined;
+          }
+
+          const nowServer = await getCurrentServerTimeMS();
+          if (!active.get()) {
+            return;
+          }
+
+          if (d.isExpiredOrDisposed(nowServer)) {
+            const raw = request.get();
+            if (raw.type === 'success') {
+              raw.reportExpired();
+            }
+            return;
+          }
+
+          const user = ctx.login.value.get();
+          if (user.state !== 'logged-in') {
+            return;
+          }
+
+          const visitor = ctx.interests.visitor.value.get();
+          if (visitor.loading) {
+            return;
+          }
+
+          if ((d.chat.get() === null || d.chat.get() === undefined) && d.task.get() === null) {
+            d.refresh(user, ctx.interests.visitor);
+          }
+        }
+      }
     );
-    const trySubmitUserResponseVWC = createWritableValueWithCallbacks<
-      (userResponse: string) => void
-    >(() => {
-      throw new Error('not available yet');
-    });
 
     const [readyVWC, cleanupReady] = createMappedValueWithCallbacks(
       chatVWC,
       (chat) => chat !== null
     );
-
-    const cleanupChatFetcher = (() => {
-      const entryUIDRaw = journalEntryUIDVWC.get();
-      const entryJWTRaw = journalEntryJWTVWC.get();
-
-      if (entryUIDRaw === null || entryJWTRaw === null) {
-        setVWC(chatVWC, undefined);
-        return;
-      }
-
-      const entryUID = entryUIDRaw;
-      const entryJWT = entryJWTRaw;
-
-      const loginContextUnch = ctx.login.value.get();
-      if (loginContextUnch.state !== 'logged-in') {
-        return undefined;
-      }
-      const user = loginContextUnch;
-
-      if (ctx.interests.value.get().state === 'loading') {
-        return undefined;
-      }
-
-      const active = createWritableValueWithCallbacks(true);
-      setVWC(trySubmitUserResponseVWC, (userResponse) => {
-        throw new Error('not available yet');
-      });
-      fetchChat();
-      return () => {
-        setVWC(active, false);
-      };
-
-      async function fetchChat(retry?: number) {
-        if (!active.get()) {
-          return;
-        }
-        const clientKeyRaw = await getOrCreateClientKey(user, ctx.interests.visitor);
-        if (!active.get()) {
-          return;
-        }
-        const clientKey: WrappedJournalClientKey = {
-          uid: clientKeyRaw.uid,
-          key: await createFernet(clientKeyRaw.key),
-        };
-        if (!active.get()) {
-          return;
-        }
-
-        const previousChat = chatVWC.get();
-
-        const syncCancelable = syncToJournalEntry(user, entryUID, entryJWT, clientKey);
-        const canceled = waitForValueWithCallbacksConditionCancelable(active, (a) => !a);
-        canceled.promise.catch(() => {});
-        const cleanupAttacher = createValueWithCallbacksEffect(syncCancelable.state, (state) => {
-          if (state.type === 'done') {
-            setVWC(chatVWC, state.conversation);
-            return undefined;
-          }
-
-          if (state.type === 'reading-system-response') {
-            return createValueWithCallbacksEffect(state.chat, (chat) => {
-              if (chat.data.length === 0 && previousChat !== null) {
-                setVWC(chatVWC, previousChat);
-              } else {
-                setVWC(chatVWC, chat);
-              }
-              return undefined;
-            });
-          }
-
-          return undefined;
-        });
-
-        try {
-          await Promise.race([syncCancelable.handlerCancelable.promise, canceled.promise]);
-
-          if (!active.get()) {
-            syncCancelable.handlerCancelable.cancel();
-            return;
-          }
-
-          const finalState = syncCancelable.state.get();
-          if (finalState.type !== 'done') {
-            throw new Error(`unexpected final state ${finalState.type}`);
-          }
-          setVWC(journalEntryUIDVWC, finalState.journalEntryUID);
-          setVWC(journalEntryJWTVWC, finalState.journalEntryJWT);
-          setVWC(trySubmitUserResponseVWC, (userResponse) => {
-            processUserResponse(finalState, userResponse);
-          });
-          setVWC(chatVWC, finalState.conversation);
-        } catch (e) {
-          if (!active.get()) {
-            syncCancelable.handlerCancelable.cancel();
-            return;
-          }
-
-          const nextRetry = (retry ?? 0) + 1;
-          if (nextRetry > 3) {
-            console.error('too many errors fetching chat', e);
-            setVWC(chatVWC, undefined);
-            return;
-          }
-
-          const finalState = syncCancelable.state.get();
-          if (finalState.type === 'failed' && finalState.resolutionHint === 'retry') {
-            const cancelableTimeout = createCancelableTimeout(1000 * Math.pow(2, nextRetry));
-            cancelableTimeout.promise.catch(() => {});
-            await Promise.race([cancelableTimeout.promise, canceled.promise]);
-            cancelableTimeout.cancel();
-            canceled.cancel();
-            fetchChat(nextRetry);
-            return;
-          }
-
-          console.error('error fetching chat', e, finalState);
-          setVWC(chatVWC, undefined);
-        } finally {
-          cleanupAttacher();
-        }
-      }
-
-      async function processUserResponse(
-        sync: SyncToJournalEntryStateDone,
-        userResponse: string,
-        retry?: number
-      ) {
-        if (!active.get()) {
-          return;
-        }
-        const clientKeyRaw = await getOrCreateClientKey(user, ctx.interests.visitor);
-        if (!active.get()) {
-          return;
-        }
-        const clientKey: WrappedJournalClientKey = {
-          uid: clientKeyRaw.uid,
-          key: await createFernet(clientKeyRaw.key),
-        };
-        if (!active.get()) {
-          return;
-        }
-        const encryptedUserMessage = await clientKey.key.encrypt(
-          userResponse,
-          await getCurrentServerTimeMS()
-        );
-
-        const replyCancelable = replyToJournalEntry(
-          user,
-          entryUID,
-          entryJWT,
-          clientKey,
-          encryptedUserMessage
-        );
-        const canceled = waitForValueWithCallbacksConditionCancelable(active, (a) => !a);
-        canceled.promise.catch(() => {});
-        const cleanupAttacher = createValueWithCallbacksEffect(replyCancelable.state, (state) => {
-          if (state.type === 'done') {
-            setVWC(chatVWC, state.conversation);
-            return undefined;
-          }
-
-          if (state.type === 'reading-system-response') {
-            return createValueWithCallbacksEffect(state.chat, (chat) => {
-              if (chat.data.length === 0) {
-                if (chat.transient === undefined || chat.transient === null) {
-                  setVWC(chatVWC, sync.conversation);
-                } else {
-                  setVWC(chatVWC, { ...sync.conversation, transient: chat.transient });
-                }
-              } else {
-                setVWC(chatVWC, chat);
-              }
-              return undefined;
-            });
-          }
-
-          return undefined;
-        });
-
-        try {
-          await Promise.race([replyCancelable.handlerCancelable.promise, canceled.promise]);
-
-          if (!active.get()) {
-            replyCancelable.handlerCancelable.cancel();
-            return;
-          }
-
-          const finalState = replyCancelable.state.get();
-          if (finalState.type !== 'done') {
-            throw new Error(`unexpected final state ${finalState.type}`);
-          }
-          setVWC(journalEntryUIDVWC, finalState.journalEntryUID);
-          setVWC(journalEntryJWTVWC, finalState.journalEntryJWT);
-          setVWC(trySubmitUserResponseVWC, (userResponse) => {
-            throw new Error('at most one response expected');
-          });
-          setVWC(chatVWC, finalState.conversation);
-        } catch (e) {
-          if (!active.get()) {
-            replyCancelable.handlerCancelable.cancel();
-            return;
-          }
-
-          const nextRetry = (retry ?? 0) + 1;
-          if (nextRetry > 3) {
-            console.error('too many errors storing reply', e);
-            setVWC(chatVWC, undefined);
-            return;
-          }
-
-          const finalState = replyCancelable.state.get();
-          if (finalState.type === 'failed' && finalState.resolutionHint === 'retry') {
-            const cancelableTimeout = createCancelableTimeout(1000 * Math.pow(2, nextRetry));
-            cancelableTimeout.promise.catch(() => {});
-            await Promise.race([cancelableTimeout.promise, canceled.promise]);
-            cancelableTimeout.cancel();
-            canceled.cancel();
-            processUserResponse(sync, userResponse, nextRetry);
-            return;
-          }
-
-          console.error('error storing reply', e, finalState);
-          setVWC(chatVWC, undefined);
-        } finally {
-          cleanupAttacher();
-        }
-      }
-    })();
 
     return {
       ready: readyVWC,
@@ -299,11 +231,35 @@ export const JournalChatScreen: OsehScreen<
       journalEntryUID: journalEntryUIDVWC,
       journalEntryJWT: journalEntryJWTVWC,
       trySubmitUserResponse: (userResponse: string) => {
-        trySubmitUserResponseVWC.get()(userResponse);
+        const journalEntryManager = journalEntryManagerUnwrappedVWC.get();
+        if (journalEntryManager === null) {
+          return;
+        }
+
+        const user = ctx.login.value.get();
+        if (user.state !== 'logged-in') {
+          return;
+        }
+
+        journalEntryManager.refresh(user, ctx.interests.visitor, {
+          endpoint: '/api/1/journals/entries/chat/',
+          bonusParams: async (clientKey) => ({
+            version: SCREEN_VERSION,
+            encrypted_user_message: await clientKey.key.encrypt(
+              userResponse,
+              await getCurrentServerTimeMS()
+            ),
+          }),
+        });
       },
       dispose: () => {
+        cleanupJournalEntryManagerRequester();
+        cleanupJournalEntryManagerUnwrapper();
+        cleanupJournalEntryUIDUnwrapper();
+        cleanupJournalEntryJWTUnwrapper();
+        cleanupChatUnwrapper();
+        cleanupJournalEntryManagerRefresher();
         cleanupReady();
-        cleanupChatFetcher?.();
       },
     };
   },
