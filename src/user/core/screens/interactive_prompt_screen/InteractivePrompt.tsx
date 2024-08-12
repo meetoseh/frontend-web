@@ -18,10 +18,11 @@ import { InteractivePromptRouter } from '../../../interactive_prompt/components/
 import { PromptTime } from '../../../interactive_prompt/hooks/usePromptTime';
 import styles from './InteractivePrompt.module.css';
 import { IconButton } from '../../../../shared/forms/IconButton';
-import { Close } from './icons/Close';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { Close } from '../../../../shared/components/icons/Close';
+import { OsehColors } from '../../../../shared/OsehColors';
 
 /**
  * An interactive prompt (one where everyones responses are shown as they
@@ -103,7 +104,14 @@ export const InteractivePrompt = ({
         noPointerEvents>
         <div className={styles.closeWrapper}>
           <IconButton
-            icon={<Close />}
+            icon={
+              <Close
+                icon={{ width: 24 }}
+                container={{ width: 56, height: 56 }}
+                startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                color={OsehColors.v4.primary.light}
+              />
+            }
             srOnlyName="close"
             onClick={async (e) => {
               e.preventDefault();

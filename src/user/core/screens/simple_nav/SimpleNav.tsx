@@ -12,14 +12,14 @@ import { GridFullscreenContainer } from '../../../../shared/components/GridFulls
 import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGrayBackground';
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
-import { screenOut } from '../../lib/screenOut';
 import styles from './SimpleNav.module.css';
 import { TrackableAnchor } from '../../../../shared/components/TrackableAnchor';
 import { IconButton } from '../../../../shared/forms/IconButton';
-import { Close } from '../interactive_prompt_screen/icons/Close';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { Close } from '../../../../shared/components/icons/Close';
+import { OsehColors } from '../../../../shared/OsehColors';
 
 /**
  * A basic navigation screen with primary and secondary sections
@@ -48,7 +48,14 @@ export const SimpleNav = ({
         justifyContent="flex-start">
         <div className={styles.close}>
           <IconButton
-            icon={<Close />}
+            icon={
+              <Close
+                icon={{ width: 24 }}
+                container={{ width: 56, height: 56 }}
+                startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                color={OsehColors.v4.primary.light}
+              />
+            }
             srOnlyName="Close"
             onClick={(e) => {
               e.preventDefault();

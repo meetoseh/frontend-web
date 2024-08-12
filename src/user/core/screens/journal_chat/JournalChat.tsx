@@ -20,7 +20,6 @@ import { JournalChatResources } from './JournalChatResources';
 import { JournalChatMappedParams } from './JournalChatParams';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { Back } from '../../../../shared/components/icons/Back';
-import { Close } from '../interactive_prompt_screen/icons/Close';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
@@ -39,6 +38,14 @@ import { Arrow } from './icons/Arrow';
 import { InlineOsehSpinner } from '../../../../shared/components/InlineOsehSpinner';
 import { ThinkingDots } from '../../../../shared/components/ThinkingDots';
 import { trackClassTaken } from '../home/lib/trackClassTaken';
+import { OsehColors } from '../../../../shared/OsehColors';
+import { Close } from '../../../../shared/components/icons/Close';
+import {
+  RESIZING_TEXT_AREA_ICON_SETTINGS,
+  ResizingTextArea,
+  ResizingTextAreaProps,
+} from '../../../../shared/components/ResizingTextArea';
+import { Send } from '../../../../shared/components/icons/Send';
 
 const SUGGESTIONS = [
   { text: 'I have a lot of anxiety right now', width: 160 },
@@ -84,55 +91,11 @@ export const JournalChat = ({
   const windowWidthVWC = useMappedValueWithCallbacks(ctx.windowSizeImmediate, (s) => s.width);
 
   const inputVWC = useWritableValueWithCallbacks<HTMLTextAreaElement | null>(() => null);
-  const rawInputValueVWC = useWritableValueWithCallbacks<string>(() => screen.parameters.autofill);
+  const rawInputValueVWC = useWritableValueWithCallbacks<string | null>(
+    () => screen.parameters.autofill
+  ) as ResizingTextAreaProps['value'];
 
   const chatAreaRef = useWritableValueWithCallbacks<HTMLDivElement | null>(() => null);
-
-  const fixInput = () => {
-    const input = inputVWC.get();
-    if (input === null) {
-      return;
-    }
-    input.style.height = '5px';
-    input.style.height = `${input.scrollHeight}px`;
-  };
-
-  const setInitialValueVWC = useWritableValueWithCallbacks(() => false);
-  useValueWithCallbacksEffect(inputVWC, (eleRaw) => {
-    if (eleRaw === null) {
-      return undefined;
-    }
-
-    if (!setInitialValueVWC.get()) {
-      setVWC(setInitialValueVWC, true);
-
-      eleRaw.value = screen.parameters.autofill;
-      setVWC(rawInputValueVWC, screen.parameters.autofill);
-      fixInput();
-    }
-
-    const ele = eleRaw;
-    ele.addEventListener('input', onInputOrChange);
-    ele.addEventListener('change', onInputOrChange);
-    ele.addEventListener('keydown', onKeydown);
-    return () => {
-      ele.removeEventListener('input', onInputOrChange);
-      ele.removeEventListener('change', onInputOrChange);
-      ele.removeEventListener('keydown', onKeydown);
-    };
-
-    function onInputOrChange() {
-      setVWC(rawInputValueVWC, ele.value);
-      fixInput();
-    }
-
-    function onKeydown(e: KeyboardEvent) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        onSubmit();
-      }
-    }
-  });
 
   useValueWithCallbacksEffect(resources.chat, () => {
     const chatArea = chatAreaRef.get();
@@ -167,9 +130,9 @@ export const JournalChat = ({
 
     ele.blur();
     ele.value = '';
-    setVWC(rawInputValueVWC, '');
+    rawInputValueVWC.set('');
+    rawInputValueVWC.callbacks.call({ updateInput: true });
     setVWC(submittedVWC, true);
-    fixInput();
     resources.trySubmitUserResponse(value);
   };
 
@@ -208,7 +171,14 @@ export const JournalChat = ({
           {screen.parameters.back.type === 'back' && (
             <div className={styles.backWrapper}>
               <IconButton
-                icon={<Back />}
+                icon={
+                  <Back
+                    icon={{ width: 20 }}
+                    container={{ width: 52, height: 53 }}
+                    startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                    color={OsehColors.v4.primary.light}
+                  />
+                }
                 srOnlyName="Back"
                 onClick={(e) => {
                   e.preventDefault();
@@ -237,7 +207,14 @@ export const JournalChat = ({
           {screen.parameters.back.type === 'x' && (
             <div className={styles.xWrapper}>
               <IconButton
-                icon={<Close />}
+                icon={
+                  <Close
+                    icon={{ width: 24 }}
+                    container={{ width: 56, height: 56 }}
+                    startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                    color={OsehColors.v4.primary.light}
+                  />
+                }
                 srOnlyName="Close"
                 onClick={(e) => {
                   e.preventDefault();
@@ -510,10 +487,8 @@ export const JournalChat = ({
                             return;
                           }
 
-                          ele.value += suggestion.text;
-                          setVWC(rawInputValueVWC, ele.value);
-                          ele.style.height = '5px';
-                          ele.style.height = `${ele.scrollHeight}px`;
+                          rawInputValueVWC.set(suggestion.text);
+                          rawInputValueVWC.callbacks.call({ updateInput: true });
                           ele.focus();
                         }}
                         style={{
@@ -528,31 +503,25 @@ export const JournalChat = ({
                 </div>
                 <VerticalSpacer height={16} />
                 <ContentContainer contentWidthVWC={ctx.contentWidth}>
-                  <form
-                    className={styles.form}
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      onSubmit();
-                    }}>
-                    <textarea
-                      className={styles.input}
-                      rows={1}
-                      placeholder="How are you feeling today?"
-                      ref={(r) => setVWC(inputVWC, r)}
-                    />
-                    <HorizontalSpacer width={6} />
-                    <button
-                      type="submit"
-                      className={styles.submit}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onSubmit();
-                      }}>
-                      <Submit />
-                      <div className={assistiveStyles.srOnly}>Submit</div>
-                    </button>
-                  </form>
+                  <ResizingTextArea
+                    variant="dark"
+                    placeholder="Type your message"
+                    submit={{
+                      icon: (
+                        <Send
+                          color2={OsehColors.v4.primary.dark}
+                          color={OsehColors.v4.primary.light}
+                          {...RESIZING_TEXT_AREA_ICON_SETTINGS}
+                        />
+                      ),
+                      onClick: onSubmit,
+                    }}
+                    value={rawInputValueVWC}
+                    refVWC={inputVWC}
+                    enterBehavior="submit-unless-shift"
+                  />
                 </ContentContainer>
+
                 <VerticalSpacer height={40} />
               </>
             )

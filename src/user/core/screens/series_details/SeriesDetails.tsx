@@ -15,7 +15,6 @@ import { GridContentContainer } from '../../../../shared/components/GridContentC
 import { SeriesDetailsResources } from './SeriesDetailsResources';
 import { SeriesDetailsMappedParams } from './SeriesDetailsParams';
 import styles from './SeriesDetails.module.css';
-import { Back } from './icons/Back';
 import assistiveStyles from '../../../../shared/assistive.module.css';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { useFavoritedModal } from '../../../favorites/hooks/useFavoritedModal';
@@ -39,6 +38,8 @@ import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { screenOut } from '../../lib/screenOut';
 import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { Back } from '../../../../shared/components/icons/Back';
+import { OsehColors } from '../../../../shared/OsehColors';
 
 /**
  * Displays the series details page on a specific series
@@ -90,7 +91,12 @@ export const SeriesDetails = ({
               );
             }}>
             <span className={assistiveStyles.srOnly}>Back</span>
-            <Back />
+            <Back
+              icon={{ width: 20 }}
+              container={{ width: 60, height: 32 }}
+              startPadding={{ x: { fraction: 0 }, y: { fraction: 0 } }}
+              color={OsehColors.v4.primary.light}
+            />
           </button>
         </div>
         <VerticalSpacer height={20} />

@@ -25,9 +25,25 @@ export const computeSvgSize = ({
   requested: SvgRequestedSize;
   viewbox: { width: number; height: number };
 }) => {
+  const numeric = computeSvgSizeNumeric({ requested, viewbox });
+  return [`${numeric.width}px`, `${numeric.height}px`];
+};
+
+/**
+ * Computes the [width, height] of an svg requested to render at the given
+ * width or the given height and which has a viewbox of the given width and
+ * height.
+ */
+export const computeSvgSizeNumeric = ({
+  requested,
+  viewbox,
+}: {
+  requested: SvgRequestedSize;
+  viewbox: { width: number; height: number };
+}): { width: number; height: number } => {
   if (requested.width === undefined) {
-    return [`${(viewbox.width / viewbox.height) * requested.height}px`, `${requested.height}px`];
+    return { width: (viewbox.width / viewbox.height) * requested.height, height: requested.height };
   }
 
-  return [`${requested.width}px`, `${(viewbox.height / viewbox.width) * requested.width}px`];
+  return { width: requested.width, height: (viewbox.height / viewbox.width) * requested.width };
 };

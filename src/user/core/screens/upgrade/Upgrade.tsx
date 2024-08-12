@@ -23,7 +23,6 @@ import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransit
 import styles from './Upgrade.module.css';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import assistiveStyles from '../../../../shared/assistive.module.css';
-import { Back } from './icons/Back';
 import { GridBlackBackground } from '../../../../shared/components/GridBlackBackground';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { GridImageBackground } from '../../../../shared/components/GridImageBackground';
@@ -37,7 +36,6 @@ import { Button } from '../../../../shared/forms/Button';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
-import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { ScreenImageParsed } from '../../models/ScreenImage';
 import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
@@ -47,10 +45,12 @@ import {
   extractPaidIntervalLength,
   extractTrialLength,
 } from './lib/purchasesStoreProductHelper';
-import { Close } from '../interactive_prompt_screen/icons/Close';
 import { ScreenContext } from '../../hooks/useScreenContext';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { Back } from '../../../../shared/components/icons/Back';
+import { OsehColors } from '../../../../shared/OsehColors';
+import { Close } from '../../../../shared/components/icons/Close';
 
 type Copy = UpgradeCopy<ScreenImageParsed>;
 
@@ -136,14 +136,24 @@ export const Upgrade = ({
           <div className={styles.topBack}>
             <button type="button" className={styles.back} onClick={onBack}>
               <span className={assistiveStyles.srOnly}>Back</span>
-              <Back />
+              <Back
+                icon={{ width: 20 }}
+                container={{ width: 20, height: 20 }}
+                startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                color={OsehColors.v4.primary.light}
+              />
             </button>
           </div>
         ) : (
           <div className={styles.topX}>
             <button type="button" className={styles.x} onClick={onBack}>
               <span className={assistiveStyles.srOnly}>Close</span>
-              <Close tight />
+              <Close
+                icon={{ width: 24 }}
+                container={{ width: 24, height: 24 }}
+                startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                color={OsehColors.v4.primary.light}
+              />
             </button>
           </div>
         )}

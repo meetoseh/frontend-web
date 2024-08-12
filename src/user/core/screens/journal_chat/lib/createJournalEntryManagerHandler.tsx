@@ -83,6 +83,8 @@ export type JournalEntryManager = {
       endpoint?: string;
       bonusParams?: (clientKey: WrappedJournalClientKey) => Promise<object>;
       unsafeToRetry?: boolean;
+      /** defaults to true */
+      sticky?: boolean;
     }
   ) => void;
 
@@ -132,6 +134,8 @@ export type JournalEntryManager = {
       endpoint?: string;
       bonusParams?: (clientKey: WrappedJournalClientKey) => Promise<object>;
       unsafeToRetry?: boolean;
+      /** defaults to true */
+      sticky?: boolean;
     }
   ) => CancelablePromise<void>;
 
@@ -438,6 +442,10 @@ export const createJournalEntryManager = (initial: JournalEntryManagerRef): Jour
         }
 
         setVWC(errorVWC, null);
+        if (opts?.sticky === false) {
+          setVWC(chatVWC, null);
+        }
+
         const clientKeyRaw = await getOrCreateClientKey(user, visitor);
         if (state.finishing) {
           state.done = true;
@@ -554,7 +562,7 @@ export const createJournalEntryManager = (initial: JournalEntryManagerRef): Jour
 
         setVWC(journalEntryJWTVWC, data.journal_entry_jwt);
         const attacher = dangerousCreateAttachTask(data.journal_chat_jwt, clientKey, {
-          sticky: true,
+          sticky: opts?.sticky ?? true,
         });
         state.cancelers.add(attacher.cancel);
         if (state.finishing) {

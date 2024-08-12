@@ -16,9 +16,10 @@ import { EmotionResources } from './EmotionResources';
 import { EmotionMappedParams } from './EmotionParams';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { IconButton } from '../../../../shared/forms/IconButton';
-import { Back } from './icons/Back';
 import { trackClassTaken } from '../home/lib/trackClassTaken';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { Back } from '../../../../shared/components/icons/Back';
+import { OsehColors } from '../../../../shared/OsehColors';
 
 /**
  * A relatively basic screen which presents an emotion and allows the user to
@@ -50,7 +51,14 @@ export const EmotionComponent = ({
         <div className={styles.back}>
           {screen.parameters.back && (
             <IconButton
-              icon={<Back />}
+              icon={
+                <Back
+                  icon={{ width: 20 }}
+                  container={{ width: 36, height: 52 }}
+                  color={OsehColors.v4.primary.light}
+                  startPadding={{ x: { fraction: 0.5 }, y: { fraction: 1 } }}
+                />
+              }
               srOnlyName="Back"
               onClick={() => {
                 const btn = screen.parameters.back;

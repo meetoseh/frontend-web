@@ -48,6 +48,7 @@ import { EditReminderTime } from './EditReminderTime';
 import { screenOut } from '../../lib/screenOut';
 import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { OsehColors } from '../../../../shared/OsehColors';
 
 /**
  * Allows the user to update their notification settings
@@ -394,7 +395,14 @@ export const ReminderTimes = ({
         ) : (
           <div className={styles.backWrapper}>
             <IconButton
-              icon={<Back />}
+              icon={
+                <Back
+                  icon={{ width: 20 }}
+                  container={{ width: 52, height: 53 }}
+                  startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                  color={OsehColors.v4.primary.light}
+                />
+              }
               srOnlyName="Back"
               onClick={(e) => {
                 e.preventDefault();

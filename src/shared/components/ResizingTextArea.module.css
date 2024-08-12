@@ -1,0 +1,57 @@
+.simple {
+  border: 1px solid #383838;
+  border-radius: 28px;
+  background: #191c1d;
+  padding: 16px;
+  outline: none;
+  appearance: none;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: normal;
+  color: #eaeaeb;
+  resize: none;
+  overflow-y: hidden;
+}
+
+.container {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  border: 1px solid #383838;
+  border-radius: 28px;
+  background: #191c1d;
+  padding: 0;
+}
+
+.textarea {
+  border: none;
+  background: transparent;
+  padding: 16px 0 16px 16px;
+  outline: none;
+  appearance: none;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: normal;
+  color: #eaeaeb;
+  resize: none;
+  overflow-y: hidden;
+  flex: 1 1 100%;
+}
+
+.submit {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  text-decoration: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

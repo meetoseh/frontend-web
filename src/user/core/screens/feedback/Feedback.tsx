@@ -18,7 +18,6 @@ import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGr
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import styles from './Feedback.module.css';
-import { Close } from '../interactive_prompt_screen/icons/Close';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
@@ -36,6 +35,8 @@ import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { Close } from '../../../../shared/components/icons/Close';
+import { OsehColors } from '../../../../shared/OsehColors';
 
 /**
  * Presents the user the opportunity to give some free-form feedback
@@ -201,7 +202,14 @@ export const Feedback = ({
         justifyContent="flex-start">
         <div className={styles.close}>
           <IconButton
-            icon={<Close />}
+            icon={
+              <Close
+                icon={{ width: 24 }}
+                container={{ width: 56, height: 56 }}
+                startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                color={OsehColors.v4.primary.light}
+              />
+            }
             srOnlyName="Close"
             onClick={(e) => {
               e.preventDefault();

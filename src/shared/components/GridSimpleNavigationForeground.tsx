@@ -15,6 +15,7 @@ import { ScreenStartPop } from '../../user/core/models/Screen';
 import { VerticalSpacer } from './VerticalSpacer';
 import { ScreenConfigurableTrigger } from '../../user/core/models/ScreenConfigurableTrigger';
 import { configurableScreenOut } from '../../user/core/lib/configurableScreenOut';
+import { OsehColors } from '../OsehColors';
 
 export const GRID_SIMPLE_NAVIGATION_FOREGROUND_TOP_HEIGHT = 54;
 export const GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT = 67;
@@ -100,7 +101,14 @@ export const GridSimpleNavigationForeground = ({
       <div className={styles.header}>
         <div className={styles.backWrapper}>
           <IconButton
-            icon={<Back />}
+            icon={
+              <Back
+                icon={{ width: 20 }}
+                container={{ width: 52, height: 53 }}
+                startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                color={OsehColors.v4.primary.light}
+              />
+            }
             srOnlyName="Back"
             onClick={(e) => {
               e.preventDefault();

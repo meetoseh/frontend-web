@@ -1,0 +1,37 @@
+.questionError {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28.6px;
+  color: #ebadad;
+}
+
+.question {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28.6px;
+  color: #eaeaeb;
+}
+
+.hint {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 16.8px;
+  color: #8b8e90;
+}
+
+.buttons {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.spinner {
+  align-self: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
