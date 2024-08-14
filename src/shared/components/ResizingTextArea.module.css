@@ -15,6 +15,10 @@
   overflow-y: hidden;
 }
 
+.simple::placeholder {
+  color: #8b8e90;
+}
+
 .container {
   display: flex;
   flex-flow: row nowrap;
@@ -41,6 +45,10 @@
   resize: none;
   overflow-y: hidden;
   flex: 1 1 100%;
+}
+
+.textarea::placeholder {
+  color: #8b8e90;
 }
 
 .submit {

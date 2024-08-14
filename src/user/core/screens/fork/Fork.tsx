@@ -13,9 +13,10 @@ import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransit
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { ForkResources } from './ForkResources';
 import { ForkMappedParams } from './ForkParams';
-import { RightCaret } from './icons/RightCaret';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { OsehColors } from '../../../../shared/OsehColors';
+import { Forward } from '../../../../shared/components/icons/Forward';
 
 /**
  * A basic fork screen with a header, message, and a series of choices
@@ -71,7 +72,12 @@ export const Fork = ({
                 );
               }}>
               <div className={styles.optionText}>{option.text}</div>
-              <RightCaret />
+              <Forward
+                icon={{ width: 20 }}
+                container={{ width: 20, height: 20 }}
+                startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                color={OsehColors.v4.primary.light}
+              />
             </button>
           ))}
         </div>

@@ -4,7 +4,6 @@ import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createV
 import { createMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
-import { createCancelableTimeout } from '../../../../shared/lib/createCancelableTimeout';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { SCREEN_VERSION } from '../../../../shared/lib/screenVersion';
@@ -19,28 +18,28 @@ import {
   JournalEntryManagerRef,
 } from '../journal_chat/lib/createJournalEntryManagerHandler';
 import { JournalChatState } from '../journal_chat/lib/JournalChatState';
-import { JournalReflectionLarge } from './JournalReflectionLarge';
+import { JournalReflectionResponse } from './JournalReflectionResponse';
 import {
-  JournalReflectionLargeMappedParams,
-  JourneyReflectionLargeAPIParams,
-} from './JournalReflectionLargeParams';
-import { JournalReflectionLargeResources } from './JournalReflectionLargeResources';
+  JourneyReflectionResponseAPIParams,
+  JourneyReflectionResponseMappedParams,
+} from './JournalReflectionResponseParams';
+import { JournalReflectionResponseResources } from './JournalReflectionResponseResources';
 
 /**
- * Shows the last reflection question in the journal entry
+ * Shows the last journal reflection question and allows the user to respond
+ * to it.
  */
-export const JournalReflectionLargeScreen: OsehScreen<
-  'journal_reflection_large',
-  JournalReflectionLargeResources,
-  JourneyReflectionLargeAPIParams,
-  JournalReflectionLargeMappedParams
+export const JournalReflectionResponseScreen: OsehScreen<
+  'journal_reflection_response',
+  JournalReflectionResponseResources,
+  JourneyReflectionResponseAPIParams,
+  JourneyReflectionResponseMappedParams
 > = {
-  slug: 'journal_reflection_large',
+  slug: 'journal_reflection_response',
   paramMapper: (api) => ({
     entrance: api.entrance,
     header: api.header,
-    hint: api.hint,
-    regenerate: api.regenerate,
+    add: api.add,
     edit: api.edit,
     journalEntry: api.journal_entry,
     cta: {
@@ -50,13 +49,8 @@ export const JournalReflectionLargeScreen: OsehScreen<
     },
     close: {
       variant: api.close.variant,
-      onlyIfError: api.close.only_if_error,
       trigger: convertUsingMapper(api.close.trigger, screenConfigurableTriggerMapper),
       exit: api.close.exit,
-    },
-    missingReflectionQuestion: {
-      endpoint: api.missing_reflection_question.endpoint,
-      maxRetries: api.missing_reflection_question.max_retries,
     },
     __mapped: true,
   }),
@@ -241,6 +235,10 @@ export const JournalReflectionLargeScreen: OsehScreen<
     const questionVWC = createWritableValueWithCallbacks<
       { entryCounter: number; paragraphs: string[] } | null | undefined
     >(null);
+    const responseVWC = createWritableValueWithCallbacks<
+      { entryCounter: number; value: string } | 'loading' | 'error' | 'dne'
+    >('loading');
+
     const cleanupJournalEntryManagerRetrier = createValueWithCallbacksEffect(
       journalEntryManagerUnwrappedVWC,
       () => {
@@ -314,20 +312,27 @@ export const JournalReflectionLargeScreen: OsehScreen<
 
               if (chat === undefined) {
                 setVWC(questionVWC, undefined);
+                setVWC(responseVWC, 'error');
                 await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
                 continue;
               }
 
               if (chat === null) {
                 setVWC(questionVWC, null);
+                setVWC(responseVWC, 'loading');
                 await Promise.race([chatChanged.promise, taskChanged.promise, canceled.promise]);
                 continue;
               }
 
               let question: { entryCounter: number; paragraphs: string[] } | null = null;
+              let response: { entryCounter: number; value: string } | 'dne' = 'dne';
               for (let i = chat.data.length - 1; i >= 0; i--) {
                 const entryItem = chat.data[i];
-                if (entryItem.type === 'reflection-question' && entryItem.data.type === 'textual') {
+                if (
+                  (entryItem.type === 'reflection-question' ||
+                    entryItem.type === 'reflection-response') &&
+                  entryItem.data.type === 'textual'
+                ) {
                   const textData = entryItem.data;
                   const parts = [];
                   for (let j = 0; j < textData.parts.length; j++) {
@@ -337,75 +342,23 @@ export const JournalReflectionLargeScreen: OsehScreen<
                     }
                   }
                   if (parts.length > 0) {
-                    question = { entryCounter: i + 1, paragraphs: parts };
+                    if (entryItem.type === 'reflection-question') {
+                      question = { entryCounter: i + 1, paragraphs: parts };
+                    } else if (entryItem.type === 'reflection-response') {
+                      response = { entryCounter: i + 1, value: parts.join('\n\n') };
+                    }
                   }
                 }
               }
 
-              if (question !== null) {
-                setVWC(questionVWC, question);
-
-                // chat will change when we edit / regenerate
-                await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
-                continue;
-              }
-
               if (task !== null) {
-                await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
+                await Promise.race([chatChanged.promise, taskChanged.promise, canceled.promise]);
                 continue;
               }
 
-              const failures = retryCounterVWC.get();
-              if (failures >= screen.parameters.missingReflectionQuestion.maxRetries) {
-                setVWC(questionVWC, undefined);
-                await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
-                continue;
-              }
-
-              setVWC(questionVWC, null);
-              setVWC(retryCounterVWC, failures + 1);
-              if (failures > 0) {
-                const timeout = createCancelableTimeout(
-                  2000 * Math.pow(2, failures - 1) + Math.random() * 500
-                );
-                await Promise.race([
-                  timeout.promise,
-                  chatChanged.promise,
-                  taskChanged.promise,
-                  canceled.promise,
-                ]);
-                if (
-                  !timeout.done() ||
-                  chatChanged.done() ||
-                  taskChanged.done() ||
-                  canceled.done()
-                ) {
-                  timeout.cancel();
-                  continue;
-                }
-              }
-
-              const user = ctx.login.value.get();
-              if (user.state !== 'logged-in') {
-                console.warn('failed to retry reflection question generation: user not logged in');
-                setVWC(questionVWC, undefined);
-                await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
-                continue;
-              }
-
-              manager.refresh(user, ctx.interests.visitor, {
-                endpoint:
-                  screen.parameters.missingReflectionQuestion.endpoint.length === 0
-                    ? '/api/1/journals/entries/sync'
-                    : screen.parameters.missingReflectionQuestion.endpoint[
-                        Math.min(
-                          screen.parameters.missingReflectionQuestion.endpoint.length - 1,
-                          failures
-                        )
-                      ],
-                unsafeToRetry: false,
-              });
-              await Promise.race([chatChanged.promise, taskChanged.promise, canceled.promise]);
+              setVWC(questionVWC, question);
+              setVWC(responseVWC, response);
+              await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
             }
           }
         });
@@ -415,72 +368,46 @@ export const JournalReflectionLargeScreen: OsehScreen<
     return {
       ready: createWritableValueWithCallbacks(true),
       question: questionVWC,
+      savedResponse: responseVWC,
       journalEntryUID: journalEntryUIDVWC,
       journalEntryJWT: journalEntryJWTVWC,
-      trySubmitEdit: (userResponse: string) => {
-        if (screen.parameters.edit === null) {
-          console.warn('cannot submit edit: no edit endpoint provided');
-          return;
-        }
-
+      updateResponse: (userResponse: string) => {
         const question = questionVWC.get();
         if (question === null || question === undefined) {
           console.warn('cannot submit edit: no question available');
-          return;
+          return Promise.reject(new Error('no question available'));
+        }
+
+        const currentResponse = responseVWC.get();
+        if (currentResponse === 'error' || currentResponse === 'loading') {
+          console.warn('cannot submit edit: response not available');
+          return Promise.reject(new Error('response not available'));
         }
 
         const journalEntryManager = journalEntryManagerUnwrappedVWC.get();
         if (journalEntryManager === null) {
-          return;
+          return Promise.reject(new Error('journal entry manager not available'));
         }
 
         const user = ctx.login.value.get();
         if (user.state !== 'logged-in') {
-          return;
+          return Promise.reject(new Error('user not logged in'));
         }
 
-        journalEntryManager.refresh(user, ctx.interests.visitor, {
-          endpoint: screen.parameters.edit.endpoint,
+        return journalEntryManager.refresh(user, ctx.interests.visitor, {
+          endpoint:
+            currentResponse === 'dne'
+              ? screen.parameters.add.endpoint
+              : screen.parameters.edit.endpoint,
           bonusParams: async (clientKey) => ({
             version: SCREEN_VERSION,
-            entry_counter: question.entryCounter,
-            encrypted_reflection_question: await clientKey.key.encrypt(
+            ...(currentResponse !== 'dne' ? { entry_counter: currentResponse.entryCounter } : {}),
+            encrypted_reflection_response: await clientKey.key.encrypt(
               userResponse,
               await getCurrentServerTimeMS()
             ),
           }),
-        });
-      },
-      tryRegenerate: () => {
-        if (screen.parameters.regenerate === null) {
-          console.warn('cannot regenerate: no regenerate endpoint provided');
-          return;
-        }
-
-        const journalEntryManager = journalEntryManagerUnwrappedVWC.get();
-        if (journalEntryManager === null) {
-          return;
-        }
-
-        const question = questionVWC.get();
-        if (question === null || question === undefined) {
-          console.warn('cannot submit edit: no question available');
-          return;
-        }
-
-        const user = ctx.login.value.get();
-        if (user.state !== 'logged-in') {
-          return;
-        }
-
-        journalEntryManager.refresh(user, ctx.interests.visitor, {
-          endpoint: screen.parameters.regenerate.endpoint,
-          unsafeToRetry: false,
-          bonusParams: async () => ({
-            version: SCREEN_VERSION,
-            entry_counter: question.entryCounter,
-          }),
-          sticky: false,
+          sticky: true,
         });
       },
       dispose: () => {
@@ -495,5 +422,5 @@ export const JournalReflectionLargeScreen: OsehScreen<
       },
     };
   },
-  component: (params) => <JournalReflectionLarge {...params} />,
+  component: (params) => <JournalReflectionResponse {...params} />,
 };

@@ -20,7 +20,8 @@ import { EditDays } from './EditDays';
 import { makeDaysOfWeekPretty, makeTimeRangePretty, nameForChannel } from './formatUtils';
 import { Channel } from './lib/Channel';
 import { DayOfWeek } from '../../../../shared/models/DayOfWeek';
-import { RightCaret } from '../fork/icons/RightCaret';
+import { Forward } from '../../../../shared/components/icons/Forward';
+import { OsehColors } from '../../../../shared/OsehColors';
 
 export type EditReminderTimeProps = {
   /**
@@ -287,7 +288,12 @@ export const EditReminderTime = ({
               )}
             />
           </span>
-          <RightCaret />
+          <Forward
+            icon={{ width: 20 }}
+            container={{ width: 20, height: 20 }}
+            startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+            color={OsehColors.v4.primary.light}
+          />
         </button>
         <button
           type="button"
@@ -321,7 +327,12 @@ export const EditReminderTime = ({
               )}
             />
           </span>
-          <RightCaret />
+          <Forward
+            icon={{ width: 20 }}
+            container={{ width: 20, height: 20 }}
+            startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+            color={OsehColors.v4.primary.light}
+          />
         </button>
       </div>
     </div>

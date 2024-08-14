@@ -1,0 +1,13 @@
+.simple {
+  border: none;
+  background: none;
+  padding: 0;
+  outline: none;
+  appearance: none;
+  letter-spacing: normal;
+  resize: none;
+  overflow-y: auto;
+  align-self: center;
+  flex-basis: 0;
+  flex-grow: 1;
+}
