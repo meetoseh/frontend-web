@@ -10,10 +10,7 @@ import {
   useStandardTransitionsState,
 } from '../../../../shared/hooks/useStandardTransitions';
 import { WipeTransitionOverlay } from '../../../../shared/components/WipeTransitionOverlay';
-import {
-  createWritableValueWithCallbacks,
-  useWritableValueWithCallbacks,
-} from '../../../../shared/lib/Callbacks';
+import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { JournalChatResources } from './JournalChatResources';
@@ -25,15 +22,8 @@ import { ContentContainer } from '../../../../shared/components/ContentContainer
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import { SystemProfile } from './icons/SystemProfile';
 import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
-import assistiveStyles from '../../../../shared/assistive.module.css';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
-import { Submit } from './icons/Submit';
-import { ScreenContext } from '../../hooks/useScreenContext';
-import { OsehImageExportCropped } from '../../../../shared/images/OsehImageExportCropped';
-import { GridImageBackground } from '../../../../shared/components/GridImageBackground';
-import { createChainedImageFromRef } from '../../lib/createChainedImageFromRef';
-import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createValueWithCallbacksEffect';
 import { Arrow } from './icons/Arrow';
 import { InlineOsehSpinner } from '../../../../shared/components/InlineOsehSpinner';
 import { ThinkingDots } from '../../../../shared/components/ThinkingDots';
@@ -46,6 +36,7 @@ import {
   ResizingTextAreaProps,
 } from '../../../../shared/components/ResizingTextArea';
 import { Send } from '../../../../shared/components/icons/Send';
+import { JourneyCardTopBackgroundImage } from './components/JournalCardTopBackgroundImage';
 
 const SUGGESTIONS = [
   { text: 'I have a lot of anxiety right now', width: 160 },
@@ -531,53 +522,4 @@ export const JournalChat = ({
       <WipeTransitionOverlay wipe={transitionState.wipe} />
     </GridFullscreenContainer>
   );
-};
-
-const JourneyCardTopBackgroundImage = ({
-  uid,
-  jwt,
-  ctx,
-}: {
-  uid: string;
-  jwt: string;
-  ctx: ScreenContext;
-}): ReactElement => {
-  const thumbhashVWC = useWritableValueWithCallbacks<string | null>(() => null);
-  const imageVWC = useWritableValueWithCallbacks<OsehImageExportCropped | null>(() => null);
-
-  useEffect(() => {
-    const inner = createChainedImageFromRef({
-      ctx,
-      getRef: () => ({
-        data: createWritableValueWithCallbacks({
-          type: 'success',
-          data: { uid, jwt },
-          error: undefined,
-          reportExpired: () => {},
-        }),
-        release: () => {},
-      }),
-      sizeMapper: (ws) => ({
-        width: Math.min(ws.width - 24, 296),
-        height: 120,
-      }),
-    });
-
-    const cleanupThumbhashAttacher = createValueWithCallbacksEffect(inner.thumbhash, (th) => {
-      setVWC(thumbhashVWC, th);
-      return undefined;
-    });
-    const cleanupImageAttacher = createValueWithCallbacksEffect(inner.image, (im) => {
-      setVWC(imageVWC, im);
-      return undefined;
-    });
-    return () => {
-      cleanupThumbhashAttacher();
-      cleanupImageAttacher();
-      inner.dispose();
-      setVWC(imageVWC, null);
-    };
-  }, [uid, jwt, ctx, thumbhashVWC, imageVWC]);
-
-  return <GridImageBackground image={imageVWC} thumbhash={thumbhashVWC} />;
 };

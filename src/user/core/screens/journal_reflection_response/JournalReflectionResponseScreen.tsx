@@ -294,7 +294,10 @@ export const JournalReflectionResponseScreen: OsehScreen<
                 chat = manager.chat.get();
                 chatChanged = waitForValueWithCallbacksConditionCancelable(
                   manager.chat,
-                  (c) => !Object.is(c, chat)
+                  (
+                    (chat) => (c) =>
+                      !Object.is(c, chat)
+                  )(chat)
                 );
                 chatChanged.promise.catch(() => {});
                 continue;
@@ -304,7 +307,10 @@ export const JournalReflectionResponseScreen: OsehScreen<
                 task = manager.task.get();
                 taskChanged = waitForValueWithCallbacksConditionCancelable(
                   manager.task,
-                  (t) => !Object.is(t, task)
+                  (
+                    (task) => (t) =>
+                      !Object.is(t, task)
+                  )(task)
                 );
                 taskChanged.promise.catch(() => {});
                 continue;
@@ -369,9 +375,7 @@ export const JournalReflectionResponseScreen: OsehScreen<
       ready: createWritableValueWithCallbacks(true),
       question: questionVWC,
       savedResponse: responseVWC,
-      journalEntryUID: journalEntryUIDVWC,
-      journalEntryJWT: journalEntryJWTVWC,
-      updateResponse: (userResponse: string) => {
+      updateResponse: async (userResponse: string) => {
         const question = questionVWC.get();
         if (question === null || question === undefined) {
           console.warn('cannot submit edit: no question available');
@@ -394,7 +398,7 @@ export const JournalReflectionResponseScreen: OsehScreen<
           return Promise.reject(new Error('user not logged in'));
         }
 
-        return journalEntryManager.refresh(user, ctx.interests.visitor, {
+        await journalEntryManager.refresh(user, ctx.interests.visitor, {
           endpoint:
             currentResponse === 'dne'
               ? screen.parameters.add.endpoint
@@ -409,6 +413,10 @@ export const JournalReflectionResponseScreen: OsehScreen<
           }),
           sticky: true,
         });
+        const journalEntryUID = journalEntryUIDVWC.get();
+        if (journalEntryUID !== null) {
+          ctx.resources.journalEntryMetadataHandler.evictOrReplace({ uid: journalEntryUID });
+        }
       },
       dispose: () => {
         setVWC(activeVWC, false);

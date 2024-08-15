@@ -1,0 +1,21 @@
+.row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.titleText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 20.4px;
+  color: #eaeaeb;
+}
+
+.instructorText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  color: #c8cdd0;
+}

@@ -1,0 +1,63 @@
+.spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.metadata {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.metadataText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  color: #8b8e90;
+}
+
+.error {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #ebadad;
+}
+
+.selfMessage {
+  display: flex;
+  align-self: flex-end;
+  justify-content: flex-end;
+  align-items: center;
+  max-width: 260px;
+  padding: 16px;
+  border-radius: 16px 16px 2px 16px;
+  background: #35383a;
+}
+
+.selfMessageText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: left;
+  color: #eaeaeb;
+}
+
+.reflectionQuestionText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 20.4px;
+  color: #eaeaeb;
+}
+
+.reflectionResponseText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #eaeaeb;
+}

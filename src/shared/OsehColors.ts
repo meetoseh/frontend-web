@@ -12,6 +12,7 @@ export const OsehColors = {
     },
     experimental: {
       lessDarkGrey: '#35383A',
+      lightError: '#EBADAD',
     },
   },
 } as const;

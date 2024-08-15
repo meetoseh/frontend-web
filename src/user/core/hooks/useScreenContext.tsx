@@ -42,6 +42,7 @@ import { createOnboardingVideoRequestHandler } from '../screens/video_interstiti
 import { createTranscriptRequestHandler } from '../screens/video_interstitial/lib/createTranscriptRequestHandler';
 import { createTouchLinkRequestHandler } from '../lib/createTouchLinkRequestHandler';
 import { createJournalEntryManagerRequestHandler } from '../screens/journal_chat/lib/createJournalEntryManagerHandler';
+import { createJournalEntryMetadataRequestHandler } from '../screens/journal_chat/lib/createJournalEntryMetadataRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -264,6 +265,9 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const journalEntryManagerHandler = useWritableValueWithCallbacks(() =>
     createJournalEntryManagerRequestHandler({ logging, maxStale: 100 })
   );
+  const journalEntryMetadataHandler = useWritableValueWithCallbacks(() =>
+    createJournalEntryMetadataRequestHandler({ logging, maxStale: 100 })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -300,6 +304,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       transcriptHandler: transcriptHandler.get(),
       touchLinkHandler: touchLinkHandler.get(),
       journalEntryManagerHandler: journalEntryManagerHandler.get(),
+      journalEntryMetadataHandler: journalEntryMetadataHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -335,6 +340,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       transcriptHandler,
       touchLinkHandler,
       journalEntryManagerHandler,
+      journalEntryMetadataHandler,
     ]
   );
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);

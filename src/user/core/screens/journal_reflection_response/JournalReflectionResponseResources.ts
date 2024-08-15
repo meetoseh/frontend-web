@@ -20,16 +20,6 @@ export type JournalReflectionResponseResources = ScreenResources & {
   >;
 
   /**
-   * The journal entry uid we are looking at, null if unavailable
-   */
-  journalEntryUID: ValueWithCallbacks<string | null>;
-
-  /**
-   * The latest JWT for accessing the journal entry, null if unavailable
-   */
-  journalEntryJWT: ValueWithCallbacks<string | null>;
-
-  /**
    * Stores the user's response to the reflection question and returns a promise
    * which resolves when the response has been updated and rejects if an error
    * occurs.

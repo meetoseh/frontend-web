@@ -1,7 +1,6 @@
 import { convertUsingMapper } from '../../../../admin/crud/CrudFetcher';
 import { createValuesWithCallbacksEffect } from '../../../../shared/hooks/createValuesWithCallbacksEffect';
 import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createValueWithCallbacksEffect';
-import { createMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
 import { createCancelableTimeout } from '../../../../shared/lib/createCancelableTimeout';
@@ -140,10 +139,6 @@ export const JournalReflectionLargeScreen: OsehScreen<
         () => null
       );
 
-    const [journalEntryUIDVWC, cleanupJournalEntryUIDUnwrapper] = createMappedValueWithCallbacks(
-      journalEntryManagerUnwrappedVWC,
-      (d) => d?.journalEntryUID ?? null
-    );
     const journalEntryJWTVWC = createWritableValueWithCallbacks<string | null>(null);
     const cleanupJournalEntryJWTUnwrapper = createValueWithCallbacksEffect(
       journalEntryManagerUnwrappedVWC,
@@ -296,7 +291,10 @@ export const JournalReflectionLargeScreen: OsehScreen<
                 chat = manager.chat.get();
                 chatChanged = waitForValueWithCallbacksConditionCancelable(
                   manager.chat,
-                  (c) => !Object.is(c, chat)
+                  (
+                    (chat) => (c) =>
+                      !Object.is(c, chat)
+                  )(chat)
                 );
                 chatChanged.promise.catch(() => {});
                 continue;
@@ -306,7 +304,10 @@ export const JournalReflectionLargeScreen: OsehScreen<
                 task = manager.task.get();
                 taskChanged = waitForValueWithCallbacksConditionCancelable(
                   manager.task,
-                  (t) => !Object.is(t, task)
+                  (
+                    (task) => (t) =>
+                      !Object.is(t, task)
+                  )(task)
                 );
                 taskChanged.promise.catch(() => {});
                 continue;
@@ -415,9 +416,7 @@ export const JournalReflectionLargeScreen: OsehScreen<
     return {
       ready: createWritableValueWithCallbacks(true),
       question: questionVWC,
-      journalEntryUID: journalEntryUIDVWC,
-      journalEntryJWT: journalEntryJWTVWC,
-      trySubmitEdit: (userResponse: string) => {
+      trySubmitEdit: async (userResponse: string) => {
         if (screen.parameters.edit === null) {
           console.warn('cannot submit edit: no edit endpoint provided');
           return;
@@ -439,7 +438,7 @@ export const JournalReflectionLargeScreen: OsehScreen<
           return;
         }
 
-        journalEntryManager.refresh(user, ctx.interests.visitor, {
+        await journalEntryManager.refresh(user, ctx.interests.visitor, {
           endpoint: screen.parameters.edit.endpoint,
           bonusParams: async (clientKey) => ({
             version: SCREEN_VERSION,
@@ -487,7 +486,6 @@ export const JournalReflectionLargeScreen: OsehScreen<
         setVWC(activeVWC, false);
         cleanupJournalEntryManagerRequester();
         cleanupJournalEntryManagerUnwrapper();
-        cleanupJournalEntryUIDUnwrapper();
         cleanupJournalEntryJWTUnwrapper();
         cleanupChatUnwrapper();
         cleanupJournalEntryManagerRefresher();
