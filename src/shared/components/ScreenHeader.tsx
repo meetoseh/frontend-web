@@ -9,7 +9,6 @@ import { Close } from './icons/Close';
 import { ValueWithCallbacks } from '../lib/Callbacks';
 import { useMappedValuesWithCallbacks } from '../hooks/useMappedValuesWithCallbacks';
 import { RenderGuardedComponent } from './RenderGuardedComponent';
-import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 
 export type ScreenHeaderProps = {
   /**

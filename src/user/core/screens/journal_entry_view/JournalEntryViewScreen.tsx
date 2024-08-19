@@ -335,7 +335,10 @@ export const JournalEntryViewScreen: OsehScreen<
         );
         visitorNotLoading.promise.catch(() => {});
 
-        await Promise.race([canceled, userNotLoading, visitorNotLoading]);
+        await Promise.race([
+          canceled.promise,
+          Promise.all([userNotLoading.promise, visitorNotLoading.promise]),
+        ]);
 
         userNotLoading.cancel();
         visitorNotLoading.cancel();

@@ -1,0 +1,84 @@
+.error {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28.6px;
+  color: #ebadad;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28.6px;
+  color: #eaeaeb;
+}
+
+.hint {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 16.8px;
+  color: #8b8e90;
+}
+
+.buttons {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.spinner {
+  align-self: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.rowWrap {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.column {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.tag {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.input {
+  border: 1px solid #383838;
+  border-radius: 28px;
+  background: #191c1d;
+  padding: 16px;
+  outline: none;
+  appearance: none;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: normal;
+  color: #eaeaeb;
+  resize: none;
+  overflow-y: hidden;
+}
+
+.input::placeholder {
+  color: #8b8e90;
+}

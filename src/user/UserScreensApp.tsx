@@ -60,6 +60,8 @@ import { FeedbackScreen } from './core/screens/feedback/FeedbackScreen';
 import { JournalReflectionLargeScreen } from './core/screens/journal_reflection_large/JournalReflectionLargeScreen';
 import { JournalReflectionResponseScreen } from './core/screens/journal_reflection_response/JournalReflectionResponseScreen';
 import { JournalEntryViewScreen } from './core/screens/journal_entry_view/JournalEntryViewScreen';
+import { JournalEntriesListScreen } from './core/screens/journal_entries_list/JournalEntriesListScreen';
+import { JournalEntrySummaryScreen } from './core/screens/journal_entry_summary/JournalEntrySummaryScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -144,6 +146,8 @@ const screens = [
   JournalReflectionLargeScreen,
   JournalReflectionResponseScreen,
   JournalEntryViewScreen,
+  JournalEntriesListScreen,
+  JournalEntrySummaryScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**

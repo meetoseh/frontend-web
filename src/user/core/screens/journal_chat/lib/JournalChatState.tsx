@@ -112,8 +112,9 @@ export type JournalEntryItemData = {
    * - `reflection-question`: a question to reflect on, usually from the system
    * - `reflection-response`: a response to a reflection question, usually from the user
    * - `ui`: went through a client flow, usually from the user
+   * - `summary`: a summary of the entry up to this point
    */
-  type: 'chat' | 'reflection-question' | 'reflection-response' | 'ui';
+  type: 'chat' | 'reflection-question' | 'reflection-response' | 'ui' | 'summary';
 };
 
 const dumpJournalEntryItemDataForIntegrity = (data: JournalEntryItemData): string => {
@@ -355,13 +356,61 @@ const dumpJournalEntryItemUIFlowForIntegrity = (data: JournalEntryItemUIFlow): s
   return raw;
 };
 
-export type JournalEntryItemDataData = JournalEntryItemDataDataTextual | JournalEntryItemDataDataUI;
+export type JournalEntryItemDataDataSummaryV1 = {
+  /**
+   * The tags for the entry, where tags are generally formatted as an emoji followed
+   * by the word, e.g., '😨 Anxious'
+   */
+  tags: string[];
+  /** A summary of the entry up to this point; very short (3-4 words) */
+  title: string;
+  /** enum discriminator */
+  type: 'summary';
+  /** enum discriminator */
+  version: 'v1';
+};
+
+const dumpJournalEntryItemDataDataSummaryV1ForIntegrity = (
+  data: JournalEntryItemDataDataSummaryV1
+): string => {
+  let raw = '{"tags": [';
+  if (data.tags.length > 0) {
+    raw += JSON.stringify(data.tags[0]);
+    for (let i = 1; i < data.tags.length; i++) {
+      raw += ', ';
+      raw += JSON.stringify(data.tags[i]);
+    }
+  }
+  raw += '], "title": ';
+  raw += JSON.stringify(data.title);
+  raw += ', "type": "summary", "version": "v1"}';
+  return raw;
+};
+
+export type JournalEntryItemDataDataSummary = JournalEntryItemDataDataSummaryV1;
+
+const dumpJournalEntryItemDataDataSummaryForIntegrity = (
+  data: JournalEntryItemDataDataSummary
+): string => {
+  if (data.version === 'v1') {
+    return dumpJournalEntryItemDataDataSummaryV1ForIntegrity(data);
+  } else {
+    throw new Error(`Unknown version: ${(data as any).version}`);
+  }
+};
+
+export type JournalEntryItemDataData =
+  | JournalEntryItemDataDataTextual
+  | JournalEntryItemDataDataUI
+  | JournalEntryItemDataDataSummary;
 
 const dumpJournalEntryItemDataDataForIntegrity = (data: JournalEntryItemDataData): string => {
   if (data.type === 'textual') {
     return dumpJournalEntryItemDataDataTextualForIntegrity(data);
   } else if (data.type === 'ui') {
     return dumpJournalEntryItemDataDataUIForIntegrity(data);
+  } else if (data.type === 'summary') {
+    return dumpJournalEntryItemDataDataSummaryForIntegrity(data);
   } else {
     throw new Error(`Unknown type: ${(data as any).type}`);
   }

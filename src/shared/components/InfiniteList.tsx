@@ -23,6 +23,7 @@ import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallback
 import { RenderGuardedComponent } from './RenderGuardedComponent';
 import { ScrollerProps, Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { useMappedValuesWithCallbacks } from '../hooks/useMappedValuesWithCallbacks';
+import { VerticalSpacer } from './VerticalSpacer';
 
 type InfiniteListProps<T extends object> = {
   /**
@@ -233,11 +234,21 @@ export function InfiniteList<T extends object>({
         props={stateVWC}
         component={(s) => {
           if (loadingElement !== undefined && s === 'loading') {
-            return loadingElement;
+            return (
+              <>
+                <VerticalSpacer height={gap} />
+                {loadingElement}
+              </>
+            );
           }
 
           if (emptyElement !== undefined && s === 'empty') {
-            return emptyElement;
+            return (
+              <>
+                <VerticalSpacer height={gap} />
+                {emptyElement}
+              </>
+            );
           }
 
           return (

@@ -1,9 +1,9 @@
 import { convertUsingMapper } from '../../../../admin/crud/CrudFetcher';
 import { createValuesWithCallbacksEffect } from '../../../../shared/hooks/createValuesWithCallbacksEffect';
 import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createValueWithCallbacksEffect';
-import { createMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
+import { createCancelableTimeout } from '../../../../shared/lib/createCancelableTimeout';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { SCREEN_VERSION } from '../../../../shared/lib/screenVersion';
@@ -17,29 +17,32 @@ import {
   JournalEntryManager,
   JournalEntryManagerRef,
 } from '../journal_chat/lib/createJournalEntryManagerHandler';
-import { JournalChatState } from '../journal_chat/lib/JournalChatState';
-import { JournalReflectionResponse } from './JournalReflectionResponse';
 import {
-  JourneyReflectionResponseAPIParams,
-  JourneyReflectionResponseMappedParams,
-} from './JournalReflectionResponseParams';
-import { JournalReflectionResponseResources } from './JournalReflectionResponseResources';
+  JournalChatState,
+  JournalEntryItemDataDataSummaryV1,
+} from '../journal_chat/lib/JournalChatState';
+import { JournalEntrySummary } from './JournalEntrySummary';
+import {
+  JournalEntrySummaryAPIParams,
+  JournalEntrySummaryMappedParams,
+} from './JournalEntrySummaryParams';
+import { JournalEntrySummaryResources } from './JournalEntrySummaryResources';
 
 /**
- * Shows the last journal reflection question and allows the user to respond
- * to it.
+ * Shows the last v1 summary in the journal entry
  */
-export const JournalReflectionResponseScreen: OsehScreen<
-  'journal_reflection_response',
-  JournalReflectionResponseResources,
-  JourneyReflectionResponseAPIParams,
-  JourneyReflectionResponseMappedParams
+export const JournalEntrySummaryScreen: OsehScreen<
+  'journal_entry_summary',
+  JournalEntrySummaryResources,
+  JournalEntrySummaryAPIParams,
+  JournalEntrySummaryMappedParams
 > = {
-  slug: 'journal_reflection_response',
+  slug: 'journal_entry_summary',
   paramMapper: (api) => ({
     entrance: api.entrance,
     header: api.header,
-    add: api.add,
+    hint: api.hint,
+    regenerate: api.regenerate,
     edit: api.edit,
     journalEntry: api.journal_entry,
     cta: {
@@ -49,8 +52,13 @@ export const JournalReflectionResponseScreen: OsehScreen<
     },
     close: {
       variant: api.close.variant,
+      onlyIfError: api.close.only_if_error,
       trigger: convertUsingMapper(api.close.trigger, screenConfigurableTriggerMapper),
       exit: api.close.exit,
+    },
+    missingSummary: {
+      endpoint: api.missing_summary.endpoint,
+      maxRetries: api.missing_summary.max_retries,
     },
     __mapped: true,
   }),
@@ -134,10 +142,6 @@ export const JournalReflectionResponseScreen: OsehScreen<
         () => null
       );
 
-    const [journalEntryUIDVWC, cleanupJournalEntryUIDUnwrapper] = createMappedValueWithCallbacks(
-      journalEntryManagerUnwrappedVWC,
-      (d) => d?.journalEntryUID ?? null
-    );
     const journalEntryJWTVWC = createWritableValueWithCallbacks<string | null>(null);
     const cleanupJournalEntryJWTUnwrapper = createValueWithCallbacksEffect(
       journalEntryManagerUnwrappedVWC,
@@ -232,13 +236,46 @@ export const JournalReflectionResponseScreen: OsehScreen<
       }
     );
 
-    const questionVWC = createWritableValueWithCallbacks<
-      { entryCounter: number; paragraphs: string[] } | null | undefined
-    >(null);
-    const responseVWC = createWritableValueWithCallbacks<
-      { entryCounter: number; value: string } | 'loading' | 'error' | 'dne'
-    >('loading');
+    const tryUseChatToUpdateEntryList = () => {
+      const user = ctx.login.value.get();
+      if (user.state !== 'logged-in') {
+        return;
+      }
 
+      const journalEntryManager = journalEntryManagerUnwrappedVWC.get();
+      if (journalEntryManager === null) {
+        return;
+      }
+
+      const newChat = journalEntryManager.chat.get();
+      if (newChat === null || newChat === undefined) {
+        ctx.resources.journalEntryListHandler.evictOrReplace({ user });
+        return;
+      }
+
+      ctx.resources.journalEntryListHandler.evictOrReplace({ user }, (old) => {
+        if (old === undefined) {
+          return { type: 'make-request' };
+        }
+
+        old.listing.replaceItem(
+          (je) => je.uid === screen.parameters.journalEntry.uid,
+          (je) => ({
+            ...je,
+            payload: {
+              ...je.payload,
+              items: newChat.data,
+            },
+          })
+        );
+
+        return { type: 'data', data: old };
+      });
+    };
+
+    const summaryVWC = createWritableValueWithCallbacks<
+      { entryCounter: number; data: JournalEntryItemDataDataSummaryV1 } | null | undefined
+    >(null);
     const cleanupJournalEntryManagerRetrier = createValueWithCallbacksEffect(
       journalEntryManagerUnwrappedVWC,
       () => {
@@ -256,12 +293,12 @@ export const JournalReflectionResponseScreen: OsehScreen<
 
           const manager = data.data;
           const active = createWritableValueWithCallbacks(true);
-          retryUntilHaveQuestion();
+          retryUntilHaveSummary();
           return () => {
             setVWC(active, false);
           };
 
-          async function retryUntilHaveQuestion() {
+          async function retryUntilHaveSummary() {
             const canceled = waitForValueWithCallbacksConditionCancelable(active, (a) => !a);
             canceled.promise.catch(() => {});
             if (!active.get()) {
@@ -317,54 +354,94 @@ export const JournalReflectionResponseScreen: OsehScreen<
               }
 
               if (chat === undefined) {
-                setVWC(questionVWC, undefined);
-                setVWC(responseVWC, 'error');
+                setVWC(summaryVWC, undefined);
                 await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
                 continue;
               }
 
               if (chat === null) {
-                setVWC(questionVWC, null);
-                setVWC(responseVWC, 'loading');
+                setVWC(summaryVWC, null);
                 await Promise.race([chatChanged.promise, taskChanged.promise, canceled.promise]);
                 continue;
               }
 
-              let question: { entryCounter: number; paragraphs: string[] } | null = null;
-              let response: { entryCounter: number; value: string } | 'dne' = 'dne';
+              let summary: {
+                entryCounter: number;
+                data: JournalEntryItemDataDataSummaryV1;
+              } | null = null;
               for (let i = chat.data.length - 1; i >= 0; i--) {
                 const entryItem = chat.data[i];
-                if (
-                  (entryItem.type === 'reflection-question' ||
-                    entryItem.type === 'reflection-response') &&
-                  entryItem.data.type === 'textual'
-                ) {
-                  const textData = entryItem.data;
-                  const parts = [];
-                  for (let j = 0; j < textData.parts.length; j++) {
-                    const part = textData.parts[j];
-                    if (part.type === 'paragraph') {
-                      parts.push(part.value);
-                    }
-                  }
-                  if (parts.length > 0) {
-                    if (entryItem.type === 'reflection-question') {
-                      question = { entryCounter: i + 1, paragraphs: parts };
-                    } else if (entryItem.type === 'reflection-response') {
-                      response = { entryCounter: i + 1, value: parts.join('\n\n') };
-                    }
-                  }
+                if (entryItem.type === 'summary' && entryItem.data.type === 'summary') {
+                  summary = { entryCounter: i + 1, data: Object.assign({}, entryItem.data) };
                 }
               }
 
-              if (task !== null) {
-                await Promise.race([chatChanged.promise, taskChanged.promise, canceled.promise]);
+              if (summary !== null) {
+                setVWC(summaryVWC, summary);
+
+                if (task === null) {
+                  tryUseChatToUpdateEntryList();
+                }
+
+                // chat will change when we edit / regenerate
+                await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
                 continue;
               }
 
-              setVWC(questionVWC, question);
-              setVWC(responseVWC, response);
-              await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
+              if (task !== null) {
+                await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
+                continue;
+              }
+
+              const failures = retryCounterVWC.get();
+              if (failures >= screen.parameters.missingSummary.maxRetries) {
+                tryUseChatToUpdateEntryList();
+                setVWC(summaryVWC, undefined);
+                await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
+                continue;
+              }
+
+              setVWC(summaryVWC, null);
+              setVWC(retryCounterVWC, failures + 1);
+              if (failures > 0) {
+                const timeout = createCancelableTimeout(
+                  2000 * Math.pow(2, failures - 1) + Math.random() * 500
+                );
+                await Promise.race([
+                  timeout.promise,
+                  chatChanged.promise,
+                  taskChanged.promise,
+                  canceled.promise,
+                ]);
+                if (
+                  !timeout.done() ||
+                  chatChanged.done() ||
+                  taskChanged.done() ||
+                  canceled.done()
+                ) {
+                  timeout.cancel();
+                  continue;
+                }
+              }
+
+              const user = ctx.login.value.get();
+              if (user.state !== 'logged-in') {
+                console.warn('failed to retry summary generation: user not logged in');
+                setVWC(summaryVWC, undefined);
+                await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
+                continue;
+              }
+
+              manager.refresh(user, ctx.interests.visitor, {
+                endpoint:
+                  screen.parameters.missingSummary.endpoint.length === 0
+                    ? '/api/1/journals/entries/sync'
+                    : screen.parameters.missingSummary.endpoint[
+                        Math.min(screen.parameters.missingSummary.endpoint.length - 1, failures)
+                      ],
+                unsafeToRetry: false,
+              });
+              await Promise.race([chatChanged.promise, taskChanged.promise, canceled.promise]);
             }
           }
         });
@@ -373,57 +450,77 @@ export const JournalReflectionResponseScreen: OsehScreen<
 
     return {
       ready: createWritableValueWithCallbacks(true),
-      question: questionVWC,
-      savedResponse: responseVWC,
-      updateResponse: async (userResponse: string) => {
-        const question = questionVWC.get();
-        if (question === null || question === undefined) {
-          console.warn('cannot submit edit: no question available');
-          return Promise.reject(new Error('no question available'));
+      summary: summaryVWC,
+      trySubmitEdit: async (data: JournalEntryItemDataDataSummaryV1) => {
+        if (screen.parameters.edit === null) {
+          console.warn('cannot submit edit: no edit endpoint provided');
+          return;
         }
 
-        const currentResponse = responseVWC.get();
-        if (currentResponse === 'error' || currentResponse === 'loading') {
-          console.warn('cannot submit edit: response not available');
-          return Promise.reject(new Error('response not available'));
+        const summary = summaryVWC.get();
+        if (summary === null || summary === undefined) {
+          console.warn('cannot submit edit: no summary available');
+          return;
         }
 
         const journalEntryManager = journalEntryManagerUnwrappedVWC.get();
         if (journalEntryManager === null) {
-          return Promise.reject(new Error('journal entry manager not available'));
+          return;
         }
 
         const user = ctx.login.value.get();
         if (user.state !== 'logged-in') {
-          return Promise.reject(new Error('user not logged in'));
+          return;
         }
 
         await journalEntryManager.refresh(user, ctx.interests.visitor, {
-          endpoint:
-            currentResponse === 'dne'
-              ? screen.parameters.add.endpoint
-              : screen.parameters.edit.endpoint,
+          endpoint: screen.parameters.edit.endpoint,
           bonusParams: async (clientKey) => ({
             version: SCREEN_VERSION,
-            ...(currentResponse !== 'dne' ? { entry_counter: currentResponse.entryCounter } : {}),
-            encrypted_reflection_response: await clientKey.key.encrypt(
-              userResponse,
+            entry_counter: summary.entryCounter,
+            encrypted_summary: await clientKey.key.encrypt(
+              JSON.stringify(data),
               await getCurrentServerTimeMS()
             ),
           }),
-          sticky: true,
         });
-        const journalEntryUID = journalEntryUIDVWC.get();
-        if (journalEntryUID !== null) {
-          ctx.resources.journalEntryMetadataHandler.evictOrReplace({ uid: journalEntryUID });
+      },
+      tryRegenerate: async () => {
+        if (screen.parameters.regenerate === null) {
+          console.warn('cannot regenerate: no regenerate endpoint provided');
+          return;
         }
-        ctx.resources.journalEntryListHandler.evictAll();
+
+        const journalEntryManager = journalEntryManagerUnwrappedVWC.get();
+        if (journalEntryManager === null) {
+          return;
+        }
+
+        const summary = summaryVWC.get();
+        if (summary === null || summary === undefined) {
+          console.warn('cannot submit edit: no summary available');
+          return;
+        }
+
+        const user = ctx.login.value.get();
+        if (user.state !== 'logged-in') {
+          return;
+        }
+
+        await journalEntryManager.refresh(user, ctx.interests.visitor, {
+          endpoint: screen.parameters.regenerate.endpoint,
+          unsafeToRetry: false,
+          bonusParams: async () => ({
+            version: SCREEN_VERSION,
+            entry_counter: summary.entryCounter,
+          }),
+          sticky: false,
+        });
       },
       dispose: () => {
         setVWC(activeVWC, false);
         cleanupJournalEntryManagerRequester();
         cleanupJournalEntryManagerUnwrapper();
-        cleanupJournalEntryUIDUnwrapper();
         cleanupJournalEntryJWTUnwrapper();
         cleanupChatUnwrapper();
         cleanupJournalEntryManagerRefresher();
@@ -431,5 +528,5 @@ export const JournalReflectionResponseScreen: OsehScreen<
       },
     };
   },
-  component: (params) => <JournalReflectionResponse {...params} />,
+  component: (params) => <JournalEntrySummary {...params} />,
 };

@@ -1580,7 +1580,42 @@ export class RequestHandler<
     try {
       const stale = this.staleDataByRefUid.get(refUid);
       if (stale !== undefined) {
-        this.log('found in stale list, removing and done.');
+        this.log('found in stale list');
+        if (
+          data !== undefined &&
+          stale.activeRequest === null &&
+          stale.latest !== null &&
+          stale.latest.data.type === 'success'
+        ) {
+          this.log('checking for possible local data update');
+          const newData = data(stale.latest.data.data);
+          if (newData.type === 'data') {
+            this.log('updating stale value locally');
+            const now = new Date();
+            const oldLatest = stale.latest;
+            stale.latest = {
+              requestInfo: {
+                uid: 'oseh_client_rqdatareq_' + createUID(),
+                startedAtOverall: now,
+                startedAtThisAttempt: now,
+                retry: 0,
+              },
+              finishedAt: now,
+              data: {
+                type: 'success',
+                data: newData.data,
+                error: undefined,
+                retryAt: undefined,
+              },
+            };
+            if (!Object.is(oldLatest.data, newData.data)) {
+              this.cleanupOldLatest(oldLatest.data);
+            }
+            return;
+          }
+        }
+
+        this.log('evicting stale value');
         this.staleDataByRefUid.remove(refUid);
         if (stale.activeRequest !== null) {
           stale.activeRequest.cancelable.cancel();
