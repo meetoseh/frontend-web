@@ -98,7 +98,7 @@ export const JournalEntryCard = ({
       }
     }
 
-    if (summary !== null && journey !== null) {
+    if (summary !== null) {
       return { title: summary.title, journey, tags: summary.tags, reflectionResponse };
     }
 
@@ -396,7 +396,7 @@ export const JournalEntryCard = ({
                 </div>
                 <HorizontalSpacer width={16} />
               </div>
-              <VerticalSpacer height={16} flexGrow={1} />
+              <VerticalSpacer height={16} />
             </>
           )
         }
