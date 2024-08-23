@@ -46,6 +46,8 @@ import { SearchPublicInstructor } from './lib/SearchPublicInstructor';
 import { ScreenDynamicImage } from '../../components/ScreenDynamicImage';
 import { HeartFilled } from '../../../../shared/components/icons/HeartFilled';
 import { Check } from '../../../../shared/components/icons/Check';
+import { trackClassTaken } from '../home/lib/trackClassTaken';
+import { waitForValuesWithCallbacksCondition } from '../../../../shared/lib/waitForValueWithCallbacksCondition';
 
 type TooltipPlaceholder = { readonly uid: 'tooltip' };
 
@@ -90,6 +92,48 @@ export const Library = ({
         {
           parameters: {
             journey_uid: journey.uid,
+          },
+          afterDone: () => {
+            trace({ type: 'journey', journey_uid: journey.uid, journey_title: journey.title });
+            if (!journey.requiresPro) {
+              trackClassTaken(ctx);
+              return;
+            }
+
+            (async () => {
+              const user = ctx.login.value.get();
+              if (user.state !== 'logged-in') {
+                return;
+              }
+
+              const req = ctx.resources.entitlementsHandler.request({
+                ref: { user, entitlement: 'pro' },
+                refreshRef: () => ({
+                  promise: Promise.resolve({
+                    type: 'expired',
+                    error: <>Refresh not expected here</>,
+                    data: undefined,
+                    retryAt: undefined,
+                  }),
+                  cancel: () => {},
+                  done: () => true,
+                }),
+              });
+              const data = await waitForValuesWithCallbacksCondition(
+                req.data,
+                (d) => d.type !== 'loading'
+              );
+              if (data.type !== 'success') {
+                req.release();
+                return;
+              }
+
+              if (data.data.isActive) {
+                trackClassTaken(ctx);
+              }
+
+              req.release();
+            })();
           },
         }
       );
