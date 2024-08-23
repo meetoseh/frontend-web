@@ -1,0 +1,70 @@
+.card {
+  border: 1px solid #232323;
+  border-radius: 10px;
+  background: #191c1d;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  text-align: left;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.instructor {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  color: #8b8e90;
+}
+
+.duration {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  color: #8b8e90;
+}
+
+.column {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.growNoBasis {
+  flex-grow: 1;
+  flex-basis: 0;
+}
+
+.badge {
+  background: #383838;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.badgeText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  color: #eaeaeb;
+}

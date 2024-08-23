@@ -10,7 +10,6 @@ import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { CrudFormElement } from '../crud/CrudFormElement';
 import { OsehImage } from '../../shared/images/OsehImage';
-import { convertUsingKeymap } from '../crud/CrudFetcher';
 import { keyMap } from './Instructors';
 import { Checkbox } from '../../shared/forms/Checkbox';
 import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
@@ -40,14 +39,14 @@ export const InstructorBlock = ({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ReactElement | null>(null);
-  const [newDeleted, setNewDeleted] = useState(instructor.deletedAt !== null);
+  const [newFlags, setNewFlags] = useState(instructor.flags);
 
   const save = useCallback(async () => {
     setError(null);
     if (
       newName === instructor.name &&
       newBias.parsed === instructor.bias &&
-      newDeleted === (instructor.deletedAt !== null)
+      newFlags === instructor.flags
     ) {
       setEditing(false);
       return;
@@ -65,7 +64,11 @@ export const InstructorBlock = ({
 
     setSaving(true);
     try {
-      if (newName !== instructor.name || newBias.parsed !== instructor.bias) {
+      if (
+        newName !== instructor.name ||
+        newBias.parsed !== instructor.bias ||
+        newFlags !== instructor.flags
+      ) {
         const response = await apiFetch(
           `/api/1/instructors/${instructor.uid}`,
           {
@@ -76,6 +79,7 @@ export const InstructorBlock = ({
             body: JSON.stringify({
               name: newName,
               bias: newBias.parsed,
+              flags: newFlags,
             }),
           },
           loginContext
@@ -90,51 +94,13 @@ export const InstructorBlock = ({
         setInstructor(Object.assign({}, instructor, data));
       }
 
-      if (newDeleted !== (instructor.deletedAt !== null)) {
-        let response: Response;
-        try {
-          if (newDeleted) {
-            response = await apiFetch(
-              `/api/1/instructors/${instructor.uid}`,
-              {
-                method: 'DELETE',
-              },
-              loginContext
-            );
-          } else {
-            response = await apiFetch(
-              `/api/1/instructors/${instructor.uid}/undelete`,
-              {
-                method: 'POST',
-              },
-              loginContext
-            );
-          }
-        } catch (e) {
-          setError(<>Failed to connect to server. Check your internet connection</>);
-          return;
-        }
-
-        if (!response.ok) {
-          setError(await describeErrorFromResponse(response));
-          return;
-        }
-
-        if (newDeleted) {
-          const data = await response.json();
-          setInstructor(Object.assign({}, instructor, convertUsingKeymap(data, keyMap)));
-        } else {
-          setInstructor(Object.assign({}, instructor, { deletedAt: null }));
-        }
-      }
-
       setEditing(false);
     } catch (e) {
       setError(<>Failed to connect to server. Check your internet connection</>);
     } finally {
       setSaving(false);
     }
-  }, [newName, instructor, loginContextRaw, setInstructor, newDeleted, newBias]);
+  }, [newName, instructor, loginContextRaw, setInstructor, newFlags, newBias]);
 
   useEffect(() => {
     if (saving) {
@@ -143,7 +109,7 @@ export const InstructorBlock = ({
 
     setNewName(instructor.name);
     setNewBias({ parsed: instructor.bias, str: instructor.bias.toString() });
-    setNewDeleted(instructor.deletedAt !== null);
+    setNewFlags(instructor.flags);
   }, [instructor, saving]);
 
   return (
@@ -262,7 +228,18 @@ export const InstructorBlock = ({
               </Button>
             </div>
           </CrudFormElement>
-          <Checkbox label="Deleted" value={newDeleted} setValue={setNewDeleted} disabled={false} />
+          <Checkbox
+            label="Shows In Admin"
+            value={(newFlags & 1) !== 0}
+            setValue={(v) => setNewFlags(v ? newFlags | 1 : newFlags & ~1)}
+            disabled={false}
+          />
+          <Checkbox
+            label="Shows in Classes Filter"
+            value={(newFlags & 2) !== 0}
+            setValue={(v) => setNewFlags(v ? newFlags | 2 : newFlags & ~2)}
+            disabled={false}
+          />
           {error && <ErrorBlock>{error}</ErrorBlock>}
           <button type="button" onClick={save} disabled={saving} hidden>
             Save
@@ -270,13 +247,10 @@ export const InstructorBlock = ({
         </form>
       ) : (
         <>
-          {instructor.deletedAt !== null ? (
-            <div className={styles.deletedAtContainer}>
-              <CrudFormElement title="Deleted At">
-                {instructor.deletedAt.toLocaleString()}
-              </CrudFormElement>
-            </div>
-          ) : null}
+          <CrudFormElement title="Flags">
+            {(instructor.flags & 1) === 1 && <p>Shows in admin</p>}
+            {(instructor.flags & 2) === 2 && <p>Shows in Classes filter</p>}
+          </CrudFormElement>
           <CrudFormElement title="Bias">{instructor.bias.toLocaleString()}</CrudFormElement>
           <CrudFormElement title="Picture">
             {instructor.picture === null ? (

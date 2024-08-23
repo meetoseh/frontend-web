@@ -44,6 +44,8 @@ import { createTouchLinkRequestHandler } from '../lib/createTouchLinkRequestHand
 import { createJournalEntryManagerRequestHandler } from '../screens/journal_chat/lib/createJournalEntryManagerHandler';
 import { createJournalEntryMetadataRequestHandler } from '../screens/journal_chat/lib/createJournalEntryMetadataRequestHandler';
 import { createJournalEntryListRequestHandler } from '../screens/journal_entries_list/lib/createJournalEntryListRequestHandler';
+import { createLibraryListRequestHandler } from '../screens/library/lib/createLibraryListRequestHandler';
+import { createInstructorListRequestHandler } from '../screens/library_filter/lib/createInstructorListRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -272,6 +274,12 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const journalEntryListHandler = useWritableValueWithCallbacks(() =>
     createJournalEntryListRequestHandler({ logging, maxStale: 100 })
   );
+  const libraryListHandler = useWritableValueWithCallbacks(() =>
+    createLibraryListRequestHandler({ logging, maxStale: 100 })
+  );
+  const instructorsListHandler = useWritableValueWithCallbacks(() =>
+    createInstructorListRequestHandler({ logging, maxStale: 100 })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -310,6 +318,8 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       journalEntryManagerHandler: journalEntryManagerHandler.get(),
       journalEntryMetadataHandler: journalEntryMetadataHandler.get(),
       journalEntryListHandler: journalEntryListHandler.get(),
+      libraryListHandler: libraryListHandler.get(),
+      instructorsListHandler: instructorsListHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -347,6 +357,8 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       journalEntryManagerHandler,
       journalEntryMetadataHandler,
       journalEntryListHandler,
+      libraryListHandler,
+      instructorsListHandler,
     ]
   );
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);

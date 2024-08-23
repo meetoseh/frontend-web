@@ -1,11 +1,9 @@
-import {
-  LoginContextValue,
-  LoginContextValueLoggedIn,
-} from '../../../../../shared/contexts/LoginContext';
+import { LoginContextValueLoggedIn } from '../../../../../shared/contexts/LoginContext';
 import { Visitor } from '../../../../../shared/hooks/useVisitorValueWithCallbacks';
 import { createGetDataFromRefUsingSignal } from '../../../../../shared/images/createGetDataFromRefUsingSignal';
 import { getOrCreateClientKey } from '../../../../../shared/journals/clientKeys';
-import { Callbacks, createWritableValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
+import { createWritableValueWithCallbacks } from '../../../../../shared/lib/Callbacks';
+import { createLoginContextValueFromInstance } from '../../../../../shared/lib/createLoginContextValueFromInstance';
 import { createFernet } from '../../../../../shared/lib/fernet';
 import { getCurrentServerTimeMS } from '../../../../../shared/lib/getCurrentServerTimeMS';
 import { getJwtExpiration } from '../../../../../shared/lib/getJwtExpiration';
@@ -127,31 +125,6 @@ const getDataFromRef = createGetDataFromRefUsingSignal<
       throw new Error('canceled');
     }
 
-    // this is a bit hacky, but we don't want the login value to
-    // update automatically; we want the request handler logic to be
-    // used instead to ensure we are not mixing up users
-    const login: LoginContextValue = {
-      value: {
-        get: () => {
-          if (userTokenExpiresAtLocal <= Date.now()) {
-            return { state: 'logged-out' };
-          }
-          return ref.user;
-        },
-        callbacks: new Callbacks(), // listing doesn't need real callbacks
-      },
-      setAuthTokens: () => {
-        throw new Error(
-          'JournalEntryListRequestHandler#listing#setAuthTokens: not safe to do that'
-        );
-      },
-      setUserAttributes: () => {
-        throw new Error(
-          'JournalEntryListRequestHandler#listing#setUserAttributes: not safe to do that'
-        );
-      },
-    };
-
     const listing = new NetworkedInfiniteListing<JournalEntry>(
       '/api/1/journals/entries/search?client_key_uid=' +
         encodeURIComponent(wrappedClientKey.uid) +
@@ -206,7 +179,7 @@ const getDataFromRef = createGetDataFromRefUsingSignal<
         const api = raw as JournalEntryAPI;
         return decryptJournalEntryAPI({ api, clientKey: wrappedClientKey });
       },
-      login
+      createLoginContextValueFromInstance({ user: ref.user, userTokenExpiresAtLocal })
     );
     listing.reset();
     unsetActive();

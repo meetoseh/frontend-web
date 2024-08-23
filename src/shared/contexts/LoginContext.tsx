@@ -766,6 +766,9 @@ export const LoginProvider = ({
       const expiresMs = getJwtExpiration(value.authTokens.idToken);
       const refreshAtMs = expiresMs - 1000 * 60 * 5;
       if (refreshAtMs < nowMs) {
+        if (expiresMs - 5000 < nowMs) {
+          setVWC(valueVWC, { state: 'loading' }, (a, b) => a.state === b.state);
+        }
         await tryRefresh(value, runningRef);
       } else {
         const timeUntilRefreshMs = refreshAtMs - nowMs;

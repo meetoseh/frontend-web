@@ -21,6 +21,8 @@ import { setVWC } from '../../../shared/lib/setVWC';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 import { HandleTouchLinkResult } from '../lib/handleTouchLink';
 import { SCREEN_VERSION } from '../../../shared/lib/screenVersion';
+import { getJwtExpiration } from '../../../shared/lib/getJwtExpiration';
+import { getCurrentServerTimeMS } from '../../../shared/lib/getCurrentServerTimeMS';
 
 export type UseScreenQueueStateResult = {
   /** The screen that the user should see */
@@ -117,6 +119,8 @@ export const useScreenQueueState = ({
     }> =>
       constructCancelablePromise({
         body: async (state, resolve, reject) => {
+          const nowServer = await getCurrentServerTimeMS();
+
           const canceled = createCancelablePromiseFromCallbacks(state.cancelers);
           canceled.promise.catch(() => {});
           if (state.finishing) {
@@ -128,9 +132,26 @@ export const useScreenQueueState = ({
 
           const loginContextCancelable = waitForValueWithCallbacksConditionCancelable(
             loginContextRaw.value,
-            (v) => v.state !== 'loading'
-          );
+            (v) => {
+              if (v.state === 'loading') {
+                return false;
+              }
 
+              if (v.state !== 'logged-in') {
+                return true;
+              }
+
+              // check if it's very close to expiration
+              const idTokenExpiresAt = getJwtExpiration(v.authTokens.idToken);
+              if (idTokenExpiresAt < nowServer + 60_000) {
+                console.log('waiting for token to be refreshed');
+                // should be refreshed automatically
+                return false;
+              }
+
+              return true;
+            }
+          );
           const visitorCancelable = waitForValueWithCallbacksConditionCancelable(
             interestsContext.visitor.value,
             (v) => !v.loading

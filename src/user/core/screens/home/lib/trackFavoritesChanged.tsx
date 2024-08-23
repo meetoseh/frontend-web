@@ -13,6 +13,7 @@ export const trackFavoritesChanged = (
     skipFavoritesList?: boolean;
     skipHistoryList?: boolean;
     skipOwnedList?: boolean;
+    skipLibrary?: boolean;
   }
 ): void => {
   if (!opts?.skipFavoritesList) {
@@ -44,5 +45,8 @@ export const trackFavoritesChanged = (
     })().catch((e) => {
       console.error('error tracking favorites changed (owned list)', e);
     });
+  }
+  if (!opts?.skipLibrary) {
+    ctx.resources.libraryListHandler.evictAll();
   }
 };

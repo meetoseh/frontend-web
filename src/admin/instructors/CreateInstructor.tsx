@@ -73,9 +73,9 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
       uid: body.uid,
       name: body.name,
       bias: body.bias,
+      flags: body.flags,
       picture: null,
       createdAt: new Date(body.created_at * 1000),
-      deletedAt: null,
     });
     setName('');
     setBias({ str: '0.00', parsed: 0 });

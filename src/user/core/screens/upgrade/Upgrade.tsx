@@ -39,7 +39,6 @@ import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { ScreenImageParsed } from '../../models/ScreenImage';
 import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
-import { Check } from '../series_details/icons/Check';
 import {
   ParsedPeriod,
   extractPaidIntervalLength,
@@ -51,6 +50,7 @@ import { configurableScreenOut } from '../../lib/configurableScreenOut';
 import { Back } from '../../../../shared/components/icons/Back';
 import { OsehColors } from '../../../../shared/OsehColors';
 import { Close } from '../../../../shared/components/icons/Close';
+import { Check } from '../../../../shared/components/icons/Check';
 
 type Copy = UpgradeCopy<ScreenImageParsed>;
 
@@ -400,7 +400,24 @@ const MarketingChecklist = ({
           {idx !== 0 && <VerticalSpacer height={8} />}
           <div className={styles.checklistItem}>
             <div className={styles.checklistIcon}>
-              <Check />
+              <Check
+                icon={{
+                  width: 20,
+                }}
+                container={{
+                  width: 20,
+                  height: 20,
+                }}
+                startPadding={{
+                  x: {
+                    fraction: 0.5,
+                  },
+                  y: {
+                    fraction: 0.5,
+                  },
+                }}
+                color={OsehColors.v4.primary.light}
+              />
             </div>
             <HorizontalSpacer width={16} />
             <div className={styles.checklistText}>{item}</div>

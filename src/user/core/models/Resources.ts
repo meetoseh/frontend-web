@@ -75,6 +75,16 @@ import {
   JournalEntryListRequest,
   JournalEntryListState,
 } from '../screens/journal_entries_list/lib/createJournalEntryListRequestHandler';
+import {
+  LibraryListMinimalRequest,
+  LibraryListRequest,
+  LibraryListState,
+} from '../screens/library/lib/createLibraryListRequestHandler';
+import {
+  InstructorListMinimalRequest,
+  InstructorListRequest,
+  InstructorListState,
+} from '../screens/library_filter/lib/createInstructorListRequestHandler';
 
 /**
  * Contains everything that any screen might want to eagerly preload. Generally,
@@ -315,5 +325,19 @@ export type Resources = {
     JournalEntryListMinimalRequest,
     JournalEntryListRequest,
     JournalEntryListState
+  >;
+
+  /** Manages searching the journey library */
+  libraryListHandler: RequestHandler<
+    LibraryListMinimalRequest,
+    LibraryListRequest,
+    LibraryListState
+  >;
+
+  /** Manages searching what instructors should be included in the classes filter */
+  instructorsListHandler: RequestHandler<
+    InstructorListMinimalRequest,
+    InstructorListRequest,
+    InstructorListState
   >;
 };

@@ -1,7 +1,7 @@
 import { Dispatch, ReactElement, SetStateAction, useMemo } from 'react';
 import { TextInput } from '../../shared/forms/TextInput';
 import { makeILikeFromInput, makeInputFromILike } from '../../shared/forms/utils';
-import { CrudFetcherFilter, CrudFetcherSort } from '../crud/CrudFetcher';
+import { BitwiseFilterItem, CrudFetcherFilter, CrudFetcherSort } from '../crud/CrudFetcher';
 import { CrudFiltersBlock } from '../crud/CrudFiltersBlock';
 import { CrudFormElement } from '../crud/CrudFormElement';
 import styles from './InstructorFilterAndSortBlock.module.css';
@@ -43,9 +43,15 @@ export const defaultSort: CrudFetcherSort = [
  * The default filter for the instructor listing
  */
 export const defaultFilter: CrudFetcherFilter = {
-  deleted_at: {
-    operator: 'eq',
-    value: null,
+  flags: {
+    mutation: {
+      operator: 'and',
+      value: 1,
+    },
+    comparison: {
+      operator: 'eq',
+      value: 1,
+    },
   },
 };
 
@@ -135,24 +141,29 @@ export const InstructorFilterAndSortBlock = ({
           inputStyle="normal"
           html5Validation={null}
         />
-        <CrudFormElement title="Show Deleted">
+        <CrudFormElement title="Flags">
           <select
             className={styles.select}
-            value={filter.deleted_at?.value === null ? 'false' : 'true'}
+            value={(filter.flags as BitwiseFilterItem).mutation.value.toString()}
             onChange={(e) => {
               const newFilter = { ...filter };
-              if (e.target.value === 'false') {
-                newFilter.deleted_at = {
+              const newFlags = parseInt(e.target.value, 10);
+              newFilter.flags = {
+                mutation: {
+                  operator: 'and',
+                  value: newFlags,
+                },
+                comparison: {
                   operator: 'eq',
-                  value: null,
-                };
-              } else {
-                delete newFilter.deleted_at;
-              }
+                  value: newFlags,
+                },
+              };
               setFilter(newFilter);
             }}>
-            <option value="false">No</option>
-            <option value="true">Yes</option>
+            <option value="0">No Restriction</option>
+            <option value="1">Shows in admin</option>
+            <option value="2">Shows in Classes filter</option>
+            <option value="3">Shows in admin and Classes filter</option>
           </select>
         </CrudFormElement>
       </div>

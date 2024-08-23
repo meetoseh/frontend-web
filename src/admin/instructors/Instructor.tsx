@@ -18,6 +18,12 @@ export type Instructor = {
    */
   bias: number;
   /**
+   * A bitfield of flags for the instructor. From least to most significant bit:
+   * - 0x01: unset to prevent the instructor from showing in admin by default
+   * - 0x02: unset to prevent the instructor from showing in the Classes filter
+   */
+  flags: number;
+  /**
    * If a picture is set, a reference to the picture
    */
   picture: {
@@ -36,9 +42,4 @@ export type Instructor = {
    * When the instructor was created
    */
   createdAt: Date;
-
-  /**
-   * If this instructor has been soft-deleted, when it was deleted
-   */
-  deletedAt: Date | null;
 };

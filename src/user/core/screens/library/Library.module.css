@@ -1,0 +1,192 @@
+.cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+.cta > * {
+  pointer-events: all;
+}
+
+.tooltipContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tooltip {
+  padding: 16px;
+  background: #eaeaeb;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.tooltipHeader {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 20.4px;
+  color: #191c1d;
+}
+
+.tooltipBody {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #191c1d;
+}
+
+.empty {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(2px);
+  border-radius: 10px;
+  padding: 17px 34px;
+  text-align: center;
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin: 0 auto;
+}
+
+.spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.filterButton {
+  border: 1px solid #eaeaeb;
+  border-radius: 10px;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  text-align: left;
+  display: block;
+}
+
+.filterButton:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.filterButtonText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.filterButtonActive {
+  border: 1px solid white;
+  border-radius: 10px;
+  background: white;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  text-align: left;
+  display: block;
+}
+
+.filterButtonActive:hover {
+  background: #eaeaeb;
+}
+
+.filterButtonActiveText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #191c1d;
+}
+
+.clearFiltersButton {
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  text-align: left;
+  display: block;
+  align-self: stretch;
+}
+
+.clearFiltersButtonText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #c8cdd0;
+}
+
+.tagsGuarder {
+  position: relative;
+}
+
+.tags {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  overflow-x: auto;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  margin: 0 auto;
+}
+
+.tags::-webkit-scrollbar {
+  /* Safari and Chrome */
+  display: none;
+}
+
+.tags::-webkit-scrollbar-thumb {
+  display: none;
+}
+
+.tag {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.tagText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #c8cdd0;
+}
+
+.tagSeparator {
+  align-self: stretch;
+  border-right: 1px solid #383838;
+}

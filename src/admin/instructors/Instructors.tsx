@@ -24,7 +24,6 @@ const path = '/api/1/instructors/search';
 
 export const keyMap: CrudFetcherKeyMap<Instructor> = {
   created_at: (_, val) => ({ key: 'createdAt', value: new Date(val * 1000) }),
-  deleted_at: (_, val) => ({ key: 'deletedAt', value: val === null ? null : new Date(val * 1000) }),
 };
 
 /**

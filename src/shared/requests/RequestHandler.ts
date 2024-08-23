@@ -1197,6 +1197,7 @@ export class RequestHandler<
                     refMightBeIncoming = true;
                     break;
                   }
+                  next = iter.next();
                 }
               }
 
