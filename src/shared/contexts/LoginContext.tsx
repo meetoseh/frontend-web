@@ -1,11 +1,17 @@
-import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useRef } from 'react';
+import { createContext, PropsWithChildren, useCallback, useEffect, useMemo } from 'react';
 import { Buffer } from 'buffer';
 import { apiFetch } from '../ApiConstants';
 import { getCurrentServerTimeMS } from '../lib/getCurrentServerTimeMS';
-import { Callbacks, useWritableValueWithCallbacks, ValueWithCallbacks } from '../lib/Callbacks';
+import {
+  Callbacks,
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+  ValueWithCallbacks,
+} from '../lib/Callbacks';
 import { setVWC } from '../lib/setVWC';
-import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';
 import { getJwtExpiration } from '../lib/getJwtExpiration';
+import { waitForValueWithCallbacksConditionCancelable } from '../lib/waitForValueWithCallbacksCondition';
+import { createCancelableTimeout } from '../lib/createCancelableTimeout';
 
 /**
  * The user attributes that are available when a user is logged in. When
@@ -454,6 +460,61 @@ export const removeForegroundChangedListener = async (listener: ForegroundChange
   document.removeEventListener(keys.visibilityChange, listener);
 };
 
+type LoginContextQueueItemSetAuthTokens = {
+  type: 'setAuthTokens';
+  /**
+   * Returns the new auth tokens that should be used based on the old
+   * login context value state.
+   *
+   * Returns a TokenResponseConfig to replace the tokens and update the
+   * user attributes based on the extracted claims. Returns null to logout,
+   * deleting any stored tokens or user attributes. Returns undefined to
+   * skip the operation (e.g., because the login context value is not what
+   * you expected)
+   */
+  authTokens: (old: LoginContextValueUnion) => TokenResponseConfig | null | undefined;
+  /**
+   * a function to call when this queue item has been processed
+   */
+  onDone: () => void;
+};
+
+type LoginContextQueueItemSetUserAttributes = {
+  type: 'setUserAttributes';
+  /**
+   * Returns the new user attributes to use temporarily until the id token is
+   * refreshed, based on the old login context value state.
+   *
+   * Returns a UserAttributes to replace the user attributes. Returns undefined
+   * to skip the operation, e.g., because the login context value is not what
+   * you expected.
+   *
+   * This function is not called if, by the time this operation is processed,
+   * the login context value is not in the logged-in state.
+   *
+   * @param old The old login context value.
+   * @returns The new user attributes to use temporarily
+   */
+  userAttributes: (old: LoginContextValueLoggedIn) => UserAttributes | undefined;
+  /**
+   * a function to call when this queue item has been processed
+   */
+  onDone: () => void;
+};
+
+type LoginContextQueueItem =
+  | LoginContextQueueItemSetAuthTokens
+  | LoginContextQueueItemSetUserAttributes;
+
+const globalLoginStateLockedVWC = createWritableValueWithCallbacks(false);
+
+const ifDev =
+  process.env.REACT_APP_ENVIRONMENT === 'dev'
+    ? (fn: () => void): void => {
+        fn();
+      }
+    : (_fn: () => void): void => {};
+
 /**
  * A provider for the LoginContext. This is responsible for loading the auth
  * tokens. The auth tokens will only be provided if they are reasonably fresh;
@@ -466,365 +527,802 @@ export const LoginProvider = ({
     state: 'loading',
   }));
 
-  const setAuthTokens = useCallback(
-    async (authTokens: TokenResponseConfig | null): Promise<void> => {
-      const value = valueVWC.get();
-      if (value.state === 'loading') {
-        throw new Error('cannot setAuthTokens while loading');
-      }
+  const queueVWC = useWritableValueWithCallbacks<LoginContextQueueItem[]>(() => []);
 
-      if (authTokens === null) {
-        if (value.state === 'logged-out') {
+  const setAuthTokens = useCallback(
+    (authTokens: TokenResponseConfig | null): Promise<void> => {
+      let immediatelyResolved = false;
+      let resolve: () => void = () => {
+        immediatelyResolved = true;
+      };
+      const result = new Promise<void>((r) => {
+        if (immediatelyResolved) {
+          r();
           return;
         }
 
-        await Promise.all([storeAuthTokens(null), storeUserAttributes(null)]);
-        setVWC(valueVWC, {
-          state: 'logged-out',
-        });
-        return;
-      }
-
-      const userAttributes = extractUserAttributes(authTokens);
-      await Promise.all([storeAuthTokens(authTokens), storeUserAttributes(userAttributes)]);
-      setVWC(valueVWC, {
-        state: 'logged-in',
-        authTokens,
-        userAttributes,
+        resolve = r;
       });
+
+      const oldValue = valueVWC.get();
+
+      const q = queueVWC.get();
+      q.push({
+        type: 'setAuthTokens',
+        authTokens: () => {
+          if (authTokens === null || Object.is(valueVWC.get(), oldValue)) {
+            return authTokens;
+          }
+          return undefined;
+        },
+        onDone: resolve,
+      });
+      queueVWC.callbacks.call(undefined);
+      return result;
     },
-    [valueVWC]
+    [queueVWC]
   );
 
   const setUserAttributes = useCallback(
     async (userAttributes: UserAttributes): Promise<void> => {
-      const value = valueVWC.get();
-      if (value.state !== 'logged-in') {
-        throw new Error('cannot setUserAttributes while not logged in');
-      }
+      let immediatelyResolved = false;
+      let resolve: () => void = () => {
+        immediatelyResolved = true;
+      };
+      const result = new Promise<void>((r) => {
+        if (immediatelyResolved) {
+          r();
+          return;
+        }
 
-      await storeUserAttributes(userAttributes);
-      setVWC(valueVWC, {
-        ...value,
-        userAttributes,
+        resolve = r;
       });
+
+      const oldValue = valueVWC.get();
+
+      const q = queueVWC.get();
+      q.push({
+        type: 'setUserAttributes',
+        userAttributes: () => {
+          if (!Object.is(valueVWC.get(), oldValue)) {
+            return undefined;
+          }
+
+          return userAttributes;
+        },
+        onDone: resolve,
+      });
+      queueVWC.callbacks.call(undefined);
+      return result;
     },
-    [valueVWC]
+    [queueVWC]
   );
 
-  const tryRefresh = useCallback(
-    async (value: LoginContextValueLoggedIn, runningRef: { current: boolean }): Promise<void> => {
-      try {
-        const newTokens = await refreshTokens(value.authTokens);
-        const newUserAttributes = extractUserAttributes(newTokens);
-        await Promise.all([storeAuthTokens(newTokens), storeUserAttributes(newUserAttributes)]);
-        if (!runningRef.current) {
-          return;
-        }
-        console.log('refreshed tokens successfully, setting logged-in state');
-        setVWC(valueVWC, {
-          state: 'logged-in',
-          authTokens: newTokens,
-          userAttributes: newUserAttributes,
-        });
-      } catch (e) {
-        console.trace('failed to refresh, checking if we raced another tab...');
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-        if (!runningRef.current) {
-          return;
-        }
-        const [newStoredAuthTokens, newStoredUserAttributes] = await Promise.all([
-          retrieveAuthTokens(),
-          retrieveUserAttributes(),
-        ]);
-        if (!runningRef.current) {
-          return;
-        }
-        if (newStoredAuthTokens === null || newStoredUserAttributes === null) {
-          console.trace('we raced another tab, but they deleted the tokens. providing logged-out');
-          setVWC(valueVWC, {
-            state: 'logged-out',
-          });
-          return;
-        }
-        const nowMs = await getCurrentServerTimeMS();
-        if (!runningRef.current) {
-          return;
-        }
-        if (!isTokenFresh(newStoredAuthTokens, nowMs)) {
-          console.trace(
-            'the other tab refreshed, but the token is already not fresh! clearing and providing logged-out'
-          );
-          await Promise.all([storeAuthTokens(null), storeUserAttributes(null)]);
-          if (!runningRef.current) {
-            return;
-          }
-          setVWC(valueVWC, {
-            state: 'logged-out',
-          });
-          return;
-        }
-        if (newStoredAuthTokens.idToken !== value.authTokens.idToken) {
-          console.trace(
-            'we raced another tab, and they refreshed successfully. double checking...'
-          );
-          const newNow = await getCurrentServerTimeMS();
-          if (!runningRef.current) {
-            return;
-          }
-          if (isTokenFresh(newStoredAuthTokens, newNow)) {
-            console.trace('the other tab refreshed successfully, providing logged-in');
-            setVWC(valueVWC, {
-              state: 'logged-in',
-              authTokens: newStoredAuthTokens,
-              userAttributes: newStoredUserAttributes,
-            });
-            return;
-          } else {
-            console.trace(
-              'the other tab refreshed, but the token is already not fresh! clearing and providing logged-out'
-            );
-            await Promise.all([storeAuthTokens(null), storeUserAttributes(null)]);
-            if (!runningRef.current) {
-              return;
-            }
-            setVWC(valueVWC, {
-              state: 'logged-out',
-            });
-            return;
-          }
-        } else {
-          console.trace('local store was not changed in time, clearing and providing logged out');
-          await Promise.all([storeAuthTokens(null), storeUserAttributes(null)]);
-          if (!runningRef.current) {
-            return;
-          }
-          setVWC(valueVWC, {
-            state: 'logged-out',
-          });
-          return;
-        }
-      }
-    },
-    [valueVWC]
-  );
-
-  (window as any).tryRefreshOsehLoginTokens = () => {
-    const val = valueVWC.get();
-    if (val.state !== 'logged-in') {
-      console.error('not logged in');
-      return;
-    }
-
-    console.info('starting refresh');
-    const runningRef = { current: true };
-    tryRefresh(val, runningRef);
-  };
-
-  (window as any).tryExecuteLoginStateCallbacks = () => {
-    valueVWC.callbacks.call(undefined);
-  };
-
-  const runningLock = useRef<Promise<void> | null>(null);
   useEffect(() => {
-    if (valueVWC.get().state !== 'loading') {
-      return;
-    }
-
-    const runningRef = { current: true };
-    acquireLockAndLoadFromStore();
+    const __logId = 'LoginContext-' + Math.random().toString(36).substring(7);
+    ifDev(() => console.log(`${__logId}: starting effect`));
+    const active = createWritableValueWithCallbacks(true);
+    handleLoginStateForever();
     return () => {
-      runningRef.current = false;
+      ifDev(() => console.log(`${__logId}: canceling effect`));
+      setVWC(active, false);
     };
 
-    async function loadFromStore() {
-      const [storedAuthTokens, storedUserAttributes] = await Promise.all([
-        retrieveAuthTokens(),
-        retrieveUserAttributes(),
-      ]);
-      if (!runningRef.current) {
-        return;
+    async function handleLoginStateForever() {
+      ifDev(() => console.log(`${__logId}: initializing loop`));
+      while (true) {
+        ifDev(() => console.log(`${__logId}: starting loop`));
+        if (!active.get()) {
+          ifDev(() => console.log(`${__logId}: exiting (effect canceled)`));
+          return;
+        }
+
+        if ((await checkQueue()) === 'continue') {
+          ifDev(() => console.log(`${__logId}: continue after checkQueue`));
+          continue;
+        }
+
+        if ((await handleLoading()) === 'continue') {
+          ifDev(() => console.log(`${__logId}: continue after handleLoading`));
+          continue;
+        }
+
+        if ((await handleLoggedIn()) === 'continue') {
+          ifDev(() => console.log(`${__logId}: continue after handleLoggedIn`));
+          continue;
+        }
+
+        if ((await handleLoggedOut()) === 'continue') {
+          ifDev(() => console.log(`${__logId}: continue after handleLoggedOut`));
+          continue;
+        }
+
+        ifDev(() =>
+          console.log(
+            `${__logId}: loop falling through; this is unexpected, adding short delay to avoid cpu hogging`
+          )
+        );
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+
+    async function checkQueue(): Promise<'continue' | 'fallthrough'> {
+      if (!active.get()) {
+        return 'continue';
       }
 
-      if (storedAuthTokens === null || storedUserAttributes === null) {
-        if (storedAuthTokens !== null) {
-          console.trace(
-            'inconsistent local storage state: have auth tokens but not user attributes; clearing tokens'
+      const q = queueVWC.get();
+      if (q.length === 0) {
+        ifDev(() => console.log(`${__logId}: queue is empty`));
+        return 'fallthrough';
+      }
+
+      const inactive = waitForValueWithCallbacksConditionCancelable(active, (v) => !v);
+      inactive.promise.catch(() => {});
+      while (true) {
+        const stateUnlocked = waitForValueWithCallbacksConditionCancelable(
+          globalLoginStateLockedVWC,
+          (v) => !v
+        );
+        stateUnlocked.promise.catch(() => {});
+        await Promise.race([inactive.promise, stateUnlocked.promise]);
+        stateUnlocked.cancel();
+        if (!active.get()) {
+          return 'continue';
+        }
+
+        // we may not have been the first person waiting for the global lock,
+        // so we need to recheck here
+        if (!globalLoginStateLockedVWC.get()) {
+          globalLoginStateLockedVWC.set(true);
+          globalLoginStateLockedVWC.callbacks.call(undefined);
+          break;
+        }
+      }
+
+      // We have the global lock; we ignore active until we finish this operation
+      try {
+        inactive.cancel();
+
+        const oldValue = valueVWC.get();
+        const item = q.shift();
+        if (item === undefined) {
+          ifDev(() =>
+            console.warn(
+              `${__logId}: queue size was reduced outside checkQueue; this is unexpected but not dangerous`
+            )
           );
+          return 'continue';
+        }
+
+        // we shifted queue, so invoke callbacks
+        queueVWC.callbacks.call(undefined);
+
+        switch (item.type) {
+          case 'setAuthTokens':
+            try {
+              ifDev(() => console.debug(`${__logId}: processing setAuthTokens message`));
+              const newTokens = item.authTokens(valueVWC.get());
+              if (newTokens === undefined) {
+                ifDev(() =>
+                  console.debug(`${__logId}: skipping setAuthTokens (returned undefined)`)
+                );
+                break;
+              }
+              if (newTokens === null) {
+                ifDev(() => console.debug(`${__logId}: logging out (returned null)`));
+                await storeAuthTokens(null);
+                await storeUserAttributes(null);
+                setVWC(valueVWC, { state: 'logged-out' }, (a, b) => a.state === b.state);
+                break;
+              }
+
+              ifDev(() => console.debug(`${__logId}: logging in via provided tokens`));
+              const userAttributes = extractUserAttributes(newTokens);
+              await storeAuthTokens(newTokens);
+              await storeUserAttributes(userAttributes);
+              setVWC(
+                valueVWC,
+                {
+                  state: 'logged-in',
+                  authTokens: newTokens,
+                  userAttributes,
+                },
+                () => false
+              );
+              break;
+            } finally {
+              item.onDone();
+            }
+          case 'setUserAttributes':
+            try {
+              if (oldValue.state !== 'logged-in') {
+                ifDev(() =>
+                  console.debug(`${__logId}: skipping setUserAttributes (not logged in)`)
+                );
+                break;
+              }
+
+              ifDev(() => console.debug(`${__logId}: processing setUserAttributes message`));
+              const newAttributes = item.userAttributes(oldValue);
+              if (newAttributes === undefined) {
+                ifDev(() =>
+                  console.debug(`${__logId}: skipping setUserAttributes (returned undefined)`)
+                );
+                break;
+              }
+
+              ifDev(() => console.debug(`${__logId}: setting user attributes`));
+              await storeUserAttributes(newAttributes);
+              setVWC(
+                valueVWC,
+                {
+                  state: 'logged-in',
+                  authTokens: oldValue.authTokens,
+                  userAttributes: newAttributes,
+                },
+                () => false
+              );
+            } finally {
+              item.onDone();
+            }
+            break;
+          default:
+            ifDev(() => console.warn(`${__logId}: unknown queue item type ${item}`));
+            break;
+        }
+        return 'continue';
+      } catch (e) {
+        ifDev(() => console.warn(`${__logId}: error processing queue item`, e));
+        return 'continue';
+      } finally {
+        globalLoginStateLockedVWC.set(false);
+        globalLoginStateLockedVWC.callbacks.call(undefined);
+      }
+    }
+
+    async function handleLoading(): Promise<'continue' | 'fallthrough'> {
+      if (!active.get()) {
+        return 'continue';
+      }
+
+      if (valueVWC.get().state !== 'loading') {
+        ifDev(() => console.log(`${__logId}: not in loading state`));
+        return 'fallthrough';
+      }
+
+      ifDev(() =>
+        console.log(`${__logId}: handleLoading peeked a loading state, acquiring global lock`)
+      );
+      const inactive = waitForValueWithCallbacksConditionCancelable(active, (v) => !v);
+      inactive.promise.catch(() => {});
+      const stateNotLoading = waitForValueWithCallbacksConditionCancelable(
+        valueVWC,
+        (v) => v.state !== 'loading'
+      );
+      stateNotLoading.promise.catch(() => {});
+
+      while (true) {
+        const stateUnlocked = waitForValueWithCallbacksConditionCancelable(
+          globalLoginStateLockedVWC,
+          (v) => !v
+        );
+        stateUnlocked.promise.catch(() => {});
+        await Promise.race([inactive.promise, stateNotLoading.promise, stateUnlocked.promise]);
+        stateUnlocked.cancel();
+
+        if (!active.get()) {
+          stateNotLoading.cancel();
+          return 'continue';
+        }
+
+        if (stateNotLoading.done()) {
+          inactive.cancel();
+          ifDev(() =>
+            console.log(
+              `${__logId}: handleLoading had state change on it; this is unexpected but not dangerous`
+            )
+          );
+          return 'continue';
+        }
+
+        if (!globalLoginStateLockedVWC.get()) {
+          globalLoginStateLockedVWC.set(true);
+          globalLoginStateLockedVWC.callbacks.call(undefined);
+          break;
+        }
+      }
+
+      // We have the global lock; we ignore active until we finish this operation
+      try {
+        inactive.cancel();
+        stateNotLoading.cancel();
+
+        if (valueVWC.get().state !== 'loading') {
+          ifDev(() =>
+            console.warn(
+              `${__logId}: handleLoading had state change on it; this is unexpected but not dangerous`
+            )
+          );
+          return 'continue';
+        }
+
+        let authTokens: Awaited<ReturnType<typeof retrieveAuthTokens>>;
+        let userAttributes: Awaited<ReturnType<typeof retrieveUserAttributes>>;
+        try {
+          ifDev(() => console.log(`${__logId}: checking storage for auth tokens`));
+          authTokens = await retrieveAuthTokens();
+          ifDev(() => console.log(`${__logId}: checking storage for user attributes`));
+          userAttributes = await retrieveUserAttributes();
+        } catch (e) {
+          ifDev(() => console.error(`${__logId}: error loading state; trying to clear`, e));
+          try {
+            ifDev(() => console.log(`${__logId}: trying to clear auth tokens`));
+            await storeAuthTokens(null);
+            ifDev(() => console.log(`${__logId}: successfully cleared auth tokens`));
+          } catch (e2) {
+            ifDev(() => console.error(`${__logId}: error clearing auth tokens`, e2));
+          }
+          try {
+            ifDev(() => console.log(`${__logId}: trying to clear user attributes`));
+            await storeUserAttributes(null);
+            ifDev(() => console.log(`${__logId}: successfully cleared user attributes`));
+          } catch (e2) {
+            ifDev(() => console.error(`${__logId}: error clearing user attributes`, e2));
+          }
+          ifDev(() => console.log(`${__logId}: switching to logged-out`));
+          setVWC(valueVWC, { state: 'logged-out' }, () => false);
+          return 'continue';
+        }
+
+        if (authTokens === null && userAttributes === null) {
+          ifDev(() =>
+            console.log(
+              `${__logId}: stored state is a consistent logged-out state; switching to logged-out`
+            )
+          );
+          setVWC(valueVWC, { state: 'logged-out' }, () => false);
+          return 'continue';
+        }
+
+        if (authTokens === null) {
+          ifDev(() =>
+            console.log(
+              `${__logId}: stored state is inconsistent (no tokens, have user attributes); clearing user attributes and switching to logged-out`
+            )
+          );
+          try {
+            await storeUserAttributes(null);
+            ifDev(() => console.log(`${__logId}: successfully cleared user attributes`));
+          } catch (e) {
+            ifDev(() => console.error(`${__logId}: error clearing user attributes`, e));
+          }
+          setVWC(valueVWC, { state: 'logged-out' }, () => false);
+          return 'continue';
+        }
+
+        if (userAttributes === null) {
+          ifDev(() =>
+            console.log(
+              `${__logId}: stored state is inconsistent (have tokens, no user attributes); clearing tokens and switching to logged-out`
+            )
+          );
+          try {
+            await storeAuthTokens(null);
+            ifDev(() => console.log(`${__logId}: successfully cleared auth tokens`));
+          } catch (e) {
+            ifDev(() => console.error(`${__logId}: error clearing auth tokens`, e));
+          }
+          setVWC(valueVWC, { state: 'logged-out' }, () => false);
+          return 'continue';
+        }
+
+        ifDev(() =>
+          console.log(`${__logId}: have stored state: consistent logged-in; checking freshness`)
+        );
+        const nowServerMS = await getCurrentServerTimeMS();
+        if (isTokenFresh(authTokens, nowServerMS)) {
+          ifDev(() => console.log(`${__logId}: tokens are fresh; switching to logged-in`));
+          setVWC(
+            valueVWC,
+            {
+              state: 'logged-in',
+              authTokens,
+              userAttributes,
+            },
+            () => false
+          );
+          return 'continue';
+        }
+
+        ifDev(() => console.log(`${__logId}: tokens are stale; checking refreshability`));
+        if (isRefreshable(authTokens, nowServerMS)) {
+          ifDev(() =>
+            console.log(
+              `${__logId}: tokens are refreshable; using refreshWithGlobalLock and continuing`
+            )
+          );
+          await refreshWithGlobalLock(authTokens);
+          return 'continue';
+        }
+
+        ifDev(() =>
+          console.log(
+            `${__logId}: tokens cannot be refreshed; clearing and switching to logged-out`
+          )
+        );
+        try {
+          ifDev(() => console.log(`${__logId}: trying to clear auth tokens`));
           await storeAuthTokens(null);
+          ifDev(() => console.log(`${__logId}: successfully cleared auth tokens`));
+        } catch (e) {
+          ifDev(() => console.error(`${__logId}: error clearing auth tokens`, e));
         }
-        if (storedUserAttributes !== null) {
-          console.trace(
-            'inconsistent local storage state: have user attributes but not auth tokens; clearing attributes'
-          );
+
+        try {
+          ifDev(() => console.log(`${__logId}: trying to clear user attributes`));
           await storeUserAttributes(null);
+          ifDev(() => console.log(`${__logId}: successfully cleared user attributes`));
+        } catch (e) {
+          ifDev(() => console.error(`${__logId}: error clearing user attributes`, e));
         }
-        if (!runningRef.current) {
-          return;
+
+        setVWC(valueVWC, { state: 'logged-out' }, () => false);
+        return 'continue';
+      } catch (e) {
+        ifDev(() => console.warn(`${__logId}: error processing loading state`, e));
+        return 'continue';
+      } finally {
+        globalLoginStateLockedVWC.set(false);
+        globalLoginStateLockedVWC.callbacks.call(undefined);
+      }
+    }
+
+    async function handleLoggedIn(): Promise<'continue' | 'fallthrough'> {
+      const oldValue = valueVWC.get();
+      if (oldValue.state !== 'logged-in') {
+        ifDev(() => console.log(`${__logId}: not in logged-in state`));
+        return 'fallthrough';
+      }
+
+      // We are waiting for either a queue item or a refresh to be necessary.
+      const idTokenExpiresAtServer = getJwtExpiration(oldValue.authTokens.idToken);
+      const nowServer = await getCurrentServerTimeMS();
+      const msUntilIdTokenExpires = idTokenExpiresAtServer - nowServer;
+      const msUntilRefresh = msUntilIdTokenExpires - 1000 * 60 * 5;
+
+      const shouldRefreshCancelable =
+        msUntilRefresh <= 0
+          ? {
+              promise: Promise.resolve(),
+              done: () => true,
+              cancel: () => {},
+            }
+          : createCancelableTimeout(msUntilRefresh);
+      shouldRefreshCancelable.promise.catch(() => {});
+
+      const queueHasItemCancelable = waitForValueWithCallbacksConditionCancelable(
+        queueVWC,
+        (q) => q.length > 0
+      );
+      queueHasItemCancelable.promise.catch(() => {});
+
+      const inactiveCancelable = waitForValueWithCallbacksConditionCancelable(active, (v) => !v);
+      inactiveCancelable.promise.catch(() => {});
+
+      ifDev(() =>
+        console.log(`${__logId}: waiting for need to refresh, queue changed, or effect canceled`)
+      );
+      await Promise.race([
+        shouldRefreshCancelable.promise,
+        queueHasItemCancelable.promise,
+        inactiveCancelable.promise,
+      ]);
+      ifDev(() =>
+        console.log(`${__logId}: detected need to refresh, queue changed, or effect canceled`)
+      );
+      shouldRefreshCancelable.cancel();
+      queueHasItemCancelable.cancel();
+
+      if (!active.get()) {
+        ifDev(() => console.log(`${__logId}: detected effect canceled`));
+        return 'continue';
+      }
+
+      if (queueVWC.get().length > 0) {
+        inactiveCancelable.cancel();
+        ifDev(() => console.log(`${__logId}: detected queue changed`));
+        return 'continue';
+      }
+
+      ifDev(() =>
+        console.log(`${__logId}: detected need to refresh, trying to acquire global lock`)
+      );
+      while (true) {
+        const stateUnlocked = waitForValueWithCallbacksConditionCancelable(
+          globalLoginStateLockedVWC,
+          (v) => !v
+        );
+        stateUnlocked.promise.catch(() => {});
+        await Promise.race([inactiveCancelable.promise, stateUnlocked.promise]);
+        stateUnlocked.cancel();
+
+        if (!active.get()) {
+          ifDev(() =>
+            console.log(
+              `${__logId}: detected effect canceled while acquiring global lock for refresh`
+            )
+          );
+          inactiveCancelable.cancel();
+          return 'continue';
         }
-        setVWC(valueVWC, {
-          state: 'logged-out',
-        });
-        return;
-      }
 
-      const nowMs = await getCurrentServerTimeMS();
-      if (!runningRef.current) {
-        return;
-      }
-
-      if (isTokenFresh(storedAuthTokens, nowMs)) {
-        setVWC(valueVWC, {
-          state: 'logged-in',
-          authTokens: storedAuthTokens,
-          userAttributes: storedUserAttributes,
-        });
-        return;
-      }
-
-      if (!isRefreshable(storedAuthTokens, nowMs)) {
-        console.trace('have stored login state but it is not fresh nor refreshable, clearing');
-        await Promise.all([storeAuthTokens(null), storeUserAttributes(null)]);
-        if (!runningRef.current) {
-          return;
+        if (!globalLoginStateLockedVWC.get()) {
+          globalLoginStateLockedVWC.set(true);
+          globalLoginStateLockedVWC.callbacks.call(undefined);
+          break;
         }
-        setVWC(valueVWC, {
-          state: 'logged-out',
-        });
-        return;
       }
 
-      await tryRefresh(
+      // We have the global lock; we ignore active until we finish this operation
+      try {
+        inactiveCancelable.cancel();
+
+        if (!Object.is(valueVWC.get(), oldValue)) {
+          ifDev(() =>
+            console.log(
+              `${__logId}: state changed within handleLoggedIn; this is unexpected but not dangerous`
+            )
+          );
+          return 'continue';
+        }
+
+        ifDev(() => console.log(`${__logId}: refreshing with global lock`));
+        await refreshWithGlobalLock(oldValue.authTokens);
+        return 'continue';
+      } catch (e) {
+        ifDev(() => console.error(`${__logId}: error processing logged-in state`, e));
+        return 'continue';
+      } finally {
+        globalLoginStateLockedVWC.set(false);
+        globalLoginStateLockedVWC.callbacks.call(undefined);
+      }
+    }
+
+    async function handleLoggedOut(): Promise<'continue' | 'fallthrough'> {
+      if (valueVWC.get().state !== 'logged-out') {
+        ifDev(() => console.log(`${__logId}: not in logged-out state`));
+        return 'fallthrough';
+      }
+
+      const inactive = waitForValueWithCallbacksConditionCancelable(active, (v) => !v);
+      inactive.promise.catch(() => {});
+      const queueHasItem = waitForValueWithCallbacksConditionCancelable(
+        queueVWC,
+        (q) => q.length > 0
+      );
+      queueHasItem.promise.catch(() => {});
+      ifDev(() => console.log(`${__logId}: waiting for a queue item or effect canceled`));
+      await Promise.race([inactive.promise, queueHasItem.promise]);
+      ifDev(() => console.log(`${__logId}: detected queue item or effect canceled`));
+      inactive.cancel();
+      queueHasItem.cancel();
+
+      if (!active.get()) {
+        ifDev(() => console.log(`${__logId}: detected effect canceled`));
+        return 'continue';
+      }
+
+      if (queueVWC.get().length > 0) {
+        ifDev(() => console.log(`${__logId}: detected queue item`));
+        return 'continue';
+      }
+
+      ifDev(() =>
+        console.log(
+          `${__logId}: a promise resolved but not sure which; this is unexpected but not dangerous, continuing`
+        )
+      );
+      return 'continue';
+    }
+
+    async function refreshWithGlobalLockInner(
+      refreshableTokens: TokenResponseConfig
+    ): Promise<'retry' | 'done'> {
+      ifDev(() =>
+        console.log(
+          `${__logId}: refreshWithGlobalLock starting; assuming we are holding the global lock`
+        )
+      );
+      // since we have the global lock, active is irrelevant
+
+      // token may no longer be refreshable due to the retry logic, though it's very unlikely
+      // further, callers may depend on us checking this (better than sending a useless request
+      // and may as well avoid duplicating the check)
+      if (!isRefreshable(refreshableTokens, await getCurrentServerTimeMS())) {
+        ifDev(() =>
+          console.log(
+            `${__logId}: tokens are not refreshable; clearing and switching to logged-out`
+          )
+        );
+        try {
+          ifDev(() => console.log(`${__logId}: trying to clear auth tokens`));
+          await storeAuthTokens(null);
+          ifDev(() => console.log(`${__logId}: successfully cleared auth tokens`));
+        } catch (e) {
+          ifDev(() => console.error(`${__logId}: error clearing auth tokens`, e));
+        }
+        try {
+          ifDev(() => console.log(`${__logId}: trying to clear user attributes`));
+          await storeUserAttributes(null);
+          ifDev(() => console.log(`${__logId}: successfully cleared user attributes`));
+        } catch (e) {
+          ifDev(() => console.error(`${__logId}: error clearing user attributes`, e));
+        }
+        setVWC(valueVWC, { state: 'logged-out' }, () => false);
+        return 'done';
+      }
+
+      // if our token is actually expired, immediately switch to a spinner. this is
+      // only likely to happen if we've been suspended for a while, but that is a
+      // fairly common case.
+      if (valueVWC.get().state === 'logged-in') {
+        const tokenExpiresAtServerMS = getJwtExpiration(refreshableTokens.idToken);
+        const nowServerMS = await getCurrentServerTimeMS();
+        if (tokenExpiresAtServerMS < nowServerMS) {
+          ifDev(() =>
+            console.log(
+              `${__logId}: token is actually expired; switching to loading to get a spinner. not breaking out of refresh loop though.`
+            )
+          );
+          setVWC(valueVWC, { state: 'loading' }, () => false);
+        }
+      }
+
+      let newTokens: TokenResponseConfig;
+      try {
+        newTokens = await refreshTokens(refreshableTokens);
+      } catch (e) {
+        ifDev(() => console.log(`${__logId}: failed to refresh tokens`, e));
+
+        if (!(e instanceof Response)) {
+          ifDev(() =>
+            console.log(
+              `${__logId}: error was not a response; likely a network error. Retrying in 5-10 seconds`
+            )
+          );
+          setVWC(valueVWC, { state: 'loading' }, (a, b) => a.state === b.state);
+          await new Promise((r) => setTimeout(r, 5000 + Math.random() * 5000));
+          return 'retry';
+        }
+
+        if (e.status === 429) {
+          ifDev(() => console.log(`${__logId}: error was a 429, checking for Retry-After`));
+          let retryAfterSeconds: number | null = null;
+          try {
+            const retryAfterStr = e.headers.get('Retry-After');
+            if (retryAfterStr === null) {
+              ifDev(() => console.log(`${__logId}: no retry-after header present`));
+            } else {
+              const retryAfterSecondsRaw = parseFloat(retryAfterStr);
+              if (retryAfterSecondsRaw < 0) {
+                ifDev(() => console.log(`${__logId}: retry-after header was negative`));
+              } else if (retryAfterSecondsRaw > 300) {
+                ifDev(() => console.log(`${__logId}: retry-after header was too large`));
+              } else {
+                retryAfterSeconds = retryAfterSecondsRaw;
+                ifDev(() =>
+                  console.log(`${__logId}: retry-after header was ${retryAfterSeconds} seconds`)
+                );
+              }
+            }
+          } catch (e) {
+            ifDev(() => console.error(`${__logId}: retry-after header was malformed`, e));
+          }
+          const effectiveRetryAfter = retryAfterSeconds ?? 60;
+          ifDev(() => console.log(`${__logId}: retrying in ${effectiveRetryAfter} seconds`));
+          setVWC(valueVWC, { state: 'loading' }, (a, b) => a.state === b.state);
+          await new Promise((r) => setTimeout(r, effectiveRetryAfter * 1000));
+          return 'retry';
+        }
+
+        if (e.status >= 500) {
+          ifDev(() =>
+            console.log(
+              `${__logId}: server error (${(e as Response).status}), retrying in 5-60 seconds`
+            )
+          );
+          setVWC(valueVWC, { state: 'loading' }, (a, b) => a.state === b.state);
+          await new Promise((r) => setTimeout(r, 5000 + Math.random() * 55000));
+          return 'retry';
+        }
+
+        ifDev(() =>
+          console.log(`${__logId}: non-retryable error; clearing and switching to logged-out`)
+        );
+        try {
+          ifDev(() => console.log(`${__logId}: trying to clear auth tokens`));
+          await storeAuthTokens(null);
+          ifDev(() => console.log(`${__logId}: successfully cleared auth tokens`));
+        } catch (e2) {
+          ifDev(() => console.error(`${__logId}: error clearing auth tokens`, e2));
+        }
+        try {
+          ifDev(() => console.log(`${__logId}: trying to clear user attributes`));
+          await storeUserAttributes(null);
+          ifDev(() => console.log(`${__logId}: successfully cleared user attributes`));
+        } catch (e2) {
+          ifDev(() => console.error(`${__logId}: error clearing user attributes`, e2));
+        }
+        setVWC(valueVWC, { state: 'logged-out' }, () => false);
+        return 'done';
+      }
+
+      ifDev(() =>
+        console.log(`${__logId}: successfully refreshed tokens; extracting user attributes`)
+      );
+      let userAttributes: UserAttributes;
+      try {
+        userAttributes = extractUserAttributes(newTokens);
+      } catch (e) {
+        ifDev(() => console.error(`${__logId}: error extracting user attributes`, e));
+        ifDev(() =>
+          console.log(
+            `${__logId}: no way to recover and unlikely to fix without client update, storing tokens and ending loop`
+          )
+        );
+        try {
+          ifDev(() => console.log(`${__logId}: trying to store tokens`));
+          await storeAuthTokens(newTokens);
+          ifDev(() => console.log(`${__logId}: successfully stored tokens`));
+        } catch (e2) {
+          ifDev(() => console.error(`${__logId}: error storing tokens`, e2));
+        }
+        // end the loop
+        throw new Error('unrecoverable error');
+      }
+
+      ifDev(() => console.log(`${__logId}: successfully extracted user attributes, storing..`));
+      try {
+        ifDev(() => console.log(`${__logId}: trying to store tokens`));
+        await storeAuthTokens(newTokens);
+        ifDev(() => console.log(`${__logId}: successfully stored tokens`));
+      } catch (e) {
+        ifDev(() => console.error(`${__logId}: error storing tokens`, e));
+        throw new Error('unrecoverable error');
+      }
+
+      try {
+        ifDev(() => console.log(`${__logId}: trying to store user attributes`));
+        await storeUserAttributes(userAttributes);
+        ifDev(() => console.log(`${__logId}: successfully stored user attributes`));
+      } catch (e) {
+        ifDev(() => console.error(`${__logId}: error storing user attributes`, e));
+        throw new Error('unrecoverable error');
+      }
+
+      ifDev(() => console.log(`${__logId}: switching to logged-in`));
+      setVWC(
+        valueVWC,
         {
           state: 'logged-in',
-          authTokens: storedAuthTokens,
-          userAttributes: storedUserAttributes,
+          authTokens: newTokens,
+          userAttributes,
         },
-        runningRef
+        () => false
       );
+      return 'done';
     }
 
-    async function acquireLockAndLoadFromStore() {
-      while (runningLock.current !== null) {
-        if (!runningRef.current) {
+    async function refreshWithGlobalLock(refreshableTokens: TokenResponseConfig): Promise<void> {
+      while (true) {
+        const result = await refreshWithGlobalLockInner(refreshableTokens);
+        if (result === 'done') {
           return;
         }
-        await runningLock.current;
-      }
-      if (!runningRef.current) {
-        return;
-      }
-      runningLock.current = new Promise(async (resolve) => {
-        try {
-          await loadFromStore();
-        } finally {
-          runningLock.current = null;
-          resolve();
-        }
-      });
-    }
-  }, [valueVWC, tryRefresh]);
-
-  useValueWithCallbacksEffect(valueVWC, (valueRaw) => {
-    if (valueRaw.state !== 'logged-in' || valueRaw.authTokens.refreshToken === null) {
-      return;
-    }
-    const value = valueRaw;
-
-    let timeout: NodeJS.Timeout | null = null;
-    let foregroundChecker: ForegroundChangedIdentifier | null = null;
-    let runningRef = { current: true };
-
-    queueTimeoutIfForegrounded();
-    return () => {
-      runningRef.current = false;
-      if (timeout !== null) {
-        clearTimeout(timeout);
-        timeout = null;
-      }
-      if (foregroundChecker !== null) {
-        removeForegroundChangedListener(foregroundChecker);
-        foregroundChecker = null;
-      }
-    };
-
-    async function queueTimeout() {
-      if (!runningRef.current) {
-        return;
-      }
-
-      if (timeout !== null) {
-        clearTimeout(timeout);
-        timeout = null;
-      }
-
-      const nowMs = await getCurrentServerTimeMS();
-      if (!runningRef.current) {
-        return;
-      }
-
-      const expiresMs = getJwtExpiration(value.authTokens.idToken);
-      const refreshAtMs = expiresMs - 1000 * 60 * 5;
-      if (refreshAtMs < nowMs) {
-        if (expiresMs - 5000 < nowMs) {
-          setVWC(valueVWC, { state: 'loading' }, (a, b) => a.state === b.state);
-        }
-        await tryRefresh(value, runningRef);
-      } else {
-        const timeUntilRefreshMs = refreshAtMs - nowMs;
-        timeout = setTimeout(queueTimeout, timeUntilRefreshMs);
       }
     }
-
-    async function queueTimeoutIfForegrounded() {
-      const foregroundInfoAvailable = await canCheckForegrounded();
-      if (!runningRef.current) {
-        return;
-      }
-
-      if (!foregroundInfoAvailable) {
-        await queueTimeout();
-        return;
-      }
-
-      foregroundChecker = await addForegroundChangedListener(onForegroundChanged);
-      if (!runningRef.current) {
-        if (foregroundChecker !== null) {
-          removeForegroundChangedListener(foregroundChecker);
-          foregroundChecker = null;
-        }
-        return;
-      }
-
-      await onForegroundChanged();
-    }
-
-    async function onForegroundChanged() {
-      if (!runningRef.current) {
-        if (foregroundChecker !== null) {
-          removeForegroundChangedListener(foregroundChecker);
-          foregroundChecker = null;
-        }
-        return;
-      }
-
-      const isForegroundedNow = await isForegrounded();
-      if (!runningRef.current) {
-        return;
-      }
-
-      if (isForegroundedNow) {
-        if (timeout === null) {
-          await queueTimeout();
-        }
-      } else {
-        if (timeout !== null) {
-          clearTimeout(timeout);
-          timeout = null;
-        }
-      }
-    }
-  });
+  }, [valueVWC, queueVWC]);
 
   return (
     <LoginContext.Provider
