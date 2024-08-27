@@ -1,4 +1,4 @@
-import { CrudFetcherMapper, SimpleFilterItem } from '../../crud/CrudFetcher';
+import { convertUsingMapper, CrudFetcherMapper, SimpleFilterItem } from '../../crud/CrudFetcher';
 
 /**
  * Describes something that can be checked during trigger or peek time to get
@@ -18,8 +18,18 @@ export type ClientFlowPredicate = {
    * that are the same in titleCase and snake_case. where not possible, use snake_case.
    */
   stickyRandomGroups?: { [groupName: string]: SimpleFilterItem } | null;
+  /**
+   * each group gives a 1 if the user is in the group and a 0 if the user is not in the
+   * group. the user has to do something to join groups, usually the
+   * `pop_joining_opt_in_group` endpoint for triggers.
+   */
+  optInGroups?: { [groupName: string]: SimpleFilterItem } | null;
   /** a random float between 0 and 1 */
   randomFloat?: SimpleFilterItem | null;
+  /**
+   * Allows recursively producing any logical combination of these
+   */
+  or?: ClientFlowPredicate | null;
 };
 
 export const clientFlowPredicateMapper: CrudFetcherMapper<ClientFlowPredicate> = (raw) => {
@@ -36,8 +46,14 @@ export const clientFlowPredicateMapper: CrudFetcherMapper<ClientFlowPredicate> =
   if (raw.sticky_random_groups !== undefined && raw.sticky_random_groups !== null) {
     result.stickyRandomGroups = raw.sticky_random_groups;
   }
+  if (raw.opt_in_groups !== undefined && raw.opt_in_groups !== null) {
+    result.optInGroups = raw.opt_in_groups;
+  }
   if (raw.random_float !== undefined && raw.random_float !== null) {
     result.randomFloat = raw.random_float;
+  }
+  if (raw.or_predicate !== undefined && raw.or_predicate !== null) {
+    result.or = convertUsingMapper(raw.or_predicate, clientFlowPredicateMapper);
   }
   return result;
 };
@@ -50,5 +66,11 @@ export const serializeClientFlowPredicate = (x: ClientFlowPredicate): any => ({
   ...(x.stickyRandomGroups !== undefined && x.stickyRandomGroups !== null
     ? { sticky_random_groups: x.stickyRandomGroups }
     : {}),
+  ...(x.optInGroups !== undefined && x.optInGroups !== null
+    ? { opt_in_groups: x.optInGroups }
+    : {}),
   ...(x.randomFloat !== undefined && x.randomFloat !== null ? { random_float: x.randomFloat } : {}),
+  ...(x.or !== undefined && x.or !== null
+    ? { or_predicate: serializeClientFlowPredicate(x.or) }
+    : {}),
 });
