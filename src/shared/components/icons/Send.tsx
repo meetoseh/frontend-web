@@ -5,7 +5,7 @@ import {
   ResizableSvgProps,
 } from '../../models/ResizableSvgProps';
 
-/** Send icon / arrow in circle / suggested color: light, color2: dark */
+/** Send icon / arrow pointing up in circle / suggested color: light, color2: dark */
 export const Send = memo(
   ({ color2, ...props }: ResizableSvgProps & { color2: string }) => {
     const c = computeResizableSvgProps({ ...props, natural: { width: 24, height: 24 } });

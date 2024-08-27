@@ -1,0 +1,63 @@
+.row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.vstack {
+  display: grid;
+  grid-template: 1fr / 1fr;
+}
+
+.vstackItem {
+  grid-area: 1 / 1 / 2 / 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.goalVisualText {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 32px;
+  line-height: 32px;
+  font-weight: 600;
+  color: #eaeaeb;
+}
+
+.streakAndGoal {
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sectionTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  color: #c8cdd0;
+}
+
+.sectionValue {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.goalButton {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+}

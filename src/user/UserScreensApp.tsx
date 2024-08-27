@@ -64,6 +64,7 @@ import { JournalEntriesListScreen } from './core/screens/journal_entries_list/Jo
 import { JournalEntrySummaryScreen } from './core/screens/journal_entry_summary/JournalEntrySummaryScreen';
 import { LibraryScreen } from './core/screens/library/LibraryScreen';
 import { LibraryFilterScreen } from './core/screens/library_filter/LibraryFilterScreen';
+import { HomeV4Screen } from './core/screens/homev4/HomeV4Screen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -152,6 +153,7 @@ const screens = [
   JournalEntrySummaryScreen,
   LibraryScreen,
   LibraryFilterScreen,
+  HomeV4Screen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**

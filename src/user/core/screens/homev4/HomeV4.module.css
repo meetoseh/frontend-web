@@ -1,0 +1,76 @@
+.row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.headline {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.subheadline,
+.subheadlineQuote {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
+
+.subheadlineAuthor {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  color: #c8cdd0;
+}
+
+.bottomButtonWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.bottomButton {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+
+  appearance: none;
+  border: 1px solid #383838;
+  border-radius: 28px;
+  background: #191c1d;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+}
+
+.checkinButtonWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  flex-basis: auto;
+  flex-grow: 5;
+}
+
+.checkinText {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #eaeaeb;
+}
