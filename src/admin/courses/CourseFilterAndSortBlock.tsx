@@ -103,6 +103,7 @@ export const FLAG_NAMES: [CourseFlags, string][] = [
   ],
   [CourseFlags.SERIES_ATTACHABLE_FOR_FREE, 'Series attachable for free'],
   [CourseFlags.SERIES_IN_ADMIN_AREA, 'Series in admin area'],
+  [CourseFlags.JOURNEYS_IN_SERIES_IN_LIBRARY, 'Journeys in series in library'],
 ];
 
 const FLAG_PRESETS: [CourseFlags | 0, string][] = [
@@ -110,6 +111,7 @@ const FLAG_PRESETS: [CourseFlags | 0, string][] = [
   [CourseFlags.SERIES_IN_ADMIN_AREA, 'Series in admin area'],
   [CourseFlags.SERIES_ATTACHABLE_FOR_FREE, 'Series attachable for free'],
   [CourseFlags.SERIES_IN_SERIES_TAB, 'Series in series tab'],
+  [CourseFlags.JOURNEYS_IN_SERIES_IN_LIBRARY, 'Journeys in series in library'],
 ];
 const FLAG_PRESETS_LOOKUP = new Map(FLAG_PRESETS);
 

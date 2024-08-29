@@ -94,6 +94,12 @@ export enum CourseFlags {
    * area.
    */
   SERIES_IN_ADMIN_AREA = 1 << 10,
+
+  /**
+   * UNSET to prevent the journeys in the series from showing in the Library
+   * screen, aka the classes tab, aka the public_search endpoint
+   */
+  JOURNEYS_IN_SERIES_IN_LIBRARY = 1 << 11,
 }
 
 export const courseFlagsKeyMap: CrudFetcherMapper<CourseFlags> = (raw: any) => {
