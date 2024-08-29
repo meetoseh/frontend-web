@@ -268,7 +268,7 @@ export const HomeV4 = ({
             </div>
           </div>
         </ContentContainer>
-        <VerticalSpacer height={56} />
+        <VerticalSpacer height={32} />
       </GridContentContainer>
       <WipeTransitionOverlay wipe={transitionState.wipe} />
     </GridFullscreenContainer>
