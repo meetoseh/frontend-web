@@ -7,6 +7,7 @@ import {
 import { setVWC } from '../../../shared/lib/setVWC';
 import { screenWithWorking } from './screenWithWorking';
 import { ScreenStartPop } from '../models/Screen';
+import { adaptExitTransition } from './adaptExitTransition';
 
 /**
  * The standard screen out handler which plays the given exit transition and
@@ -30,7 +31,7 @@ export const screenOut = async <T extends string, C extends { type: T; ms: numbe
   }
 ): Promise<void> => {
   screenWithWorking(workingVWC, async () => {
-    setVWC(transition.animation, exit);
+    setVWC(transition.animation, await adaptExitTransition(exit));
 
     const exitTransitionCancelable = playExitTransition(transition);
 

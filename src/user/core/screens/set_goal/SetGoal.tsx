@@ -37,6 +37,7 @@ import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckbo
 import { BackContinue } from '../../../../shared/components/BackContinue';
 import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { adaptExitTransition } from '../../lib/adaptExitTransition';
 
 const _CHOICES = [
   { slug: '1', text: '1 day', days: 1, element: <>1 day</> },
@@ -193,6 +194,7 @@ export const SetGoal = ({
       }
 
       trace({ type, draft: true, step: 'save' });
+      setVWC(transition.animation, await adaptExitTransition(exit));
       const exitTransition = playExitTransition(transition);
       const result = await save();
       trace({ type, draft: false, step: 'save', result });

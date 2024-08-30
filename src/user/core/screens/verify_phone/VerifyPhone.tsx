@@ -34,6 +34,7 @@ import { useBeforeTime } from '../../../../shared/hooks/useBeforeTime';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { AutoBold } from '../../../../shared/components/AutoBold';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { adaptExitTransition } from '../../lib/adaptExitTransition';
 
 /**
  * Allows the user to verify a phone; triggers the back flow if the
@@ -75,7 +76,7 @@ export const VerifyPhone = ({
 
       setVWC(errorVWC, null);
 
-      setVWC(transition.animation, screen.parameters.cta.exit);
+      setVWC(transition.animation, await adaptExitTransition(screen.parameters.cta.exit));
       const exitTransition = playExitTransition(transition);
 
       const code = codeVWC.get();

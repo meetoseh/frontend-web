@@ -51,6 +51,7 @@ import { Back } from '../../../../shared/components/icons/Back';
 import { OsehColors } from '../../../../shared/OsehColors';
 import { Close } from '../../../../shared/components/icons/Close';
 import { Check } from '../../../../shared/components/icons/Check';
+import { adaptExitTransition } from '../../lib/adaptExitTransition';
 
 type Copy = UpgradeCopy<ScreenImageParsed>;
 
@@ -293,6 +294,7 @@ export const Upgrade = ({
 
               setVWC(workingVWC, true);
               trace({ type: 'subscribeStart', pkg, price });
+              setVWC(transition.animation, await adaptExitTransition(screen.parameters.exit));
               const exitPromise = playExitTransition(transition);
               try {
                 const response = await apiFetch(

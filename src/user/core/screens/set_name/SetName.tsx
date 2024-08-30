@@ -33,6 +33,7 @@ import { RenderGuardedComponent } from '../../../../shared/components/RenderGuar
 import { TextInput } from '../../../../shared/forms/TextInput';
 import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { adaptExitTransition } from '../../lib/adaptExitTransition';
 
 /**
  * A basic screen where the user can configure their name
@@ -161,6 +162,7 @@ export const SetName = ({
       }
 
       trace({ type, draft: true, step: 'save' });
+      setVWC(transition.animation, await adaptExitTransition(exit));
       const exitTransition = playExitTransition(transition);
       const result = await save();
       trace({ type, draft: false, step: 'save', result });

@@ -31,6 +31,7 @@ import { useMediaInfo } from '../../../../shared/content/useMediaInfo';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { getEffectiveVideoTarget } from '../../../../shared/content/createVideoSizeComparerForTarget';
 import { largestPhysicalPerLogical } from '../../../../shared/images/DisplayRatioHelper';
+import { adaptExitTransition } from '../../lib/adaptExitTransition';
 
 /**
  * A basic full screen video interstitial
@@ -120,7 +121,7 @@ export const VideoInterstitial = ({
     currentTranscriptPhrasesVWC: transcript,
   });
 
-  const onFinish = () => {
+  const onFinish = async () => {
     if (workingVWC.get()) {
       return;
     }
@@ -136,7 +137,7 @@ export const VideoInterstitial = ({
           },
       trigger.endpoint ?? undefined
     );
-    setVWC(transition.animation, screen.parameters.exit);
+    setVWC(transition.animation, await adaptExitTransition(screen.parameters.exit));
     playExitTransition(transition).promise.finally(() => finishPop());
   };
 

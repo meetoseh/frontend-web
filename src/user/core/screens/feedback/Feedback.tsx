@@ -37,6 +37,7 @@ import { ContentContainer } from '../../../../shared/components/ContentContainer
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
 import { Close } from '../../../../shared/components/icons/Close';
 import { OsehColors } from '../../../../shared/OsehColors';
+import { adaptExitTransition } from '../../lib/adaptExitTransition';
 
 /**
  * Presents the user the opportunity to give some free-form feedback
@@ -109,7 +110,7 @@ export const Feedback = ({
 
       setVWC(submitErrorVWC, null);
 
-      setVWC(transition.animation, screen.parameters.exit);
+      setVWC(transition.animation, await adaptExitTransition(screen.parameters.exit));
       const exitTransitionCancelable = playExitTransition(transition);
 
       try {
