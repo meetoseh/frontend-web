@@ -107,21 +107,7 @@ export const JournalReflectionResponse = ({
       .join('\n\n')
   );
 
-  const editableVWC = useMappedValuesWithCallbacks(
-    [resources.question, resources.savedResponse, workingVWC],
-    () => {
-      const working = workingVWC.get();
-      const question = resources.question.get();
-      const response = resources.savedResponse.get();
-      return (
-        !working &&
-        question !== null &&
-        question !== undefined &&
-        response !== 'error' &&
-        response !== 'loading'
-      );
-    }
-  );
+  const editableVWC = useWritableValueWithCallbacks(() => true);
   useValueWithCallbacksEffect(inputVWC, (i) => {
     i?.focus();
     return undefined;
@@ -130,10 +116,6 @@ export const JournalReflectionResponse = ({
   useErrorModal(modalContext.modals, errorVWC, 'saving response');
 
   const autoSavingVWC = useWritableValueWithCallbacks(() => false);
-  useWorkingModal(modalContext.modals, autoSavingVWC, {
-    title: 'Saving your response...',
-    variant: 'spinner',
-  });
 
   useValuesWithCallbacksEffect([canonicalResponseVWC, resources.savedResponse, editableVWC], () => {
     const canonicalResponse = canonicalResponseVWC.get();
@@ -324,11 +306,22 @@ export const JournalReflectionResponse = ({
                   <div className={styles.buttonInner}>
                     {screen.parameters.cta.text}
                     <HorizontalSpacer width={8} />
-                    <Forward
-                      icon={{ width: 20 }}
-                      container={{ width: 20, height: 20 }}
-                      startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
-                      color={OsehColors.v4.primary.light}
+                    <RenderGuardedComponent
+                      props={autoSavingVWC}
+                      component={(autoSaving) =>
+                        autoSaving ? (
+                          <InlineOsehSpinner
+                            size={{ type: 'react-rerender', props: { width: 20 } }}
+                          />
+                        ) : (
+                          <Forward
+                            icon={{ width: 20 }}
+                            container={{ width: 20, height: 20 }}
+                            startPadding={{ x: { fraction: 0.5 }, y: { fraction: 0.5 } }}
+                            color={OsehColors.v4.primary.light}
+                          />
+                        )
+                      }
                     />
                   </div>
                 </Button>
