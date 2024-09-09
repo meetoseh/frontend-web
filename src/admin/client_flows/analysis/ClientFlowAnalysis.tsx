@@ -229,6 +229,10 @@ export const ClientFlowAnalysis = ({ slug }: { slug: string }): ReactElement => 
             return <div className={styles.error}>rate limited</div>;
           }
 
+          if (Object.keys(data.result.items).length === 0) {
+            return <div className={styles.error}>empty result</div>;
+          }
+
           return (
             <>
               {Object.values(data.result.items).map((info, index) => (
