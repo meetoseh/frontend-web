@@ -403,6 +403,7 @@ def connect_and_execute(ip: str, key_file_path: str, script: str) -> None:
     logger.trace(f"stdout: {stdout}")
     logger.trace(f"stderr: {stderr}")
     logger.info(f"Done executing script on {ip}")
+    return stdout, stderr
 
 
 if __name__ == "__main__":
