@@ -166,10 +166,12 @@ export const createFlowDeletePrecheckList = (
 
   const items: WritableFlowDeletePrecheckItem[] = [];
   const cleanup = new Callbacks<undefined>();
-  for (let i = SCREEN_VERSION - 1; i <= SCREEN_VERSION + 1; i++) {
-    for (const item of clientFlowAnalysisStandardEnvironments.flattened) {
-      const environment = { ...item.environment, version: i };
-      for (const query of QUERIES) {
+
+  // to reduce lock contention, we want a different environment as often as possible
+  for (const query of QUERIES) {
+    for (let i = SCREEN_VERSION - 1; i <= SCREEN_VERSION + 1; i++) {
+      for (const item of clientFlowAnalysisStandardEnvironments.flattened) {
+        const environment = { ...item.environment, version: i };
         cleanup.add(
           ((precheckItem: WritableFlowDeletePrecheckItem) => {
             const cleanupCount = createValueWithCallbacksEffect(precheckItem.state, (s) => {
