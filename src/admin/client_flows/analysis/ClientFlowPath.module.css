@@ -1,0 +1,35 @@
+.container {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 20px;
+}
+
+.step {
+  padding: 12px 24px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #c8cdd0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  max-width: 440px;
+}
+
+.slug {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  color: #191c1d;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.description {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  color: #8b8e90;
+  font-size: 12px;
+  line-height: 16px;
+}

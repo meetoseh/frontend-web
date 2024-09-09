@@ -54,6 +54,8 @@ import { ModalWrapper } from '../../shared/ModalWrapper';
 import { WorkingOverlay } from '../../shared/components/WorkingOverlay';
 import { VerticalSpacer } from '../../shared/components/VerticalSpacer';
 import { ClientFlowRule, serializeClientFlowRule } from './client_flow_screens/ClientFlowRule';
+import { ClientFlowAnalysis } from './analysis/ClientFlowAnalysis';
+import { AdminDashboardLargeChartPlaceholder } from '../dashboard/AdminDashboardLargeChartPlaceholder';
 
 /**
  * Shows detailed information about a specific client flow specified by the slug in the URL
@@ -357,6 +359,8 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
 
   const cloneErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   useErrorModal(modalContext.modals, cloneErrorVWC, 'cloning client flow');
+
+  const showingAnalysisVWC = useWritableValueWithCallbacks(() => false);
 
   return (
     <>
@@ -957,6 +961,21 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
             )}
           />
         </div>
+        <RenderGuardedComponent
+          props={showingAnalysisVWC}
+          component={(showing) =>
+            showing ? (
+              <RenderGuardedComponent
+                props={slugVWC}
+                component={(slug) => <ClientFlowAnalysis slug={slug} />}
+              />
+            ) : (
+              <AdminDashboardLargeChartPlaceholder
+                onVisible={() => setVWC(showingAnalysisVWC, true)}
+              />
+            )
+          }
+        />
       </div>
     </>
   );
