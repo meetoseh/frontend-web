@@ -56,6 +56,8 @@ import { VerticalSpacer } from '../../shared/components/VerticalSpacer';
 import { ClientFlowRule, serializeClientFlowRule } from './client_flow_screens/ClientFlowRule';
 import { ClientFlowAnalysis } from './analysis/ClientFlowAnalysis';
 import { AdminDashboardLargeChartPlaceholder } from '../dashboard/AdminDashboardLargeChartPlaceholder';
+import { screenWithWorking } from '../../user/core/lib/screenWithWorking';
+import { handleClientFlowDeleteWithPopup } from './analysis/ClientFlowDeletePrechecks';
 
 /**
  * Shows detailed information about a specific client flow specified by the slug in the URL
@@ -956,6 +958,26 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                     }
                   }}>
                   Trigger on Many
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined-danger"
+                  disabled={disabled}
+                  spinner={spinner}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    screenWithWorking(workingVWC, async () => {
+                      const result = await handleClientFlowDeleteWithPopup({
+                        modals: modalContext.modals,
+                        uid: draftVWC.get().uid,
+                        slug: draftVWC.get().slug,
+                      }).promise;
+                      if (result) {
+                        window.location.href = '/admin/client_flows';
+                      }
+                    });
+                  }}>
+                  Delete Flow
                 </Button>
               </>
             )}

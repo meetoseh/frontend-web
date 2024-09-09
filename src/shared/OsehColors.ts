@@ -16,7 +16,7 @@ export const OsehColors = {
       lighten5: 'rgba(255, 255, 255, 0.05)',
     },
     other: {
-      ref: '#C83030',
+      red: '#C83030',
       green: '#40A797',
     },
   },
