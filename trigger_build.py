@@ -268,7 +268,7 @@ async def trigger_build(
 
             logger.info("Executing script on instance...")
             try:
-                await asyncio.wait_for(
+                stdout, stderr = await asyncio.wait_for(
                     anyio.to_thread.run_sync(
                         connect_and_execute,
                         instance_private_ip,
@@ -294,7 +294,34 @@ async def trigger_build(
                     "Frontend-Web build timed out (build_ready was not published within 5 minutes of script finishing)"
                 )
                 raise
-            logger.info("build_ready detected, cleaning up...")
+
+            logger.info("build_ready detected, storing build logs...")
+            await slack.send_ops_message("frontend-web storing build logs...")
+
+            with temp_file() as stdout_path, temp_file() as stderr_path:
+                with open(stdout_path, "w") as f:
+                    f.write(stdout)
+                with open(stderr_path, "w") as f:
+                    f.write(stderr)
+
+                files = await itgs.files()
+                with open(stdout_path, "rb") as f:
+                    await files.upload(
+                        f,
+                        bucket=files.default_bucket,
+                        key="builds/frontend-web/build-stdout.txt",
+                        sync=True,
+                    )
+
+                with open(stderr_path, "rb") as f:
+                    await files.upload(
+                        f,
+                        bucket=files.default_bucket,
+                        key="builds/frontend-web/build-stderr.txt",
+                        sync=True,
+                    )
+
+            logger.info("cleaning up...")
             await slack.send_ops_message("Frontend-Web cleaning up ec2 artifacts...")
 
     logger.info("Done cleaning up ec2 artifacts, triggering frontend-web update...")
