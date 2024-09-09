@@ -63,7 +63,9 @@
 
 @media not (prefers-reduced-motion) {
   .desktopTopContainer {
-    transition: left 0.3s ease-in-out, width 0.3s ease-in-out;
+    transition:
+      left 0.3s ease-in-out,
+      width 0.3s ease-in-out;
   }
 }
 
@@ -81,7 +83,10 @@
 
 @media not (prefers-reduced-motion) {
   .desktopContentContainer {
-    transition: width 0.3s ease-in-out, left 0.3s ease-in-out, top 0.3s ease-in-out;
+    transition:
+      width 0.3s ease-in-out,
+      left 0.3s ease-in-out,
+      top 0.3s ease-in-out;
   }
 }
 

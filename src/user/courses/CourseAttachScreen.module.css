@@ -103,19 +103,27 @@
 }
 
 .checkmark {
-  animation: 0.5s fadein-wait, 0.5s ease 0.5s fadein;
+  animation:
+    0.5s fadein-wait,
+    0.5s ease 0.5s fadein;
 }
 
 .checkmark2 {
-  animation: 1s fadein-wait, 0.5s ease 1s fadein;
+  animation:
+    1s fadein-wait,
+    0.5s ease 1s fadein;
 }
 
 .checkmark3 {
-  animation: 1.5s fadein-wait, 0.5s ease 1.5s fadein;
+  animation:
+    1.5s fadein-wait,
+    0.5s ease 1.5s fadein;
 }
 
 .checkmark4 {
-  animation: 2s fadein-wait, 0.5s ease 2s fadein;
+  animation:
+    2s fadein-wait,
+    0.5s ease 2s fadein;
 }
 
 @keyframes fadein-wait {
