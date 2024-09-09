@@ -417,7 +417,7 @@ export const ClientFlowDeletePrechecks = ({
         listVWC.callbacks.call(undefined);
       }
     }
-  }, [slug]);
+  }, [slug, listVWC, loginContextRaw.value]);
 
   const topLevelStateVWC = useWritableValueWithCallbacks(
     (): ReturnType<FlowDeletePrecheckItem['state']['get']> => 'loading'
