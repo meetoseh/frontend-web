@@ -15,18 +15,26 @@ export const OsehImageFromState = ({
   alt,
   placeholderColor,
   thumbhash,
-}: OsehImageState): ReactElement => {
+  explicitNoDrag,
+}: OsehImageState & { explicitNoDrag?: boolean }): ReactElement => {
   if (localUrl === null && placeholderColor !== undefined) {
     return (
       <div
         style={{ width: displayWidth, height: displayHeight, backgroundColor: placeholderColor }}
+        {...(explicitNoDrag ? { draggable: false } : {})}
       />
     );
   }
 
   if (localUrl === null && thumbhash !== null) {
     return (
-      <ThumbhashImage thumbhash={thumbhash} width={displayWidth} height={displayHeight} alt={alt} />
+      <ThumbhashImage
+        thumbhash={thumbhash}
+        width={displayWidth}
+        height={displayHeight}
+        alt={alt}
+        explicitNoDrag={explicitNoDrag}
+      />
     );
   }
 
@@ -35,6 +43,7 @@ export const OsehImageFromState = ({
       src={localUrl ?? require('../placeholder.png')}
       style={{ width: displayWidth, height: displayHeight, objectFit: 'fill' }}
       alt={alt}
+      {...(explicitNoDrag ? { draggable: false } : {})}
     />
   );
 };

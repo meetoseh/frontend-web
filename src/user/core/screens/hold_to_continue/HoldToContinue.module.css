@@ -1,0 +1,60 @@
+.instructions {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+  text-align: center;
+  color: #c8cdd0;
+  max-width: 13em;
+  align-self: center;
+}
+
+.title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28.6px;
+  text-align: center;
+  color: #eaeaeb;
+}
+
+.body {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  color: #c8cdd0;
+  max-width: 15em;
+  align-self: center;
+}
+
+.image {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  -ms-text-size-adjust: none;
+  -webkit-text-size-adjust: none;
+  user-select: none !important;
+  animation: none;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-self: center;
+}
+
+.image:focus-visible {
+  outline: 4px solid #c8cdd0;
+}
+
+.image > img {
+  pointer-events: none;
+}

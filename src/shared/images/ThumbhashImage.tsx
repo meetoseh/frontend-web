@@ -11,6 +11,8 @@ export type ThumbhashImageProps = {
   height: number;
   /** Alt text for the image */
   alt: string;
+  /** sets draggable=false on the image, useful for safari in some cases */
+  explicitNoDrag?: boolean;
 };
 
 export const ThumbhashImage = ({
@@ -18,8 +20,17 @@ export const ThumbhashImage = ({
   width,
   height,
   alt,
+  explicitNoDrag,
 }: ThumbhashImageProps): ReactElement => {
   const dataUrl = useMemo(() => thumbHashToDataURL(base64URLToByteArray(thumbhash)), [thumbhash]);
 
-  return <img src={dataUrl} width={width} height={height} alt={alt} />;
+  return (
+    <img
+      src={dataUrl}
+      width={width}
+      height={height}
+      alt={alt}
+      {...(explicitNoDrag ? { draggable: false } : {})}
+    />
+  );
 };
