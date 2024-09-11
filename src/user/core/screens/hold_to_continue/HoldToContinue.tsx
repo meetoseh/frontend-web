@@ -187,7 +187,7 @@ export const HoldToContinue = ({
     };
 
     function suppressContextMenu(event: any) {
-      if (event.pointerType == 'touch') {
+      if (event.pointerType === 'touch') {
         event.preventDefault();
       }
     }

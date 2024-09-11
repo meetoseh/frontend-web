@@ -6,6 +6,7 @@
   justify-content: flex-start;
   align-items: center;
   pointer-events: all;
+  min-height: 54px;
 }
 
 .headerText {
