@@ -46,6 +46,14 @@ const QUERIES = [
   'not-reachable-from-onboarding',
   'not-reachable-from-anywhere',
 ] as const;
+const SCREEN_VERSIONS: (number | null)[] = [
+  null,
+  75,
+  SCREEN_VERSION - 1,
+  SCREEN_VERSION,
+  SCREEN_VERSION + 1,
+];
+
 type PrecheckQuery = (typeof QUERIES)[number];
 
 export type WritableFlowDeletePrecheckItem = {
@@ -169,9 +177,9 @@ export const createFlowDeletePrecheckList = (
 
   // to reduce lock contention, we want a different environment as often as possible
   for (const query of QUERIES) {
-    for (let i = SCREEN_VERSION - 1; i <= SCREEN_VERSION + 1; i++) {
+    for (let screenVersion of SCREEN_VERSIONS) {
       for (const item of clientFlowAnalysisStandardEnvironments.flattened) {
-        const environment = { ...item.environment, version: i };
+        const environment = { ...item.environment, version: screenVersion };
         cleanup.add(
           ((precheckItem: WritableFlowDeletePrecheckItem) => {
             const cleanupCount = createValueWithCallbacksEffect(precheckItem.state, (s) => {
@@ -187,7 +195,7 @@ export const createFlowDeletePrecheckList = (
             items.push(precheckItem);
             return cleanupCount;
           })({
-            name: `${item.name} (v${i}) ${query}`,
+            name: `${item.name} (v${screenVersion ?? '0'}) ${query}`,
             environment,
             query,
             state: createWritableValueWithCallbacks<'waiting' | 'loading' | 'success' | 'failed'>(
