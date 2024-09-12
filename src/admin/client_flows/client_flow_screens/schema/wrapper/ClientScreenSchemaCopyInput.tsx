@@ -19,7 +19,7 @@ export const ClientScreenSchemaCopyInput = (props: ClientScreenSchemaInputProps)
     return <Deprecated {...props} />;
   }
 
-  if (typeof props.path[-1] !== 'string') {
+  if (typeof props.path[props.path.length - 1] !== 'string') {
     return props.noCopyDelegator({
       schema: props.schema,
       path: props.path,
