@@ -23,9 +23,9 @@ export type ClientFlowScreenVariableInputStringFormat = {
 
   /**
    * Where to store the result in the screen input parameters. E.g.,
-   * ['foo', 'bar'] would place the result in `foo.bar`.
+   * ['foo', 'bar', 2, 'baz'] would place the result in `foo.bar[2].baz`.
    */
-  outputPath: string[];
+  outputPath: (string | number)[];
 };
 
 export const clientFlowScreenVariableInputStringFormatKeyMap: CrudFetcherMapper<ClientFlowScreenVariableInputStringFormat> =
@@ -53,7 +53,7 @@ export type ClientFlowVariableInputCopy = {
    * copy the value at `standard.user.name`.
    */
   inputPath: string[];
-  outputPath: string[];
+  outputPath: (string | number)[];
 };
 
 export const clientFlowVariableInputCopyKeyMap: CrudFetcherMapper<ClientFlowVariableInputCopy> = {
@@ -79,7 +79,7 @@ export type ClientFlowVariableInputExtract = {
    * The path to pluck from after realizing the input parameter. E.g., ['intro_video', 'uid']
    */
   extractedPath: string[];
-  outputPath: string[];
+  outputPath: (string | number)[];
   /**
    * If true, _at trigger time_, if after converting the input path, while walking along the
    * extracted path we encounter a null or undefined value, the screen will be skipped instead

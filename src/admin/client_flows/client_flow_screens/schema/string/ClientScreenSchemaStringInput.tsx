@@ -123,21 +123,13 @@ export const ClientScreenSchemaStringInput = ({
             value={v.text}
             inputStyle={v.inputStyle}
             onChange={(v) => {
-              if (outputPath.some((v) => typeof v !== 'string')) {
-                if (variableVWC.get() !== undefined) {
-                  throw new Error('unsupported edit');
-                }
-                setVWC(valueVWC, v);
-                return;
-              }
-
               const params = extractParameters(v);
               if (params.length > 0) {
                 const newVariableMap = new Map(variableMapVWC.get());
                 newVariableMap.set(outputPrettyPath, {
                   type: 'string_format',
                   format: v,
-                  outputPath: outputPath as string[],
+                  outputPath,
                 });
 
                 setVWC(variableMapVWC, newVariableMap);
