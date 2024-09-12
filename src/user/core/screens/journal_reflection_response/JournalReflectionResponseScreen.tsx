@@ -4,6 +4,7 @@ import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createV
 import { createMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
+import { createCancelableTimeout } from '../../../../shared/lib/createCancelableTimeout';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { SCREEN_VERSION } from '../../../../shared/lib/screenVersion';
@@ -23,7 +24,10 @@ import {
   JourneyReflectionResponseAPIParams,
   JourneyReflectionResponseMappedParams,
 } from './JournalReflectionResponseParams';
-import { JournalReflectionResponseResources } from './JournalReflectionResponseResources';
+import {
+  JournalReflectionResponseResources,
+  JournalReflectionResponseResponse,
+} from './JournalReflectionResponseResources';
 
 /**
  * Shows the last journal reflection question and allows the user to respond
@@ -235,7 +239,7 @@ export const JournalReflectionResponseScreen: OsehScreen<
     const questionVWC = createWritableValueWithCallbacks<
       { entryCounter: number; paragraphs: string[] } | null | undefined
     >(null);
-    const responseVWC = createWritableValueWithCallbacks<
+    const serverResponseVWC = createWritableValueWithCallbacks<
       { entryCounter: number; value: string } | 'loading' | 'error' | 'dne'
     >('loading');
 
@@ -318,14 +322,14 @@ export const JournalReflectionResponseScreen: OsehScreen<
 
               if (chat === undefined) {
                 setVWC(questionVWC, undefined);
-                setVWC(responseVWC, 'error');
+                setVWC(serverResponseVWC, 'error');
                 await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
                 continue;
               }
 
               if (chat === null) {
                 setVWC(questionVWC, null);
-                setVWC(responseVWC, 'loading');
+                setVWC(serverResponseVWC, 'loading');
                 await Promise.race([chatChanged.promise, taskChanged.promise, canceled.promise]);
                 continue;
               }
@@ -363,7 +367,7 @@ export const JournalReflectionResponseScreen: OsehScreen<
               }
 
               setVWC(questionVWC, question);
-              setVWC(responseVWC, response);
+              setVWC(serverResponseVWC, response);
               await Promise.race([taskChanged.promise, chatChanged.promise, canceled.promise]);
             }
           }
@@ -371,18 +375,264 @@ export const JournalReflectionResponseScreen: OsehScreen<
       }
     );
 
-    return {
-      ready: createWritableValueWithCallbacks(true),
-      question: questionVWC,
-      savedResponse: responseVWC,
-      updateResponse: async (userResponse: string) => {
+    const clientResponseVWC = createWritableValueWithCallbacks<JournalReflectionResponseResponse>({
+      type: 'loading',
+    });
+    let {
+      onUserChangedResponse,
+      ensureSaved,
+      dispose: cleanupAutosaveLoop,
+    } = (() => {
+      /*
+       * Within this section we never read from clientResponseVWC, we exclusively
+       * write to it. We are the exclusive writer to clientResponseVWC. We do not
+       * listen to callbacks on clientResponseVWC; we pass messages via userInput,
+       * which is exclusively written to by onUserChangedResponse and exclusively
+       * read from within the loop.
+       *
+       * active - dispose hasn't been called yet
+       * ensuringSaved - set to true by ensureSaved, picked up by the loop
+       *   and set to false after the save is complete
+       * userInput - set by onUserChangedResponse, picked up by the loop
+       *   and set to null once we've seen it (checked and set within the
+       *   same event loop tick). naturally combines multiple calls that the
+       *   loop doesn't care about.
+       */
+
+      const active = createWritableValueWithCallbacks(true);
+      const ensuringSaved = createWritableValueWithCallbacks<
+        boolean | { type: 'error'; error: any }
+      >(false);
+      const userInput = createWritableValueWithCallbacks<string | null>(null);
+
+      let errorsSinceSuccess = 0;
+      let lastErrorAt: number | null = null;
+
+      handleLoop();
+
+      return {
+        onUserChangedResponse: (v: string) => {
+          if (!active.get()) {
+            throw new Error('onUserChangedResponse after dispose');
+          }
+          if (ensuringSaved.get()) {
+            throw new Error('onUserChangedResponse while ensuringSaved');
+          }
+          if (clientResponseVWC.get().type !== 'available') {
+            throw new Error('onUserChangedResponse while response not available');
+          }
+          setVWC(clientResponseVWC, { type: 'available', value: v });
+          setVWC(userInput, v);
+        },
+        ensureSaved: async () => {
+          if (!active.get()) {
+            throw new Error('ensureSaved after dispose');
+          }
+          setVWC(ensuringSaved, true);
+
+          const notActive = waitForValueWithCallbacksConditionCancelable(active, (a) => !a);
+          notActive.promise.catch(() => {});
+          const doneSaving = waitForValueWithCallbacksConditionCancelable(
+            ensuringSaved,
+            (e) => e !== true
+          );
+          doneSaving.promise.catch(() => {});
+          await Promise.race([notActive.promise, doneSaving.promise]);
+          notActive.cancel();
+
+          if (!active.get()) {
+            doneSaving.cancel();
+            throw new Error('ensureSaved not finished before dispose');
+          }
+
+          const v = await doneSaving.promise;
+          if (v === false) {
+            return;
+          }
+          if (v === true) {
+            throw new Error('impossible');
+          }
+          throw v.error;
+        },
+        dispose: () => {
+          setVWC(active, false);
+        },
+      };
+
+      async function handleLoop() {
+        const notActive = waitForValueWithCallbacksConditionCancelable(active, (a) => !a);
+        notActive.promise.catch(() => {});
+
+        try {
+          // setup only: transition from loading to available (or error out)
+          {
+            const responseFound = waitForValueWithCallbacksConditionCancelable(
+              serverResponseVWC,
+              (r) => r !== 'loading'
+            );
+            responseFound.promise.catch(() => {});
+            await Promise.race([notActive.promise, responseFound.promise]);
+            if (!active.get()) {
+              responseFound.cancel();
+              return;
+            }
+            const initialResponse = await responseFound.promise;
+            if (initialResponse === 'error' || initialResponse === 'loading') {
+              setVWC(clientResponseVWC, { type: 'error' });
+              return;
+            }
+
+            setVWC(clientResponseVWC, {
+              type: 'available',
+              value: initialResponse === 'dne' ? '' : initialResponse.value,
+            });
+          }
+
+          while (true) {
+            if (!active.get()) {
+              return;
+            }
+
+            {
+              const newValue = userInput.get();
+              if (ensuringSaved.get() === true) {
+                if (newValue === null) {
+                  setVWC(ensuringSaved, false);
+                  continue;
+                }
+
+                userInput.set(null);
+                userInput.callbacks.call(undefined);
+
+                await doSave(newValue);
+                continue;
+              }
+
+              if (newValue !== null) {
+                userInput.set(null);
+                userInput.callbacks.call(undefined);
+
+                const autoSaveTimeout = createCancelableTimeout(5000);
+                autoSaveTimeout.promise.catch(() => {});
+                const errorTimeout = waitErrorCooldownCancelable();
+                errorTimeout.promise.catch(() => {});
+                const saveRequested = waitForValueWithCallbacksConditionCancelable(
+                  ensuringSaved,
+                  (e) => e === true
+                );
+                saveRequested.promise.catch(() => {});
+                const newInput = waitForValueWithCallbacksConditionCancelable(
+                  userInput,
+                  (v) => v !== null
+                );
+                newInput.promise.catch(() => {});
+                await Promise.race([
+                  notActive.promise,
+                  Promise.all([autoSaveTimeout.promise, errorTimeout.promise]),
+                  saveRequested.promise,
+                  newInput.promise,
+                ]);
+                autoSaveTimeout.cancel();
+                errorTimeout.cancel();
+                saveRequested.cancel();
+                newInput.cancel();
+
+                if (!active.get() || userInput.get() !== null) {
+                  continue;
+                }
+
+                await doSave(newValue);
+                continue;
+              }
+
+              if (newValue === null) {
+                const saveRequested = waitForValueWithCallbacksConditionCancelable(
+                  ensuringSaved,
+                  (e) => e === true
+                );
+                saveRequested.promise.catch(() => {});
+                const newUserInput = waitForValueWithCallbacksConditionCancelable(
+                  userInput,
+                  (v) => v !== null
+                );
+                newUserInput.promise.catch(() => {});
+                await Promise.race([
+                  notActive.promise,
+                  saveRequested.promise,
+                  newUserInput.promise,
+                ]);
+                saveRequested.cancel();
+                newUserInput.cancel();
+                continue;
+              }
+            }
+          }
+        } finally {
+          notActive.cancel();
+        }
+      }
+
+      async function doSave(newValue: string) {
+        try {
+          await updateResponse(newValue);
+          onSuccessfulSave();
+          // NOTE: not safe to set ensuringSaved here, since
+          // although we saved successfully, the input may have
+          // changed in the meantime.
+        } catch (e) {
+          onFailedSave();
+          if (userInput.get() === null) {
+            userInput.set(newValue);
+            userInput.callbacks.call(undefined);
+          }
+          ensuringSaved.set({ type: 'error', error: e });
+          ensuringSaved.callbacks.call(undefined);
+        }
+      }
+
+      function waitErrorCooldownCancelable(): CancelablePromise<void> {
+        if (errorsSinceSuccess === 0) {
+          return {
+            done: () => true,
+            promise: Promise.resolve(),
+            cancel: () => {},
+          };
+        }
+
+        const errorTimeMS =
+          Math.pow(2, Math.min(errorsSinceSuccess, 6) - 1) * 1000 + Math.random() * 1000;
+        const realErrorAt = lastErrorAt ?? Date.now();
+        const timeUntilDelayOver = realErrorAt + errorTimeMS - Date.now();
+        if (timeUntilDelayOver <= 0) {
+          return {
+            done: () => true,
+            promise: Promise.resolve(),
+            cancel: () => {},
+          };
+        }
+
+        return createCancelableTimeout(timeUntilDelayOver);
+      }
+
+      function onSuccessfulSave() {
+        errorsSinceSuccess = 0;
+        lastErrorAt = null;
+      }
+
+      function onFailedSave() {
+        errorsSinceSuccess++;
+        lastErrorAt = Date.now();
+      }
+
+      /** actually store a response via the add or edit endpoint */
+      async function updateResponse(userResponse: string) {
         const question = questionVWC.get();
         if (question === null || question === undefined) {
           console.warn('cannot submit edit: no question available');
           return Promise.reject(new Error('no question available'));
         }
 
-        const currentResponse = responseVWC.get();
+        const currentResponse = serverResponseVWC.get();
         if (currentResponse === 'error' || currentResponse === 'loading') {
           console.warn('cannot submit edit: response not available');
           return Promise.reject(new Error('response not available'));
@@ -418,7 +668,15 @@ export const JournalReflectionResponseScreen: OsehScreen<
           ctx.resources.journalEntryMetadataHandler.evictOrReplace({ uid: journalEntryUID });
         }
         ctx.resources.journalEntryListHandler.evictAll();
-      },
+      }
+    })();
+
+    return {
+      ready: createWritableValueWithCallbacks(true),
+      question: questionVWC,
+      response: clientResponseVWC,
+      onUserChangedResponse,
+      ensureSaved,
       dispose: () => {
         setVWC(activeVWC, false);
         cleanupJournalEntryManagerRequester();
@@ -428,6 +686,7 @@ export const JournalReflectionResponseScreen: OsehScreen<
         cleanupChatUnwrapper();
         cleanupJournalEntryManagerRefresher();
         cleanupJournalEntryManagerRetrier();
+        cleanupAutosaveLoop();
       },
     };
   },

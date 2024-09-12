@@ -27,6 +27,35 @@ export const configurableScreenOut = async <T extends string, C extends { type: 
     onError?: (error: unknown) => void;
   }
 ): Promise<void> => {
+  const converted = convertToScreenOutOptions(trigger, opts);
+  screenOut(workingVWC, startPop, transition, exit, converted.flow, converted.options);
+};
+
+/**
+ * Convenience pure functional variant of `configurableScreenOut` which converts
+ * the given trigger and options into the correct arguments for the standard
+ * `screenOut` function. Useful if you need custom handling before startPop but
+ * after the transition.
+ */
+export const convertToScreenOutOptions = (
+  trigger: ScreenConfigurableTrigger,
+  opts?: {
+    endpoint?: string;
+    parameters?: any;
+    beforeDone?: () => Promise<void>;
+    afterDone?: () => void;
+    onError?: (error: unknown) => void;
+  }
+): {
+  flow: string | null;
+  options: {
+    endpoint?: string;
+    parameters?: any;
+    beforeDone?: () => Promise<void>;
+    afterDone?: () => void;
+    onError?: (error: unknown) => void;
+  };
+} => {
   const endpoint = trigger?.endpoint ?? opts?.endpoint;
   const parameters = (() => {
     const configuredParameters = trigger.type === 'flow' ? trigger.parameters : null;
@@ -42,11 +71,15 @@ export const configurableScreenOut = async <T extends string, C extends { type: 
       : endpoint !== undefined || parameters !== undefined
       ? 'skip'
       : null;
-  screenOut(workingVWC, startPop, transition, exit, flow, {
-    endpoint,
-    parameters,
-    beforeDone: opts?.beforeDone,
-    afterDone: opts?.afterDone,
-    onError: opts?.onError,
-  });
+
+  return {
+    flow,
+    options: {
+      endpoint,
+      parameters,
+      beforeDone: opts?.beforeDone,
+      afterDone: opts?.afterDone,
+      onError: opts?.onError,
+    },
+  };
 };

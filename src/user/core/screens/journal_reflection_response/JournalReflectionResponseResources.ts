@@ -1,6 +1,14 @@
 import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { ScreenResources } from '../../models/Screen';
 
+export type JournalReflectionResponseResponseAvailable = { type: 'available'; value: string };
+export type JournalReflectionResponseResponseLoading = { type: 'loading' };
+export type JournalReflectionResponseResponseError = { type: 'error' };
+export type JournalReflectionResponseResponse =
+  | JournalReflectionResponseResponseAvailable
+  | JournalReflectionResponseResponseLoading
+  | JournalReflectionResponseResponseError;
+
 export type JournalReflectionResponseResources = ScreenResources & {
   /**
    * The current reflection question; null while loading, undefined if an error
@@ -9,20 +17,35 @@ export type JournalReflectionResponseResources = ScreenResources & {
   question: ValueWithCallbacks<{ entryCounter: number; paragraphs: string[] } | null | undefined>;
 
   /**
-   * The current reflection response on the server, provided as a single string
-   * which may include newlines.
+   * The value which should be filled in the response input. There are
+   * necessarily two logical ways to set this value: when the user enters
+   * something (which can happen very quickly) and when getting new information
+   * from the saved response. However, the saved response can happen multiple
+   * times seeming "randomly" due to autosaving, network interruptions, etc.
+   * Thus, resolving the changes naively leads to lots of undesirable behavior
+   * (generally of the category of the users cursor being moved or their text
+   * reverting to a recent state).
    *
-   * Takes on the appropriate string literal if the response is loading, failed
-   * to load due to an error, or does not exist.
+   * Thus, to avoid this and for consistency on the web and native, the screen
+   * is only responsible for sending the response input via updateResponse and
+   * receiving the response input via this value.
    */
-  savedResponse: ValueWithCallbacks<
-    { entryCounter: number; value: string } | 'loading' | 'error' | 'dne'
-  >;
+  response: ValueWithCallbacks<JournalReflectionResponseResponse>;
 
   /**
-   * Stores the user's response to the reflection question and returns a promise
-   * which resolves when the response has been updated and rejects if an error
-   * occurs.
+   * Should be called whenever the users response changes. This is guarranteed
+   * to update responseInput before returning if the input is accepted at all.
+   *
+   * The user input is accepted unless "ensureSaved" is currently running.
    */
-  updateResponse: (userResponse: string) => Promise<void>;
+  onUserChangedResponse: (userResponse: string) => void;
+
+  /**
+   * Immediately prevents additional calls to onUserChangedResponse and returns
+   * a promise that is not resolved until the responseInput is saved on the
+   * server and matches `savedResponse`. May reject if a network error occurs,
+   * in which case the responseInput will be unchanged and the error should be
+   * shown to the user, and they should be allowed to retry or cancel.
+   */
+  ensureSaved: () => Promise<void>;
 };
