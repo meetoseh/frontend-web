@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.get_login_creds"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.oseh.frontendapp",
+    "sha256_cert_fingerprints": [
+      "45:87:DB:CA:2A:91:EC:30:DF:67:FB:EF:32:26:21:07:48:8C:01:48:4E:50:D8:3C:51:61:61:9F:EB"
+    ]
+  }
+}]

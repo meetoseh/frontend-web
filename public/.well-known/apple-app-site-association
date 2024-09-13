@@ -52,5 +52,10 @@
         ]
       }
     ]
+  },
+  "webcredentials": {
+    "apps": [
+      "27ADA46RS9.io.oseh.FrontendApp"
+    ]
   }
 }
