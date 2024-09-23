@@ -27,6 +27,11 @@ export type ButtonWithIcon = {
    */
   name: string;
   /**
+   * The variant to use for the button. Defaults to the top-level
+   * variant attribute if not provided
+   */
+  buttonVariant?: ButtonProps['variant'];
+  /**
    * The callback to be called when the button is clicked,
    * or a string to be used as the href for an anchor tag
    */
@@ -165,7 +170,7 @@ export const ButtonsWithIconsColumn = ({
           <Button
             key={item.key}
             type="button"
-            variant={variant}
+            variant={item.buttonVariant ?? variant}
             onClick={
               typeof onClick === 'string'
                 ? onClick

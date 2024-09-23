@@ -101,7 +101,10 @@ export type Visitor = {
  * @returns The visitor, or null if it does not exist.
  */
 export const loadVisitorFromStore = (): StoredVisitor | null | Promise<StoredVisitor | null> => {
-  const storedVisitorRaw = localStorage.getItem('visitor');
+  let storedVisitorRaw = localStorage.getItem('visitor');
+  if (storedVisitorRaw === null) {
+    storedVisitorRaw = sessionStorage.getItem('visitor');
+  }
   return storedVisitorRaw === null ? null : (JSON.parse(storedVisitorRaw) as StoredVisitor);
 };
 
@@ -114,10 +117,16 @@ export const loadVisitorFromStore = (): StoredVisitor | null | Promise<StoredVis
 export const writeVisitorToStore = async (visitor: StoredVisitor | null): Promise<void> => {
   if (visitor === null) {
     localStorage.removeItem('visitor');
+    sessionStorage.removeItem('visitor');
     return;
   }
 
-  localStorage.setItem('visitor', JSON.stringify(visitor));
+  try {
+    localStorage.setItem('visitor', JSON.stringify(visitor));
+    sessionStorage.removeItem('visitor');
+  } catch (e) {
+    sessionStorage.setItem('visitor', JSON.stringify(visitor));
+  }
 };
 
 // we define an async finite state machine to handle loading the visitor while seamlessly

@@ -56,7 +56,6 @@ function App() {
 
     const idToken = args.get('id_token');
     const refreshToken = args.get('refresh_token');
-    const onboard = args.get('onboard') === '1';
     if (idToken === null) {
       setHandlingLogin(false);
       return;
@@ -64,12 +63,6 @@ function App() {
 
     const tokens: TokenResponseConfig = { idToken, refreshToken };
     const userAttributes = extractUserAttributes(tokens);
-
-    if (onboard) {
-      localStorage.setItem('onboard', '1');
-    } else {
-      localStorage.removeItem('onboard');
-    }
 
     (async () => {
       await Promise.all([storeAuthTokens(tokens), storeUserAttributes(userAttributes)]);

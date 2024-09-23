@@ -63,7 +63,10 @@ export const getOrCreateClientKey = async (
 };
 
 const getClientKey = async (user: LoginContextValueLoggedIn): Promise<JournalClientKey | null> => {
-  const stored = localStorage.getItem('journalClientKey');
+  let stored = localStorage.getItem('journalClientKey');
+  if (stored === null) {
+    stored = sessionStorage.getItem('journalClientKey');
+  }
   if (stored === null) {
     return null;
   }
@@ -71,6 +74,7 @@ const getClientKey = async (user: LoginContextValueLoggedIn): Promise<JournalCli
   const parsed: { user: string; key: JournalClientKey } = JSON.parse(stored);
   if (parsed.user !== user.userAttributes.sub) {
     localStorage.removeItem('journalClientKey');
+    sessionStorage.removeItem('journalClientKey');
     return null;
   }
 
@@ -81,7 +85,13 @@ const storeClientKey = async (
   user: LoginContextValueLoggedIn,
   key: JournalClientKey
 ): Promise<void> => {
-  localStorage.setItem('journalClientKey', JSON.stringify({ user: user.userAttributes.sub, key }));
+  const serd = JSON.stringify({ user: user.userAttributes.sub, key });
+  try {
+    localStorage.setItem('journalClientKey', serd);
+    sessionStorage.removeItem('journalClientKey');
+  } catch {
+    sessionStorage.setItem('journalClientKey', serd);
+  }
 };
 
 const GROUP_14_PRIME = BigInt(
@@ -237,7 +247,10 @@ const hkdfExpand = async (prk: Uint8Array, length: number): Promise<Uint8Array> 
  */
 export const deleteClientKey = async (uid: string): Promise<void> => {
   return withStorageLock(async () => {
-    const stored = localStorage.getItem('journalClientKey');
+    let stored = localStorage.getItem('journalClientKey');
+    if (stored === null) {
+      stored = sessionStorage.getItem('journalClientKey');
+    }
     if (stored === null) {
       return;
     }
@@ -248,6 +261,7 @@ export const deleteClientKey = async (uid: string): Promise<void> => {
     }
 
     localStorage.removeItem('journalClientKey');
+    sessionStorage.removeItem('journalClientKey');
   });
 };
 
@@ -257,5 +271,6 @@ export const deleteClientKey = async (uid: string): Promise<void> => {
 export const purgeClientKeys = async (): Promise<void> => {
   return withStorageLock(async () => {
     localStorage.removeItem('journalClientKey');
+    sessionStorage.removeItem('journalClientKey');
   });
 };

@@ -12,19 +12,26 @@ import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { YesNoModal } from '../../../../../shared/components/YesNoModal';
 import { OauthProvider } from '../../../../login/lib/OauthProvider';
 import { getMergeProviderUrl } from '../lib/mergeUtils';
+import {
+  handlePasskeyAuthenticateForMerge,
+  handlePasskeyRegisterForMerge,
+} from '../../../lib/passkeyHelpers';
+import { showYesNoModal } from '../../../../../shared/lib/showYesNoModal';
 
 export const useManageConnectWithProvider = ({
   resources,
   mergeError,
   modals,
+  passkeyHint,
 }: {
   resources: SettingsResources;
   mergeError: WritableValueWithCallbacks<ReactElement | null>;
   modals: WritableValueWithCallbacks<Modals>;
+  passkeyHint: 'ask' | 'register' | 'authenticate';
 }): ((provider: OauthProvider, name: string) => Promise<void>) => {
   const loginContextRaw = useContext(LoginContext);
 
-  const manageConnectWithProvider = useCallback(
+  const manageConnectWithTypicalProvider = useCallback(
     async (provider: OauthProvider, name: string): Promise<void> => {
       const identities = resources.identities.get();
       const providerIdentities =
@@ -79,6 +86,64 @@ export const useManageConnectWithProvider = ({
       closeModalCallbacks.add(() => closeModal());
     },
     [loginContextRaw, mergeError, modals, resources]
+  );
+
+  const manageConnectWithPasskey = useCallback(
+    async (provider: 'Passkey', name: string): Promise<void> => {
+      const loginRaw = loginContextRaw.value.get();
+      if (loginRaw.state !== 'logged-in') {
+        return;
+      }
+      const login = loginRaw;
+
+      setVWC(mergeError, null);
+
+      let technique = passkeyHint;
+      if (technique === 'ask') {
+        const response = await showYesNoModal(modals, {
+          title: 'Passkey',
+          body: 'Would you like to register a new passkey or connect an existing one?',
+          cta1: 'Register',
+          cta2: 'Connect',
+          emphasize: 1,
+        }).promise;
+        if (response === true) {
+          technique = 'register';
+        } else if (response === false) {
+          technique = 'authenticate';
+        } else {
+          return;
+        }
+      }
+
+      try {
+        let mergeInfo: { mergeToken: string };
+        if (technique === 'register') {
+          mergeInfo = await handlePasskeyRegisterForMerge(login);
+        } else {
+          mergeInfo = await handlePasskeyAuthenticateForMerge(login);
+        }
+        window.location.assign('/#merge_token=' + mergeInfo.mergeToken);
+        window.location.reload();
+      } catch (e) {
+        const described = await describeError(e);
+        setVWC(mergeError, described);
+      }
+    },
+    [loginContextRaw]
+  );
+
+  const manageConnectWithProvider = useCallback(
+    (provider: OauthProvider, name: string): Promise<void> => {
+      if (provider === 'Passkey') {
+        return manageConnectWithPasskey(provider, name);
+      } else if (provider === 'Silent') {
+        return Promise.reject(new Error('Silent is unsupported in this context'));
+      } else {
+        return manageConnectWithTypicalProvider(provider, name);
+      }
+    },
+    [manageConnectWithPasskey, manageConnectWithTypicalProvider]
   );
 
   return manageConnectWithProvider;

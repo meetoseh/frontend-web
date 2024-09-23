@@ -5,6 +5,12 @@ import {
   ButtonsWithIconsColumn,
 } from '../../../shared/components/ButtonsWithIconsColumn';
 import styles from './ProvidersList.module.css';
+import { Google } from '../../../shared/components/icons/Google';
+import { OsehColors } from '../../../shared/OsehColors';
+import { Apple } from '../../../shared/components/icons/Apple';
+import { Email } from '../../../shared/components/icons/Email';
+import { Anonymous } from '../../../shared/components/icons/Anonymous';
+import { Passkey } from '../../../shared/components/icons/Passkey';
 
 /**
  * An item within a providers list, which is analogous to an item within
@@ -16,6 +22,10 @@ export type ProvidersListItem = {
    * The provider to use for this item.
    */
   provider: OauthProvider;
+
+  /** If true, we de-emphasize this provider */
+  deemphasize?: boolean;
+
   /**
    * Either the function to call when the button is clicked, or a string
    * for the href of an anchor tag. Generally a string should be used if
@@ -42,6 +52,138 @@ export type ProvidersListProps = {
   items: ProvidersListItem[];
 };
 
+export const LOGIN_ICONS_BY_PROVIDER: Record<OauthProvider, (color?: string) => ReactElement> = {
+  Google: (color) => (
+    <Google
+      icon={{
+        width: 18,
+      }}
+      container={{
+        width: 32,
+        height: 20,
+      }}
+      startPadding={{
+        x: {
+          fixed: 1,
+        },
+        y: {
+          fraction: 0.5,
+        },
+      }}
+      color={color ?? OsehColors.v4.primary.dark}
+    />
+  ),
+  SignInWithApple: (color) => (
+    <Apple
+      icon={{
+        width: 18,
+      }}
+      container={{
+        width: 32,
+        height: 20,
+      }}
+      startPadding={{
+        x: {
+          fixed: 1,
+        },
+        y: {
+          fraction: 0.5,
+        },
+      }}
+      color={color ?? OsehColors.v4.primary.dark}
+    />
+  ),
+  Direct: (color) => (
+    <Email
+      icon={{
+        width: 20,
+      }}
+      container={{
+        width: 32,
+        height: 20,
+      }}
+      startPadding={{
+        x: {
+          fraction: 0,
+        },
+        y: {
+          fraction: 0.5,
+        },
+      }}
+      color={color ?? OsehColors.v4.primary.dark}
+    />
+  ),
+  Dev: (color) => (
+    <Email
+      icon={{
+        width: 20,
+      }}
+      container={{
+        width: 32,
+        height: 20,
+      }}
+      startPadding={{
+        x: {
+          fraction: 0,
+        },
+        y: {
+          fraction: 0.5,
+        },
+      }}
+      color={color ?? OsehColors.v4.primary.dark}
+    />
+  ),
+  Silent: (color) => (
+    <Anonymous
+      icon={{
+        width: 20,
+      }}
+      container={{
+        width: 32,
+        height: 20,
+      }}
+      startPadding={{
+        x: {
+          fixed: 60,
+        },
+        y: {
+          fraction: 0.5,
+        },
+      }}
+      color={color ?? OsehColors.v4.primary.dark}
+    />
+  ),
+  Passkey: (color) => (
+    <Passkey
+      icon={{
+        width: 20,
+      }}
+      container={{
+        width: 32,
+        height: 20,
+      }}
+      startPadding={{
+        x: {
+          fraction: 0,
+        },
+        y: {
+          fraction: 0.5,
+        },
+      }}
+      color={color ?? OsehColors.v4.primary.dark}
+    />
+  ),
+};
+
+export const LOGIN_NAMES_BY_PROVIDER: Record<OauthProvider, string> = {
+  Google: 'Sign in with Google',
+  SignInWithApple: 'Sign in with Apple',
+  Direct: 'Sign in with Email',
+  Dev: 'Sign in as Developer',
+  Silent: 'Sign in later',
+  Passkey: 'Sign in with Passkey',
+};
+
 /**
  * Displays a list of providers using the standard spacing and button
  * variant.
@@ -50,15 +192,13 @@ export const ProvidersList = ({ items }: ProvidersListProps): ReactElement => {
   const buttons = useMemo(
     () =>
       items.map(
-        ({ provider, onClick, onLinkClick }): ButtonWithIcon => ({
+        ({ provider, onClick, deemphasize, onLinkClick }): ButtonWithIcon => ({
           key: provider,
-          icon: <span className={styles['icon' + provider]} />,
-          name: {
-            Google: 'Sign in with Google',
-            SignInWithApple: 'Sign in with Apple',
-            Direct: 'Sign in with Email',
-            Dev: 'Sign in with Dev',
-          }[provider],
+          icon: LOGIN_ICONS_BY_PROVIDER[provider](
+            deemphasize ? OsehColors.v4.primary.light : undefined
+          ),
+          buttonVariant: deemphasize ? 'outlined-white' : undefined,
+          name: LOGIN_NAMES_BY_PROVIDER[provider],
           onClick,
           onLinkClick,
         })

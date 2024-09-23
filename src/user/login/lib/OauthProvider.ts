@@ -4,4 +4,4 @@
  * the code callback, it functions similarly enough while being very
  * quick for creating accounts for testing
  */
-export type OauthProvider = 'SignInWithApple' | 'Google' | 'Direct' | 'Dev';
+export type OauthProvider = 'SignInWithApple' | 'Google' | 'Direct' | 'Silent' | 'Passkey' | 'Dev';

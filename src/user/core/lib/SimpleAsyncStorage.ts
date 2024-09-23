@@ -48,6 +48,16 @@ export const createUnencryptedStorageAdapter = (
 ): SimpleAsyncStorage => {
   const instanceLock = createWritableValueWithCallbacks<boolean>(false);
 
+  const storage = (() => {
+    try {
+      localStorage.setItem('test', 'test');
+      localStorage.removeItem('test');
+      return localStorage;
+    } catch {
+      return sessionStorage;
+    }
+  })();
+
   return {
     withStore: async (handler, opts) => {
       const canceled = createWritableValueWithCallbacks(false);
@@ -132,13 +142,13 @@ export const createUnencryptedStorageAdapter = (
           try {
             // cancellation is now the responsibility of the handler
             canceledCancelable.cancel();
-            const stored = localStorage.getItem(key);
+            const stored = storage.getItem(key);
             const result = await handler(stored, opts);
             if (result !== undefined) {
               if (result === null) {
-                localStorage.removeItem(key);
+                storage.removeItem(key);
               } else {
-                localStorage.setItem(key, result);
+                storage.setItem(key, result);
               }
             }
           } finally {

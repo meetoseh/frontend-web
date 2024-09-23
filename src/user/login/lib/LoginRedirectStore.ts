@@ -80,5 +80,7 @@ export const setLoginRedirect = async (value: LoginRedirectStoredValue | null): 
     return;
   }
 
-  localStorage.setItem(LOGIN_REDIRECT_KEY, JSON.stringify(value));
+  try {
+    localStorage.setItem(LOGIN_REDIRECT_KEY, JSON.stringify(value));
+  } catch {}
 };

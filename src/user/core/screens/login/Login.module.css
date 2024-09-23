@@ -1,0 +1,20 @@
+.logo {
+  composes: icon from '../../../../shared/icons.module.css';
+  background-image: url('../../../../assets/Oseh_Wordmark_White.svg');
+  width: 163px;
+  height: 40px;
+}
+
+.row {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.message {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  color: #eaeaeb;
+  text-align: center;
+}

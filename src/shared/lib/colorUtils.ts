@@ -16,8 +16,6 @@ export const alphaBlend = (
   (1 - foreground[3]) * background[2] + foreground[3] * foreground[2],
 ];
 
-let slowB64Table: Uint8Array | number[] | undefined = undefined;
-
 /**
  * Converts a base64url encoded string to the corresponding bytes.
  * This is useful when working with thumbhashes. This usually uses
@@ -25,68 +23,35 @@ let slowB64Table: Uint8Array | number[] | undefined = undefined;
  * a slow javascript implementation is used.
  */
 export const base64URLToByteArray = (base64Url: string): Uint8Array | number[] => {
-  if (
-    window.TextEncoder &&
-    window.Uint8Array &&
-    (process.env.REACT_APP_ENVIRONMENT !== 'dev' || Math.random() < 0.5)
-  ) {
-    const binString = atob(base64Url.replace(/-/g, '+').replace(/_/g, '/'));
-    return Uint8Array.from(binString, (c) => c.charCodeAt(0));
+  const binString = atob(base64Url.replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(binString, (c) => c.charCodeAt(0));
+};
+
+/**
+ * For convenience, the reverse operation of base64URLToByteArray.
+ */
+export const byteArrayToBase64URL = (bytes: Uint8Array | number[]): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  let base64 = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b1 = bytes[i];
+    const b2 = bytes[i + 1];
+    const b3 = bytes[i + 2];
+
+    base64 += chars[b1 >> 2];
+    base64 += chars[((b1 & 3) << 4) | (b2 >> 4)];
+    base64 += chars[((b2 & 15) << 2) | (b3 >> 6)];
+    base64 += chars[b3 & 63];
   }
 
-  if (slowB64Table === undefined) {
-    const table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-    const tableLookup = window.Uint8Array
-      ? new window.Uint8Array(256)
-      : (() => {
-          const res: number[] = [];
-          for (let i = 0; i < 256; i++) {
-            res.push(0);
-          }
-          return res;
-        })();
-
-    for (let i = 0; i < table.length; i++) {
-      tableLookup[table.charCodeAt(i)] = i;
-    }
-
-    slowB64Table = tableLookup;
+  const remainder = bytes.length % 3;
+  if (remainder === 2) {
+    base64 = base64.substring(0, base64.length - 1);
+  } else if (remainder === 1) {
+    base64 = base64.substring(0, base64.length - 2);
   }
 
-  const lookup = slowB64Table;
-  const result: number[] = [];
-
-  const numFullSegments = Math.floor(base64Url.length / 4);
-  for (let segment = 0; segment < numFullSegments; segment++) {
-    const sextet1 = lookup[base64Url.charCodeAt(segment * 4 + 0)];
-    const sextet2 = lookup[base64Url.charCodeAt(segment * 4 + 1)];
-    const sextet3 = lookup[base64Url.charCodeAt(segment * 4 + 2)];
-    const sextet4 = lookup[base64Url.charCodeAt(segment * 4 + 3)];
-
-    const octet1 = (sextet1 << 2) | (sextet2 >> 4);
-    const octet2 = ((sextet2 & 0xf) << 4) | (sextet3 >> 2);
-    const octet3 = ((sextet3 & 0x3) << 6) | sextet4;
-
-    result.push(octet1);
-    result.push(octet2);
-    result.push(octet3);
-  }
-
-  if (numFullSegments * 4 !== base64Url.length) {
-    const sextet1 = lookup[base64Url.charCodeAt(numFullSegments * 4 + 0)];
-    const sextet2 = lookup[base64Url.charCodeAt(numFullSegments * 4 + 1)] ?? 0;
-    const sextet3 = lookup[base64Url.charCodeAt(numFullSegments * 4 + 2)] ?? 0;
-
-    const octet1 = (sextet1 << 2) | (sextet2 >> 4);
-    const octet2 = ((sextet2 & 0xf) << 4) | (sextet3 >> 2);
-    const octet3 = (sextet3 & 0x3) << 6;
-
-    result.push(octet1);
-    result.push(octet2);
-    result.push(octet3);
-  }
-
-  return result;
+  return base64;
 };
 
 /**

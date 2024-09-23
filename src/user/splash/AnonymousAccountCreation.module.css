@@ -1,0 +1,26 @@
+.text {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 22px;
+  line-height: 28.6px;
+  font-weight: 400;
+  color: #eaeaeb;
+  text-align: left;
+}
+
+.subtext {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 18px;
+  line-height: 27px;
+  font-weight: 400;
+  color: #c8cdd0;
+  text-align: left;
+}
+
+.progress {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  color: #8b8e90;
+  text-align: left;
+}

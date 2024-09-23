@@ -254,7 +254,10 @@ export const ease = new Bezier([
     return;
   }
 
-  const stored = localStorage.getItem('ease4');
+  let stored = localStorage.getItem('ease4');
+  if (stored === null) {
+    stored = sessionStorage.getItem('ease4');
+  }
   if (stored !== null) {
     ease.precompute = JSON.parse(stored);
     return;
@@ -272,7 +275,11 @@ export const ease = new Bezier([
     // and store it in local storage for next time.
     ease.precompute();
     const data = '[' + ease.precomputed!.map((v) => `${Number(v.toFixed(4))}`).join() + ']';
-    localStorage.setItem('ease4', data);
+    try {
+      localStorage.setItem('ease4', data);
+    } catch (e) {
+      sessionStorage.setItem('ease4', data);
+    }
   }
 })();
 

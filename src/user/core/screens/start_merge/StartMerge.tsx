@@ -1,4 +1,4 @@
-import { ReactElement, useEffect } from 'react';
+import { ReactElement, useEffect, useMemo } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import { GridDarkGrayBackground } from '../../../../shared/components/GridDarkGrayBackground';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
@@ -15,9 +15,15 @@ import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks'
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { StartMergeResources } from './StartMergeResources';
 import { StartMergeMappedParams } from './StartMergeParams';
-import { ProvidersList, ProvidersListItem } from '../../../login/components/ProvidersList';
+import {
+  LOGIN_NAMES_BY_PROVIDER,
+  ProvidersList,
+  ProvidersListItem,
+} from '../../../login/components/ProvidersList';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { OauthProvider } from '../../../login/lib/OauthProvider';
+import { handlePasskeyAuthenticateForMerge } from '../../lib/passkeyHelpers';
 
 /**
  * Allows the user to merge their account using one of the indicated providers.
@@ -38,9 +44,18 @@ export const StartMerge = ({
   const transitionState = useStandardTransitionsState(transition);
 
   const workingVWC = useWritableValueWithCallbacks(() => false);
+  const cleanedProviders = useMemo(() => {
+    const result: { provider: OauthProvider; url: string }[] = [];
+    for (const provider of screen.parameters.providers) {
+      if (provider.provider in LOGIN_NAMES_BY_PROVIDER && provider.provider !== 'Silent') {
+        result.push(provider);
+      }
+    }
+    return result;
+  }, [screen.parameters.providers]);
 
   useEffect(() => {
-    if (screen.parameters.providers.length === 0) {
+    if (cleanedProviders.length === 0) {
       screenWithWorking(workingVWC, async () => {
         trace({ type: 'skip', reason: 'no providers in list' });
         const trigger = screen.parameters.skip.trigger;
@@ -50,7 +65,7 @@ export const StartMerge = ({
         )();
       });
     }
-  }, [screen.parameters.providers, startPop, trace, workingVWC, screen.parameters.skip.trigger]);
+  }, [cleanedProviders, startPop, trace, workingVWC, screen.parameters.skip.trigger]);
 
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
@@ -71,10 +86,22 @@ export const StartMerge = ({
         )}
         <VerticalSpacer height={24} />
         <ProvidersList
-          items={screen.parameters.providers.map(
+          items={cleanedProviders.map(
             ({ provider, url }): ProvidersListItem => ({
               provider,
-              onClick: url,
+              onClick:
+                provider === 'Passkey'
+                  ? async () => {
+                      trace({ type: 'provider', provider });
+                      const loginContext = ctx.login.value.get();
+                      if (loginContext.state !== 'logged-in') {
+                        return;
+                      }
+                      const token = await handlePasskeyAuthenticateForMerge(loginContext);
+                      window.location.assign('/#merge_token=' + token.mergeToken);
+                      window.location.reload();
+                    }
+                  : url,
               onLinkClick: () => {
                 trace({ type: 'provider', provider });
               },

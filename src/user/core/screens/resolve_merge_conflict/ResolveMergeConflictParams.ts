@@ -218,10 +218,6 @@ export type OauthMergeLoginOption = {
    * The provider for this identity
    */
   provider: OauthProvider;
-  /**
-   * The email address on the identity
-   */
-  email: string;
 };
 
 export type OauthMergeResult = {

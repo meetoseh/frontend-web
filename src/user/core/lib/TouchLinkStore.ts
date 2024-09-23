@@ -86,7 +86,10 @@ const withLock = <T>(
  */
 export const readStoredTouchLinkCode = (): CancelablePromise<StoredTouchLinkCode | null> => {
   return withLock(async () => {
-    const raw = localStorage.getItem('touchLink');
+    let raw = localStorage.getItem('touchLink');
+    if (raw === null) {
+      raw = sessionStorage.getItem('touchLink');
+    }
     if (raw === null) {
       return null;
     }
@@ -106,9 +109,14 @@ export const writeStoredTouchLinkCode = (
   return withLock(async () => {
     if (code === null) {
       localStorage.removeItem('touchLink');
+      sessionStorage.removeItem('touchLink');
       return;
     }
 
-    localStorage.setItem('touchLink', JSON.stringify(code));
+    try {
+      localStorage.setItem('touchLink', JSON.stringify(code));
+    } catch {
+      sessionStorage.setItem('touchLink', JSON.stringify(code));
+    }
   }) as CancelablePromise<void>;
 };

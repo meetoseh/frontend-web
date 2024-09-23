@@ -22,7 +22,7 @@ export const useFeatureFlag = (
   useEffect(() => {
     try {
       const parsedFlags = JSON.parse(
-        localStorage.getItem('featureFlags') ?? '{}'
+        localStorage.getItem('featureFlags') ?? sessionStorage.getItem('featureFlags') ?? '{}'
       ) as FeatureFlagState;
       setVWC(result, !!parsedFlags[flag]);
     } catch (e) {

@@ -347,7 +347,9 @@ export const JourneyFeedback = ({
 
         if (message === 'DataError') {
           console.log('Detected no support for url-only sharing, using fallback');
-          localStorage.setItem('disable-native-share', 'true');
+          try {
+            localStorage.setItem('disable-native-share', 'true');
+          } catch {}
           return openShareModalFallback(link, false);
         }
 

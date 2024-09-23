@@ -9,7 +9,7 @@ type StoredClockDrift = {
 const CLOCK_DRIFT_KEY = 'clockDrift';
 
 const getStoredClockDrift = (): StoredClockDrift | null => {
-  const raw = localStorage.getItem(CLOCK_DRIFT_KEY);
+  let raw = sessionStorage.getItem(CLOCK_DRIFT_KEY);
   if (raw === null || raw === undefined) {
     return null;
   }
@@ -34,18 +34,18 @@ const getStoredClockDrift = (): StoredClockDrift | null => {
       isSynthetic: parsed.isSynthetic,
     };
   } catch (e) {
-    localStorage.removeItem(CLOCK_DRIFT_KEY);
+    sessionStorage.removeItem(CLOCK_DRIFT_KEY);
     return null;
   }
 };
 
 const setStoredClockDrift = (drift: StoredClockDrift | null): void => {
   if (drift === null) {
-    localStorage.removeItem(CLOCK_DRIFT_KEY);
+    sessionStorage.removeItem(CLOCK_DRIFT_KEY);
     return;
   }
 
-  localStorage.setItem(CLOCK_DRIFT_KEY, JSON.stringify(drift));
+  sessionStorage.setItem(CLOCK_DRIFT_KEY, JSON.stringify(drift));
 };
 
 const tryUseServerForCristiansAlgorithm = async (): Promise<StoredClockDrift> => {

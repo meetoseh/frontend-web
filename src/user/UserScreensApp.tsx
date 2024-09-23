@@ -66,6 +66,7 @@ import { LibraryScreen } from './core/screens/library/LibraryScreen';
 import { LibraryFilterScreen } from './core/screens/library_filter/LibraryFilterScreen';
 import { HomeV4Screen } from './core/screens/homev4/HomeV4Screen';
 import { HoldToContinueScreen } from './core/screens/hold_to_continue/HoldToContinueScreen';
+import { AnonymousAccountCreation } from './splash/AnonymousAccountCreation';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -317,16 +318,21 @@ const UserScreensAppInner = ({
     (v) => v.type === 'finishing-pop' || v.type === 'spinner'
   );
 
-  const needLoginScreen = useMappedValueWithCallbacks(
+  const specialScreenVWC = useMappedValueWithCallbacks(
     loginContextRaw.value,
-    (v) => v.state === 'logged-out'
+    (v): 'login' | 'anonymous-account-creation' | undefined => {
+      if (v.state === 'logged-out') {
+        return 'login';
+      }
+      return undefined;
+    }
   );
 
   return (
     <RenderGuardedComponent
-      props={needLoginScreen}
-      component={(needLogin) => {
-        if (needLogin) {
+      props={specialScreenVWC}
+      component={(specialScreen) => {
+        if (specialScreen === 'login') {
           return (
             <RenderGuardedComponent
               props={touchLink.loggedOutPage}
@@ -347,11 +353,14 @@ const UserScreensAppInner = ({
                     />
                   );
                 }
-
                 return <LoginApp />;
               }}
             />
           );
+        }
+
+        if (specialScreen === 'anonymous-account-creation') {
+          return <AnonymousAccountCreation ctx={screenContext} />;
         }
 
         return (

@@ -236,7 +236,11 @@ type LocallyStoredInterests = {
  */
 const storeInterestsLocally = async (interests: LocallyStoredInterests) => {
   const serialized = JSON.stringify(interests);
-  localStorage.setItem('interests', serialized);
+  try {
+    localStorage.setItem('interests', serialized);
+  } catch (e) {
+    console.log('failed to store interests (e.g., safari private browsing), ignoring', e);
+  }
 };
 
 /**
