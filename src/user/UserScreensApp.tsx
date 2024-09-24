@@ -67,6 +67,7 @@ import { LibraryFilterScreen } from './core/screens/library_filter/LibraryFilter
 import { HomeV4Screen } from './core/screens/homev4/HomeV4Screen';
 import { HoldToContinueScreen } from './core/screens/hold_to_continue/HoldToContinueScreen';
 import { AnonymousAccountCreation } from './splash/AnonymousAccountCreation';
+import { UnsubscribeEmailScreen } from './core/screens/unsubscribe_email/UnsubscribeEmailScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -157,6 +158,7 @@ const screens = [
   LibraryFilterScreen,
   HomeV4Screen,
   HoldToContinueScreen,
+  UnsubscribeEmailScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
