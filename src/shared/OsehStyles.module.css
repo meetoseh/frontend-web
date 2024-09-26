@@ -1,0 +1,159 @@
+.layout__column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.layout__row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.layout__rowWrap {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.colors__v4__primary__white {
+  color: #ffffff;
+}
+
+.colors__v4__primary__light {
+  color: #eaeaeb;
+}
+
+.colors__v4__primary__smoke {
+  color: #c8cdd0;
+}
+
+.colors__v4__primary__grey {
+  color: #8b8e90;
+}
+
+.colors__v4__primary__darkGrey {
+  color: #383838;
+}
+
+.colors__v4__primary__charcoal {
+  color: #232323;
+}
+
+.colors__v4__primary__dark {
+  color: #191c1d;
+}
+
+.colors__v4__experimental__lessDarkGrey {
+  color: #35383a;
+}
+
+.colors__v4__experimental__lightError {
+  color: #ebadad;
+}
+
+.colors__v4__experimental__lighten5 {
+  color: rgba(255, 255, 255, 0.05);
+}
+
+.colors__v4__other__red {
+  color: #c83030;
+}
+
+.colors__v4__other__green {
+  color: #40a797;
+}
+
+.typography__h1 {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 33.6px;
+}
+
+.typography__h1Semibold {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 33.6px;
+}
+
+.typography__h2 {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 28.6px;
+}
+
+.typography__h2Semibold {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28.6px;
+}
+
+.typography__h3 {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 24px;
+}
+
+.typography__h3Semibold {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 24px;
+}
+
+.typography__title {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 22.1px;
+}
+
+.typography__titleSemibold {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 22.1px;
+}
+
+.typography__bodyLarge {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 27px;
+}
+
+.typography__body {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.typography__detail1 {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.8px;
+}
+
+.typography__detail2 {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 15.6px;
+}
+
+.typography__detail3 {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 13px;
+}
