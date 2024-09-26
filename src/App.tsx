@@ -116,18 +116,7 @@ function App() {
             </LoginProvider>
           }
         />
-        <Route
-          path="/login"
-          element={
-            <LoginProvider>
-              <InterestsAutoProvider>
-                <ModalProvider>
-                  <LoginApp />
-                </ModalProvider>
-              </InterestsAutoProvider>
-            </LoginProvider>
-          }
-        />
+        <Route path="/login" element={stdApp} />
         <Route
           path="/connectivity"
           element={
