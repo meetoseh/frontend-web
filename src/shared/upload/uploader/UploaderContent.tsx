@@ -663,7 +663,7 @@ export const UploaderContent = <T extends object>({
   );
 };
 
-const ProgressDisplay = ({
+export const ProgressDisplay = ({
   progress,
 }: {
   progress: WritableValueWithCallbacks<JobProgress>;

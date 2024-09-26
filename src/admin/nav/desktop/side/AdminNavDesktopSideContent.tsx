@@ -160,6 +160,12 @@ export const AdminNavDesktopSideContent = ({
             url="/admin/flow_chart_examples"
             active={currentPath === '/admin/flow_chart_examples'}
           />
+          <AdminNavDesktopSideLink
+            iconClass={styles.iconDebugJourney}
+            text="Debug Voice Notes"
+            url="/admin/debug_voice_note_upload"
+            active={currentPath === '/admin/debug_voice_note_upload'}
+          />
         </div>
         <div className={styles.userCardContainer}>
           <MyProfilePicture imageHandler={imageHandler} />

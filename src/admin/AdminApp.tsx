@@ -38,6 +38,7 @@ import { BigClientScreen } from './client_screens/BigClientScreen';
 import { ClientFlows } from './client_flows/ClientFlows';
 import { BigClientFlow } from './client_flows/BigClientFlow';
 import { AdminScreensDashboard } from './screens_dashboard/ScreensDashboard';
+import { DebugVoiceNoteUpload } from './debug_voice_note_upload/DebugVoiceNoteUpload';
 
 export const AdminRoutes = (): ReactElement => {
   return (
@@ -67,6 +68,7 @@ export const AdminRoutes = (): ReactElement => {
       <Route path="client_flows" element={<ClientFlows />} />
       <Route path="client_flow" element={<BigClientFlow />} />
       <Route path="screens_dashboard" element={<AdminScreensDashboard />} />
+      <Route path="debug_voice_note_upload" element={<DebugVoiceNoteUpload />} />
       <Route path="example1" element={<div>EXAMPLE 1</div>} />
       <Route path="" element={<AdminDashboard />} />
       <Route path="*" element={<div>CATCHALL</div>} />
