@@ -4,7 +4,8 @@
     "namespace": "android_app",
     "package_name": "com.oseh.frontendapp",
     "sha256_cert_fingerprints": [
-      "45:87:DB:CA:2A:91:EC:30:DF:67:FB:EF:32:26:21:07:48:8C:01:48:4E:50:D8:3C:51:61:61:9F:EB:1D:18:02"
+      "45:87:DB:CA:2A:91:EC:30:DF:67:FB:EF:32:26:21:07:48:8C:01:48:4E:50:D8:3C:51:61:61:9F:EB:1D:18:02",
+      "1E:A2:1A:EF:2F:3F:18:97:B5:32:E8:F0:0B:38:6F:6E:F4:78:F7:59:7C:F3:CE:8F:84:F3:F7:6A:0A:E6:9E:18"
     ]
   }
 }]
