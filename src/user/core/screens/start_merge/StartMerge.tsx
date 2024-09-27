@@ -24,6 +24,11 @@ import { screenWithWorking } from '../../lib/screenWithWorking';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
 import { handlePasskeyAuthenticateForMerge } from '../../lib/passkeyHelpers';
+import { useIsPasskeyAuthSupportedVWC } from '../../lib/useIsPasskeyAuthSupportedVWC';
+import { useIsGoogleAuthSupportedVWC } from '../../lib/useIsGoogleAuthSupported';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
+import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 
 /**
  * Allows the user to merge their account using one of the indicated providers.
@@ -44,17 +49,37 @@ export const StartMerge = ({
   const transitionState = useStandardTransitionsState(transition);
 
   const workingVWC = useWritableValueWithCallbacks(() => false);
-  const cleanedProviders = useMemo(() => {
-    const result: { provider: OauthProvider; url: string }[] = [];
-    for (const provider of screen.parameters.providers) {
-      if (provider.provider in LOGIN_NAMES_BY_PROVIDER && provider.provider !== 'Silent') {
-        result.push(provider);
-      }
-    }
-    return result;
-  }, [screen.parameters.providers]);
 
-  useEffect(() => {
+  const isSilentAuthSupportedVWC = useWritableValueWithCallbacks(
+    () => ({ type: 'final', value: false } as const)
+  );
+  const isPasskeyAuthSupportedVWC = useIsPasskeyAuthSupportedVWC();
+  const isGoogleAuthSupportedVWC = useIsGoogleAuthSupportedVWC();
+
+  const cleanedProvidersVWC = useMappedValuesWithCallbacks(
+    [isSilentAuthSupportedVWC, isPasskeyAuthSupportedVWC, isGoogleAuthSupportedVWC],
+    () => {
+      const result: { provider: OauthProvider; url: string }[] = [];
+      const badProviders: Set<OauthProvider> = new Set();
+      if (!isSilentAuthSupportedVWC.get().value) {
+        badProviders.add('Silent');
+      }
+      if (!isPasskeyAuthSupportedVWC.get().value) {
+        badProviders.add('Passkey');
+      }
+      if (!isGoogleAuthSupportedVWC.get().value) {
+        badProviders.add('Google');
+      }
+      for (const provider of screen.parameters.providers) {
+        if (provider.provider in LOGIN_NAMES_BY_PROVIDER && !badProviders.has(provider.provider)) {
+          result.push(provider);
+        }
+      }
+      return result;
+    }
+  );
+
+  useValueWithCallbacksEffect(cleanedProvidersVWC, (cleanedProviders) => {
     if (cleanedProviders.length === 0) {
       screenWithWorking(workingVWC, async () => {
         trace({ type: 'skip', reason: 'no providers in list' });
@@ -65,7 +90,8 @@ export const StartMerge = ({
         )();
       });
     }
-  }, [cleanedProviders, startPop, trace, workingVWC, screen.parameters.skip.trigger]);
+    return undefined;
+  });
 
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
@@ -85,27 +111,32 @@ export const StartMerge = ({
           </>
         )}
         <VerticalSpacer height={24} />
-        <ProvidersList
-          items={cleanedProviders.map(
-            ({ provider, url }): ProvidersListItem => ({
-              provider,
-              onClick:
-                provider === 'Passkey'
-                  ? async () => {
-                      trace({ type: 'provider', provider });
-                      const loginContext = ctx.login.value.get();
-                      if (loginContext.state !== 'logged-in') {
-                        return;
-                      }
-                      const token = await handlePasskeyAuthenticateForMerge(loginContext);
-                      window.location.assign('/#merge_token=' + token.mergeToken);
-                      window.location.reload();
-                    }
-                  : url,
-              onLinkClick: () => {
-                trace({ type: 'provider', provider });
-              },
-            })
+        <RenderGuardedComponent
+          props={cleanedProvidersVWC}
+          component={(cleanedProviders) => (
+            <ProvidersList
+              items={cleanedProviders.map(
+                ({ provider, url }): ProvidersListItem => ({
+                  provider,
+                  onClick:
+                    provider === 'Passkey'
+                      ? async () => {
+                          trace({ type: 'provider', provider });
+                          const loginContext = ctx.login.value.get();
+                          if (loginContext.state !== 'logged-in') {
+                            return;
+                          }
+                          const token = await handlePasskeyAuthenticateForMerge(loginContext);
+                          window.location.assign('/#merge_token=' + token.mergeToken);
+                          window.location.reload();
+                        }
+                      : url,
+                  onLinkClick: () => {
+                    trace({ type: 'provider', provider });
+                  },
+                })
+              )}
+            />
           )}
         />
         <VerticalSpacer height={0} flexGrow={1} />

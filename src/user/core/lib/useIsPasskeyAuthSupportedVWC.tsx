@@ -14,15 +14,27 @@ type UseIsPasskeyAuthSupportedResult = {
  */
 export const useIsPasskeyAuthSupportedVWC =
   (): ValueWithCallbacks<UseIsPasskeyAuthSupportedResult> => {
-    return useWritableValueWithCallbacks(
-      (): UseIsPasskeyAuthSupportedResult => ({
-        type: 'final',
-        value: !!(
-          window &&
-          window.navigator &&
-          window.navigator.credentials &&
-          window.navigator.credentials.get
-        ),
-      })
-    );
+    return useWritableValueWithCallbacks((): UseIsPasskeyAuthSupportedResult => {
+      if (
+        !window ||
+        !window.navigator ||
+        !window.navigator.credentials ||
+        !window.navigator.credentials.get
+      ) {
+        return { type: 'final', value: false };
+      }
+
+      if (!window || !window.navigator || !window.navigator.userAgent) {
+        return { type: 'final', value: false };
+      }
+
+      const userAgent = window.navigator.userAgent;
+
+      const isInappBrowser = /(Instagram)|(FBAN)|(FBAV)/.test(userAgent);
+      if (isInappBrowser) {
+        return { type: 'final', value: false };
+      }
+
+      return { type: 'final', value: true };
+    });
   };
