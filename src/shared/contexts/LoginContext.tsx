@@ -386,8 +386,9 @@ export const retrieveSilentAuthPreference = async (): Promise<SilentAuthPreferen
   throw new Error('invalid silent auth preference type');
 };
 
+export const GUESSED_SILENT_AUTH_SUPPORT = false;
 export const isSilentAuthSupported = async (): Promise<boolean> => {
-  return true;
+  return GUESSED_SILENT_AUTH_SUPPORT;
 };
 
 export type SilentAuthRSA4096V1Key = {

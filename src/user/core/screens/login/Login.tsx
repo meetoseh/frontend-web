@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { ReactElement, useCallback, useContext, useEffect } from 'react';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
 import { showYesNoModal } from '../../../../shared/lib/showYesNoModal';
 import { ScreenContext } from '../../hooks/useScreenContext';
@@ -14,12 +14,16 @@ import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import styles from './Login.module.css';
 import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
-import { ProvidersList } from '../../../login/components/ProvidersList';
+import { ProvidersList, ProvidersListItem } from '../../../login/components/ProvidersList';
 import { useOauthProviderUrlsValueWithCallbacks } from '../../../login/hooks/useOauthProviderUrlsValueWithCallbacks';
 import {
   handlePasskeyAuthenticateForLogin,
   handlePasskeyRegisterForLogin,
 } from '../../lib/passkeyHelpers';
+import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { useIsSilentAuthSupportedVWC } from '../../lib/useIsSilentAuthSupportedVWC';
+import { useIsPasskeyAuthSupportedVWC } from '../../lib/useIsPasskeyAuthSupportedVWC';
+import { useIsGoogleAuthSupportedVWC } from '../../lib/useIsGoogleAuthSupported';
 
 /**
  * The standard full screen component for logging in, which
@@ -79,9 +83,45 @@ export const Login = ({ ctx }: { ctx: ScreenContext }) => {
     'Direct',
   ]);
 
+  const isSilentAuthSupportedVWC = useIsSilentAuthSupportedVWC();
+  const isPasskeyAuthSupportedVWC = useIsPasskeyAuthSupportedVWC();
+  const isGoogleAuthSupportedVWC = useIsGoogleAuthSupportedVWC();
+
   const [urlProviderItemsVWC, urlProviderItemsErrorVWC] =
     useOauthProviderUrlsValueWithCallbacks(urlProvidersVWC);
   useErrorModal(modalContext.modals, urlProviderItemsErrorVWC, 'loading login providers');
+
+  const providerListItemsVWC = useMappedValuesWithCallbacks(
+    [
+      isSilentAuthSupportedVWC,
+      isPasskeyAuthSupportedVWC,
+      isGoogleAuthSupportedVWC,
+      urlProviderItemsVWC,
+    ],
+    (): ProvidersListItem[] => {
+      const silentAuth = isSilentAuthSupportedVWC.get().value;
+      const passkeyAuth = isPasskeyAuthSupportedVWC.get().value;
+      const googleAuth = isGoogleAuthSupportedVWC.get().value;
+
+      const urlProviderItems = urlProviderItemsVWC.get();
+      const filteredProviderItems = googleAuth
+        ? urlProviderItems
+        : urlProviderItems.filter((i) => i.provider !== 'Google');
+
+      if (!silentAuth && !passkeyAuth) {
+        return filteredProviderItems;
+      }
+      return [
+        ...(silentAuth
+          ? ([{ provider: 'Silent', onClick: () => onContinueWithProvider('Silent') }] as const)
+          : []),
+        ...(passkeyAuth
+          ? ([{ provider: 'Passkey', onClick: () => onContinueWithProvider('Passkey') }] as const)
+          : []),
+        ...filteredProviderItems.map((urlItem) => ({ ...urlItem, deemphasize: true })),
+      ];
+    }
+  );
 
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
@@ -104,29 +144,8 @@ export const Login = ({ ctx }: { ctx: ScreenContext }) => {
         </div>
         <VerticalSpacer height={0} maxHeight={48} flexGrow={1} />
         <RenderGuardedComponent
-          props={urlProviderItemsVWC}
-          component={(urlProviderItems) => (
-            <ProvidersList
-              items={[
-                {
-                  provider: 'Silent',
-                  onClick: () => {
-                    onContinueWithProvider('Silent');
-                  },
-                },
-                {
-                  provider: 'Passkey',
-                  onClick: () => {
-                    onContinueWithProvider('Passkey');
-                  },
-                },
-                ...urlProviderItems.map((urlItem) => ({
-                  ...urlItem,
-                  deemphasize: true,
-                })),
-              ]}
-            />
-          )}
+          props={providerListItemsVWC}
+          component={(items) => <ProvidersList items={items} />}
         />
         <VerticalSpacer height={32} />
       </GridContentContainer>
