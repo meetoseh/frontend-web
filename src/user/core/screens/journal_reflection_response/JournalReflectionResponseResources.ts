@@ -1,7 +1,14 @@
 import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { RequestResult } from '../../../../shared/requests/RequestHandler';
 import { ScreenResources } from '../../models/Screen';
+import { VoiceNoteStateMachine } from '../journal_chat/lib/createVoiceNoteStateMachine';
 
-export type JournalReflectionResponseResponseAvailable = { type: 'available'; value: string };
+export type JournalReflectionResponseResponseAvailable = {
+  type: 'available';
+  data:
+    | { type: 'text'; value: string }
+    | { type: 'voice'; request: RequestResult<VoiceNoteStateMachine> };
+};
 export type JournalReflectionResponseResponseLoading = { type: 'loading' };
 export type JournalReflectionResponseResponseError = { type: 'error' };
 export type JournalReflectionResponseResponse =
@@ -38,7 +45,11 @@ export type JournalReflectionResponseResources = ScreenResources & {
    *
    * The user input is accepted unless "ensureSaved" is currently running.
    */
-  onUserChangedResponse: (userResponse: string) => void;
+  onUserChangedResponse: (
+    userResponse:
+      | { type: 'text'; value: string }
+      | { type: 'voice'; voiceNote: VoiceNoteStateMachine }
+  ) => void;
 
   /**
    * Immediately prevents additional calls to onUserChangedResponse and returns

@@ -1,6 +1,6 @@
 import { ReactElement, useMemo } from 'react';
 import { ScreenContext } from '../../../hooks/useScreenContext';
-import { JournalChatState } from '../../journal_chat/lib/JournalChatState';
+import { JournalChatState } from '../lib/JournalChatState';
 import styles from './JournalEntryViewJournalCard.module.css';
 import { JournalEntryViewJournalCardBackground } from './JournalEntryViewJournalCardBackground';
 import { GridContentContainer } from '../../../../../shared/components/GridContentContainer';

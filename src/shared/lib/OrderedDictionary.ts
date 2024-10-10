@@ -192,18 +192,18 @@ export class OrderedDictionary<T, LookupKey extends keyof T, SortKey extends key
   }
 
   /**
-   * Peaks the head value, i.e., the value with the lowest sort key, if there
+   * Peeks the head value, i.e., the value with the lowest sort key, if there
    * is one, otherwise returns undefined. O(1)
    */
-  peakHead(): T | undefined {
+  peekHead(): T | undefined {
     return this.head !== null ? this.head.value : undefined;
   }
 
   /**
-   * Peaks the tail value, i.e., the value with the highest sort key, if there
+   * Peeks the tail value, i.e., the value with the highest sort key, if there
    * is one, otherwise returns undefined. O(1)
    */
-  peakTail(): T | undefined {
+  peekTail(): T | undefined {
     return this.tail !== null ? this.tail.value : undefined;
   }
 

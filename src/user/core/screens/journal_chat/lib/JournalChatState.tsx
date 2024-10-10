@@ -261,15 +261,99 @@ const dumpJournalEntryItemTextualPartParagraphForIntegrity = (
   return raw;
 };
 
+type OsehTranscriptPhraseAPI = {
+  /**
+   * When the phrase begins in seconds from the beginning of the recording
+   */
+  starts_at: number;
+
+  /**
+   * When the phrase ends in seconds from the beginning of the recording
+   */
+  ends_at: number;
+
+  /**
+   * The actual text of the phrase
+   */
+  phrase: string;
+};
+
+const dumpOsehTranscriptPhraseAPIForIntegrity = (data: OsehTranscriptPhraseAPI): string => {
+  let raw = '{"ends_at": ';
+  raw += encodeFloat(data.ends_at);
+  raw += ', "phrase": ';
+  raw += JSON.stringify(data.phrase);
+  raw += ', "starts_at": ';
+  raw += encodeFloat(data.starts_at);
+  raw += '}';
+  return raw;
+};
+
+type OsehTranscriptAPI = {
+  /** Typically an empty string */
+  uid: string;
+
+  /**
+   * The phrases in ascending order of starts at, ends at usually non-overlapping,
+   * but often not partitioning the entire recording due to periods of
+   * silence
+   */
+  phrases: OsehTranscriptPhraseAPI[];
+};
+
+const dumpOsehTranscriptAPIForIntegrity = (data: OsehTranscriptAPI): string => {
+  let raw = '{"phrases": [';
+  if (data.phrases.length > 0) {
+    raw += dumpOsehTranscriptPhraseAPIForIntegrity(data.phrases[0]);
+    for (let i = 1; i < data.phrases.length; i++) {
+      raw += ', ';
+      raw += dumpOsehTranscriptPhraseAPIForIntegrity(data.phrases[i]);
+    }
+  }
+  raw += '], "uid": "';
+  raw += data.uid;
+  raw += '"}';
+  return raw;
+};
+
+export type JournalEntryItemTextualPartVoiceNote = {
+  /** The transcription of the voice note with the uid set to an empty string */
+  transcription: OsehTranscriptAPI;
+  /**
+   * - `voice_note`: A voice note
+   */
+  type: 'voice_note';
+  /** A JWT for accessing the voice note */
+  voice_note_jwt: string;
+  /** The UID of the voice note */
+  voice_note_uid: string;
+};
+
+const dumpJournalEntryItemTextualPartVoiceNoteForIntegrity = (
+  data: JournalEntryItemTextualPartVoiceNote
+): string => {
+  let raw = '{"transcription": ';
+  raw += dumpOsehTranscriptAPIForIntegrity(data.transcription);
+  raw += ', "type": "voice_note", "voice_note_jwt": "';
+  raw += data.voice_note_jwt;
+  raw += '", "voice_note_uid": "';
+  raw += data.voice_note_uid;
+  raw += '"}';
+  return raw;
+};
+
 export type JournalEntryItemTextualPart =
   | JournalEntryItemTextualPartJourney
-  | JournalEntryItemTextualPartParagraph;
+  | JournalEntryItemTextualPartParagraph
+  | JournalEntryItemTextualPartVoiceNote;
 
 const dumpJournalEntryItemTextualPartForIntegrity = (data: JournalEntryItemTextualPart): string => {
   if (data.type === 'journey') {
     return dumpJournalEntryItemTextualPartJourneyForIntegrity(data);
   } else if (data.type === 'paragraph') {
     return dumpJournalEntryItemTextualPartParagraphForIntegrity(data);
+  } else if (data.type === 'voice_note') {
+    return dumpJournalEntryItemTextualPartVoiceNoteForIntegrity(data);
   } else {
     throw new Error(`Unknown type: ${(data as any).type}`);
   }

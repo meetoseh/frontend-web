@@ -3,13 +3,14 @@ import {
   useWritableValueWithCallbacks,
   ValueWithCallbacks,
   WritableValueWithCallbacks,
-  WritableValueWithTypedCallbacks,
 } from '../lib/Callbacks';
 import { createValueWithCallbacksEffect } from '../hooks/createValueWithCallbacksEffect';
 import { setVWC } from '../lib/setVWC';
 import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
 import styles from './ResizingTextArea.module.css';
 import { HorizontalSpacer } from './HorizontalSpacer';
+import { RenderGuardedComponent } from './RenderGuardedComponent';
+import { useMappedValueWithCallbacks } from '../hooks/useMappedValueWithCallbacks';
 
 export type ResizingTextAreaProps = {
   /** The styling variant to use */
@@ -17,14 +18,11 @@ export type ResizingTextAreaProps = {
   /** The text shown when the textarea is not focused and they haven't written anything */
   placeholder: string;
   /** Configures a submit button in the textarea; null for no submit button */
-  submit: { icon: ReactElement; onClick: () => void } | null;
-  /**
-   * The value of the textarea. When the callback is invoked with
-   * `{ updateInput: true }` or `undefined`, we set the value of the input. If it's
-   * called with `{ updateInput: false }`, we don't set the value of the input.
-   * Whenever this is set by this component, `{ updateInput: false }` is used.
-   */
-  value: WritableValueWithTypedCallbacks<string, { updateInput: boolean } | undefined>;
+  submit: ValueWithCallbacks<{ icon: ReactElement; onClick: () => void } | null>;
+  /** The value of the textarea */
+  value: ValueWithCallbacks<string>;
+  /** Called when the user changes the value of the text area */
+  onValueChanged: (v: string) => void;
   /** We store the ref to the input here, if provided */
   refVWC?: WritableValueWithCallbacks<HTMLTextAreaElement | null>;
   /** If the text area should be editable; undefined for always editable */
@@ -55,7 +53,7 @@ export const ResizingTextArea = (props: ResizingTextAreaProps) => {
       setVWC(propRef, r);
       return undefined;
     });
-  }, [props.refVWC]);
+  }, [props.refVWC, refVWC]);
 
   const editableVWC = useWritableValueWithCallbacks<boolean>(() =>
     props.editable === undefined
@@ -80,7 +78,7 @@ export const ResizingTextArea = (props: ResizingTextAreaProps) => {
       setVWC(editableVWC, e);
       return undefined;
     });
-  }, [props.editable]);
+  }, [props.editable, editableVWC]);
 
   useEffect(() => {
     const refRaw = refVWC.get();
@@ -98,51 +96,26 @@ export const ResizingTextArea = (props: ResizingTextAreaProps) => {
     fixInput();
 
     input.addEventListener('keydown', onKeyDown);
-    input.addEventListener('change', onChangeOrInput);
-    input.addEventListener('input', onChangeOrInput);
-    props.value.callbacks.add(onValueCallbacks);
+    props.value.callbacks.add(fixInput);
     return () => {
       input.removeEventListener('keydown', onKeyDown);
-      input.removeEventListener('change', onChangeOrInput);
-      input.removeEventListener('input', onChangeOrInput);
-      props.value.callbacks.remove(onValueCallbacks);
+      props.value.callbacks.remove(fixInput);
     };
 
     function onKeyDown(e: KeyboardEvent) {
       if (props.enterBehavior === 'submit-if-ctrl' && e.key === 'Enter' && e.ctrlKey) {
         e.preventDefault();
-        props.submit?.onClick();
+        props.submit.get()?.onClick();
         return;
       }
 
       if (props.enterBehavior === 'submit-unless-shift' && e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        props.submit?.onClick();
+        props.submit.get()?.onClick();
         return;
       }
-
-      if (props.value.get() !== input.value) {
-        fixInput();
-        props.value.set(input.value);
-        props.value.callbacks.call({ updateInput: false });
-      }
     }
-
-    function onChangeOrInput() {
-      if (props.value.get() !== input.value) {
-        fixInput();
-        props.value.set(input.value);
-        props.value.callbacks.call({ updateInput: false });
-      }
-    }
-
-    function onValueCallbacks(e: { updateInput: boolean } | undefined) {
-      if (e === undefined || e.updateInput) {
-        input.value = props.value.get();
-        fixInput();
-      }
-    }
-  }, [props.value, refVWC]);
+  }, [props.value, props.enterBehavior, props.submit, refVWC]);
 
   useValuesWithCallbacksEffect([refVWC, editableVWC], () => {
     const ref = refVWC.get();
@@ -152,29 +125,59 @@ export const ResizingTextArea = (props: ResizingTextAreaProps) => {
     return undefined;
   });
 
-  if (props.submit === null) {
-    return (
-      <textarea
-        className={styles.simple}
-        ref={(r) => setVWC(refVWC, r)}
-        rows={1}
-        placeholder={props.placeholder}
-      />
-    );
-  }
+  const submitIsNullVWC = useMappedValueWithCallbacks(props.submit, (s) => s === null);
 
   return (
-    <div className={styles.container}>
-      <textarea
-        className={styles.textarea}
-        ref={(r) => setVWC(refVWC, r)}
-        rows={1}
-        placeholder={props.placeholder}
-      />
-      <HorizontalSpacer width={6} />
-      <button className={styles.submit} onClick={props.submit.onClick}>
-        {props.submit.icon}
-      </button>
-    </div>
+    <RenderGuardedComponent
+      props={submitIsNullVWC}
+      component={(submitIsNull) =>
+        submitIsNull ? (
+          <RenderGuardedComponent
+            props={props.value}
+            component={(value) => (
+              <textarea
+                className={styles.simple}
+                ref={(r) => setVWC(refVWC, r)}
+                rows={1}
+                placeholder={props.placeholder}
+                value={value}
+                onChange={(e) => props.onValueChanged(e.target.value)}
+              />
+            )}
+            applyInstantly
+          />
+        ) : (
+          <div className={styles.container}>
+            <RenderGuardedComponent
+              props={props.value}
+              component={(value) => (
+                <textarea
+                  className={styles.textarea}
+                  ref={(r) => setVWC(refVWC, r)}
+                  rows={1}
+                  placeholder={props.placeholder}
+                  value={value}
+                  onChange={(e) => props.onValueChanged(e.target.value)}
+                />
+              )}
+              applyInstantly
+            />
+            <HorizontalSpacer width={6} />
+            <RenderGuardedComponent
+              props={props.submit}
+              component={(submit) =>
+                submit === null ? (
+                  <></>
+                ) : (
+                  <button className={styles.submit} onClick={submit.onClick}>
+                    {submit.icon}
+                  </button>
+                )
+              }
+            />
+          </div>
+        )
+      }
+    />
   );
 };

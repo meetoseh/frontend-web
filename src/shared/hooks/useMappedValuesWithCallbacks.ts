@@ -1,6 +1,11 @@
 import { MutableRefObject, useEffect, useRef } from 'react';
-import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
+import {
+  ValueWithCallbacks,
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+} from '../lib/Callbacks';
 import { MappedValueWithCallbacksOpts, defaultEqualityFn } from './useMappedValueWithCallbacks';
+import { setVWC } from '../lib/setVWC';
 
 /**
  * Similar to useMappedValueWithCallbacks, except this one maps an array of
@@ -67,4 +72,62 @@ export const useMappedValuesWithCallbacks = <V, T extends ValueWithCallbacks<V>[
   }, [arr, mapper, result, opts.inputEqualityFn, opts.outputEqualityFn]);
 
   return result;
+};
+
+/**
+ * Functional version of useMappedValuesWithCallbacks, but with some quality
+ * of life improvements as it was made later:
+ *
+ * - The mapper function does not get the input array as an argument, as that's
+ *   not particularly useful in most cases.
+ * - The input equality fn is not accepted and no attempt is made to handle
+ *   bad input VWC callback invocations, as it's almost never helpful
+ * - The resulting VWCs callbacks are invoked at the start of the next event
+ *   loop instead of immediately as very often all the input VWCs are updated
+ *   at once.
+ */
+export const createMappedValuesWithCallbacks = <V, T extends ValueWithCallbacks<V>[], U>(
+  arr: T,
+  mapper: () => U,
+  rawOpts?: Omit<MappedValueWithCallbacksOpts<V[], U>, 'inputEqualityFn'>
+): [ValueWithCallbacks<U>, () => void] => {
+  const opts: Required<Omit<MappedValueWithCallbacksOpts<V[], U>, 'inputEqualityFn'>> =
+    Object.assign(
+      {
+        outputEqualityFn: defaultEqualityFn,
+      },
+      rawOpts
+    );
+
+  let timeout: NodeJS.Timeout | null = null;
+
+  const result = createWritableValueWithCallbacks<U>(mapper());
+  for (const v of arr) {
+    v.callbacks.add(handleChange);
+  }
+
+  return [
+    result,
+    () => {
+      for (const v of arr) {
+        v.callbacks.remove(handleChange);
+      }
+      if (timeout !== null) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+    },
+  ];
+
+  function handleChangeImmediate() {
+    timeout = null;
+    setVWC(result, mapper(), opts.outputEqualityFn);
+  }
+
+  function handleChange() {
+    if (timeout !== null) {
+      return;
+    }
+    timeout = setTimeout(handleChangeImmediate, 0);
+  }
 };

@@ -18,7 +18,11 @@ import {
   JournalEntryManager,
   JournalEntryManagerRef,
 } from '../journal_chat/lib/createJournalEntryManagerHandler';
-import { JournalChatState } from '../journal_chat/lib/JournalChatState';
+import { VoiceNoteStateMachine } from '../journal_chat/lib/createVoiceNoteStateMachine';
+import {
+  JournalChatState,
+  JournalEntryItemTextualPartVoiceNote,
+} from '../journal_chat/lib/JournalChatState';
 import { JournalReflectionResponse } from './JournalReflectionResponse';
 import {
   JourneyReflectionResponseAPIParams,
@@ -240,7 +244,15 @@ export const JournalReflectionResponseScreen: OsehScreen<
       { entryCounter: number; paragraphs: string[] } | null | undefined
     >(null);
     const serverResponseVWC = createWritableValueWithCallbacks<
-      { entryCounter: number; value: string } | 'loading' | 'error' | 'dne'
+      | {
+          entryCounter: number;
+          value:
+            | { type: 'text'; value: string }
+            | { type: 'voice'; request: RequestResult<VoiceNoteStateMachine> };
+        }
+      | 'loading'
+      | 'error'
+      | 'dne'
     >('loading');
 
     const cleanupJournalEntryManagerRetrier = createValueWithCallbacksEffect(
@@ -335,7 +347,14 @@ export const JournalReflectionResponseScreen: OsehScreen<
               }
 
               let question: { entryCounter: number; paragraphs: string[] } | null = null;
-              let response: { entryCounter: number; value: string } | 'dne' = 'dne';
+              let response:
+                | {
+                    entryCounter: number;
+                    value:
+                      | { type: 'text'; value: string }
+                      | { type: 'voice'; request: RequestResult<VoiceNoteStateMachine> };
+                  }
+                | 'dne' = 'dne';
               for (let i = chat.data.length - 1; i >= 0; i--) {
                 const entryItem = chat.data[i];
                 if (
@@ -345,17 +364,60 @@ export const JournalReflectionResponseScreen: OsehScreen<
                 ) {
                   const textData = entryItem.data;
                   const parts = [];
+                  let voiceNotePart: JournalEntryItemTextualPartVoiceNote | null = null;
                   for (let j = 0; j < textData.parts.length; j++) {
                     const part = textData.parts[j];
                     if (part.type === 'paragraph') {
                       parts.push(part.value);
+                    } else if (part.type === 'voice_note') {
+                      voiceNotePart = part;
                     }
                   }
-                  if (parts.length > 0) {
+                  if (voiceNotePart !== null && entryItem.type === 'reflection-response') {
+                    if (response !== 'dne' && response.value.type === 'voice') {
+                      response.value.request.release();
+                    }
+                    response = {
+                      entryCounter: i + 1,
+                      value: {
+                        type: 'voice',
+                        request: ctx.resources.voiceNoteHandler.request({
+                          ref: {
+                            voiceNoteUID: voiceNotePart.voice_note_uid,
+                            voiceNoteJWT: voiceNotePart.voice_note_jwt,
+                          },
+                          refreshRef: () => {
+                            const inner = refreshScreen();
+                            return {
+                              promise: inner.promise.then((r) => {
+                                if (r.type === 'success') {
+                                  return {
+                                    type: 'error',
+                                    data: undefined,
+                                    error: <>not supported</>,
+                                    retryAt: undefined,
+                                  };
+                                }
+                                return r;
+                              }),
+                              done: inner.done,
+                              cancel: inner.cancel,
+                            };
+                          },
+                        }),
+                      },
+                    };
+                  } else {
                     if (entryItem.type === 'reflection-question') {
                       question = { entryCounter: i + 1, paragraphs: parts };
                     } else if (entryItem.type === 'reflection-response') {
-                      response = { entryCounter: i + 1, value: parts.join('\n\n') };
+                      if (response !== 'dne' && response.value.type === 'voice') {
+                        response.value.request.release();
+                      }
+                      response = {
+                        entryCounter: i + 1,
+                        value: { type: 'text', value: parts.join('\n\n') },
+                      };
                     }
                   }
                 }
@@ -403,7 +465,15 @@ export const JournalReflectionResponseScreen: OsehScreen<
       const ensuringSaved = createWritableValueWithCallbacks<
         boolean | { type: 'error'; error: any }
       >(false);
-      const userInput = createWritableValueWithCallbacks<string | null>(null);
+      const userInput = createWritableValueWithCallbacks<
+        | { type: 'text'; value: string }
+        | {
+            type: 'voice';
+            voiceNote: VoiceNoteStateMachine;
+            request: RequestResult<VoiceNoteStateMachine>;
+          }
+        | null
+      >(null);
 
       let errorsSinceSuccess = 0;
       let lastErrorAt: number | null = null;
@@ -411,7 +481,9 @@ export const JournalReflectionResponseScreen: OsehScreen<
       handleLoop();
 
       return {
-        onUserChangedResponse: (v: string) => {
+        onUserChangedResponse: (
+          v: { type: 'text'; value: string } | { type: 'voice'; voiceNote: VoiceNoteStateMachine }
+        ) => {
           if (!active.get()) {
             throw new Error('onUserChangedResponse after dispose');
           }
@@ -421,8 +493,64 @@ export const JournalReflectionResponseScreen: OsehScreen<
           if (clientResponseVWC.get().type !== 'available') {
             throw new Error('onUserChangedResponse while response not available');
           }
-          setVWC(clientResponseVWC, { type: 'available', value: v });
-          setVWC(userInput, v);
+
+          const oldClientResponse = clientResponseVWC.get();
+          if (oldClientResponse.type === 'available' && oldClientResponse.data.type === 'voice') {
+            oldClientResponse.data.request.release();
+          }
+
+          const oldUserInput = userInput.get();
+          if (oldUserInput !== null && oldUserInput.type === 'voice') {
+            oldUserInput.request.release();
+          }
+
+          if (v.type === 'text') {
+            setVWC(clientResponseVWC, { type: 'available', data: v });
+            setVWC(userInput, v);
+            return;
+          }
+
+          const state = v.voiceNote.state.get();
+          if (
+            state.type !== 'uploading' &&
+            state.type !== 'transcribing' &&
+            state.type !== 'local-ready' &&
+            state.type !== 'remote-ready'
+          ) {
+            throw new Error('voice note not ready');
+          }
+
+          const refreshRef = () => {
+            const inner = refreshScreen();
+            return {
+              promise: inner.promise.then(
+                (r) =>
+                  ({
+                    type: 'error',
+                    data: undefined,
+                    error: <>refresh finish not supported</>,
+                    retryAt: undefined,
+                  } as const)
+              ),
+              done: inner.done,
+              cancel: inner.cancel,
+            };
+          };
+
+          const userInputRequest = ctx.resources.voiceNoteHandler.requestWithData({
+            ref: { voiceNoteUID: state.voiceNote.uid, voiceNoteJWT: state.voiceNote.jwt },
+            refreshRef,
+            data: v.voiceNote,
+          });
+          const clientResponseRequest = ctx.resources.voiceNoteHandler.request({
+            ref: { voiceNoteUID: state.voiceNote.uid, voiceNoteJWT: state.voiceNote.jwt },
+            refreshRef,
+          });
+          setVWC(clientResponseVWC, {
+            type: 'available',
+            data: { type: 'voice', request: clientResponseRequest },
+          });
+          setVWC(userInput, { type: 'voice', voiceNote: v.voiceNote, request: userInputRequest });
         },
         ensureSaved: async () => {
           if (!active.get()) {
@@ -484,7 +612,10 @@ export const JournalReflectionResponseScreen: OsehScreen<
 
             setVWC(clientResponseVWC, {
               type: 'available',
-              value: initialResponse === 'dne' ? '' : initialResponse.value,
+              data:
+                initialResponse === 'dne'
+                  ? { type: 'text' as 'text', value: '' }
+                  : initialResponse.value,
             });
           }
 
@@ -504,7 +635,17 @@ export const JournalReflectionResponseScreen: OsehScreen<
                 userInput.set(null);
                 userInput.callbacks.call(undefined);
 
-                await doSave(newValue);
+                const oldRequest = newValue.type === 'voice' ? newValue.request : undefined;
+                const newValueWithoutReq =
+                  newValue.type === 'voice'
+                    ? ({ type: 'voice', voiceNote: newValue.voiceNote } as const)
+                    : newValue;
+
+                try {
+                  await doSave(newValueWithoutReq);
+                } finally {
+                  oldRequest?.release();
+                }
                 continue;
               }
 
@@ -538,10 +679,22 @@ export const JournalReflectionResponseScreen: OsehScreen<
                 newInput.cancel();
 
                 if (!active.get() || userInput.get() !== null) {
+                  if (newValue.type === 'voice') {
+                    newValue.request.release();
+                  }
                   continue;
                 }
 
-                await doSave(newValue);
+                const oldRequest = newValue.type === 'voice' ? newValue.request : undefined;
+                const newValueWithoutReq =
+                  newValue.type === 'voice'
+                    ? ({ type: 'voice', voiceNote: newValue.voiceNote } as const)
+                    : newValue;
+                try {
+                  await doSave(newValueWithoutReq);
+                } finally {
+                  oldRequest?.release();
+                }
                 continue;
               }
 
@@ -569,10 +722,24 @@ export const JournalReflectionResponseScreen: OsehScreen<
           }
         } finally {
           notActive.cancel();
+
+          const newValue = userInput.get();
+          if (newValue !== null && newValue.type === 'voice') {
+            newValue.request.release();
+            setVWC(userInput, null);
+          }
         }
       }
 
-      async function doSave(newValue: string) {
+      async function doSave(
+        newValue:
+          | { type: 'text'; value: string }
+          | {
+              type: 'voice';
+              voiceNote: VoiceNoteStateMachine;
+              request?: undefined;
+            }
+      ) {
         try {
           await updateResponse(newValue);
           onSuccessfulSave();
@@ -581,9 +748,52 @@ export const JournalReflectionResponseScreen: OsehScreen<
           // changed in the meantime.
         } catch (e) {
           onFailedSave();
-          if (userInput.get() === null) {
-            userInput.set(newValue);
-            userInput.callbacks.call(undefined);
+          if (active.get()) {
+            if (userInput.get() === null) {
+              if (newValue.type === 'text') {
+                userInput.set(newValue);
+                userInput.callbacks.call(undefined);
+                return;
+              } else {
+                const state = newValue.voiceNote.state.get();
+                if (
+                  state.type === 'uploading' ||
+                  state.type === 'transcribing' ||
+                  state.type === 'local-ready' ||
+                  state.type === 'remote-initializing' ||
+                  state.type === 'remote-initialized' ||
+                  state.type === 'remote-selecting-export' ||
+                  state.type === 'remote-downloading-audio' ||
+                  state.type === 'remote-ready'
+                ) {
+                  const newRequest = ctx.resources.voiceNoteHandler.request({
+                    ref: { voiceNoteUID: state.voiceNote.uid, voiceNoteJWT: state.voiceNote.jwt },
+                    refreshRef: () => {
+                      const inner = refreshScreen();
+                      return {
+                        promise: inner.promise.then(
+                          () =>
+                            ({
+                              type: 'error',
+                              data: undefined,
+                              error: <>not supported</>,
+                              retryAt: undefined,
+                            } as const)
+                        ),
+                        done: inner.done,
+                        cancel: inner.cancel,
+                      };
+                    },
+                  });
+                  userInput.set({
+                    type: 'voice',
+                    voiceNote: newValue.voiceNote,
+                    request: newRequest,
+                  });
+                  userInput.callbacks.call(undefined);
+                }
+              }
+            }
           }
           ensuringSaved.set({ type: 'error', error: e });
           ensuringSaved.callbacks.call(undefined);
@@ -625,7 +835,14 @@ export const JournalReflectionResponseScreen: OsehScreen<
       }
 
       /** actually store a response via the add or edit endpoint */
-      async function updateResponse(userResponse: string) {
+      async function updateResponse(
+        userResponse:
+          | { type: 'text'; value: string }
+          | {
+              type: 'voice';
+              voiceNote: VoiceNoteStateMachine;
+            }
+      ) {
         const question = questionVWC.get();
         if (question === null || question === undefined) {
           console.warn('cannot submit edit: no question available');
@@ -648,6 +865,31 @@ export const JournalReflectionResponseScreen: OsehScreen<
           return Promise.reject(new Error('user not logged in'));
         }
 
+        const [responseFormat, responseValue] = (() => {
+          if (userResponse.type === 'text') {
+            return ['text', userResponse.value] as const;
+          }
+
+          const state = userResponse.voiceNote.state.get();
+          if (
+            state.type !== 'uploading' &&
+            state.type !== 'transcribing' &&
+            state.type !== 'local-ready' &&
+            state.type !== 'remote-initializing' &&
+            state.type !== 'remote-initialized' &&
+            state.type !== 'remote-downloading-audio' &&
+            state.type !== 'remote-selecting-export' &&
+            state.type !== 'remote-ready'
+          ) {
+            throw new Error('voice note not ready');
+          }
+
+          return [
+            'parts',
+            JSON.stringify([{ type: 'voice_note', voice_note_uid: state.voiceNote.uid }]),
+          ];
+        })();
+
         await journalEntryManager.refresh(user, ctx.interests.visitor, {
           endpoint:
             currentResponse === 'dne'
@@ -656,8 +898,9 @@ export const JournalReflectionResponseScreen: OsehScreen<
           bonusParams: async (clientKey) => ({
             version: SCREEN_VERSION,
             ...(currentResponse !== 'dne' ? { entry_counter: currentResponse.entryCounter } : {}),
+            reflection_response_format: responseFormat,
             encrypted_reflection_response: await clientKey.key.encrypt(
-              userResponse,
+              responseValue,
               await getCurrentServerTimeMS()
             ),
           }),
@@ -687,6 +930,12 @@ export const JournalReflectionResponseScreen: OsehScreen<
         cleanupJournalEntryManagerRefresher();
         cleanupJournalEntryManagerRetrier();
         cleanupAutosaveLoop();
+
+        const currentResponse = clientResponseVWC.get();
+        if (currentResponse.type === 'available' && currentResponse.data.type === 'voice') {
+          currentResponse.data.request.release();
+          setVWC(clientResponseVWC, { type: 'error' });
+        }
       },
     };
   },

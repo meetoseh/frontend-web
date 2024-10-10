@@ -1549,6 +1549,126 @@ export class RequestHandler<
   }
 
   /**
+   * Similar to `request`, but used when you already have the data that you are
+   * requesting. This will move the request directly into the active list for this
+   * request handler, keeping it there until all requests (including the returned one)
+   * are released.
+   *
+   * The main use case is when this request handler manages data that is not always
+   * managed by this request handler, and you initialized that data elsewhere but
+   * now want to have the request handler take it over.
+   *
+   * Logically this behaves similar to request followed by evictOrReplace, except
+   * it ensures that we don't start then cancel a request if the data is not locked
+   * (which is the typical case)
+   *
+   * In practice this will:
+   * - evict from the stale list, if it is there
+   * - lock the data with the new request
+   * - replace the latest value on the data
+   * - notify lock holders of the new value
+   * - return the new request
+   */
+  requestWithData({
+    ref,
+    refreshRef,
+    data,
+  }: {
+    ref: RefT;
+    refreshRef: () => CancelablePromise<Result<RefT>>;
+    data: DataT;
+  }): RequestResult<DataT> {
+    const internalUid = 'oseh_client_rhint_' + createUID();
+    const refUid = this.getRefUid(ref);
+
+    this.logNest('requestWithData', internalUid);
+    try {
+      const stale = this.staleDataByRefUid.get(refUid);
+      if (stale !== undefined) {
+        this.log('found in stale list, evicting');
+        this.staleDataByRefUid.remove(refUid);
+        if (stale.activeRequest !== null) {
+          this.log('canceling active request from evicted stale item');
+          stale.activeRequest.cancelable.cancel();
+          stale.activeRequest = null;
+        }
+        if (stale.latest !== null && stale.latest.data.type === 'success') {
+          this.log('cleaning up data from evicted stale item');
+          this.cleanupData(stale.latest.data.data);
+        }
+      }
+
+      const concreteData = createWritableValueWithCallbacks<RequestResultConcrete<DataT>>({
+        type: 'success',
+        data,
+        error: undefined,
+        reportExpired: () => this.reportExpired(refUid),
+      });
+      const result: WritableRequestResult<DataT> = {
+        data: concreteData,
+        release: this.release.bind(this, internalUid),
+      };
+      this.requestsByInternalUid.set(internalUid, {
+        internalUid,
+        ref: {
+          latest: {
+            type: 'initial',
+            requestInfo: undefined,
+            finishedAt: undefined,
+            value: ref,
+            result: undefined,
+          },
+          activeRequest: null,
+          fetchRef: refreshRef,
+        },
+        result,
+      });
+
+      this.ensureAndLock(refUid, internalUid);
+      const locked = this.lockedDataByRefUid.get(refUid);
+      if (locked === undefined) {
+        throw new Error('Internal error: locked is undefined despite just ensuring!');
+      }
+
+      if (locked.activeRequest !== null) {
+        this.log('active request exists, canceling');
+        const active = locked.activeRequest;
+        locked.activeRequest = null;
+        active.cancelable.cancel();
+      }
+      this.log('replacing latest data with new data and notifying lock holders');
+      const now = new Date();
+      const oldLatest = locked.latest;
+      locked.latest = {
+        requestInfo: {
+          uid: 'oseh_client_rqdatareq_' + createUID(),
+          startedAtOverall: now,
+          startedAtThisAttempt: now,
+          retry: 0,
+        },
+        finishedAt: now,
+        data: {
+          type: 'success',
+          data,
+          error: undefined,
+          retryAt: undefined,
+        },
+      };
+      this.notifyLockHolders(locked, {
+        type: 'success',
+        data,
+        error: undefined,
+        reportExpired: () => this.reportExpired(refUid),
+      });
+      this.cleanupOldLatest(oldLatest?.data);
+
+      return result;
+    } finally {
+      this.logPop();
+    }
+  }
+
+  /**
    * Given a reference to something, this will ensure that either we do not have
    * any values corresponding to that ref, or how to handle it if we do.
    *

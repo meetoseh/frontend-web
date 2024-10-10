@@ -46,6 +46,8 @@ import { createJournalEntryMetadataRequestHandler } from '../screens/journal_cha
 import { createJournalEntryListRequestHandler } from '../screens/journal_entries_list/lib/createJournalEntryListRequestHandler';
 import { createLibraryListRequestHandler } from '../screens/library/lib/createLibraryListRequestHandler';
 import { createInstructorListRequestHandler } from '../screens/library_filter/lib/createInstructorListRequestHandler';
+import { createVoiceNoteStateMachineRequestHandler } from '../screens/journal_chat/lib/createVoiceNoteStateMachineRequestHandler';
+import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 
 type WindowSize = {
   width: number;
@@ -280,6 +282,20 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const instructorsListHandler = useWritableValueWithCallbacks(() =>
     createInstructorListRequestHandler({ logging, maxStale: 100 })
   );
+  const voiceNoteHandler = useMappedValuesWithCallbacks(
+    [contentPlaylistHandler, audioDataHandler],
+    () =>
+      createVoiceNoteStateMachineRequestHandler({
+        logging,
+        maxStale: 100,
+        loginContext,
+        interestsContext,
+        resources: {
+          contentPlaylistHandler: contentPlaylistHandler.get(),
+          audioDataHandler: audioDataHandler.get(),
+        },
+      })
+  );
 
   const resources = useMemo(
     (): Resources => ({
@@ -320,6 +336,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       journalEntryListHandler: journalEntryListHandler.get(),
       libraryListHandler: libraryListHandler.get(),
       instructorsListHandler: instructorsListHandler.get(),
+      voiceNoteHandler: voiceNoteHandler.get(),
     }),
     [
       privatePlaylistHandler,
@@ -359,6 +376,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       journalEntryListHandler,
       libraryListHandler,
       instructorsListHandler,
+      voiceNoteHandler,
     ]
   );
   const contentWidth = useContentWidthValueWithCallbacks(windowSizeImmediate);

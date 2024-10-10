@@ -50,7 +50,7 @@ const Dot = ({ offset, frequency }: { offset: number; frequency: number }) => {
 
       scheduled = requestAnimationFrame(tick);
     }
-  }, [opacityVWC]);
+  }, [frequency, offset, opacityVWC]);
 
   const styleVWC = useMappedValueWithCallbacks(
     opacityVWC,

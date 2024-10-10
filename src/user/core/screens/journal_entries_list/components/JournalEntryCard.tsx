@@ -12,12 +12,18 @@ import { setVWC } from '../../../../../shared/lib/setVWC';
 import { VerticalSpacer } from '../../../../../shared/components/VerticalSpacer';
 import { HorizontalSpacer } from '../../../../../shared/components/HorizontalSpacer';
 import { RenderGuardedComponent } from '../../../../../shared/components/RenderGuardedComponent';
-import { JournalEntryViewJournalCard } from '../../journal_entry_view/components/JournalEntryViewJournalCard';
+import { JournalEntryViewJournalCard } from '../../journal_chat/components/JournalEntryViewJournalCard';
 import { IconButton } from '../../../../../shared/forms/IconButton';
 import { Edit } from '../../../../../shared/components/icons/Edit';
 import { OsehColors } from '../../../../../shared/OsehColors';
 import { TagText } from '../../journal_entry_summary/components/TagText';
-import { JournalEntryItemDataDataSummaryV1 } from '../../journal_chat/lib/JournalChatState';
+import {
+  JournalEntryItemDataDataSummaryV1,
+  JournalEntryItemTextualPartVoiceNote,
+} from '../../journal_chat/lib/JournalChatState';
+import { OsehStyles } from '../../../../../shared/OsehStyles';
+import { combineClasses } from '../../../../../shared/lib/combineClasses';
+import { TextPartVoiceNoteComponent } from '../../journal_chat/components/TextPartVoiceNoteComponent';
 
 export type JournalEntryCardProps = {
   /** The journal entry to show */
@@ -36,9 +42,14 @@ export type JournalEntryCardProps = {
 type AbridgedInfoVWC = {
   title: string;
   journey: { uid: string } | null;
-  reflectionResponse: string | null;
+  reflectionResponse:
+    | { type: 'text'; value: string }
+    | { type: 'voice'; part: JournalEntryItemTextualPartVoiceNote }
+    | null;
   tags: string[];
 };
+
+const refreshChat = () => Promise.resolve(undefined);
 
 /**
  * Displays a journal entry card as it would go on the My Journal page
@@ -77,7 +88,7 @@ export const JournalEntryCard = ({
   const abridgedVWC = useMappedValueWithCallbacks(journalEntry, (je): AbridgedInfoVWC | null => {
     let summary: JournalEntryItemDataDataSummaryV1 | null = null;
     let journey: { uid: string } | null = null;
-    let reflectionResponse: string | null = null;
+    let reflectionResponse: AbridgedInfoVWC['reflectionResponse'] = null;
 
     for (const item of je.payload.items) {
       if (item.type === 'summary' && item.data.type === 'summary') {
@@ -94,7 +105,14 @@ export const JournalEntryCard = ({
         item.data.parts.length > 0 &&
         item.data.parts[0].type === 'paragraph'
       ) {
-        reflectionResponse = item.data.parts[0].value;
+        reflectionResponse = { type: 'text', value: item.data.parts[0].value };
+      } else if (
+        item.type === 'reflection-response' &&
+        item.data.type === 'textual' &&
+        item.data.parts.length > 0 &&
+        item.data.parts[0].type === 'voice_note'
+      ) {
+        reflectionResponse = { type: 'voice', part: item.data.parts[0] };
       }
     }
 
@@ -155,7 +173,7 @@ export const JournalEntryCard = ({
       style={cardStyleVWC.get()}
       ref={(r) => setVWC(cardRefVWC, r)}>
       <VerticalSpacer height={16} />
-      <div className={styles.row}>
+      <div className={OsehStyles.layout.row}>
         <HorizontalSpacer width={16} />
         <RenderGuardedComponent
           props={canonicalDateVWC}
@@ -197,19 +215,37 @@ export const JournalEntryCard = ({
                       item.data.type === 'textual'
                     ) {
                       for (const subPart of item.data.parts) {
-                        if (subPart.type !== 'paragraph') {
-                          continue;
+                        if (subPart.type === 'paragraph') {
+                          if (items.length > 0) {
+                            items.push(<VerticalSpacer height={16} key={items.length} />);
+                          }
+                          items.push(
+                            <div className={OsehStyles.layout.row} key={items.length}>
+                              <HorizontalSpacer width={16} />
+                              <div
+                                className={combineClasses(
+                                  OsehStyles.typography.body,
+                                  OsehStyles.colors.v4.primary.smoke
+                                )}>
+                                {subPart.value}
+                              </div>
+                              <HorizontalSpacer width={16} flexGrow={1} />
+                            </div>
+                          );
+                        } else if (subPart.type === 'voice_note') {
+                          if (items.length > 0) {
+                            items.push(<VerticalSpacer height={16} key={items.length} />);
+                          }
+                          items.push(
+                            <TextPartVoiceNoteComponent
+                              key={items.length}
+                              ctx={ctx}
+                              refreshChat={refreshChat}
+                              part={subPart}
+                              fixedHeight
+                            />
+                          );
                         }
-                        if (items.length > 0) {
-                          items.push(<VerticalSpacer height={16} key={items.length} />);
-                        }
-                        items.push(
-                          <div className={styles.row} key={items.length}>
-                            <HorizontalSpacer width={16} />
-                            <div className={styles.header}>{subPart.value}</div>
-                            <HorizontalSpacer width={16} flexGrow={1} />
-                          </div>
-                        );
                       }
                       return;
                     } else if (
@@ -222,7 +258,7 @@ export const JournalEntryCard = ({
                       }
 
                       items.push(
-                        <div className={styles.row} key={items.length}>
+                        <div className={OsehStyles.layout.row} key={items.length}>
                           <HorizontalSpacer width={0} flexGrow={1} />
                           <JournalEntryViewJournalCard
                             uid={item.data.conceptually.journey_uid}
@@ -249,9 +285,15 @@ export const JournalEntryCard = ({
                           items.push(<VerticalSpacer height={16} key={items.length} />);
                         }
                         items.push(
-                          <div className={styles.row} key={items.length}>
+                          <div className={OsehStyles.layout.row} key={items.length}>
                             <HorizontalSpacer width={16} />
-                            <div className={styles.body}>{subPart.value}</div>
+                            <div
+                              className={combineClasses(
+                                OsehStyles.typography.body,
+                                OsehStyles.colors.v4.primary.smoke
+                              )}>
+                              {subPart.value}
+                            </div>
                             <HorizontalSpacer width={16} flexGrow={1} />
                           </div>
                         );
@@ -262,26 +304,32 @@ export const JournalEntryCard = ({
                         items.push(<VerticalSpacer height={16} key={items.length} />);
                       }
                       items.push(
-                        <div className={styles.row} key={items.length}>
+                        <div className={OsehStyles.layout.row} key={items.length}>
                           <HorizontalSpacer width={16} />
-                          <div className={styles.header}>{item.data.title}</div>
+                          <div
+                            className={combineClasses(
+                              OsehStyles.typography.titleSemibold,
+                              OsehStyles.colors.v4.primary.smoke
+                            )}>
+                            {item.data.title}
+                          </div>
                           <HorizontalSpacer width={16} flexGrow={1} />
                         </div>
                       );
 
                       if (item.data.tags.length > 0) {
                         items.push(
-                          <div className={styles.row} key={items.length}>
+                          <div className={OsehStyles.layout.row} key={items.length}>
                             <HorizontalSpacer width={16} />
                             {item.data.tags.map((tag, i) => (
                               <Fragment key={i}>
                                 {i > 0 && <HorizontalSpacer width={16} />}
-                                <div className={styles.column}>
+                                <div className={OsehStyles.layout.column}>
                                   <VerticalSpacer height={16} />
                                   <div className={styles.tag}>
-                                    <div className={styles.column}>
+                                    <div className={OsehStyles.layout.column}>
                                       <VerticalSpacer height={5} />
-                                      <div className={styles.row}>
+                                      <div className={OsehStyles.layout.row}>
                                         <HorizontalSpacer width={8} />
                                         <TagText tag={tag} />
                                         <HorizontalSpacer width={8} />
@@ -309,7 +357,7 @@ export const JournalEntryCard = ({
                   !editable ? (
                     <></>
                   ) : (
-                    <div className={styles.row}>
+                    <div className={OsehStyles.layout.row}>
                       <HorizontalSpacer width={0} flexGrow={1} />
                       {editIconButton}
                       <HorizontalSpacer width={16} />
@@ -322,15 +370,21 @@ export const JournalEntryCard = ({
           ) : (
             <>
               <VerticalSpacer height={20} />
-              <div className={styles.row}>
+              <div className={OsehStyles.layout.row}>
                 <HorizontalSpacer width={16} />
-                <div className={styles.header}>{abridged.title}</div>
+                <div
+                  className={combineClasses(
+                    OsehStyles.typography.titleSemibold,
+                    OsehStyles.colors.v4.primary.smoke
+                  )}>
+                  {abridged.title}
+                </div>
                 <HorizontalSpacer width={16} flexGrow={1} />
               </div>
               {abridged.journey !== null && (
                 <>
                   <VerticalSpacer height={16} />
-                  <div className={styles.row}>
+                  <div className={OsehStyles.layout.row}>
                     <HorizontalSpacer width={0} flexGrow={1} />
                     <RenderGuardedComponent
                       props={journalEntry}
@@ -356,26 +410,37 @@ export const JournalEntryCard = ({
                 </>
               )}
               <VerticalSpacer height={16} />
-              <div className={styles.row}>
+              <div className={OsehStyles.layout.row}>
                 <HorizontalSpacer width={16} />
-                <div className={styles.abridgedBody}>{abridged.reflectionResponse}</div>
+                {abridged.reflectionResponse?.type === 'text' ? (
+                  <div className={styles.abridgedBody}>{abridged.reflectionResponse.value}</div>
+                ) : abridged.reflectionResponse?.type === 'voice' ? (
+                  <TextPartVoiceNoteComponent
+                    ctx={ctx}
+                    refreshChat={refreshChat}
+                    part={abridged.reflectionResponse.part}
+                    fixedHeight
+                  />
+                ) : (
+                  <></>
+                )}
                 <HorizontalSpacer width={16} />
               </div>
               <VerticalSpacer height={0} flexGrow={1} />
-              <div className={styles.row}>
+              <div className={OsehStyles.layout.row}>
                 <HorizontalSpacer width={16} />
-                <div className={styles.column}>
+                <div className={OsehStyles.layout.column}>
                   <VerticalSpacer height={0} flexGrow={1} />
-                  <div className={styles.rowWrap}>
+                  <div className={OsehStyles.layout.rowWrap}>
                     {abridged.tags.map((tag, i) => (
                       <Fragment key={i}>
                         {i > 0 && <HorizontalSpacer width={16} />}
-                        <div className={styles.column}>
+                        <div className={OsehStyles.layout.column}>
                           <VerticalSpacer height={16} />
                           <div className={styles.tag}>
-                            <div className={styles.column}>
+                            <div className={OsehStyles.layout.column}>
                               <VerticalSpacer height={5} />
-                              <div className={styles.row}>
+                              <div className={OsehStyles.layout.row}>
                                 <HorizontalSpacer width={8} />
                                 <TagText tag={tag} />
                                 <HorizontalSpacer width={8} />
@@ -390,7 +455,7 @@ export const JournalEntryCard = ({
                   <VerticalSpacer height={0} flexGrow={1} />
                 </div>
                 <HorizontalSpacer width={0} flexGrow={1} />
-                <div className={styles.column}>
+                <div className={OsehStyles.layout.column}>
                   <VerticalSpacer height={10} flexGrow={1} />
                   {editIconButton}
                 </div>

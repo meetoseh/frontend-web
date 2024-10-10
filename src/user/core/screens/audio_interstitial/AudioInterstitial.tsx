@@ -2,11 +2,7 @@ import { ReactElement } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import { GridFullscreenContainer } from '../../../../shared/components/GridFullscreenContainer';
 import { GridContentContainer } from '../../../../shared/components/GridContentContainer';
-import {
-  playExitTransition,
-  useEntranceTransition,
-  useTransitionProp,
-} from '../../../../shared/lib/TransitionProp';
+import { useEntranceTransition, useTransitionProp } from '../../../../shared/lib/TransitionProp';
 import {
   StandardScreenTransition,
   useStandardTransitionsState,
@@ -17,7 +13,6 @@ import {
   createWritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
-import { setVWC } from '../../../../shared/lib/setVWC';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { PlayerCTA, PlayerForeground } from '../../../../shared/content/player/PlayerForeground';
 import { useCurrentTranscriptPhrases } from '../../../../shared/transcripts/useCurrentTranscriptPhrases';

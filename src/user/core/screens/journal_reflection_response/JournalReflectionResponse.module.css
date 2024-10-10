@@ -21,13 +21,6 @@
   align-items: center;
 }
 
-.done {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-end;
-}
-
 .buttonInner {
   display: flex;
   flex-flow: row nowrap;
@@ -45,4 +38,15 @@
 
 .responseText::placeholder {
   color: #8b8e90;
+}
+
+.voiceNoteWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  flex: 0 1 260px;
+  padding: 16px;
+  border-radius: 16px 16px 2px 16px;
+  background: #35383a;
 }

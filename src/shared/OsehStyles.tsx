@@ -1,4 +1,5 @@
 import styles from './OsehStyles.module.css';
+import assistiveStyles from './assistive.module.css';
 
 /**
  * The core styles that are used within Oseh.
@@ -12,6 +13,17 @@ export const OsehStyles = {
     row: styles.layout__row,
     /** A flex row with justify-content start, align-items center, and flex-wrap 1 */
     rowWrap: styles.layout__rowWrap,
+    /** allows vertically stacking components such that the last in the dom renders on top */
+    stacking: {
+      /**
+       * the container that the inner ones position to match.
+       * - all children must be `layout.stacking.child`
+       * - usually has the width and height set to fixed values via style attribute
+       */
+      container: styles.layout__stacking__container,
+      /** the inner components that stack. should generally have another layout class as well */
+      child: styles.layout__stacking__child,
+    },
   },
   /** Set the color attribute to the standard Oseh colors */
   colors: {
@@ -76,5 +88,15 @@ export const OsehStyles = {
     detail2: styles.typography__detail2,
     /** 10px size, 13px line-height, 400 weight */
     detail3: styles.typography__detail3,
+  },
+  /** Used for screen readers */
+  assistive: {
+    /** show for screen readers only */
+    srOnly: assistiveStyles.srOnly,
+  },
+  /** Used for normalizing types to act like a standard layout component */
+  unstyling: {
+    /** Can be applied to a <button> to get something that acts like layout.column */
+    buttonAsColumn: styles.unstyling__buttonAsColumn,
   },
 };

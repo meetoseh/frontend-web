@@ -407,6 +407,19 @@ export const JournalEntryViewScreen: OsehScreen<
       ready: readyVWC,
       chat: chatVWC,
       metadata: journalEntryMetadataVWC,
+      refreshJournalEntry: async () => {
+        const journalEntryManager = journalEntryManagerUnwrappedVWC.get();
+        if (journalEntryManager === null) {
+          throw new Error('journal entry manager not initialized');
+        }
+
+        const user = ctx.login.value.get();
+        if (user.state !== 'logged-in') {
+          throw new Error('user not logged in');
+        }
+        await journalEntryManager.refresh(user, ctx.interests.visitor);
+        return journalEntryManager.chat.get();
+      },
       dispose: () => {
         setVWC(activeVWC, false);
         cleanupJournalEntryManagerRequester();

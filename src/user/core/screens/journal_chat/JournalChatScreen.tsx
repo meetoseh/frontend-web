@@ -8,6 +8,7 @@ import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerT
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { SCREEN_VERSION } from '../../../../shared/lib/screenVersion';
 import { setVWC } from '../../../../shared/lib/setVWC';
+import { waitForValueWithCallbacksConditionCancelable } from '../../../../shared/lib/waitForValueWithCallbacksCondition';
 import { RequestResult, Result } from '../../../../shared/requests/RequestHandler';
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
 import { OsehScreen } from '../../models/Screen';
@@ -19,6 +20,7 @@ import {
   JournalEntryManager,
   JournalEntryManagerRef,
 } from './lib/createJournalEntryManagerHandler';
+import { VoiceNoteStateMachine } from './lib/createVoiceNoteStateMachine';
 import { JournalChatState } from './lib/JournalChatState';
 
 /**
@@ -220,6 +222,18 @@ export const JournalChatScreen: OsehScreen<
       }
     );
 
+    const mostRecentVoiceNoteReq =
+      createWritableValueWithCallbacks<RequestResult<VoiceNoteStateMachine> | null>(null);
+
+    const cleanupMostRecentVoiceNoteReq = () => {
+      const val = mostRecentVoiceNoteReq.get();
+      if (val === null) {
+        return;
+      }
+      setVWC(mostRecentVoiceNoteReq, null);
+      val.release();
+    };
+
     const [readyVWC, cleanupReady] = createMappedValueWithCallbacks(
       chatVWC,
       (chat) => chat !== null
@@ -230,7 +244,11 @@ export const JournalChatScreen: OsehScreen<
       chat: chatVWC,
       journalEntryUID: journalEntryUIDVWC,
       journalEntryJWT: journalEntryJWTVWC,
-      trySubmitUserResponse: async (userResponse: string) => {
+      trySubmitUserResponse: async (
+        userResponse:
+          | { type: 'text'; value: string }
+          | { type: 'voice'; voiceNote: VoiceNoteStateMachine }
+      ) => {
         const journalEntryManager = journalEntryManagerUnwrappedVWC.get();
         if (journalEntryManager === null) {
           return;
@@ -241,20 +259,90 @@ export const JournalChatScreen: OsehScreen<
           return;
         }
 
-        await journalEntryManager.refresh(user, ctx.interests.visitor, {
-          endpoint: '/api/1/journals/entries/chat/',
-          bonusParams: async (clientKey) => ({
-            version: SCREEN_VERSION,
-            encrypted_user_message: await clientKey.key.encrypt(
-              userResponse,
-              await getCurrentServerTimeMS()
-            ),
-          }),
-        });
+        if (userResponse.type === 'text') {
+          await journalEntryManager.refresh(user, ctx.interests.visitor, {
+            endpoint: '/api/1/journals/entries/chat/',
+            bonusParams: async (clientKey) => ({
+              version: SCREEN_VERSION,
+              encrypted_user_message: await clientKey.key.encrypt(
+                userResponse.value,
+                await getCurrentServerTimeMS()
+              ),
+            }),
+          });
+        } else {
+          const stateReady = waitForValueWithCallbacksConditionCancelable(
+            userResponse.voiceNote.state,
+            (s) =>
+              s.type === 'transcribing' ||
+              s.type === 'local-ready' ||
+              s.type === 'error' ||
+              s.type === 'released'
+          );
+          stateReady.promise.catch(() => {});
+          const released = waitForValueWithCallbacksConditionCancelable(activeVWC, (v) => !v);
+          released.promise.catch(() => {});
+          await Promise.race([stateReady.promise, released.promise]);
+          stateReady.cancel();
+          released.cancel();
+          if (!activeVWC.get()) {
+            return;
+          }
+          const state = userResponse.voiceNote.state.get();
+          if (state.type !== 'transcribing' && state.type !== 'local-ready') {
+            return;
+          }
+
+          const oldReq = mostRecentVoiceNoteReq.get();
+          setVWC(
+            mostRecentVoiceNoteReq,
+            ctx.resources.voiceNoteHandler.requestWithData({
+              ref: { voiceNoteUID: state.voiceNote.uid, voiceNoteJWT: state.voiceNote.jwt },
+              refreshRef: () => ({
+                promise: Promise.resolve({
+                  type: 'error',
+                  data: undefined,
+                  error: <>Cannot refresh this ref</>,
+                  retryAt: undefined,
+                }),
+                done: () => true,
+                cancel: () => {},
+              }),
+              data: userResponse.voiceNote,
+            })
+          );
+          if (oldReq !== null) {
+            oldReq.release();
+          }
+
+          await journalEntryManager.refresh(user, ctx.interests.visitor, {
+            endpoint: '/api/1/journals/entries/chat/voice_note',
+            bonusParams: async (clientKey) => ({
+              version: SCREEN_VERSION,
+              encrypted_voice_note_uid: await clientKey.key.encrypt(
+                state.voiceNote.uid,
+                await getCurrentServerTimeMS()
+              ),
+            }),
+          });
+        }
         const journalEntryUID = journalEntryUIDVWC.get();
         if (journalEntryUID !== null) {
           ctx.resources.journalEntryMetadataHandler.evictOrReplace({ uid: journalEntryUID });
         }
+      },
+      refreshJournalEntry: async () => {
+        const journalEntryManager = journalEntryManagerUnwrappedVWC.get();
+        if (journalEntryManager === null) {
+          throw new Error('journal entry manager not initialized');
+        }
+
+        const user = ctx.login.value.get();
+        if (user.state !== 'logged-in') {
+          throw new Error('user not logged in');
+        }
+        await journalEntryManager.refresh(user, ctx.interests.visitor);
+        return journalEntryManager.chat.get();
       },
       dispose: () => {
         setVWC(activeVWC, false);
@@ -264,6 +352,7 @@ export const JournalChatScreen: OsehScreen<
         cleanupJournalEntryJWTUnwrapper();
         cleanupChatUnwrapper();
         cleanupJournalEntryManagerRefresher();
+        cleanupMostRecentVoiceNoteReq();
         cleanupReady();
       },
     };

@@ -22,11 +22,25 @@ import { setVWC } from '../../shared/lib/setVWC';
 import styles from './DebugVoiceNoteUpload.module.css';
 import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { getSimpleUploadParts } from '../../shared/upload/SimpleUploadParts';
-import { parseUploadInfoFromResponse, UploadInfo } from '../../shared/upload/UploadInfo';
+import {
+  convertToRange,
+  parseUploadInfoFromResponse,
+  UploadInfo,
+} from '../../shared/upload/UploadInfo';
 import { JobRef } from '../../shared/jobProgress/JobRef';
 import { uploadPart } from '../../shared/upload/uploadPart';
 import { apiFetch } from '../../shared/ApiConstants';
-import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
+import {
+  createMappedValueWithCallbacks,
+  useMappedValueWithCallbacks,
+} from '../../shared/hooks/useMappedValueWithCallbacks';
+import {
+  upload,
+  uploadStandardBlobGetData,
+  uploadStandardEndpointTryUpload,
+} from '../../shared/lib/uploadHelpers';
+import { waitForValueWithCallbacksConditionCancelable } from '../../shared/lib/waitForValueWithCallbacksCondition';
+import { createMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 
 export const DebugVoiceNoteUpload = (): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
@@ -37,7 +51,7 @@ export const DebugVoiceNoteUpload = (): ReactElement => {
   );
   const haveProgressVWC = useMappedValueWithCallbacks(
     progressVWC,
-    (prog) => prog.peakHead() !== undefined
+    (prog) => prog.peekHead() !== undefined
   );
 
   const lastResultVWC = useWritableValueWithCallbacks<VoiceNoteRef | null>(() => null);
@@ -240,116 +254,136 @@ const transitionFromStart = async (
   }
 };
 
-const transitionFromUpload = async (
+const transitionFromUpload = async <T extends object>(
   ctx: UploadContext,
   state: UploadStateUpload
 ): Promise<UploadStateProcess | UploadStateError> => {
-  const parts = getSimpleUploadParts(state.info);
-  const parallel = Math.min(parts.endPartNumber, 5);
-
-  const message = `uploading ${state.file.name} (${parts.totalBytes} bytes split into ${
-    parts.endPartNumber
-  } part${parts.endPartNumber === 1 ? '' : 's'}), ${parallel} part${
-    parallel === 1 ? '' : 's'
-  } at a time`;
-
-  setMainJobMsg(ctx, {
-    message: message,
-    indicator: { type: 'bar', at: 0, of: parts.totalBytes },
+  const handler = upload({
+    parts: state.info.parts.map((v) => {
+      const range = convertToRange(v);
+      return {
+        number: range.startNumber,
+        startByte: range.startByte,
+        numberOfParts: range.numberOfParts,
+        partSize: range.partSize,
+      };
+    }),
+    concurrency: {
+      upload: 5,
+      acquireData: 3,
+    },
+    retries: {
+      backoff: (n) => Math.pow(2, n) * 1000 + Math.random() * 1000,
+      max: 5,
+    },
+    getData: uploadStandardBlobGetData(state.file),
+    tryUpload: uploadStandardEndpointTryUpload(state.info.uid, state.info.jwt),
   });
 
-  const uploading: Map<number, Promise<void>> = new Map();
-  let nextPartNumber = 1;
-  let numFinishedBytes = 0;
-  let reportedFinishedBytes = 0;
-  const endPartNumber = parts.endPartNumber;
+  ctx.signal?.addEventListener('abort', handler.cancel);
+  if (ctx.signal?.aborted) {
+    handler.cancel();
+  }
 
-  const doPart = async (partNumber: number) => {
-    const part = parts.getPart(partNumber);
-    await uploadPart(
-      state.file,
-      part.number,
-      part.startByte,
-      part.endByte,
-      state.info.uid,
-      state.info.jwt,
-      ctx.signal
-    );
-    numFinishedBytes += part.endByte - part.startByte;
-    uploading.delete(partNumber);
+  const handlerDone = waitForValueWithCallbacksConditionCancelable(
+    handler.state,
+    (s) => s !== 'running'
+  );
+  const [remainingBytesVWC, cleanupRemainingBytes] = createMappedValueWithCallbacks(
+    handler.progress.remaining,
+    (r) => r.list.reduce((acc, v) => acc + v.partSize * v.numberOfParts, 0)
+  );
+  const [acquiringDataBytesVWC, cleanupAcquiringDataBytes] = createMappedValueWithCallbacks(
+    handler.progress.inprogress.acquiringData,
+    (a) => a.list.reduce((acc, v) => acc + v.endByte - v.startByte, 0)
+  );
+  const [uploadingBytesVWC, cleanupUploadingBytes] = createMappedValueWithCallbacks(
+    handler.progress.inprogress.uploading,
+    (u) => u.list.reduce((acc, v) => acc + v.endByte - v.startByte, 0)
+  );
+  const [waitingToRetryBytesVWC, cleanupWaitingToRetryBytes] = createMappedValueWithCallbacks(
+    handler.progress.inprogress.waitingToRetry,
+    (w) => w.valuesList().reduce((acc, v) => acc + v.endByte - v.startByte, 0)
+  );
+  const prettyBytes = (bytes: number): string => {
+    // bytes / kb / mb / gb
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let unit = 0;
+    while (bytes >= 1024 && unit < units.length - 1) {
+      bytes /= 1024;
+      unit++;
+    }
+    return `${bytes.toFixed(2)} ${units[unit]}`;
   };
 
-  let resolveAborted = () => {};
-  const abortedPromise = new Promise<void>((resolve, reject) => {
-    const doResolve = () => {
-      ctx.signal?.removeEventListener('abort', doResolve);
-      resolve();
-    };
+  const [messageVWC, cleanupMessageVWC] = createMappedValuesWithCallbacks(
+    [remainingBytesVWC, acquiringDataBytesVWC, uploadingBytesVWC, waitingToRetryBytesVWC],
+    () => {
+      const remaining = remainingBytesVWC.get();
+      const acquiringData = acquiringDataBytesVWC.get();
+      const uploading = uploadingBytesVWC.get();
+      const waitingToRetry = waitingToRetryBytesVWC.get();
 
-    resolveAborted = doResolve;
-    ctx.signal?.addEventListener('abort', doResolve);
-    if (ctx.signal?.aborted) {
-      doResolve();
+      let result = `uploading: ${prettyBytes(remaining)} remaining, ${prettyBytes(
+        acquiringData
+      )} acquiring data, ${prettyBytes(uploading)} uploading`;
+      if (waitingToRetry > 0) {
+        result += `, ${prettyBytes(waitingToRetry)} waiting to retry`;
+      }
+      return result;
     }
-  });
+  );
 
-  while (nextPartNumber <= endPartNumber || uploading.size > 0) {
-    if (ctx.signal?.aborted) {
+  const totalBytes = state.file.size;
+
+  while (true) {
+    if (handlerDone.done()) {
       break;
     }
 
-    if (reportedFinishedBytes !== numFinishedBytes) {
-      reportedFinishedBytes = numFinishedBytes;
-      setMainJobMsg(ctx, {
-        message: message,
-        indicator: { type: 'bar', at: numFinishedBytes, of: parts.totalBytes },
-      });
-    }
+    const message = messageVWC.get();
+    const remaining = remainingBytesVWC.get();
 
-    while (nextPartNumber <= endPartNumber && uploading.size < parallel) {
-      const num = nextPartNumber;
-      nextPartNumber++;
-      uploading.set(num, doPart(num));
-    }
+    setMainJobMsg(ctx, {
+      message: message,
+      indicator: { type: 'bar', at: totalBytes - remaining, of: totalBytes },
+    });
 
-    try {
-      const promises = [abortedPromise];
-
-      const iter = uploading.values();
-      let next = iter.next();
-      while (!next.done) {
-        promises.push(next.value);
-        next = iter.next();
-      }
-
-      await Promise.race(promises);
-    } catch (e) {
-      resolveAborted();
-      setMainJobMsg(ctx, {
-        message: 'upload failed, waiting for in-progress uploads to settle',
-        indicator: { type: 'spinner' },
-      });
-      await Promise.allSettled(uploading.values());
-
-      if (ctx.signal?.aborted) {
-        return { type: 'error', error: <>aborted</> };
-      }
-
-      return { type: 'error', error: await describeError(e) };
-    }
+    const messageChangedVWC = waitForValueWithCallbacksConditionCancelable(
+      messageVWC,
+      (m) => m !== message
+    );
+    messageChangedVWC.promise.catch(() => {});
+    const remainingChangedVWC = waitForValueWithCallbacksConditionCancelable(
+      remainingBytesVWC,
+      (r) => r !== remaining
+    );
+    remainingChangedVWC.promise.catch(() => {});
+    await Promise.race([
+      messageChangedVWC.promise,
+      remainingChangedVWC.promise,
+      handlerDone.promise,
+    ]);
+    messageChangedVWC.cancel();
+    remainingChangedVWC.cancel();
   }
 
-  if (ctx.signal?.aborted) {
-    await Promise.allSettled(uploading.values());
-    return { type: 'error', error: <>aborted</> };
+  cleanupRemainingBytes();
+  cleanupAcquiringDataBytes();
+  cleanupUploadingBytes();
+  cleanupWaitingToRetryBytes();
+  cleanupMessageVWC();
+
+  const finalState = handler.state.get();
+  if (finalState === 'error') {
+    return { type: 'error', error: <>upload failed</> };
   }
 
-  resolveAborted();
-  if (state.info.progress !== undefined) {
-    return { type: 'process', job: state.info.progress, voiceNote: state.voiceNote };
-  } else {
-    return { type: 'error', error: <>no progress to use</> };
+  if (state.info.progress === undefined) {
+    return { type: 'error', error: <>missing progress</> };
   }
+
+  return { type: 'process', job: state.info.progress, voiceNote: state.voiceNote };
 };
 
 const transitionFromProcess = async (

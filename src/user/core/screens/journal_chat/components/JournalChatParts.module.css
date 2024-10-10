@@ -1,0 +1,26 @@
+.author__self {
+  max-width: 260px;
+  padding: 16px;
+  border-radius: 16px 16px 2px 16px;
+  background: #35383a;
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.type__ui {
+  max-width: none;
+  padding: 0;
+  border-radius: none;
+  background: transparent;
+  align-self: stretch;
+}
+
+.author__other {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}

@@ -31,9 +31,9 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import {
   RESIZING_TEXT_AREA_ICON_SETTINGS,
   ResizingTextArea,
-  ResizingTextAreaProps,
 } from '../../../../shared/components/ResizingTextArea';
 import { Send } from '../../../../shared/components/icons/Send';
+import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 
 /**
  * Shows the journal reflection question in large text, allowing the user to
@@ -105,9 +105,7 @@ export const JournalReflectionLarge = ({
   );
 
   const editingVWC = useWritableValueWithCallbacks(() => false);
-  const editedValueVWC = useWritableValueWithCallbacks<string>(
-    () => ''
-  ) as ResizingTextAreaProps['value'];
+  const editedValueVWC = useWritableValueWithCallbacks<string>(() => '');
   const editInputRefVWC = useWritableValueWithCallbacks<HTMLTextAreaElement | null>(() => null);
 
   const onSubmitEdit = () => {
@@ -119,15 +117,13 @@ export const JournalReflectionLarge = ({
 
     if (newValue === '' || newValue === (resources.question.get()?.paragraphs ?? []).join('\n\n')) {
       setVWC(editingVWC, false);
-      editedValueVWC.set('');
-      editedValueVWC.callbacks.call({ updateInput: true });
+      setVWC(editedValueVWC, '');
       return;
     }
 
     resources.trySubmitEdit(newValue);
     setVWC(editingVWC, false);
-    editedValueVWC.set('');
-    editedValueVWC.callbacks.call({ updateInput: true });
+    setVWC(editedValueVWC, '');
   };
 
   useValuesWithCallbacksEffect([editingVWC, editInputRefVWC], () => {
@@ -144,6 +140,17 @@ export const JournalReflectionLarge = ({
       input.blur();
     }
     return undefined;
+  });
+
+  const submitVWC = useReactManagedValueAsValueWithCallbacks({
+    icon: (
+      <Send
+        color={OsehColors.v4.primary.light}
+        color2={OsehColors.v4.primary.dark}
+        {...RESIZING_TEXT_AREA_ICON_SETTINGS}
+      />
+    ),
+    onClick: onSubmitEdit,
   });
 
   return (
@@ -185,16 +192,8 @@ export const JournalReflectionLarge = ({
                     variant="dark"
                     refVWC={editInputRefVWC}
                     value={editedValueVWC}
-                    submit={{
-                      icon: (
-                        <Send
-                          color={OsehColors.v4.primary.light}
-                          color2={OsehColors.v4.primary.dark}
-                          {...RESIZING_TEXT_AREA_ICON_SETTINGS}
-                        />
-                      ),
-                      onClick: onSubmitEdit,
-                    }}
+                    onValueChanged={(v) => setVWC(editedValueVWC, v)}
+                    submit={submitVWC}
                     placeholder="Type the question you want to answer"
                     enterBehavior="submit-unless-shift"
                   />
@@ -318,10 +317,10 @@ export const JournalReflectionLarge = ({
                           srOnlyName="Edit"
                           onClick={(e) => {
                             e.preventDefault();
-                            editedValueVWC.set(
+                            setVWC(
+                              editedValueVWC,
                               resources.question.get()?.paragraphs?.join('\n\n') ?? ''
                             );
-                            editedValueVWC.callbacks.call({ updateInput: true });
                             setVWC(editingVWC, true);
                           }}
                         />

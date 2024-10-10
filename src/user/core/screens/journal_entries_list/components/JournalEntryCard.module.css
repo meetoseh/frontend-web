@@ -16,42 +16,12 @@
   text-align: left;
 }
 
-.row {
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: flex-start;
-  align-items: stretch;
-}
-
-.rowWrap {
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: flex-start;
-  align-items: center;
-}
-
 .dateTimeText {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 16.8px;
   color: #8b8e90;
-}
-
-.header {
-  font-family: 'Open Sans', sans-serif;
-  font-weight: 600;
-  font-size: 17px;
-  line-height: 20.4px;
-  color: #c8cdd0;
-}
-
-.body {
-  font-family: 'Open Sans', sans-serif;
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 24px;
-  color: #c8cdd0;
 }
 
 .abridgedBody {
@@ -66,13 +36,6 @@
   line-clamp: 2;
   -webkit-box-orient: vertical;
   padding: 0;
-}
-
-.column {
-  display: flex;
-  flex-flow: column nowrap;
-  justify-content: flex-start;
-  align-items: stretch;
 }
 
 .tag {

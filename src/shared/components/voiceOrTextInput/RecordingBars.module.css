@@ -1,0 +1,13 @@
+.outerContainer {
+  position: relative;
+  overflow: hidden;
+}
+
+.innerContainer {
+  position: absolute;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  overflow: hidden;
+}

@@ -1,3 +1,5 @@
+import { CrudFetcherMapper } from '../../admin/crud/CrudFetcher';
+
 export type OsehTranscriptPhrase = {
   /**
    * When the phrase begins in seconds from the beginning of the recording
@@ -27,4 +29,15 @@ export type OsehTranscript = {
    * silence
    */
   phrases: OsehTranscriptPhrase[];
+};
+
+export const osehTranscriptMapper: CrudFetcherMapper<OsehTranscript> = (raw) => {
+  return {
+    uid: raw.uid,
+    phrases: (raw.phrases as any[]).map((p) => ({
+      startsAt: p.starts_at,
+      endsAt: p.ends_at,
+      phrase: p.phrase,
+    })),
+  };
 };

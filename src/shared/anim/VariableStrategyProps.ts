@@ -37,6 +37,8 @@ export type UseVariableStrategyPropsAsValueWithCallbacksOpts<P> = {
  * a simplified version of the 'callbacks' option, which changes without
  * triggering a react rerender.
  *
+ * Prefer `ValueWithCallbacksLike` and `useValueWithCallbacksLike` for a better interface.
+ *
  * Example:
  *
  * ```tsx

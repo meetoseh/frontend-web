@@ -29,8 +29,9 @@
 .selfMessage {
   display: flex;
   align-self: flex-end;
-  justify-content: flex-end;
-  align-items: center;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
   max-width: 260px;
   padding: 16px;
   border-radius: 16px 16px 2px 16px;
@@ -38,6 +39,13 @@
 }
 
 .selfMessageText {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.paragraph {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-size: 16px;

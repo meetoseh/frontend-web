@@ -56,17 +56,13 @@
 }
 
 .selfMessage {
-  display: flex;
-  align-self: flex-end;
-  justify-content: flex-end;
-  align-items: center;
   max-width: 260px;
   padding: 16px;
   border-radius: 16px 16px 2px 16px;
   background: #35383a;
 }
 
-.selfMessageText {
+.paragraph {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-size: 16px;

@@ -15,4 +15,7 @@ export type JournalEntryViewResources = ScreenResources & {
    * if an error occurred
    */
   metadata: ValueWithCallbacks<JournalEntryMetadata | null | undefined>;
+
+  /** Refreshes the underlying journal entry and returns the new chat state */
+  refreshJournalEntry: () => Promise<JournalChatState | null | undefined>;
 };

@@ -85,6 +85,11 @@ import {
   InstructorListRequest,
   InstructorListState,
 } from '../screens/library_filter/lib/createInstructorListRequestHandler';
+import {
+  VoiceNoteStateMachineMinimalRef,
+  VoiceNoteStateMachineRef,
+} from '../screens/journal_chat/lib/createVoiceNoteStateMachineRequestHandler';
+import { VoiceNoteStateMachine } from '../screens/journal_chat/lib/createVoiceNoteStateMachine';
 
 /**
  * Contains everything that any screen might want to eagerly preload. Generally,
@@ -339,5 +344,12 @@ export type Resources = {
     InstructorListMinimalRequest,
     InstructorListRequest,
     InstructorListState
+  >;
+
+  /** Manages downloading voice notes */
+  voiceNoteHandler: RequestHandler<
+    VoiceNoteStateMachineMinimalRef,
+    VoiceNoteStateMachineRef,
+    VoiceNoteStateMachine
   >;
 };

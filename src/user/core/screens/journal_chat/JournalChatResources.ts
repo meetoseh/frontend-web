@@ -1,5 +1,10 @@
 import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { ScreenResources } from '../../models/Screen';
+import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
+import { Result } from '../../../../shared/requests/RequestHandler';
+import { PeekedScreen, ScreenResources } from '../../models/Screen';
+import { JournalChatMappedParams } from './JournalChatParams';
+import { JournalEntryManager } from './lib/createJournalEntryManagerHandler';
+import { VoiceNoteStateMachine } from './lib/createVoiceNoteStateMachine';
 import { JournalChatState } from './lib/JournalChatState';
 
 export type JournalChatResources = ScreenResources & {
@@ -22,5 +27,12 @@ export type JournalChatResources = ScreenResources & {
   /**
    * Submits the users response, which will cause the chat state to get updated in turn
    */
-  trySubmitUserResponse: (userResponse: string) => void;
+  trySubmitUserResponse: (
+    userResponse:
+      | { type: 'text'; value: string }
+      | { type: 'voice'; voiceNote: VoiceNoteStateMachine }
+  ) => void;
+
+  /** Refreshes the underlying journal entry and returns the new chat state */
+  refreshJournalEntry: () => Promise<JournalChatState | null | undefined>;
 };
