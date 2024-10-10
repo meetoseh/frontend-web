@@ -155,7 +155,7 @@ export const TextPartVoiceNoteComponent = memo(
         cleanupAttacher();
         requestResult.release();
       };
-    }, [ctx, part, voiceNote, voiceNoteVWC]);
+    }, [ctx, part, voiceNote, voiceNoteVWC, refreshChat]);
 
     return (
       <RenderGuardedComponent

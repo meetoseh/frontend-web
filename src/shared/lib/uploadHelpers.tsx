@@ -1,4 +1,3 @@
-import { stat } from 'fs';
 import { createWritableValueWithCallbacks, ValueWithCallbacks } from './Callbacks';
 import { CancelablePromise } from './CancelablePromise';
 import { constructCancelablePromise } from './CancelablePromiseConstructor';

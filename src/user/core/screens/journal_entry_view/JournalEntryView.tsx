@@ -1,4 +1,4 @@
-import { ReactElement, useMemo } from 'react';
+import { ReactElement } from 'react';
 import { ScreenComponentProps } from '../../models/Screen';
 import { useEntranceTransition, useTransitionProp } from '../../../../shared/lib/TransitionProp';
 import {
@@ -65,11 +65,6 @@ export const JournalEntryView = ({
   });
 
   const windowWidthVWC = useMappedValueWithCallbacks(ctx.windowSizeImmediate, (size) => size.width);
-
-  const prefersDetailedSpinners = useMemo(
-    () => localStorage.getItem('journalChatDetailedSpinners') === 'true',
-    []
-  );
 
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>

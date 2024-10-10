@@ -1,8 +1,5 @@
 import { ReactElement } from 'react';
-import {
-  OsehContentRef,
-  OsehContentRefLoadable,
-} from '../../../../../shared/content/OsehContentRef';
+import { OsehContentRefLoadable } from '../../../../../shared/content/OsehContentRef';
 import {
   AudioFileData,
   OsehContentPlaylist,
@@ -25,11 +22,9 @@ import {
 } from '../../../../../shared/lib/uploadHelpers';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { waitForValueWithCallbacksConditionCancelable } from '../../../../../shared/lib/waitForValueWithCallbacksCondition';
-import { constructCancelablePromise } from '../../../../../shared/lib/CancelablePromiseConstructor';
 import { CancelablePromise } from '../../../../../shared/lib/CancelablePromise';
 import { createCancelableTimeout } from '../../../../../shared/lib/createCancelableTimeout';
 import { waitUntilMediaIsReady } from '../../../../../shared/content/useOsehVideoContentState';
-import { apiFetch } from '../../../../../shared/ApiConstants';
 import { LoginContextValue } from '../../../../../shared/contexts/LoginContext';
 import {
   convertToRange,
@@ -52,7 +47,6 @@ import {
   createTypicalSmartAPIFetchMapper,
   SmartAPIFetch,
 } from '../../../../../shared/lib/smartApiFetch';
-import { describeError, describeFetchError } from '../../../../../shared/forms/ErrorBlock';
 import { Resources } from '../../../models/Resources';
 import { selectAudioTarget } from '../../../../../shared/content/createAudioDataHandler';
 
@@ -291,8 +285,8 @@ export type VoiceNoteStateInitializingLocalStream = {
 
   /** the underlying voice note audio */
   audio: {
-    /** the voice note audio as raw data with a mime type */
-    data: Blob;
+    /** WEB ONLY: the voice note audio as raw data with a mime type */
+    __data: Blob;
 
     /**
      * The time vs average signal intensity data right before recording stopped.
@@ -340,8 +334,8 @@ export type VoiceNoteStateInitializingLocalPlay = {
 
   /** the underlying voice note audio */
   audio: {
-    /** the voice note audio as raw data with a mime type */
-    data: Blob;
+    /** WEB ONLY: the voice note audio as raw data with a mime type */
+    __data: Blob;
 
     /** the local URL that can be used to stream the raw data */
     url: string;
@@ -406,8 +400,8 @@ export type VoiceNoteStateInitializingUpload = {
 
   /** the underlying voice note audio */
   audio: {
-    /** the voice note audio as raw data with a mime type */
-    data: Blob;
+    /** WEB ONLY: the voice note audio as raw data with a mime type */
+    __data: Blob;
 
     /** the local URL that can be used to stream the raw data */
     url: string;
@@ -471,8 +465,8 @@ export type VoiceNoteStateUploading = {
 
   /** the underlying voice note audio */
   audio: {
-    /** the voice note audio as raw data with a mime type */
-    data: Blob;
+    /** WEB ONLY: the voice note audio as raw data with a mime type */
+    __data: Blob;
 
     /** the local URL that can be used to stream the raw data */
     url: string;
@@ -1683,7 +1677,7 @@ async function transitionFromRecorded(
     loginContext: current.loginContext,
     visitor: current.visitor,
     audio: {
-      data: current.audio.__data,
+      __data: current.audio.__data,
       timeVsAverageSignalIntensity: current.audio.timeVsAverageSignalIntensity,
       durationSeconds: current.audio.durationSeconds,
     },
@@ -1701,7 +1695,7 @@ async function transitionFromInitializingLocalStream(
 
   let url: string;
   try {
-    url = URL.createObjectURL(current.audio.data);
+    url = URL.createObjectURL(current.audio.__data);
   } catch (e) {
     console.log(e);
     setVWC(
@@ -1717,7 +1711,7 @@ async function transitionFromInitializingLocalStream(
     loginContext: current.loginContext,
     visitor: current.visitor,
     audio: {
-      data: current.audio.data,
+      __data: current.audio.__data,
       url,
       timeVsAverageSignalIntensity: current.audio.timeVsAverageSignalIntensity,
       durationSeconds: current.audio.durationSeconds,
@@ -1764,7 +1758,7 @@ async function transitionFromInitializingLocalPlay(
     };
 
     const audioContext = new AudioContext();
-    const audioDataAsArrayBufferPromise = current.audio.data.arrayBuffer();
+    const audioDataAsArrayBufferPromise = current.audio.__data.arrayBuffer();
     await Promise.race([audioDataAsArrayBufferPromise, messageCancelable.promise]);
     await checkMessage();
     const arrayBuffer = await audioDataAsArrayBufferPromise;
@@ -1862,7 +1856,7 @@ async function transitionFromInitializingLocalPlay(
     loginContext: current.loginContext,
     visitor: current.visitor,
     audio: {
-      data: current.audio.data,
+      __data: current.audio.__data,
       url: current.audio.url,
       playable: { element: audio },
       timeVsAverageSignalIntensity,
@@ -1879,7 +1873,7 @@ async function transitionFromInitializingLocalPlay(
           'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
-          file_size: current.audio.data.size,
+          file_size: current.audio.__data.size,
         }),
       },
       user: () => {
@@ -1984,7 +1978,7 @@ async function transitionFromInitializingUpload(
         backoff: (n) => Math.pow(2, n) * 1000 + Math.random() * 1000,
         max: 5,
       },
-      getData: uploadStandardBlobGetData(current.audio.data),
+      getData: uploadStandardBlobGetData(current.audio.__data),
       tryUpload: uploadStandardEndpointTryUpload(
         voiceNoteData.file_upload.uid,
         voiceNoteData.file_upload.jwt
@@ -2001,7 +1995,7 @@ async function transitionFromInitializingUpload(
         result: uploadResult,
       },
       audio: {
-        data: current.audio.data,
+        __data: current.audio.__data,
         url: current.audio.url,
         playable: current.audio.playable,
         timeVsAverageSignalIntensity: current.audio.timeVsAverageSignalIntensity,

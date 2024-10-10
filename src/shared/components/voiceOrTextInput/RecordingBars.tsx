@@ -93,7 +93,7 @@ export const RecordingBars = (props: RecordingBarProps): ReactElement => {
             const realNumBars = Math.min(numberOfBars, intensity.length);
             const skippedBars = intensity.length - realNumBars;
             for (let i = skippedBars; i < intensity.length; i++) {
-              const barHeight = intensity[i] * props.settings.height;
+              const barHeight = Math.max(intensity[i] * props.settings.height, 1);
               bars.push(
                 <Fragment key={i}>
                   <HorizontalSpacer width={props.settings.barSpacing} />
