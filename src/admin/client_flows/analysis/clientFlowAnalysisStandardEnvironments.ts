@@ -15,6 +15,7 @@ const baseNewUser = {
   journeysToday: 0,
   journalEntriesInHistoryToday: 0,
   hasOsehPlus: false,
+  hasRecoverableIdentity: false,
 };
 const newUserByPlatform: Record<typeof VISITOR_SOURCE, NamedEnvironment> = {
   browser: {
@@ -70,6 +71,7 @@ const newProUserByPlatform: Record<typeof VISITOR_SOURCE, NamedEnvironment> = {
 
 const baseOldFreeUser = {
   ...baseNewUser,
+  hasRecoverableIdentity: true,
   accountCreatedAt: now - 60 * 60 * 24 * 30, // 30 days ago
   lastJourneyRating: 1,
   journeysToday: 1,

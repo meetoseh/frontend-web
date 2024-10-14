@@ -36,6 +36,9 @@ export type ClientFlowAnalysisEnvironment = {
   /** True if they are an Oseh+ subscriber, false if they are not */
   hasOsehPlus: boolean;
 
+  /** True if they have a recoverable identity (apple, google, direct) attached, false otherwise */
+  hasRecoverableIdentity: boolean;
+
   /** The platform they are using */
   platform: typeof VISITOR_SOURCE;
 };
@@ -48,6 +51,7 @@ export type ClientFlowAnalysisEnvironmentAPI = {
   journeys_today: number;
   journal_entries_in_history_today: number;
   has_oseh_plus: boolean;
+  has_recoverable_identity: boolean;
   platform: typeof VISITOR_SOURCE;
 };
 
@@ -58,6 +62,7 @@ export const clientFlowAnalysisEnvironmentMapper: CrudFetcherMapper<ClientFlowAn
     journeys_today: 'journeysToday',
     journal_entries_in_history_today: 'journalEntriesInHistoryToday',
     has_oseh_plus: 'hasOsehPlus',
+    has_recoverable_identity: 'hasRecoverableIdentity',
   };
 
 export const convertClientFlowAnalysisEnvironmentToAPI = (
@@ -70,5 +75,6 @@ export const convertClientFlowAnalysisEnvironmentToAPI = (
   journeys_today: settings.journeysToday,
   journal_entries_in_history_today: settings.journalEntriesInHistoryToday,
   has_oseh_plus: settings.hasOsehPlus,
+  has_recoverable_identity: settings.hasRecoverableIdentity,
   platform: settings.platform,
 });

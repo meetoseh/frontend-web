@@ -49,6 +49,11 @@ export type ClientFlowPredicate = {
    */
   journalEntriesInHistoryToday?: SimpleFilterItem | null;
   /**
+   * True if the user has a recoverable user identity (sign in with google, apple, direct, etc)
+   * attached to their account, false otherwise.
+   */
+  hasRecoverableIdentity?: SimpleFilterItem | null;
+  /**
    * Allows recursively producing any logical combination of these
    */
   or?: ClientFlowPredicate | null;
@@ -92,6 +97,9 @@ export const clientFlowPredicateMapper: CrudFetcherMapper<ClientFlowPredicate> =
   ) {
     result.journalEntriesInHistoryToday = raw.journal_entries_in_history_today;
   }
+  if (raw.has_recoverable_identity !== undefined && raw.has_recoverable_identity !== null) {
+    result.hasRecoverableIdentity = raw.has_recoverable_identity;
+  }
   if (raw.or_predicate !== undefined && raw.or_predicate !== null) {
     result.or = convertUsingMapper(raw.or_predicate, clientFlowPredicateMapper);
   }
@@ -122,6 +130,9 @@ export const serializeClientFlowPredicate = (x: ClientFlowPredicate): any => ({
     : {}),
   ...(x.journalEntriesInHistoryToday !== undefined && x.journalEntriesInHistoryToday !== null
     ? { journal_entries_in_history_today: x.journalEntriesInHistoryToday }
+    : {}),
+  ...(x.hasRecoverableIdentity !== undefined && x.hasRecoverableIdentity !== null
+    ? { has_recoverable_identity: x.hasRecoverableIdentity }
     : {}),
   ...(x.or !== undefined && x.or !== null
     ? { or_predicate: serializeClientFlowPredicate(x.or) }
