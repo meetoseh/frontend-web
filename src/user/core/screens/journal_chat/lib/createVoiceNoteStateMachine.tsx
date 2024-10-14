@@ -49,6 +49,7 @@ import {
 } from '../../../../../shared/lib/smartApiFetch';
 import { Resources } from '../../../models/Resources';
 import { selectAudioTarget } from '../../../../../shared/content/createAudioDataHandler';
+import { exactIntDivide } from '../../../../../shared/lib/exactIntDivide';
 
 /**
  * Previous states:
@@ -1787,7 +1788,7 @@ async function transitionFromInitializingLocalPlay(
     const newTVI: Float32Array[] = [];
     for (const numBins of [64, 56, 48, 40, 32, 24, 16, 8]) {
       const bins = new Float32Array(numBins);
-      const binSize = (pcmData.length + (numBins - (pcmData.length % numBins))) / numBins;
+      const binSize = exactIntDivide(pcmData.length, numBins, { round: 'down' });
       for (let bin = 0; bin < numBins; bin++) {
         const binStart = bin * binSize;
         const binEnd = Math.min(binStart + binSize, pcmData.length);
@@ -2126,6 +2127,9 @@ async function transitionFromTranscribing(
   await Promise.race([messageCancelable.promise, transcribeNotRunning.promise]);
   transcribeNotRunning.cancel();
   if (messageCancelable.done()) {
+    if (current.progress.state.get().type !== 'released') {
+      current.progress.sendMessage({ type: 'release' });
+    }
     const msg = (await messageCancelable.promise)();
     if (msg.type === 'release') {
       setVWC(state, { type: 'released' }, (a, b) => a.type === b.type);

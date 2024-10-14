@@ -1,9 +1,5 @@
 import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
-import { Result } from '../../../../shared/requests/RequestHandler';
-import { PeekedScreen, ScreenResources } from '../../models/Screen';
-import { JournalChatMappedParams } from './JournalChatParams';
-import { JournalEntryManager } from './lib/createJournalEntryManagerHandler';
+import { ScreenResources } from '../../models/Screen';
 import { VoiceNoteStateMachine } from './lib/createVoiceNoteStateMachine';
 import { JournalChatState } from './lib/JournalChatState';
 

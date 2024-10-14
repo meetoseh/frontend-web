@@ -1,9 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { VoiceNoteStateMachine } from '../../../user/core/screens/journal_chat/lib/createVoiceNoteStateMachine';
-import {
-  createWritableValueWithCallbacks,
-  useWritableValueWithCallbacks,
-} from '../../lib/Callbacks';
+import { useWritableValueWithCallbacks } from '../../lib/Callbacks';
 import { useValueWithCallbacksEffect } from '../../hooks/useValueWithCallbacksEffect';
 import { OsehStyles } from '../../OsehStyles';
 import { RenderGuardedComponent } from '../RenderGuardedComponent';
@@ -14,23 +11,13 @@ import { OsehColors } from '../../OsehColors';
 import { combineClasses } from '../../lib/combineClasses';
 import styles from './VoiceOrTextInputVoice.module.css';
 import { setVWC } from '../../lib/setVWC';
-import { Play } from '../icons/Play';
-import { Pause } from '../icons/Pause';
 import { HorizontalSpacer } from '../HorizontalSpacer';
-import { RecordingBars, RecordingBarSettings } from './RecordingBars';
+import { RecordingBars } from './RecordingBars';
 import { formatDurationClock } from '../../lib/networkResponseUtils';
 import { Stop } from '../icons/Stop';
-import { AudioFileData } from '../../content/OsehContentTarget';
-import { waitForValueWithCallbacksConditionCancelable } from '../../lib/waitForValueWithCallbacksCondition';
-import { waitForAnimationFrameCancelable } from '../../lib/waitForAnimationFrameCancelable';
-import { useReactManagedValueAsValueWithCallbacks } from '../../hooks/useReactManagedValueAsValueWithCallbacks';
-import { createCancelablePromiseFromCallbacks } from '../../lib/createCancelablePromiseFromCallbacks';
-import { xAxisPhysicalPerLogical } from '../../images/DisplayRatioHelper';
 import { Send } from '../icons/Send';
 import { RESIZING_TEXT_AREA_ICON_SETTINGS } from '../ResizingTextArea';
 import { AudioPlayPauseIcon } from './AudioPlayPauseButton';
-import { OnLayoutAdapter } from '../../hooks/useLayoutSize';
-import { RecordedBars } from './RecordedBars';
 import { AutoWidthRecordedBars } from './AutoWidthRecordedBars';
 
 export type VoiceOrTextInputVoiceProps = {
@@ -151,7 +138,7 @@ export const VoiceOrTextInputVoice = (props: VoiceOrTextInputVoiceProps) => {
               <div
                 className={combineClasses(
                   OsehStyles.typography.detail2,
-                  OsehColors.v4.experimental.lightError
+                  OsehStyles.colors.v4.experimental.lightError
                 )}>
                 {err}
               </div>

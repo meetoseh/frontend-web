@@ -1,8 +1,11 @@
-import { MutableRefObject, useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { createValueWithCallbacksEffect } from './hooks/createValueWithCallbacksEffect';
-import { Callbacks, createWritableValueWithCallbacks, ValueWithCallbacks } from './lib/Callbacks';
+import {
+  createWritableValueWithCallbacks,
+  useWritableValueWithCallbacks,
+  ValueWithCallbacks,
+} from './lib/Callbacks';
 import { setVWC } from './lib/setVWC';
-import { defaultEqualityFn } from './hooks/useMappedValueWithCallbacks';
 
 export type ValueWithCallbacksLikeReactManaged<T> = {
   value: T;
@@ -52,22 +55,19 @@ export const useValueWithCallbacksLikeVWC = <T>(
     equalityFn?: (a: T, b: T) => boolean;
   }
 ): ValueWithCallbacks<T> => {
-  const resultRef = useRef() as MutableRefObject<ValueWithCallbacks<T>>;
-  const equalityFnRef = useRef(opts?.equalityFn ?? defaultEqualityFn);
-  equalityFnRef.current = opts?.equalityFn ?? defaultEqualityFn;
-
+  const result = useWritableValueWithCallbacks<T>(() =>
+    value.get === undefined ? value.value : value.get()
+  );
   useEffect(() => {
-    const [result, cleanup] = createValueWithCallbacksLikeVWC(value, {
-      equalityFn: (a, b) => equalityFnRef.current(a, b),
+    if (value.get === undefined) {
+      setVWC(result, value.value, opts?.equalityFn);
+      return undefined;
+    }
+
+    return createValueWithCallbacksEffect(value, (inner) => {
+      setVWC(result, inner, opts?.equalityFn);
+      return undefined;
     });
-    resultRef.current = result;
-    return cleanup;
-  }, [value, opts]);
-
-  if (resultRef.current === undefined) {
-    const val = value.get !== undefined ? value.get() : value.value;
-    return { get: () => val, callbacks: new Callbacks() };
-  }
-
-  return resultRef.current;
+  });
+  return result;
 };

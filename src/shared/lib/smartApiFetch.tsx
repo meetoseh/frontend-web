@@ -458,7 +458,7 @@ export const createTypicalSmartAPIFetchMapper = <T extends {} | null>(
 
     try {
       const data = await r.json();
-      return { value: data };
+      return { value: mapJSON(data) };
     } catch {
       return { error: describeFetchError(), retryable: true };
     }

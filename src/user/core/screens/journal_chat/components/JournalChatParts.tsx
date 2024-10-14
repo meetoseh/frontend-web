@@ -73,7 +73,7 @@ export const JournalChatParts = ({
     let subparts: ReactElement[] = [];
     if (part.data.type === 'summary') {
       subparts.push(
-        <div key={subparts.length} className={styles.subpart__summaryContainer}>
+        <Fragment key={subparts.length}>
           <div
             className={combineClasses(
               OsehStyles.typography.titleSemibold,
@@ -82,7 +82,7 @@ export const JournalChatParts = ({
             {part.data.title}
           </div>
           <VerticalSpacer height={4} />
-          <div className={styles.subpart__summaryTags}>
+          <div className={OsehStyles.layout.rowWrap}>
             {part.data.tags.map((tag, tagIndex) => (
               <Fragment key={tagIndex}>
                 {tagIndex > 0 && <HorizontalSpacer width={16} />}
@@ -103,11 +103,11 @@ export const JournalChatParts = ({
               </Fragment>
             ))}
           </div>
-        </div>
+        </Fragment>
       );
     } else if (part.data.type === 'textual') {
       part.data.parts.forEach((subPart, subPartIndex) => {
-        const realPart = (() => {
+        const realPart = ((key) => {
           if (
             textualSubPartFilter !== undefined &&
             !textualSubPartFilter(part, partIndex, subPart, subPartIndex)
@@ -118,7 +118,7 @@ export const JournalChatParts = ({
           if (subPart.type === 'paragraph') {
             return (
               <div
-                key={subPartIndex}
+                key={key}
                 className={combineClasses(
                   part.display_author === 'self' || (part.type === 'chat' && partIndex !== 0)
                     ? OsehStyles.typography.body
@@ -132,7 +132,7 @@ export const JournalChatParts = ({
             return (
               <button
                 type="button"
-                key={subPartIndex}
+                key={key}
                 className={OsehStyles.unstyling.buttonAsColumn}
                 onClick={(e) => onGotoJourney(subPart, partIndex, e)}>
                 <JournalChatJourneyCard ctx={ctx} journeyPart={subPart} />
@@ -140,12 +140,15 @@ export const JournalChatParts = ({
             );
           } else if (subPart.type === 'voice_note') {
             return (
-              <div key={subPartIndex} className={styles.subpart__textualVoiceNoteContainer}>
-                <TextPartVoiceNoteComponent ctx={ctx} refreshChat={refreshChat} part={subPart} />
-              </div>
+              <TextPartVoiceNoteComponent
+                key={key}
+                ctx={ctx}
+                refreshChat={refreshChat}
+                part={subPart}
+              />
             );
           }
-        })();
+        })(`${subparts.length}-${subPartIndex}`);
         if (realPart === undefined) {
           return;
         }
@@ -189,7 +192,11 @@ export const JournalChatParts = ({
       } else if (part.display_author === 'other') {
         partClassnames.push(styles.author__other);
       }
-      parts.push(<div className={combineClasses(...partClassnames)}>{subparts}</div>);
+      parts.push(
+        <div key={parts.length} className={combineClasses(...partClassnames)}>
+          {subparts}
+        </div>
+      );
     }
   });
   return <>{parts}</>;

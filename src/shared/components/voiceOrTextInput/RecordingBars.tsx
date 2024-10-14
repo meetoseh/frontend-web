@@ -51,6 +51,19 @@ export type RecordingBarProps = {
  * graph
  */
 export const RecordingBars = (props: RecordingBarProps): ReactElement => {
+  if (
+    isNaN(props.settings.width) ||
+    !isFinite(props.settings.width) ||
+    props.settings.width <= 0 ||
+    props.settings.barWidth <= 0 ||
+    props.settings.barSpacing < 0 ||
+    isNaN(props.settings.height) ||
+    !isFinite(props.settings.height) ||
+    props.settings.height <= 0
+  ) {
+    return <></>;
+  }
+
   const numberOfBars =
     Math.floor(
       (props.settings.width + props.settings.barSpacing) /
@@ -93,7 +106,10 @@ export const RecordingBars = (props: RecordingBarProps): ReactElement => {
             const realNumBars = Math.min(numberOfBars, intensity.length);
             const skippedBars = intensity.length - realNumBars;
             for (let i = skippedBars; i < intensity.length; i++) {
-              const barHeight = Math.max(intensity[i] * props.settings.height, 1);
+              const barHeight =
+                isNaN(intensity[i]) || !isFinite(intensity[i])
+                  ? 1
+                  : Math.max(intensity[i] * props.settings.height, 1);
               bars.push(
                 <Fragment key={i}>
                   <HorizontalSpacer width={props.settings.barSpacing} />

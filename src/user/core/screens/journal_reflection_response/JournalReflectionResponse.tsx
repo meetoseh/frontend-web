@@ -435,7 +435,6 @@ export const JournalReflectionResponse = ({
                           if (note === null) {
                             return;
                           }
-                          console.log('sending note:', note.state.get().type);
                           setVWC(inputtingVoiceNoteVWC, null);
                           setVWC(inputtingVoiceVWC, false);
                           resources.onUserChangedResponse({ type: 'voice', voiceNote: note });

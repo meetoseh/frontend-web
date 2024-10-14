@@ -114,7 +114,6 @@ export const JournalChat = ({
   const onSubmit = async (
     v: { type: 'text'; value: string } | { type: 'voice'; voiceNote: VoiceNoteStateMachine }
   ) => {
-    console.log('onsubmit', v);
     if (submittedVWC.get()) {
       return;
     }
