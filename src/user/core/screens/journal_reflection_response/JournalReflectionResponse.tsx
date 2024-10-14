@@ -128,7 +128,7 @@ export const JournalReflectionResponse = ({
       get: () => currentV,
       set: (v) => {
         currentV = v;
-        resources.onUserChangedResponse({ type: 'text', value: v });
+        resources.onUserChangedResponse.call(undefined, { type: 'text', value: v });
       },
       callbacks,
     };
