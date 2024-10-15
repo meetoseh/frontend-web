@@ -1,4 +1,3 @@
-import { ReactElement } from 'react';
 import {
   ValueWithCallbacks,
   createWritableValueWithCallbacks,
@@ -11,13 +10,13 @@ import { getCurrentServerTimeMS } from '../../../shared/lib/getCurrentServerTime
 import { getJwtExpiration } from '../../../shared/lib/getJwtExpiration';
 import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { describeError } from '../../../shared/forms/ErrorBlock';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { convertUsingMapper } from '../../../admin/crud/CrudFetcher';
 import { externalCourseKeyMap } from './ExternalCourse';
 import { RequestHandler, Result } from '../../../shared/requests/RequestHandler';
 import { mapCancelable } from '../../../shared/lib/mapCancelable';
 import { ExpirableCourseRef } from './ExpirableCourseRef';
+import { chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 export type CourseLikeState = {
   /**
@@ -40,7 +39,7 @@ export type CourseLikeState = {
    * An element as if from describeError describing the last error that occurred,
    * if any.
    */
-  error: ValueWithCallbacks<ReactElement | null>;
+  error: ValueWithCallbacks<DisplayableError | null>;
 
   /**
    * Refreshes the current liked status of the course. This will set
@@ -117,10 +116,13 @@ const getDataFromRef = (
         retryAt: undefined,
       }),
       async (e, state, resolve, reject) => {
-        const err = await describeError(e);
+        const err =
+          e instanceof DisplayableError
+            ? new DisplayableError(e.type, 'get like state', e.details)
+            : new DisplayableError('client', 'get like state', `${e}`);
         if (state.finishing) {
           state.done = true;
-          reject(new Error('canceled'));
+          reject(new DisplayableError('canceled', 'get like state'));
           return;
         }
 
@@ -160,7 +162,7 @@ export const createCourseLikeState = ({
   const likedAtVWC = createWritableValueWithCallbacks<Date | null | undefined>(undefined);
   const showLikedUntilVWC = createWritableValueWithCallbacks<number | undefined>(undefined);
   const showUnlikedUntilVWC = createWritableValueWithCallbacks<number | undefined>(undefined);
-  const errorVWC = createWritableValueWithCallbacks<ReactElement | null>(null);
+  const errorVWC = createWritableValueWithCallbacks<DisplayableError | null>(null);
 
   const refresh = (): CancelablePromise<void> => {
     return constructCancelablePromise({
@@ -168,7 +170,13 @@ export const createCourseLikeState = ({
         if (reportedExpiration) {
           state.finishing = true;
           state.done = true;
-          reject(new Error('this CourseLikeState has expired'));
+          reject(
+            new DisplayableError(
+              'server-refresh-required',
+              'refresh series like state',
+              'series ref'
+            )
+          );
           return;
         }
 
@@ -176,7 +184,13 @@ export const createCourseLikeState = ({
         if (loginContext.state !== 'logged-in') {
           state.finishing = true;
           state.done = true;
-          reject(new Error('not logged in'));
+          reject(
+            new DisplayableError(
+              'server-refresh-required',
+              'refresh series like state',
+              'not logged in'
+            )
+          );
           return;
         }
 
@@ -184,7 +198,7 @@ export const createCourseLikeState = ({
         canceled.promise.catch(() => {});
         if (state.finishing) {
           state.done = true;
-          reject(new Error('canceled'));
+          reject(new DisplayableError('canceled', 'refresh series like state'));
           canceled.cancel();
           return;
         }
@@ -192,7 +206,7 @@ export const createCourseLikeState = ({
         const serverNow = await getCurrentServerTimeMS();
         if (state.finishing) {
           state.done = true;
-          reject(new Error('canceled'));
+          reject(new DisplayableError('canceled', 'refresh series like state'));
           return;
         }
 
@@ -201,7 +215,13 @@ export const createCourseLikeState = ({
           reportedExpiration = true;
           state.finishing = true;
           state.done = true;
-          reject(new Error('this CourseLikeState has just expired'));
+          reject(
+            new DisplayableError(
+              'server-refresh-required',
+              'refresh series like state',
+              'series ref'
+            )
+          );
           return;
         }
 
@@ -214,26 +234,37 @@ export const createCourseLikeState = ({
         }
 
         try {
-          const response = await apiFetch(
-            '/api/1/courses/search_public?course_jwt=' + encodeURIComponent(course.jwt),
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
+          let response;
+          try {
+            response = await apiFetch(
+              '/api/1/courses/search_public?course_jwt=' + encodeURIComponent(course.jwt),
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                },
+                body: JSON.stringify({ limit: 1 }),
+                signal,
               },
-              body: JSON.stringify({ limit: 1 }),
-              signal,
-            },
-            loginContext
-          );
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'refresh series like state');
+          }
 
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'refresh series like state');
           }
 
           if (state.finishing) {
             state.done = true;
-            reject(new Error('canceled'));
+            reject(
+              new DisplayableError(
+                'server-refresh-required',
+                'refresh series like state',
+                'series ref'
+              )
+            );
             return;
           }
 
@@ -241,16 +272,27 @@ export const createCourseLikeState = ({
 
           if (state.finishing) {
             state.done = true;
-            reject(new Error('canceled'));
+            reject(
+              new DisplayableError(
+                'server-refresh-required',
+                'refresh series like state',
+                'series ref'
+              )
+            );
             return;
           }
 
           if (data.items.length === 0) {
             state.finishing = true;
             setVWC(likedAtVWC, undefined);
-            setVWC(errorVWC, <>Series not found</>);
+            const err = new DisplayableError(
+              'server-not-retryable',
+              'refresh series like state',
+              'series not found'
+            );
+            setVWC(errorVWC, err);
             state.done = true;
-            reject(new Error('course not found'));
+            reject(err);
             return;
           }
 
@@ -263,16 +305,14 @@ export const createCourseLikeState = ({
         } catch (e) {
           if (state.finishing) {
             state.done = true;
-            reject(new Error('canceled'));
+            reject(new DisplayableError('canceled', 'refresh series like state'));
             return;
           }
 
-          const err = await describeError(e);
-          if (state.finishing) {
-            state.done = true;
-            reject(new Error('canceled'));
-            return;
-          }
+          const err =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'refresh series like state', `${e}`);
 
           state.finishing = true;
           setVWC(errorVWC, err);
@@ -289,7 +329,7 @@ export const createCourseLikeState = ({
         if (reportedExpiration) {
           state.finishing = true;
           state.done = true;
-          reject(new Error('this CourseLikeState has expired'));
+          reject(new DisplayableError('server-refresh-required', 'like series', 'series ref'));
           return;
         }
 
@@ -297,7 +337,7 @@ export const createCourseLikeState = ({
         if (loginContext.state !== 'logged-in') {
           state.finishing = true;
           state.done = true;
-          reject(new Error('not logged in'));
+          reject(new DisplayableError('server-refresh-required', 'like series', 'not logged in'));
           return;
         }
 
@@ -305,7 +345,7 @@ export const createCourseLikeState = ({
         canceled.promise.catch(() => {});
         if (state.finishing) {
           state.done = true;
-          reject(new Error('canceled'));
+          reject(new DisplayableError('canceled', 'like series'));
           canceled.cancel();
           return;
         }
@@ -313,7 +353,7 @@ export const createCourseLikeState = ({
         const serverNow = await getCurrentServerTimeMS();
         if (state.finishing) {
           state.done = true;
-          reject(new Error('canceled'));
+          reject(new DisplayableError('canceled', 'like series'));
           return;
         }
 
@@ -322,7 +362,7 @@ export const createCourseLikeState = ({
           reportedExpiration = true;
           state.finishing = true;
           state.done = true;
-          reject(new Error('this CourseLikeState has just expired'));
+          reject(new DisplayableError('server-refresh-required', 'like series', 'series ref'));
           return;
         }
 
@@ -335,29 +375,34 @@ export const createCourseLikeState = ({
         }
 
         try {
-          const response = await apiFetch(
-            '/api/1/users/me/courses/likes',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
+          let response;
+          try {
+            response = await apiFetch(
+              '/api/1/users/me/courses/likes',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                },
+                body: JSON.stringify({
+                  uid: course.uid,
+                  jwt: course.jwt,
+                }),
+                signal,
               },
-              body: JSON.stringify({
-                uid: course.uid,
-                jwt: course.jwt,
-              }),
-              signal,
-            },
-            loginContext
-          );
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'like series');
+          }
 
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'like series');
           }
 
           if (state.finishing) {
             state.done = true;
-            reject(new Error('canceled'));
+            reject(new DisplayableError('canceled', 'like series'));
             return;
           }
 
@@ -365,7 +410,7 @@ export const createCourseLikeState = ({
 
           if (state.finishing) {
             state.done = true;
-            reject(new Error('canceled'));
+            reject(new DisplayableError('canceled', 'like series'));
             return;
           }
 
@@ -378,16 +423,12 @@ export const createCourseLikeState = ({
         } catch (e) {
           if (state.finishing) {
             state.done = true;
-            reject(new Error('canceled'));
+            reject(new DisplayableError('canceled', 'like series'));
             return;
           }
 
-          const err = await describeError(e);
-          if (state.finishing) {
-            state.done = true;
-            reject(new Error('canceled'));
-            return;
-          }
+          const err =
+            e instanceof DisplayableError ? e : new DisplayableError('client', 'like', `${e}`);
 
           state.finishing = true;
           setVWC(errorVWC, err);
@@ -404,7 +445,7 @@ export const createCourseLikeState = ({
         if (reportedExpiration) {
           state.finishing = true;
           state.done = true;
-          reject(new Error('this CourseLikeState has expired'));
+          reject(new DisplayableError('server-refresh-required', 'unlike series', 'series ref'));
           return;
         }
 
@@ -412,7 +453,7 @@ export const createCourseLikeState = ({
         if (loginContext.state !== 'logged-in') {
           state.finishing = true;
           state.done = true;
-          reject(new Error('not logged in'));
+          reject(new DisplayableError('server-refresh-required', 'unlike series', 'not logged in'));
           return;
         }
 
@@ -420,7 +461,7 @@ export const createCourseLikeState = ({
         canceled.promise.catch(() => {});
         if (state.finishing) {
           state.done = true;
-          reject(new Error('canceled'));
+          reject(new DisplayableError('canceled', 'unlike series'));
           canceled.cancel();
           return;
         }
@@ -428,7 +469,7 @@ export const createCourseLikeState = ({
         const serverNow = await getCurrentServerTimeMS();
         if (state.finishing) {
           state.done = true;
-          reject(new Error('canceled'));
+          reject(new DisplayableError('canceled', 'unlike series'));
           return;
         }
 
@@ -437,7 +478,7 @@ export const createCourseLikeState = ({
           reportedExpiration = true;
           state.finishing = true;
           state.done = true;
-          reject(new Error('this CourseLikeState has just expired'));
+          reject(new DisplayableError('server-refresh-required', 'unlike series', 'series ref'));
           return;
         }
 
@@ -450,24 +491,29 @@ export const createCourseLikeState = ({
         }
 
         try {
-          const response = await apiFetch(
-            `/api/1/users/me/courses/likes?uid=${encodeURIComponent(
-              course.uid
-            )}&jwt=${encodeURIComponent(course.jwt)}`,
-            {
-              method: 'DELETE',
-              signal,
-            },
-            loginContext
-          );
+          let response;
+          try {
+            response = await apiFetch(
+              `/api/1/users/me/courses/likes?uid=${encodeURIComponent(
+                course.uid
+              )}&jwt=${encodeURIComponent(course.jwt)}`,
+              {
+                method: 'DELETE',
+                signal,
+              },
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'unlike series');
+          }
 
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'unlike series');
           }
 
           if (state.finishing) {
             state.done = true;
-            reject(new Error('canceled'));
+            reject(new DisplayableError('canceled', 'unlike series'));
             return;
           }
 
@@ -480,16 +526,12 @@ export const createCourseLikeState = ({
         } catch (e) {
           if (state.finishing) {
             state.done = true;
-            reject(new Error('canceled'));
+            reject(new DisplayableError('canceled', 'unlike series'));
             return;
           }
 
-          const err = await describeError(e);
-          if (state.finishing) {
-            state.done = true;
-            reject(new Error('canceled'));
-            return;
-          }
+          const err =
+            e instanceof DisplayableError ? e : new DisplayableError('client', 'unlike', `${e}`);
 
           state.finishing = true;
           setVWC(errorVWC, err);
@@ -504,7 +546,9 @@ export const createCourseLikeState = ({
     const likedAt = likedAtVWC.get();
     if (likedAt === undefined) {
       return {
-        promise: Promise.reject(new Error('Cannot toggle like while still loading')),
+        promise: Promise.reject(
+          new DisplayableError('client', 'toggle like', 'like status not loaded')
+        ),
         done: () => true,
         cancel: () => {},
       };

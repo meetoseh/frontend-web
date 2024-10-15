@@ -19,6 +19,7 @@ import { Send } from '../icons/Send';
 import { RESIZING_TEXT_AREA_ICON_SETTINGS } from '../ResizingTextArea';
 import { AudioPlayPauseIcon } from './AudioPlayPauseButton';
 import { AutoWidthRecordedBars } from './AutoWidthRecordedBars';
+import { BoxError, DisplayableError } from '../../lib/errors';
 
 export type VoiceOrTextInputVoiceProps = {
   /** The user no longer wants to send audio */
@@ -127,7 +128,11 @@ export const VoiceOrTextInputVoice = (props: VoiceOrTextInputVoiceProps) => {
       />
       <RenderGuardedComponent
         props={useMappedValueWithCallbacks(voiceNote.state, (s) =>
-          s.type === 'error' ? s.error : s.type === 'released' ? <>Reference released</> : null
+          s.type === 'error'
+            ? s.error
+            : s.type === 'released'
+            ? new DisplayableError('canceled', 'show voice note', 'released')
+            : null
         )}
         component={(err) =>
           err === null ? (
@@ -135,13 +140,7 @@ export const VoiceOrTextInputVoice = (props: VoiceOrTextInputVoiceProps) => {
           ) : (
             <div className={OsehStyles.layout.column} style={{ flexGrow: 1 }}>
               <VerticalSpacer height={0} flexGrow={1} />
-              <div
-                className={combineClasses(
-                  OsehStyles.typography.detail2,
-                  OsehStyles.colors.v4.experimental.lightError
-                )}>
-                {err}
-              </div>
+              <BoxError error={err} />
               <VerticalSpacer height={0} flexGrow={1} />
             </div>
           )

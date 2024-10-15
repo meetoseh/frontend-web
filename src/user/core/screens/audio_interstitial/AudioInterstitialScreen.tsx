@@ -6,6 +6,7 @@ import { selectAudioTarget } from '../../../../shared/content/createAudioDataHan
 import { createMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
+import { DisplayableError } from '../../../../shared/lib/errors';
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RequestResult, Result } from '../../../../shared/requests/RequestHandler';
@@ -53,7 +54,11 @@ export const AudioInterstitialScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get audio playlist',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -114,7 +119,11 @@ export const AudioInterstitialScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get transcript',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -131,7 +140,11 @@ export const AudioInterstitialScreen: OsehScreen<
                 ? {
                     type: 'error',
                     data: undefined,
-                    error: <>transcript is no longer available</>,
+                    error: new DisplayableError(
+                      'server-refresh-required',
+                      'get transcript',
+                      'no longer available'
+                    ),
                     retryAt: undefined,
                   }
                 : {

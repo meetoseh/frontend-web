@@ -32,12 +32,12 @@ import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { ContentContainer } from '../../../../shared/components/ContentContainer';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
 import { Close } from '../../../../shared/components/icons/Close';
 import { OsehColors } from '../../../../shared/OsehColors';
 import { adaptExitTransition } from '../../lib/adaptExitTransition';
+import { chooseErrorFromStatus, DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * Presents the user the opportunity to give some free-form feedback
@@ -77,11 +77,11 @@ export const Feedback = ({
         return true;
       }
     }
-  }, [screen.parameters.anonymous]);
+  }, [screen.parameters.anonymous, anonymousVWC, trace]);
 
   const disabledVWC = useMappedValueWithCallbacks(rawInputValueVWC, (v) => v.trim() === '');
-  const submitErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, submitErrorVWC, 'saving feedback');
+  const submitErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, submitErrorVWC);
 
   const onSubmit = async () => {
     if (disabledVWC.get()) {
@@ -103,7 +103,10 @@ export const Feedback = ({
       const loginContextUnch = ctx.login.value.get();
       if (loginContextUnch.state !== 'logged-in') {
         trace({ type: 'submit-error', details: 'not logged in' });
-        setVWC(submitErrorVWC, <>Not logged in</>);
+        setVWC(
+          submitErrorVWC,
+          new DisplayableError('server-refresh-required', 'submit feedback', 'not logged in')
+        );
         return;
       }
       const loginContext = loginContextUnch;
@@ -114,24 +117,29 @@ export const Feedback = ({
       const exitTransitionCancelable = playExitTransition(transition);
 
       try {
-        const response = await apiFetch(
-          '/api/1/general_feedback/',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
+        let response;
+        try {
+          response = await apiFetch(
+            '/api/1/general_feedback/',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+              },
+              body: JSON.stringify({
+                anonymous: anonymousVWC.get(),
+                feedback: ele.value,
+                slug: screen.parameters.slug,
+              }),
             },
-            body: JSON.stringify({
-              anonymous: anonymousVWC.get(),
-              feedback: ele.value,
-              slug: screen.parameters.slug,
-            }),
-          },
-          loginContext
-        );
+            loginContext
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'submit feedback');
+        }
 
         if (!response.ok) {
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'submit feedback');
         }
 
         trace({ type: 'submit-success' });
@@ -149,7 +157,10 @@ export const Feedback = ({
         finishPop();
       } catch (e) {
         trace({ type: 'submit-error', details: `${e}` });
-        const desc = await describeError(e);
+        const desc =
+          e instanceof DisplayableError
+            ? e
+            : new DisplayableError('client', 'submit feedback', `${e}`);
         setVWC(submitErrorVWC, desc);
         await exitTransitionCancelable.promise;
         playEntranceTransition(transition);

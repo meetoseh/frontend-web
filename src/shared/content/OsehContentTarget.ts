@@ -1,6 +1,6 @@
-import { ReactElement } from 'react';
 import { CrudFetcherMapper, convertUsingMapper } from '../../admin/crud/CrudFetcher';
 import { OsehContentRefLoadable } from './OsehContentRef';
+import { DisplayableError } from '../lib/errors';
 
 /**
  * Describes the meta-information on a web export of a content file.
@@ -142,4 +142,4 @@ export type OsehContentTarget =
       presigned: boolean;
       jwt: string;
     }
-  | { state: 'failed'; error: ReactElement; webExport: null; presigned: null; jwt: null };
+  | { state: 'failed'; error: DisplayableError; webExport: null; presigned: null; jwt: null };

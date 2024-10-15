@@ -26,10 +26,8 @@ import { Upgrade } from './Upgrade';
 import { UpgradeAPIParams, UpgradeCopy, UpgradeMappedParams } from './UpgradeParams';
 import { UpgradeResources } from './UpgradeResources';
 import { ParsedPeriod, extractTrialLength } from './lib/purchasesStoreProductHelper';
-import {
-  convertScreenConfigurableTriggerWithOldVersion,
-  screenConfigurableTriggerFlowMapper,
-} from '../../models/ScreenConfigurableTrigger';
+import { screenConfigurableTriggerFlowMapper } from '../../models/ScreenConfigurableTrigger';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 type Copy = UpgradeCopy<ScreenImageParsed>;
 const LOADING_UPGRADE_COPY: Copy = {
@@ -272,7 +270,11 @@ export const UpgradeScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get image playlist',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -302,7 +304,11 @@ export const UpgradeScreen: OsehScreen<
               return {
                 type: 'error',
                 data: undefined,
-                error: <>No longer needed</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get image',
+                  'no longer needed'
+                ),
                 retryAt: undefined,
               };
             }

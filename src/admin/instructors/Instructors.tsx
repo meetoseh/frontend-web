@@ -105,7 +105,11 @@ export const Instructors = (): ReactElement => {
           onMore={onMore}
         />
       }
-      create={<CreateInstructor onCreated={onInstructorCreated} />}
+      create={
+        <>
+          <CreateInstructor onCreated={onInstructorCreated} />
+        </>
+      }
       filters={
         <InstructorFilterAndSortBlock
           sort={sort}

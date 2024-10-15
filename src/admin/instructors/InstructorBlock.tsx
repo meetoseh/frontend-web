@@ -5,7 +5,6 @@ import iconStyles from '../crud/icons.module.css';
 import { IconButton } from '../../shared/forms/IconButton';
 import { TextInput } from '../../shared/forms/TextInput';
 import styles from './InstructorBlock.module.css';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
 import { CrudFormElement } from '../crud/CrudFormElement';
@@ -17,6 +16,7 @@ import { ModalContext } from '../../shared/contexts/ModalContext';
 import { Button } from '../../shared/forms/Button';
 import { showUploader } from '../../shared/upload/uploader/showUploader';
 import { createUploadPoller } from '../../shared/upload/uploader/createUploadPoller';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type InstructorBlockProps = {
   instructor: Instructor;
@@ -38,7 +38,7 @@ export const InstructorBlock = ({
     parsed: instructor.bias,
   });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [newFlags, setNewFlags] = useState(instructor.flags);
 
   const save = useCallback(async () => {
@@ -53,12 +53,13 @@ export const InstructorBlock = ({
     }
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
+      setError(new DisplayableError('server-refresh-required', 'save instructor', 'not logged in'));
       return;
     }
     const loginContext = loginContextUnch;
 
     if (newBias.parsed === undefined) {
-      setError(<>Bias must be a number</>);
+      setError(new DisplayableError('client', 'save instructor', 'bias is not a number'));
       return;
     }
 
@@ -86,7 +87,7 @@ export const InstructorBlock = ({
         );
 
         if (!response.ok) {
-          setError(await describeErrorFromResponse(response));
+          setError(chooseErrorFromStatus(response.status, 'save instructor'));
           return;
         }
 
@@ -96,7 +97,7 @@ export const InstructorBlock = ({
 
       setEditing(false);
     } catch (e) {
-      setError(<>Failed to connect to server. Check your internet connection</>);
+      setError(new DisplayableError('connectivity', 'save instructor'));
     } finally {
       setSaving(false);
     }
@@ -240,7 +241,7 @@ export const InstructorBlock = ({
             setValue={(v) => setNewFlags(v ? newFlags | 2 : newFlags & ~2)}
             disabled={false}
           />
-          {error && <ErrorBlock>{error}</ErrorBlock>}
+          {error && <BoxError error={error} />}
           <button type="button" onClick={save} disabled={saving} hidden>
             Save
           </button>

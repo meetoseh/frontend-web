@@ -1,10 +1,10 @@
 import { ReactElement } from 'react';
-import { ErrorBlock } from '../forms/ErrorBlock';
 import {
   AdminDashboardLargeChart,
   AdminDashboardLargeChartProps,
 } from '../../admin/dashboard/AdminDashboardLargeChart';
 import { AdminDashboardLargeChartPlaceholder } from '../../admin/dashboard/AdminDashboardLargeChartPlaceholder';
+import { BoxError, DisplayableError } from './errors';
 
 type NetworkResponseFormatOptions = {
   /**
@@ -238,13 +238,13 @@ export const formatNetworkDuration = (
 
 /**
  * This breaks the standard conventions of `formatNetworkValue`; this displays
- * nothing if the error is null, otherwise wraps it an ErrorBlock.
+ * nothing if the error is null, otherwise wraps it a BoxError
  *
  * @param err The error to format
  * @returns The formatted error
  */
-export const formatNetworkError = (err: ReactElement | null): ReactElement => (
-  <>{err !== null && <ErrorBlock>{err}</ErrorBlock>}</>
+export const formatNetworkError = (err: DisplayableError | null): ReactElement => (
+  <>{err !== null && <BoxError error={err} />}</>
 );
 
 /**

@@ -33,7 +33,6 @@ import { setVWC } from '../../../../shared/lib/setVWC';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import {
   FlexGrowContentWidthTextArea,
   FlexGrowContentWidthTextAreaProps,
@@ -50,6 +49,7 @@ import {
   VoiceNoteStateMachine,
 } from '../journal_chat/lib/createVoiceNoteStateMachine';
 import { Cancel } from '../../../../shared/components/icons/Cancel';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * Shows the journal reflection question and gives a large amount of room for
@@ -104,8 +104,8 @@ export const JournalReflectionResponse = ({
     i?.focus();
     return undefined;
   });
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, errorVWC, 'saving response');
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, errorVWC);
 
   const responseWrappedVWC = useWritableValueWithCallbacks<
     FlexGrowContentWidthTextAreaProps['value'] | null
@@ -491,7 +491,10 @@ export const JournalReflectionResponse = ({
                               await resources.ensureSaved();
                             } catch (e) {
                               trace({ type: 'cta', step: 'error saving' });
-                              const err = await describeError(e);
+                              const err =
+                                e instanceof DisplayableError
+                                  ? new DisplayableError(e.type, 'save response', e.details)
+                                  : new DisplayableError('client', 'save response', `${e}`);
                               setVWC(errorVWC, err);
                               await exitTransitionCancelable.promise;
                               await playEntranceTransition(transition).promise;

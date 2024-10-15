@@ -29,12 +29,12 @@ import { BackContinue } from '../../../../shared/components/BackContinue';
 import assistiveStyles from '../../../../shared/assistive.module.css';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { screenWithWorking } from '../../lib/screenWithWorking';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { useBeforeTime } from '../../../../shared/hooks/useBeforeTime';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
 import { AutoBold } from '../../../../shared/components/AutoBold';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
 import { adaptExitTransition } from '../../lib/adaptExitTransition';
+import { chooseErrorFromStatus, DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * Allows the user to verify a phone; triggers the back flow if the
@@ -60,7 +60,7 @@ export const VerifyPhone = ({
   const workingVWC = useWritableValueWithCallbacks(() => false);
 
   const codeVWC = useWritableValueWithCallbacks(() => '');
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   const handleContinue = () =>
     screenWithWorking(workingVWC, async () => {
@@ -70,7 +70,10 @@ export const VerifyPhone = ({
 
       const loginContext = ctx.login.value.get();
       if (loginContext.state !== 'logged-in') {
-        setVWC(errorVWC, <>Not logged in</>);
+        setVWC(
+          errorVWC,
+          new DisplayableError('server-refresh-required', 'verify phone', 'not logged in')
+        );
         return;
       }
 
@@ -82,26 +85,34 @@ export const VerifyPhone = ({
       const code = codeVWC.get();
       trace({ type: 'verify', codeLength: code.length, step: 'start' });
       try {
-        const response = await apiFetch(
-          '/api/1/phones/verify/finish',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
+        let response;
+        try {
+          response = await apiFetch(
+            '/api/1/phones/verify/finish',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+              },
+              body: JSON.stringify({
+                uid: screen.parameters.verification.uid,
+                code,
+              }),
             },
-            body: JSON.stringify({
-              uid: screen.parameters.verification.uid,
-              code,
-            }),
-          },
-          loginContext
-        );
+            loginContext
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'verify phone');
+        }
         if (!response.ok) {
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'verify phone');
         }
       } catch (e) {
         trace({ type: 'verify', step: 'error', error: `${e}` });
-        setVWC(errorVWC, await describeError(e));
+        setVWC(
+          errorVWC,
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'verify phone', `${e}`)
+        );
         await exitTransition.promise;
         await playEntranceTransition(transition).promise;
         return;
@@ -155,7 +166,7 @@ export const VerifyPhone = ({
     return undefined;
   });
 
-  useErrorModal(modalContext.modals, errorVWC, 'verifying code');
+  useErrorModal(modalContext.modals, errorVWC);
 
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>

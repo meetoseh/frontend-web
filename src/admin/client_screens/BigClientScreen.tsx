@@ -16,6 +16,7 @@ import { CrudFormElement } from '../crud/CrudFormElement';
 import { OpenAPISchemaViewer } from '../crud/schema/OpenAPISchemaViewer';
 import { useReactManagedValueAsValueWithCallbacks } from '../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { FLAG_PRESETS_LOOKUP } from './ClientScreenFilterAndSortBlock';
+import { DisplayableError } from '../../shared/lib/errors';
 
 export const BigClientScreen = (): ReactElement => {
   const modalContext = useContext(ModalContext);
@@ -62,14 +63,14 @@ export const BigClientScreen = (): ReactElement => {
     }
   );
 
-  const clientScreenNRPopupErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(
+  const clientScreenNRPopupErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(
     () => null
   );
   useValueWithCallbacksEffect(clientScreenNR, (cs) => {
     setVWC(clientScreenNRPopupErrorVWC, cs.error);
     return undefined;
   });
-  useErrorModal(modalContext.modals, clientScreenNRPopupErrorVWC, 'loading client screen');
+  useErrorModal(modalContext.modals, clientScreenNRPopupErrorVWC);
 
   return (
     <div className={styles.container}>

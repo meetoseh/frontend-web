@@ -16,6 +16,7 @@ import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
 import { delayCancelableUntilResolved } from '../../../shared/lib/delayCancelableUntilResolved';
 import { createUID } from '../../../shared/lib/createUID';
 import { Buffer } from 'buffer';
+import { DisplayableError } from '../../../shared/lib/errors';
 
 export type UseScreenQueueProps = {
   /**
@@ -70,7 +71,7 @@ export type UseScreenQueueState =
        */
       type: 'error';
       /** A description of the error */
-      error: ReactElement;
+      error: DisplayableError;
       component?: undefined;
     }
   | {
@@ -346,7 +347,10 @@ export const useScreenQueue = ({
           skipsInARow++;
           if (skipsInARow > 10) {
             logging.error(`${effectUid} | ${loopUid} - too many skips in a row, going to error`);
-            setVWC(valueVWC, { type: 'error', error: <>Too many skips in a row</> });
+            setVWC(valueVWC, {
+              type: 'error',
+              error: new DisplayableError('client', 'get screen', 'too many skips in a row'),
+            });
             return;
           }
           logging.warn(

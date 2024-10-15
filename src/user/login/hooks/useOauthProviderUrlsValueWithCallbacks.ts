@@ -1,4 +1,4 @@
-import { ReactElement, useCallback } from 'react';
+import { useCallback } from 'react';
 import {
   ValueWithCallbacks,
   WritableValueWithCallbacks,
@@ -9,7 +9,7 @@ import { OauthProvider } from '../lib/OauthProvider';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { getOauthProviderUrl } from '../lib/getOauthProviderUrl';
-import { describeError } from '../../../shared/forms/ErrorBlock';
+import { DisplayableError } from '../../../shared/lib/errors';
 
 /**
  * Gets the urls for each of the specified providers, returning them in the same
@@ -23,10 +23,10 @@ export const useOauthProviderUrlsValueWithCallbacks = (
   providers: ValueWithCallbacks<OauthProvider[]>
 ): [
   ValueWithCallbacks<Omit<ProvidersListItem, 'onLinkClick'>[]>,
-  WritableValueWithCallbacks<ReactElement | null>
+  WritableValueWithCallbacks<DisplayableError | null>
 ] => {
   const urls = useWritableValueWithCallbacks<Omit<ProvidersListItem, 'onLinkClick'>[]>(() => []);
-  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const error = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   useValueWithCallbacksEffect(
     providers,
@@ -67,7 +67,10 @@ export const useOauthProviderUrlsValueWithCallbacks = (
           try {
             await getUrlsInner();
           } catch (e) {
-            const err = await describeError(e);
+            const err =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'get urls', `${e}`);
             if (!running) {
               return;
             }

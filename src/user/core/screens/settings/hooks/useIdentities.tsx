@@ -6,9 +6,9 @@ import {
 } from '../../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { apiFetch } from '../../../../../shared/ApiConstants';
-import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { OauthProvider } from '../../../../login/lib/OauthProvider';
 import { useValuesWithCallbacksEffect } from '../../../../../shared/hooks/useValuesWithCallbacksEffect';
+import { chooseErrorFromStatus, DisplayableError } from '../../../../../shared/lib/errors';
 
 export type Identity = {
   /**
@@ -44,7 +44,7 @@ export type IdentitiesUnavailable = {
 
 export type IdentitiesError = {
   type: 'error';
-  error: ReactElement;
+  error: DisplayableError;
 };
 
 export type IdentitiesState =
@@ -103,22 +103,27 @@ export const useIdentities = (
       };
 
       async function loadIdentitiesInner() {
-        const response = await apiFetch(
-          '/api/1/users/me/search_identities',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
+        let response;
+        try {
+          response = await apiFetch(
+            '/api/1/users/me/search_identities',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+              },
+              body: JSON.stringify({
+                limit: 1000,
+              }),
             },
-            body: JSON.stringify({
-              limit: 1000,
-            }),
-          },
-          loginContext
-        );
+            loginContext
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'load identities');
+        }
 
         if (!response.ok) {
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'load identities');
         }
 
         const raw: { items: Identity[] } = await response.json();
@@ -138,7 +143,10 @@ export const useIdentities = (
         try {
           await loadIdentitiesInner();
         } catch (e) {
-          const err = await describeError(e);
+          const err =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'load identities', `${e}`);
           if (running) {
             setVWC(result, { type: 'error', error: err }, () => false);
           }

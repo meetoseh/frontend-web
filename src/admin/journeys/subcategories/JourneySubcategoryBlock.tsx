@@ -8,9 +8,9 @@ import iconStyles from '../../crud/icons.module.css';
 import { TextInput } from '../../../shared/forms/TextInput';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { describeErrorFromResponse, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { keyMap } from './JourneySubcategories';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 type JourneySubcategoryBlockProps = {
   /**
@@ -32,7 +32,7 @@ export const JourneySubcategoryBlock = ({
   const loginContextRaw = useContext(LoginContext);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [newInternalName, setNewInternalName] = useState(journeySubcategory.internalName);
   const [newExternalName, setNewExternalName] = useState(journeySubcategory.externalName);
   const [newBias, setNewBias] = useState<{ str: string; num: number | undefined }>({
@@ -43,6 +43,9 @@ export const JourneySubcategoryBlock = ({
   const save = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
+      setError(
+        new DisplayableError('server-refresh-required', 'save journey subcategory', 'not logged in')
+      );
       return;
     }
     const loginContext = loginContextUnch;
@@ -58,7 +61,7 @@ export const JourneySubcategoryBlock = ({
     }
 
     if (newBias.num === undefined) {
-      setError(<>Bias must be a number.</>);
+      setError(new DisplayableError('client', 'save journey subcategory', 'bias is not a number'));
       return;
     }
 
@@ -82,20 +85,23 @@ export const JourneySubcategoryBlock = ({
           },
           loginContext
         );
-      } catch (e) {
-        console.error(e);
-        setError(<>Could not connect to server. Check your internet connection.</>);
-        return;
+      } catch {
+        throw new DisplayableError('connectivity', 'save journey subcategory');
       }
 
       if (!response.ok) {
-        setError(await describeErrorFromResponse(response));
-        return;
+        throw chooseErrorFromStatus(response.status, 'save journey subcategory');
       }
 
       const updatedJourneySubcategory = convertUsingKeymap(await response.json(), keyMap);
       setJourneySubcategory({ ...journeySubcategory, ...updatedJourneySubcategory });
       setEditing(false);
+    } catch (e) {
+      setError(
+        e instanceof DisplayableError
+          ? e
+          : new DisplayableError('client', 'save journey subcategory', `${e}`)
+      );
     } finally {
       setSaving(false);
     }
@@ -181,7 +187,7 @@ export const JourneySubcategoryBlock = ({
             html5Validation={{ required: true, min: 0, step: 0.01 }}
             type="number"
           />
-          {error && <ErrorBlock>{error}</ErrorBlock>}
+          {error && <BoxError error={error} />}
 
           <button type="submit" disabled={saving} hidden>
             Save

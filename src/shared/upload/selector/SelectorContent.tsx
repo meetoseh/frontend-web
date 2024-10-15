@@ -11,12 +11,12 @@ import { adaptValueWithCallbacksAsSetState } from '../../lib/adaptValueWithCallb
 import { setVWC } from '../../lib/setVWC';
 import { useValueWithCallbacksEffect } from '../../hooks/useValueWithCallbacksEffect';
 import { LoginContext } from '../../contexts/LoginContext';
-import { ErrorBlock, describeError } from '../../forms/ErrorBlock';
 import { RenderGuardedComponent } from '../../components/RenderGuardedComponent';
 import { combineClasses } from '../../lib/combineClasses';
 import { InlineOsehSpinner } from '../../components/InlineOsehSpinner';
 import { useMappedValuesWithCallbacks } from '../../hooks/useMappedValuesWithCallbacks';
 import { Button } from '../../forms/Button';
+import { DisplayableError, SimpleDismissBoxError } from '../../lib/errors';
 
 export type SelectorContentProps<T extends object> = {
   /**
@@ -102,7 +102,7 @@ export const SelectorContent = <T extends object>({
   const nextSort = useWritableValueWithCallbacks<CrudFetcherSort>(() => sortArg?.get() ?? []);
   const filters = useWritableValueWithCallbacks<CrudFetcherFilter>(() => filtersArg?.get() ?? {});
   const refreshDesired = useWritableValueWithCallbacks<boolean>(() => true);
-  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const error = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   const haveMoreAndLoading = useMappedValuesWithCallbacks(
     [haveMore, loading],
@@ -202,7 +202,10 @@ export const SelectorContent = <T extends object>({
             return;
           }
 
-          const fmted = await describeError(e);
+          const fmted =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'fetch selector content', `${e}`);
           if (refreshCounter === id && running) {
             setVWC(error, fmted);
           }
@@ -260,7 +263,14 @@ export const SelectorContent = <T extends object>({
                           e.preventDefault();
                           const loginContext = loginContextRaw.value.get();
                           if (loginContext.state !== 'logged-in') {
-                            setVWC(error, <>Not logged in</>);
+                            setVWC(
+                              error,
+                              new DisplayableError(
+                                'server-refresh-required',
+                                'fetch selector content',
+                                'not logged in'
+                              )
+                            );
                             return;
                           }
 
@@ -301,10 +311,7 @@ export const SelectorContent = <T extends object>({
           )
         }
       />
-      <RenderGuardedComponent
-        props={error}
-        component={(error) => (error === null ? <></> : <ErrorBlock>{error}</ErrorBlock>)}
-      />
+      <SimpleDismissBoxError error={error} />
     </div>
   );
 };

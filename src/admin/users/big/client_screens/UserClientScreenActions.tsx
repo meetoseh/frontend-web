@@ -9,7 +9,6 @@ import { adaptValueWithCallbacksAsSetState } from '../../../../shared/lib/adaptV
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import styles from './UserClientScreenActions.module.css';
@@ -22,6 +21,7 @@ import { UserClientScreenAction } from './UserClientScreenAction';
 import { HorizontalSpacer } from '../../../../shared/components/HorizontalSpacer';
 import { CrudFormElement } from '../../../crud/CrudFormElement';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
+import { DisplayableError, SimpleDismissBoxError } from '../../../../shared/lib/errors';
 
 const limit = 16;
 
@@ -39,7 +39,7 @@ export const UserClientScreenActions = ({
   const itemsVWC = useWritableValueWithCallbacks<UserClientScreenActionLog[]>(() => []);
   const loadingVWC = useWritableValueWithCallbacks(() => true);
   const haveMoreVWC = useWritableValueWithCallbacks(() => true);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   const screenVWC = useReactManagedValueAsValueWithCallbacks(screen);
   const filterVWC = useMappedValueWithCallbacks(
@@ -90,7 +90,12 @@ export const UserClientScreenActions = ({
         limit,
         loginContext,
         async (e) => {
-          setVWC(errorVWC, await describeError(e));
+          setVWC(
+            errorVWC,
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'fetch actions', `${e}`)
+          );
         }
       );
       return cancel;
@@ -100,6 +105,7 @@ export const UserClientScreenActions = ({
   return (
     <div className={styles.container}>
       <CrudItemBlock title={screen.screen.slug} controls={null} containsNested>
+        <SimpleDismissBoxError error={errorVWC} />
         <CrudFormElement title="Peeked By" noTopMargin>
           {screen.user.givenName} {screen.user.familyName} ({screen.user.sub})
         </CrudFormElement>

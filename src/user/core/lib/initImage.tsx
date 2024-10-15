@@ -6,6 +6,7 @@ import {
   createWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
+import { DisplayableError } from '../../../shared/lib/errors';
 import { mapCancelable } from '../../../shared/lib/mapCancelable';
 import { Result } from '../../../shared/requests/RequestHandler';
 import { ScreenContext } from '../hooks/useScreenContext';
@@ -67,7 +68,11 @@ export const initImage = <SlugT extends string, ParamT extends { __mapped: boole
         return {
           type: 'expired',
           data: undefined,
-          error: <>This screen no longer needs this image</>,
+          error: new DisplayableError(
+            'server-refresh-required',
+            'get image',
+            'image no longer on screen'
+          ),
           retryAt: undefined,
         };
       }

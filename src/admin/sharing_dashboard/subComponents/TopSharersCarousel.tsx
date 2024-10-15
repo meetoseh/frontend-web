@@ -16,6 +16,7 @@ import { combineClasses } from '../../../shared/lib/combineClasses';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { BoxError } from '../../../shared/lib/errors';
 
 export const TopSharersCarousel = ({ items }: { items: TopSharerCarouselItem[] }): ReactElement => {
   const selected = useWritableValueWithCallbacks(() => 0);
@@ -175,7 +176,10 @@ const CarouselItem = ({
       props={selected}
       component={(sel) => (
         <div style={sel === index ? undefined : { display: 'none' }} className={styles.itemWrapper}>
-          <RenderGuardedComponent props={userInfoError} component={(err) => err ?? <></>} />
+          <RenderGuardedComponent
+            props={userInfoError}
+            component={(err) => (err === null ? <></> : <BoxError error={err} />)}
+          />
           <RenderGuardedComponent
             props={userInfoResult}
             component={(user) => <CarouselItemContent item={item} user={user ?? null} />}

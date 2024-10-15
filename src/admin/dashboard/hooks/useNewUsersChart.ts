@@ -1,13 +1,13 @@
-import { ReactElement, useCallback, useContext, useMemo, useState } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { describeError } from '../../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 export type NewUsersChart =
   | {
       loading: true;
-      error: ReactElement | null;
+      error: DisplayableError | null;
       labels: null;
       values: null;
     }
@@ -23,7 +23,7 @@ export type NewUsersChart =
 export const useNewUsersChart = (): NewUsersChart => {
   const loginContextRaw = useContext(LoginContext);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [data, setData] = useState<{ labels: string[]; values: number[] } | null>(null);
 
   useValueWithCallbacksEffect(
@@ -41,13 +41,18 @@ export const useNewUsersChart = (): NewUsersChart => {
       };
 
       async function fetchData() {
-        const response = await apiFetch('/api/1/admin/new_users', {}, loginContext);
+        let response;
+        try {
+          response = await apiFetch('/api/1/admin/new_users', {}, loginContext);
+        } catch {
+          throw new DisplayableError('connectivity', 'fetch new users chart');
+        }
         if (!active) {
           return;
         }
 
         if (!response.ok) {
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'fetch new users chart');
         }
 
         const data = await response.json();
@@ -64,7 +69,10 @@ export const useNewUsersChart = (): NewUsersChart => {
         try {
           await fetchData();
         } catch (e) {
-          let rendered = await describeError(e);
+          let rendered =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'fetch new users chart', `${e}`);
           if (active) {
             setError(rendered);
           }

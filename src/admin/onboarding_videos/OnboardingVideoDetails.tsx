@@ -22,7 +22,6 @@ import { setVWC } from '../../shared/lib/setVWC';
 import { OnboardingVideoThumbnail } from './thumbnails/OnboardingVideoThumbnail';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingMapper } from '../crud/CrudFetcher';
-import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 import { CrudItemBlock } from '../crud/CrudItemBlock';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
@@ -45,6 +44,11 @@ import { showOnboardingVideoThumbnailSelector } from './thumbnails/showOnboardin
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { OsehImageRef } from '../../shared/images/OsehImageRef';
 import { Checkbox } from '../../shared/forms/Checkbox';
+import {
+  chooseErrorFromStatus,
+  DisplayableError,
+  SimpleDismissBoxError,
+} from '../../shared/lib/errors';
 
 type OnboardingVideoDetailsProps = {
   /**
@@ -87,7 +91,7 @@ export const OnboardingVideoDetails = ({
 }: OnboardingVideoDetailsProps): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const savingVWC = useWritableValueWithCallbacks(() => false);
   const newPurposeVWC = useWritableValueWithCallbacks(() => onboardingVideo.purpose);
   const newVideoVWC = useWritableValueWithCallbacks<OnboardingVideoUpload | null>(() => null);
@@ -280,10 +284,13 @@ export const OnboardingVideoDetails = ({
           e.hasOwnProperty('message') &&
           (e as any).message === 'canceled'
         ) {
-          setVWC(errorVWC, <>Operation canceled by user.</>);
+          setVWC(errorVWC, new DisplayableError('canceled', 'save onboarding video'));
           return;
         }
-        const desc = await describeError(e);
+        const desc =
+          e instanceof DisplayableError
+            ? e
+            : new DisplayableError('client', 'save onboarding video', `${e}`);
         signal?.throwIfAborted();
         setVWC(errorVWC, desc);
       } finally {
@@ -341,10 +348,7 @@ export const OnboardingVideoDetails = ({
         />
       }>
       <div className={styles.container}>
-        <RenderGuardedComponent
-          props={errorVWC}
-          component={(error) => <>{error && <ErrorBlock>{error}</ErrorBlock>}</>}
-        />
+        <SimpleDismissBoxError error={errorVWC} />
         <OnboardingVideoUploadControl
           editingVWC={editingVWC}
           vwc={newVideoVWC}
@@ -499,8 +503,8 @@ const OnboardingVideoThumbnailControl = ({
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
 
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, errorVWC, 'changing thumbnail');
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, errorVWC);
 
   return (
     <CrudSwappableElement
@@ -560,31 +564,49 @@ const OnboardingVideoThumbnailControl = ({
 
                           const loginContextUnch = loginContextRaw.value.get();
                           if (loginContextUnch.state !== 'logged-in') {
-                            setVWC(errorVWC, <>Not logged in</>);
+                            setVWC(
+                              errorVWC,
+                              new DisplayableError(
+                                'server-refresh-required',
+                                'search generated thumbnails',
+                                'not logged in'
+                              )
+                            );
                             return;
                           }
                           const loginContext = loginContextUnch;
 
                           try {
-                            const response = await apiFetch(
-                              '/api/1/onboarding/videos/uploads/search',
-                              {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                                body: JSON.stringify({
-                                  filters: {
-                                    content_file_uid: {
-                                      operator: 'eq',
-                                      value: contentFileUID,
+                            let response;
+                            try {
+                              response = await apiFetch(
+                                '/api/1/onboarding/videos/uploads/search',
+                                {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                                  body: JSON.stringify({
+                                    filters: {
+                                      content_file_uid: {
+                                        operator: 'eq',
+                                        value: contentFileUID,
+                                      },
                                     },
-                                  },
-                                  limit: 1,
-                                }),
-                              },
-                              loginContext
-                            );
+                                    limit: 1,
+                                  }),
+                                },
+                                loginContext
+                              );
+                            } catch {
+                              throw new DisplayableError(
+                                'connectivity',
+                                'search generated thumbnails'
+                              );
+                            }
                             if (!response.ok) {
-                              throw response;
+                              throw chooseErrorFromStatus(
+                                response.status,
+                                'search generated thumbnails'
+                              );
                             }
                             const data: { items: any[] } = await response.json();
                             if (data.items.length === 0) {
@@ -612,7 +634,16 @@ const OnboardingVideoThumbnailControl = ({
                               setVWC(vwc, result);
                             }
                           } catch (e) {
-                            setVWC(errorVWC, await describeError(e));
+                            setVWC(
+                              errorVWC,
+                              e instanceof DisplayableError
+                                ? e
+                                : new DisplayableError(
+                                    'client',
+                                    'search generated thumbnails',
+                                    `${e}`
+                                  )
+                            );
                             return;
                           }
                         }}>

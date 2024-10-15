@@ -1,8 +1,8 @@
 import { CSSProperties, ReactElement, useEffect, useRef } from 'react';
 import { OsehContentProps } from './OsehContentProps';
 import { useOsehContentTarget } from './useOsehContentTarget';
-import { ErrorBlock } from '../forms/ErrorBlock';
 import { ContentFileWebExport } from './OsehContentTarget';
+import { BoxError } from '../lib/errors';
 
 /**
  * Shows an audio file from Oseh, with controls and error handling
@@ -38,7 +38,7 @@ export const OsehContent = ({
 
   return (
     <>
-      {target.error && <ErrorBlock>{target.error}</ErrorBlock>}
+      {target.error && <BoxError error={target.error} />}
       {target.state === 'loaded' && showAs === 'audio' ? (
         <audio ref={ref} controls style={playerStyle}>
           <source src={target.webExport.url} type="audio/mp4" />

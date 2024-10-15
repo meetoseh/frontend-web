@@ -11,6 +11,7 @@ import {
   createWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
+import { DisplayableError } from '../../../../shared/lib/errors';
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RequestResult, Result } from '../../../../shared/requests/RequestHandler';
@@ -58,7 +59,11 @@ export const SeriesDetailsScreen: OsehScreen<
                 promise: Promise.resolve({
                   type: 'expired',
                   data: undefined,
-                  error: <>Screen is not mounted</>,
+                  error: new DisplayableError(
+                    'server-refresh-required',
+                    'get like state',
+                    'screen is not mounted'
+                  ),
                   retryAt: undefined,
                 }),
                 done: () => true,
@@ -101,7 +106,11 @@ export const SeriesDetailsScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get series journeys',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -342,7 +351,11 @@ const getBackgroundImage = (
             promise: Promise.resolve({
               type: 'expired',
               data: undefined,
-              error: <>Screen is not mounted</>,
+              error: new DisplayableError(
+                'server-refresh-required',
+                'get image playlist',
+                'screen is not mounted'
+              ),
               retryAt: undefined,
             }),
             done: () => true,
@@ -358,7 +371,11 @@ const getBackgroundImage = (
             return {
               type: 'expired',
               data: undefined,
-              error: <>No background image</>,
+              error: new DisplayableError(
+                'server-refresh-required',
+                'get image playlist',
+                'not background needed anymore'
+              ),
               retryAt: undefined,
             };
           }

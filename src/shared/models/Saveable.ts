@@ -1,10 +1,10 @@
-import { MutableRefObject, ReactElement, useRef } from 'react';
+import { MutableRefObject, useRef } from 'react';
 import { ValueWithCallbacks, createWritableValueWithCallbacks } from '../lib/Callbacks';
 import { CancelablePromise } from '../lib/CancelablePromise';
 import { setVWC } from '../lib/setVWC';
 import { delayCancelableUntilResolved } from '../lib/delayCancelableUntilResolved';
 import { createCancelableTimeout } from '../lib/createCancelableTimeout';
-import { describeError } from '../forms/ErrorBlock';
+import { DisplayableError } from '../lib/errors';
 
 export type SaveableState<T> =
   | {
@@ -49,7 +49,7 @@ export type SaveableState<T> =
       /**
        * An element explaining the error
        */
-      error: ReactElement;
+      error: DisplayableError;
       /**
        * - `error`: the value on the server
        */
@@ -174,7 +174,10 @@ export function createSaveable<T>({
             return;
           }
 
-          const err = await describeError(e);
+          const err =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'Saveable#save', `${e}`);
           if (saveCounter !== id) {
             return;
           }

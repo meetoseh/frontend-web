@@ -6,6 +6,7 @@ import { createOsehImageStateRequestHandler } from '../../../../shared/images/us
 import { Callbacks, createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
 import { InfiniteListing } from '../../../../shared/lib/InfiniteListing';
+import { DisplayableError } from '../../../../shared/lib/errors';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RequestResult, Result } from '../../../../shared/requests/RequestHandler';
 import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestResult';
@@ -45,7 +46,11 @@ export const SeriesListScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'refresh series list',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,

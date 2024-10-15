@@ -9,12 +9,12 @@ import { adaptValueWithCallbacksAsSetState } from '../../../../shared/lib/adaptV
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useReactManagedValueAsValueWithCallbacks } from '../../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useValuesWithCallbacksEffect } from '../../../../shared/hooks/useValuesWithCallbacksEffect';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import styles from './BigUserClientScreens.module.css';
 import { IconButton } from '../../../../shared/forms/IconButton';
 import { UserClientScreen } from './UserClientScreen';
+import { DisplayableError, SimpleDismissBoxError } from '../../../../shared/lib/errors';
 
 const limit = 16;
 
@@ -26,7 +26,7 @@ export const BigUserClientScreens = ({ user }: { user: User }): ReactElement => 
   const itemsVWC = useWritableValueWithCallbacks<UserClientScreenLog[]>(() => []);
   const loadingVWC = useWritableValueWithCallbacks(() => true);
   const haveMoreVWC = useWritableValueWithCallbacks(() => true);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   const userVWC = useReactManagedValueAsValueWithCallbacks(user);
   const filterVWC = useMappedValueWithCallbacks(
@@ -77,7 +77,12 @@ export const BigUserClientScreens = ({ user }: { user: User }): ReactElement => 
         limit,
         loginContext,
         async (e) => {
-          setVWC(errorVWC, await describeError(e));
+          setVWC(
+            errorVWC,
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'fetch items', `${e}`)
+          );
         }
       );
       return cancel;
@@ -119,6 +124,7 @@ export const BigUserClientScreens = ({ user }: { user: User }): ReactElement => 
           />
         </>
       }>
+      <SimpleDismissBoxError error={errorVWC} />
       <RenderGuardedComponent
         props={itemsVWC}
         component={(items) => (

@@ -8,11 +8,11 @@ import { setVWC } from '../../shared/lib/setVWC';
 import { ModalContext } from '../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
 import { Button } from '../../shared/forms/Button';
-import { describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { convertUsingMapper } from '../crud/CrudFetcher';
 import styles from './CreateClientFlow.module.css';
+import { chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type CreateClientFlowProps = {
   /**
@@ -28,10 +28,10 @@ type CreateClientFlowProps = {
 export const CreateClientFlow = ({ onCreated }: CreateClientFlowProps): ReactElement => {
   const modalContext = useContext(ModalContext);
   const slugVWC = useWritableValueWithCallbacks<string>(() => '');
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const loginContextRaw = useContext(LoginContext);
 
-  useErrorModal(modalContext.modals, errorVWC, 'creating client flow');
+  useErrorModal(modalContext.modals, errorVWC);
 
   return (
     <CrudCreateBlock>
@@ -67,29 +67,37 @@ export const CreateClientFlow = ({ onCreated }: CreateClientFlowProps): ReactEle
 
             try {
               const slug = slugVWC.get();
-              const response = await apiFetch(
-                '/api/1/client_flows/',
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json; charset=utf-8',
+              let response;
+              try {
+                response = await apiFetch(
+                  '/api/1/client_flows/',
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json; charset=utf-8',
+                    },
+                    body: JSON.stringify({
+                      slug,
+                    }),
                   },
-                  body: JSON.stringify({
-                    slug,
-                  }),
-                },
-                loginContext
-              );
+                  loginContext
+                );
+              } catch {
+                throw new DisplayableError('connectivity', 'create flow');
+              }
 
               if (!response.ok) {
-                throw response;
+                throw chooseErrorFromStatus(response.status, 'create flow');
               }
 
               const raw = await response.json();
               const clientFlow = convertUsingMapper(raw, clientFlowKeyMap);
               onCreated(clientFlow);
             } catch (e) {
-              const err = await describeError(e);
+              const err =
+                e instanceof DisplayableError
+                  ? e
+                  : new DisplayableError('client', 'create flow', `${e}`);
               setVWC(errorVWC, err);
             }
           }}>

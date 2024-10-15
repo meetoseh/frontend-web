@@ -4,9 +4,9 @@ import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '..
 import { OsehContentRef } from './OsehContentRef';
 import { ContentFileWebExport, OsehContentTarget } from './OsehContentTarget';
 import { setVWC } from '../lib/setVWC';
-import { describeError } from '../forms/ErrorBlock';
 import { fetchWebExport } from './useOsehContentTarget';
 import { MakePropsNotNull } from '../lib/MakePropsNotNull';
+import { DisplayableError } from '../lib/errors';
 
 export type UseOsehContentTargetValueWithCallbacksProps = {
   /**
@@ -120,7 +120,10 @@ export const useOsehContentTargetValueWithCallbacks = ({
           if (!active) {
             return;
           }
-          const err = isValidElement(e) ? e : await describeError(e);
+          const err =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'fetch web export', `${e}`);
           if (!active) {
             return;
           }

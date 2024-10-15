@@ -6,9 +6,9 @@ import styles from './IntroductoryJourneyBlock.module.css';
 import iconStyles from '../../crud/icons.module.css';
 import { CompactJourney } from '../CompactJourney';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
-import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 type IntroductoryJourneyBlockProps = {
   journey: IntroductoryJourney;
@@ -43,13 +43,13 @@ export const IntroductoryJourneyBlock = ({
   imageHandler,
 }: IntroductoryJourneyBlockProps): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const onDelete = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
-      setError(<>You need to login again.</>);
+      setError(new DisplayableError('server-refresh-required', 'delete journey', 'not logged in'));
       return;
     }
     const loginContext = loginContextUnch;
@@ -57,21 +57,28 @@ export const IntroductoryJourneyBlock = ({
     setDeleting(true);
     setError(null);
     try {
-      const response = await apiFetch(
-        `/api/1/journeys/introductory/${journey.uid}`,
-        {
-          method: 'DELETE',
-        },
-        loginContext
-      );
+      let response;
+      try {
+        response = await apiFetch(
+          `/api/1/journeys/introductory/${journey.uid}`,
+          {
+            method: 'DELETE',
+          },
+          loginContext
+        );
+      } catch {
+        throw new DisplayableError('connectivity', 'delete journey');
+      }
 
       if (!response.ok) {
-        throw response;
+        throw chooseErrorFromStatus(response.status, 'delete journey');
       }
 
       onDeleted.apply(undefined, [journey]);
     } catch (e) {
-      setError(await describeError(e));
+      setError(
+        e instanceof DisplayableError ? e : new DisplayableError('client', 'delete journey', `${e}`)
+      );
     } finally {
       setDeleting(false);
     }
@@ -91,7 +98,7 @@ export const IntroductoryJourneyBlock = ({
         </>
       }>
       <div className={styles.container}>
-        {error && <ErrorBlock>{error}</ErrorBlock>}
+        {error && <BoxError error={error} />}
         <CompactJourney journey={journey.journey} imageHandler={imageHandler} />
       </div>
     </CrudItemBlock>

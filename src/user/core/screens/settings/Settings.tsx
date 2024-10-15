@@ -31,6 +31,7 @@ import { Wordmark } from '../../../../shared/content/player/assets/Wordmark';
 import { purgeClientKeys } from '../../../../shared/journals/clientKeys';
 import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 const entrance: StandardScreenTransition = { type: 'fade', ms: 350 };
 const exit: StandardScreenTransition = { type: 'fade', ms: 350 };
@@ -46,12 +47,12 @@ export const Settings = ({
   startPop,
 }: ScreenComponentProps<'settings', SettingsResources, SettingsMappedParams>): ReactElement => {
   const modalContext = useContext(ModalContext);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const handleDeleteAccount = useHandleDeleteAccount(ctx.login, modalContext, errorVWC);
-  const mergeError = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const mergeError = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
-  useErrorModal(modalContext.modals, errorVWC, 'settings');
-  useErrorModal(modalContext.modals, mergeError, 'merge account in settings');
+  useErrorModal(modalContext.modals, errorVWC);
+  useErrorModal(modalContext.modals, mergeError);
 
   const transition = useTransitionProp((): StandardScreenTransition => entrance);
   useEntranceTransition(transition);

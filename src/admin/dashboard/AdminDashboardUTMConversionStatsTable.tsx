@@ -1,7 +1,6 @@
 import { ChangeEvent, ReactElement, useCallback, useContext, useMemo, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { convertUsingKeymap, CrudFetcherKeyMap } from '../crud/CrudFetcher';
 import styles from './AdminDashboardUTMConversionStatsTable.module.css';
@@ -12,6 +11,7 @@ import {
   isoDateStringToLocaleDate,
 } from '../../shared/lib/dateToLocaleISODateString';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, DisplayableError } from '../../shared/lib/errors';
 
 /**
  * Describes basic utm information, only enforcing that source is present.
@@ -236,7 +236,7 @@ export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const [startDate, setStartDate] = useState(() => new Date());
   const [endDate, setEndDate] = useState(startDate);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [tableData, setTableData] = useState<TableData>(() => ({
     rows: [],
     retrievedAt: 0,
@@ -331,7 +331,10 @@ export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
           try {
             await fetchTableDataInner();
           } catch (e) {
-            const error = await describeError(e);
+            const error =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch table data', `${e}`);
             if (active) {
               setError(error);
             }
@@ -412,7 +415,7 @@ export const AdminDashboardUTMConversionStatsTable = (): ReactElement => {
 
   return (
     <div className={styles.container}>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {error && <BoxError error={error} />}
       <div className={styles.header}>
         <div className={styles.title}>Attributable Visitors</div>
         <div className={styles.fromToContainer}>

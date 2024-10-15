@@ -1,8 +1,7 @@
-import { ReactElement, useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import { MinimalJourney } from '../lib/MinimalJourney';
 import styles from './HistoryItem.module.css';
-import { ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { useFavoritedModal } from '../hooks/useFavoritedModal';
 import { useUnfavoritedModal } from '../hooks/useUnfavoritedModal';
 import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';
@@ -70,7 +69,6 @@ export const HistoryItem = ({
   toggledFavorited: onToggledFavoritedCallback,
   padBottom: padBottomVWC,
 }: HistoryItemProps) => {
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
   const likingVWC = useWritableValueWithCallbacks<boolean>(() => false);
   const showLikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
   const showUnlikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
@@ -203,10 +201,6 @@ export const HistoryItem = ({
             }
           />
         </div>
-        <RenderGuardedComponent
-          props={errorVWC}
-          component={(error) => <>{error && <ErrorBlock>{error}</ErrorBlock>}</>}
-        />
       </div>
       <RenderGuardedComponent
         props={padBottomAlwaysAvailableVWC}

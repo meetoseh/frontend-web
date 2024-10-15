@@ -20,15 +20,12 @@ import { ProgressDisplay } from '../../shared/upload/uploader/UploaderContent';
 import { LoginContext, LoginContextValue } from '../../shared/contexts/LoginContext';
 import { setVWC } from '../../shared/lib/setVWC';
 import styles from './DebugVoiceNoteUpload.module.css';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
-import { getSimpleUploadParts } from '../../shared/upload/SimpleUploadParts';
 import {
   convertToRange,
   parseUploadInfoFromResponse,
   UploadInfo,
 } from '../../shared/upload/UploadInfo';
 import { JobRef } from '../../shared/jobProgress/JobRef';
-import { uploadPart } from '../../shared/upload/uploadPart';
 import { apiFetch } from '../../shared/ApiConstants';
 import {
   createMappedValueWithCallbacks,
@@ -41,11 +38,12 @@ import {
 } from '../../shared/lib/uploadHelpers';
 import { waitForValueWithCallbacksConditionCancelable } from '../../shared/lib/waitForValueWithCallbacksCondition';
 import { createMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
+import { BoxError, DisplayableError } from '../../shared/lib/errors';
 
 export const DebugVoiceNoteUpload = (): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const managingVWC = useWritableValueWithCallbacks<boolean>(() => false);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const progressVWC = useWritableValueWithCallbacks<JobProgress>(
     () => new OrderedDictionary<Job, 'uid', 'startedAt'>('uid', 'startedAt')
   );
@@ -71,13 +69,13 @@ export const DebugVoiceNoteUpload = (): ReactElement => {
     console.log('form submit');
     const input = inputVWC.get();
     if (input === null) {
-      setVWC(errorVWC, <div>Input element not found</div>);
+      setVWC(errorVWC, new DisplayableError('client', 'form submit', 'input element not found'));
       return;
     }
 
     const file = input.files?.[0];
     if (file === null || file === undefined) {
-      setVWC(errorVWC, <div>No file selected</div>);
+      setVWC(errorVWC, new DisplayableError('client', 'form submit', 'no file selected'));
       return;
     }
 
@@ -128,7 +126,7 @@ export const DebugVoiceNoteUpload = (): ReactElement => {
           ) : (
             <>
               <VerticalSpacer height={12} />
-              <ErrorBlock>{error}</ErrorBlock>
+              <BoxError error={error} />
             </>
           )
         }
@@ -200,7 +198,7 @@ type UploadContext = {
 type UploadStateStart = { type: 'start'; file: File };
 type UploadStateUpload = { type: 'upload'; voiceNote: VoiceNoteRef; file: File; info: UploadInfo };
 type UploadStateProcess = { type: 'process'; voiceNote: VoiceNoteRef; job: JobRef };
-type UploadStateError = { type: 'error'; error: ReactElement };
+type UploadStateError = { type: 'error'; error: DisplayableError };
 type UploadStateComplete = { type: 'complete'; voiceNote: VoiceNoteRef };
 type UploadState =
   | UploadStateStart
@@ -215,7 +213,14 @@ const transitionFromStart = async (
 ): Promise<UploadStateUpload | UploadStateError> => {
   const loginContextUnch = ctx.loginContextRaw.value.get();
   if (loginContextUnch.state !== 'logged-in') {
-    return { type: 'error', error: <>not logged in</> };
+    return {
+      type: 'error',
+      error: new DisplayableError(
+        'server-refresh-required',
+        'transition from start',
+        'not logged in'
+      ),
+    };
   }
   const loginContext = loginContextUnch;
 
@@ -247,14 +252,20 @@ const transitionFromStart = async (
     return { type: 'upload', file: state.file, voiceNote, info };
   } catch (e) {
     if (ctx.signal?.aborted) {
-      return { type: 'error', error: <>aborted</> };
+      return { type: 'error', error: new DisplayableError('canceled', 'upload voice note') };
     }
 
-    return { type: 'error', error: await describeError(e) };
+    return {
+      type: 'error',
+      error:
+        e instanceof DisplayableError
+          ? e
+          : new DisplayableError('client', 'upload voice note', `${e}`),
+    };
   }
 };
 
-const transitionFromUpload = async <T extends object>(
+const transitionFromUpload = async (
   ctx: UploadContext,
   state: UploadStateUpload
 ): Promise<UploadStateProcess | UploadStateError> => {
@@ -376,11 +387,17 @@ const transitionFromUpload = async <T extends object>(
 
   const finalState = handler.state.get();
   if (finalState === 'error') {
-    return { type: 'error', error: <>upload failed</> };
+    return {
+      type: 'error',
+      error: new DisplayableError('server-not-retryable', 'upload voice note'),
+    };
   }
 
   if (state.info.progress === undefined) {
-    return { type: 'error', error: <>missing progress</> };
+    return {
+      type: 'error',
+      error: new DisplayableError('client', 'upload voice note', 'progress undefined'),
+    };
   }
 
   return { type: 'process', job: state.info.progress, voiceNote: state.voiceNote };
@@ -408,10 +425,10 @@ const transitionFromProcess = async (
       if (job.result === false) {
         return {
           type: 'error',
-          error: (
-            <>
-              processing failed (job {job.name}, last message: {job.progress.message})
-            </>
+          error: new DisplayableError(
+            'server-not-retryable',
+            'upload voice note',
+            `processing failed (job ${job.name}, last message: ${job.progress.message})`
           ),
         };
       }
@@ -419,10 +436,16 @@ const transitionFromProcess = async (
     return { type: 'complete', voiceNote: state.voiceNote };
   } catch (e) {
     if (ctx.signal?.aborted) {
-      return { type: 'error', error: <>aborted</> };
+      return { type: 'error', error: new DisplayableError('canceled', 'upload voice note') };
     }
 
-    return { type: 'error', error: await describeError(e) };
+    return {
+      type: 'error',
+      error:
+        e instanceof DisplayableError
+          ? e
+          : new DisplayableError('client', 'upload voice note', `${e}`),
+    };
   } finally {
     ctx.signal?.removeEventListener('abort', prog.cancel);
   }

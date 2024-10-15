@@ -1,4 +1,4 @@
-import { ReactElement, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
 import { OsehContentTarget } from './OsehContentTarget';
 import { setVWC } from '../lib/setVWC';
@@ -10,8 +10,8 @@ import {
   OsehMediaContentStateLoaded,
   OsehMediaContentStateLoading,
 } from './OsehMediaContentState';
-import { describeError } from '../forms/ErrorBlock';
 import { CancelablePromise } from '../lib/CancelablePromise';
+import { DisplayableError } from '../lib/errors';
 
 export type UseOsehVideoContentStateProps = {
   target: ValueWithCallbacks<OsehContentTarget>;
@@ -109,10 +109,10 @@ export const useOsehVideoContentState = ({
           if (!active) {
             return;
           }
-          const err = await describeError(e);
-          if (!active) {
-            return;
-          }
+          const err =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'wait video ready', `${e}`);
           setVWC(result, makeErrorState(err));
           return;
         } finally {
@@ -148,7 +148,7 @@ export const waitUntilMediaIsReady = (
   }
 
   let resolve: () => void = () => {};
-  let reject: (e: Error) => void = () => {};
+  let reject: (e: DisplayableError) => void = () => {};
   const promise = new Promise<void>((res, rej) => {
     resolve = res;
     reject = rej;
@@ -161,7 +161,7 @@ export const waitUntilMediaIsReady = (
     innerCancelers.call(undefined);
     innerCancelers.clear();
     done = true;
-    reject(new Error('canceled'));
+    reject(new DisplayableError('canceled', 'wait until media is ready'));
   };
 
   const onLoaded = () => {
@@ -265,7 +265,7 @@ const makeLoadingState = (): OsehMediaContentStateLoading => ({
   element: null,
 });
 
-const makeErrorState = (error: ReactElement): OsehMediaContentStateError => ({
+const makeErrorState = (error: DisplayableError): OsehMediaContentStateError => ({
   state: 'error',
   loaded: false,
   error,

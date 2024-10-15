@@ -11,11 +11,11 @@ import { convertUsingMapper } from '../../../../crud/CrudFetcher';
 import { Button } from '../../../../../shared/forms/Button';
 import { ModalContext } from '../../../../../shared/contexts/ModalContext';
 import { setVWC } from '../../../../../shared/lib/setVWC';
-import { ErrorBlock } from '../../../../../shared/forms/ErrorBlock';
 import { clientFlowKeyMap } from '../../../ClientFlow';
 import { ClientFlowBlock } from '../../../ClientFlowBlock';
 import { showClientFlowPicker } from '../../../showClientFlowPicker';
 import { Checkbox } from '../../../../../shared/forms/Checkbox';
+import { BoxError, DisplayableError } from '../../../../../shared/lib/errors';
 
 /**
  * Allows the user to select or upload a video or audio file to fill a string prop.
@@ -140,10 +140,20 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
                   props={flowNR}
                   component={(content) => {
                     if (content.type === 'error') {
-                      return <ErrorBlock>{content.error}</ErrorBlock>;
+                      return <BoxError error={content.error} />;
                     }
                     if (content.type === 'unavailable') {
-                      return <ErrorBlock>Flow is invalid</ErrorBlock>;
+                      return (
+                        <BoxError
+                          error={
+                            new DisplayableError(
+                              'server-not-retryable',
+                              'show flow',
+                              'Flow is invalid'
+                            )
+                          }
+                        />
+                      );
                     }
                     if (content.type !== 'success') {
                       return <></>;

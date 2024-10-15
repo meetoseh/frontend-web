@@ -1,4 +1,5 @@
 import { createMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { DisplayableError } from '../../../shared/lib/errors';
 import { RequestResult, RequestResultConcrete } from '../../../shared/requests/RequestHandler';
 
 /**
@@ -22,7 +23,11 @@ export const createMappedRequestResult = <OriginalDataT extends object, NewDataT
           return {
             data: undefined,
             type: 'error',
-            error: <>Unavailable</>,
+            error: new DisplayableError(
+              'server-refresh-required',
+              'get mapped data',
+              'no longer needed'
+            ),
           };
         }
         return {

@@ -6,6 +6,7 @@ import { selectVideoTarget } from '../../../../shared/content/createVideoDataHan
 import { createMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
+import { DisplayableError } from '../../../../shared/lib/errors';
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RequestResult, Result } from '../../../../shared/requests/RequestHandler';
@@ -49,7 +50,11 @@ export const VideoInterstitialScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'refresh transcript',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -109,7 +114,11 @@ export const VideoInterstitialScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'refresh transcript',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -126,7 +135,11 @@ export const VideoInterstitialScreen: OsehScreen<
                 ? {
                     type: 'error',
                     data: undefined,
-                    error: <>transcript is no longer available</>,
+                    error: new DisplayableError(
+                      'server-refresh-required',
+                      'refresh transcript',
+                      'transcript ref'
+                    ),
                     retryAt: undefined,
                   }
                 : {

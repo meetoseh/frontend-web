@@ -47,6 +47,7 @@ import { trackFavoritesChanged } from '../home/lib/trackFavoritesChanged';
 import { storeResponse } from './lib/storeResponse';
 import { makePrettyResponse } from './lib/makePrettyResponse';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * Allows the user to provide feedback on a journey
@@ -81,11 +82,11 @@ export const JourneyFeedback = ({
   const workingVWC = useWritableValueWithCallbacks(() => false);
 
   const responseVWC = useWritableValueWithCallbacks<number | null>(() => null);
-  const feedbackErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, feedbackErrorVWC, 'saving feedback');
+  const feedbackErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, feedbackErrorVWC);
 
-  const shareErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, shareErrorVWC, 'sharing journey');
+  const shareErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, shareErrorVWC);
 
   const storeResponseWrapper = useCallback((): Promise<boolean> => {
     return storeResponse({
@@ -367,7 +368,7 @@ export const JourneyFeedback = ({
     [openShareModalFallback]
   );
 
-  const likeErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const likeErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const showFavoritedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
   const showUnfavoritedUntilVWC = useWritableValueWithCallbacks<number | undefined>(
     () => undefined
@@ -402,7 +403,7 @@ export const JourneyFeedback = ({
     };
   });
 
-  useErrorModal(modalContext.modals, likeErrorVWC, 'favoriting or unfavoriting journey');
+  useErrorModal(modalContext.modals, likeErrorVWC);
   useFavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showFavoritedUntilVWC));
   useUnfavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showUnfavoritedUntilVWC));
 
@@ -468,7 +469,11 @@ export const JourneyFeedback = ({
                           trace({ type: 'share-error', dataType: linkData.type });
                           setVWC(
                             shareErrorVWC,
-                            <>failed to load (expected success, got {linkData.type})</>
+                            new DisplayableError(
+                              'client',
+                              'share class',
+                              `failed to load (expected success, got ${linkData.type})`
+                            )
                           );
                           return;
                         }
@@ -480,7 +485,14 @@ export const JourneyFeedback = ({
                             dataType: 'success',
                             reason: 'url is null (not shareable)',
                           });
-                          setVWC(shareErrorVWC, <>This journey cannot be shared at this time</>);
+                          setVWC(
+                            shareErrorVWC,
+                            new DisplayableError(
+                              'server-not-retryable',
+                              'share class',
+                              'journey is not shareable'
+                            )
+                          );
                           return;
                         }
 
@@ -556,7 +568,10 @@ export const JourneyFeedback = ({
                 e.preventDefault();
                 const cta = screen.parameters.cta2;
                 if (cta === null) {
-                  setVWC(feedbackErrorVWC, <>cta2 is null but button handler called</>);
+                  setVWC(
+                    feedbackErrorVWC,
+                    new DisplayableError('client', 'cta2', 'button should not be visible')
+                  );
                   return;
                 }
                 configurableScreenOut(workingVWC, startPop, transition, cta.exit, cta.trigger, {

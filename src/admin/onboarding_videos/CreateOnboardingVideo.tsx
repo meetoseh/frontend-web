@@ -23,9 +23,9 @@ import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWi
 import { apiFetch } from '../../shared/ApiConstants';
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
-import { describeError } from '../../shared/forms/ErrorBlock';
 import { convertUsingMapper } from '../crud/CrudFetcher';
 import { ISO639_1_Options, useLanguagesNR } from '../../shared/components/ISO639_1_Options';
+import { chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type CreateOnboardingVideoProps = {
   /**
@@ -66,8 +66,8 @@ export const CreateOnboardingVideo = ({
   );
 
   const savingVWC = useWritableValueWithCallbacks<boolean>(() => false);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, errorVWC, 'create onboarding video');
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, errorVWC);
 
   const doSave = useCallback(async () => {
     if (savingVWC.get() || !readyVWC.get()) {
@@ -92,24 +92,29 @@ export const CreateOnboardingVideo = ({
     setVWC(errorVWC, null);
     setVWC(savingVWC, true);
     try {
-      const response = await apiFetch(
-        '/api/1/onboarding/videos/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
+      let response;
+      try {
+        response = await apiFetch(
+          '/api/1/onboarding/videos/',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              purpose,
+              upload_uid: video.uid,
+              thumbnail_uid: thumbnail.uid,
+            }),
           },
-          body: JSON.stringify({
-            purpose,
-            upload_uid: video.uid,
-            thumbnail_uid: thumbnail.uid,
-          }),
-        },
-        loginContext
-      );
+          loginContext
+        );
+      } catch {
+        throw new DisplayableError('connectivity', 'create onboarding video');
+      }
 
       if (!response.ok) {
-        throw response;
+        throw chooseErrorFromStatus(response.status, 'create onboarding video');
       }
 
       const raw = await response.json();
@@ -119,7 +124,12 @@ export const CreateOnboardingVideo = ({
       setVWC(thumbnailVWC, null);
       setVWC(purposeVWC, null);
     } catch (e) {
-      setVWC(errorVWC, await describeError(e));
+      setVWC(
+        errorVWC,
+        e instanceof DisplayableError
+          ? e
+          : new DisplayableError('client', 'create onboarding video', `${e}`)
+      );
     } finally {
       setVWC(savingVWC, false);
     }

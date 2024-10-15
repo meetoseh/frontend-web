@@ -1,6 +1,6 @@
-import { describeError } from '../forms/ErrorBlock';
 import { CancelablePromise } from '../lib/CancelablePromise';
 import { constructCancelablePromise } from '../lib/CancelablePromiseConstructor';
+import { DisplayableError } from '../lib/errors';
 import { getCurrentServerTimeMS } from '../lib/getCurrentServerTimeMS';
 import { Result } from '../requests/RequestHandler';
 
@@ -46,7 +46,7 @@ export const createGetDataFromRefUsingSignal =
             resolve({
               type: 'expired',
               data: undefined,
-              error: <>The reference has expired</>,
+              error: new DisplayableError('server-refresh-required', 'fetch'),
               retryAt: undefined,
             });
             return;
@@ -64,71 +64,19 @@ export const createGetDataFromRefUsingSignal =
             retryAt: undefined,
           });
         } catch (e) {
-          const described = await describeError(e);
+          const described =
+            e instanceof DisplayableError ? e : new DisplayableError('client', 'fetch', `${e}`);
           if (state.finishing) {
             state.done = true;
-            reject(new Error('canceled'));
+            reject(new DisplayableError('canceled', 'fetch'));
             return;
           }
-          if (e instanceof Response) {
-            const retryAfter = e.headers.get('Retry-After');
-            if (retryAfter !== null && retryAfter !== '') {
-              try {
-                const retryAfterSeconds = parseInt(retryAfter, 10);
-                state.finishing = true;
-                state.done = true;
-                resolve({
-                  type: 'errorRetryable',
-                  data: undefined,
-                  error: described,
-                  retryAt: new Date(Date.now() + retryAfterSeconds * 1000),
-                });
-                return;
-              } catch (e2) {}
-              try {
-                const retryAfterDate = new Date(retryAfter);
-                state.finishing = true;
-                state.done = true;
-                resolve({
-                  type: 'errorRetryable',
-                  data: undefined,
-                  error: described,
-                  retryAt: retryAfterDate,
-                });
-                return;
-              } catch (e2) {}
-              state.finishing = true;
-              state.done = true;
-              resolve({
-                type: 'error',
-                data: undefined,
-                error: <>Server provided invalid Retry-After header {retryAfter}</>,
-                retryAt: undefined,
-              });
-              return;
-            }
-
-            if (e.status === 403) {
-              state.finishing = true;
-              state.done = true;
-              resolve({
-                type: 'forbidden',
-                data: undefined,
-                error: described,
-                retryAt: undefined,
-              });
-              return;
-            }
-          }
-          if (e instanceof TypeError) {
-            // typically a fetch error
-            state.finishing = true;
-            state.done = true;
+          if (described.type === 'server-retryable') {
             resolve({
               type: 'errorRetryable',
               data: undefined,
               error: described,
-              retryAt: new Date(Date.now() + 3000),
+              retryAt: new Date(Date.now() + 5000 + Math.random() * 1000),
             });
             return;
           }

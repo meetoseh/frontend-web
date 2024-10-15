@@ -4,8 +4,8 @@ import { useNetworkResponse } from '../../shared/hooks/useNetworkResponse';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useUnwrappedValueWithCallbacks } from '../../shared/hooks/useUnwrappedValueWithCallbacks';
 import { fromSnakeToTitleCase } from './fromSnakeToTitleCase';
-import { ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { IconButton } from '../../shared/forms/IconButton';
+import { BoxError, chooseErrorFromStatus } from '../../shared/lib/errors';
 
 export type NetworkBlockStatsItem = {
   /**
@@ -101,11 +101,15 @@ export const NetworkBlockStats = ({
   const unwrappedData = useUnwrappedValueWithCallbacks(data, Object.is);
 
   if (unwrappedData.error !== null) {
-    return <ErrorBlock>{unwrappedData.error}</ErrorBlock>;
+    return <BoxError error={unwrappedData.error} />;
   }
 
   if (typeof unwrappedData.result === 'number') {
-    return specialStatusCodes?.[unwrappedData.result]?.() ?? <ErrorBlock>Unknown error</ErrorBlock>;
+    return (
+      specialStatusCodes?.[unwrappedData.result]?.() ?? (
+        <BoxError error={chooseErrorFromStatus(unwrappedData.result, 'load block stats')} />
+      )
+    );
   }
 
   return (

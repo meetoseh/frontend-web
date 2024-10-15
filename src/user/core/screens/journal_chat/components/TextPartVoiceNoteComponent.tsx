@@ -21,6 +21,7 @@ import { AutoWidthRecordedBars } from '../../../../../shared/components/voiceOrT
 import { VerticalSpacer } from '../../../../../shared/components/VerticalSpacer';
 import { combineClasses } from '../../../../../shared/lib/combineClasses';
 import styles from './TextPartVoiceNoteComponent.module.css';
+import { DisplayableError } from '../../../../../shared/lib/errors';
 
 /**
  * Renders a voice note that came from within a journal entry item. This will
@@ -91,7 +92,11 @@ export const TextPartVoiceNoteComponent = memo(
                 resolve({
                   type: 'error',
                   data: undefined,
-                  error: <>failed to refresh chat</>,
+                  error: new DisplayableError(
+                    'server-refresh-required',
+                    'refresh voice note',
+                    'failed to refresh chat'
+                  ),
                   retryAt: undefined,
                 });
                 return;
@@ -126,7 +131,11 @@ export const TextPartVoiceNoteComponent = memo(
               resolve({
                 type: 'error',
                 data: undefined,
-                error: <>voice note no longer in this chat</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get voice note',
+                  'removed from chat'
+                ),
                 retryAt: undefined,
               });
             },

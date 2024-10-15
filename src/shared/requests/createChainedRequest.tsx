@@ -2,6 +2,7 @@ import { createWritableValueWithCallbacks } from '../lib/Callbacks';
 import { CancelablePromise } from '../lib/CancelablePromise';
 import { constructCancelablePromise } from '../lib/CancelablePromiseConstructor';
 import { createCancelablePromiseFromCallbacks } from '../lib/createCancelablePromiseFromCallbacks';
+import { DisplayableError } from '../lib/errors';
 import { setVWC } from '../lib/setVWC';
 import { RequestHandler, RequestResult, Result } from './RequestHandler';
 
@@ -82,7 +83,7 @@ export const createChainedRequest = <
             resolve({
               type: 'expired',
               data: undefined,
-              error: <>This reference has been released</>,
+              error: new DisplayableError('canceled', 'chained request', 'reference released'),
               retryAt: undefined,
             });
             return;
@@ -99,7 +100,11 @@ export const createChainedRequest = <
               ? {
                   type: 'error',
                   data: undefined,
-                  error: <>This reference cannot chain</>,
+                  error: new DisplayableError(
+                    'server-refresh-required',
+                    'chained request',
+                    'cannot chain'
+                  ),
                   retryAt: undefined,
                 }
               : {
@@ -124,7 +129,7 @@ export const createChainedRequest = <
               resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>This reference has been released</>,
+                error: new DisplayableError('canceled', 'chained request', 'reference released'),
                 retryAt: undefined,
               });
               return;

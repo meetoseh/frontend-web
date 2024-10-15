@@ -8,7 +8,6 @@ import { IconButton } from '../../../shared/forms/IconButton';
 import icons from '../UserBlock.module.css';
 import styles from './BigUser.module.css';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
-import { ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { CrudFormElement } from '../../crud/CrudFormElement';
 import {
   makeDaysOfWeekPretty,
@@ -16,6 +15,7 @@ import {
 } from './daily_reminder_settings_log/DailyReminderSettingsLogBlock';
 import { DayOfWeek } from '../../../shared/models/DayOfWeek';
 import { useMappedValueWithCallbacks } from '../../../shared/hooks/useMappedValueWithCallbacks';
+import { BoxError } from '../../../shared/lib/errors';
 
 type Reminder = {
   /** The channel that gets a reminder */
@@ -87,7 +87,7 @@ export const BigUserDailyReminders = ({ user }: { user: User }): ReactElement =>
       }>
       <RenderGuardedComponent
         props={useMappedValueWithCallbacks(reminders, (v) => v.error)}
-        component={(error) => <>{error && <ErrorBlock>{error}</ErrorBlock>}</>}
+        component={(error) => <>{error && <BoxError error={error} />}</>}
       />
       <RenderGuardedComponent
         props={useMappedValueWithCallbacks(reminders, (v) => v.result)}

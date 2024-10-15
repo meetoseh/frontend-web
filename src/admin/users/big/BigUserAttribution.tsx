@@ -7,13 +7,13 @@ import { CrudFetcherKeyMap, convertUsingKeymap } from '../../crud/CrudFetcher';
 import { Journey } from '../../journeys/Journey';
 import { keyMap } from '../../journeys/Journeys';
 import { AdminDashboardLargeChartPlaceholder } from '../../dashboard/AdminDashboardLargeChartPlaceholder';
-import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { CrudFormElement } from '../../crud/CrudFormElement';
 import { CompactJourney } from '../../journeys/CompactJourney';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 type UTMClick = UTM & {
   clickedAt: Date;
@@ -72,7 +72,7 @@ export const BigUserAttribution = ({
   const [attributionInfo, setAttributionInfo] = useState<
     { sub: string; info: AttributionInfo | null } | undefined
   >(undefined);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
 
   useValueWithCallbacksEffect(
     loginContextRaw.value,
@@ -94,16 +94,21 @@ export const BigUserAttribution = ({
         };
 
         async function fetchAttributionInfoInner() {
-          const response = await apiFetch(
-            `/api/1/users/${user.sub}/attribution`,
-            {
-              method: 'GET',
-            },
-            loginContext
-          );
+          let response;
+          try {
+            response = await apiFetch(
+              `/api/1/users/${user.sub}/attribution`,
+              {
+                method: 'GET',
+              },
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'fetch attribution info');
+          }
 
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'fetch attribution info');
           }
 
           const raw = await response.json();
@@ -117,7 +122,10 @@ export const BigUserAttribution = ({
           try {
             await fetchAttributionInfoInner();
           } catch (e) {
-            const err = await describeError(e);
+            const err =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch attribution info', `${e}`);
             if (active) {
               setError(err);
               setAttributionInfo({ sub: user.sub, info: null });
@@ -136,7 +144,7 @@ export const BigUserAttribution = ({
   if (attributionInfo.info === null) {
     return (
       <CrudItemBlock title="Attribution" controls={null}>
-        {error && <ErrorBlock>{error}</ErrorBlock>}
+        {error && <BoxError error={error} />}
         No attribution information available
       </CrudItemBlock>
     );
@@ -144,7 +152,7 @@ export const BigUserAttribution = ({
 
   return (
     <CrudItemBlock title="Attribution" controls={null}>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {error && <BoxError error={error} />}
 
       <CrudFormElement title="UTMs">
         {attributionInfo.info.utms.length === 0 && <>No attributable UTMs</>}

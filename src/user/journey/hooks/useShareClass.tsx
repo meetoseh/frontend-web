@@ -13,7 +13,6 @@ import {
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
 import { setVWC } from '../../../shared/lib/setVWC';
-import { describeError } from '../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { SlideInModal } from '../../../shared/components/SlideInModal';
 import styles from './useShareClass.module.css';
@@ -21,6 +20,7 @@ import { RenderGuardedComponent } from '../../../shared/components/RenderGuarded
 import { combineClasses } from '../../../shared/lib/combineClasses';
 import { IconButtonWithLabel } from '../../../shared/forms/IconButtonWithLabel';
 import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
+import { DisplayableError } from '../../../shared/lib/errors';
 
 export type UseShareClassProps = {
   /**
@@ -48,7 +48,7 @@ export type UseShareClassResult = {
   /**
    * The last error that occurred, as can be presented to the user
    */
-  error: WritableValueWithCallbacks<ReactElement | null>;
+  error: WritableValueWithCallbacks<DisplayableError | null>;
 
   /**
    * True if we are working on sharing the class, false otherwise
@@ -64,7 +64,7 @@ export const useShareClass = ({ journey }: UseShareClassProps): UseShareClassRes
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const journeyVWC = useVariableStrategyPropsAsValueWithCallbacks(journey);
-  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const error = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const shareable = useWritableValueWithCallbacks<boolean | undefined>(() => undefined);
   const lastLink = useWritableValueWithCallbacks<{ uid: string; link: string } | null>(() => null);
 
@@ -490,7 +490,8 @@ export const useShareClass = ({ journey }: UseShareClassProps): UseShareClassRes
       try {
         await handleShareInner(journeyUid);
       } catch (e) {
-        const err = await describeError(e);
+        const err =
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'share', `${e}`);
         if (running.get()) {
           setVWC(error, err);
         }

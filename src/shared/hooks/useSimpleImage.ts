@@ -1,5 +1,5 @@
 import { ReactElement, useEffect, useMemo, useState } from 'react';
-import { describeError } from '../forms/ErrorBlock';
+import { DisplayableError } from '../lib/errors';
 
 type UseSimpleImageProps = {
   /**
@@ -28,9 +28,9 @@ export const useSimpleImage = ({
   url,
   width,
   height,
-}: UseSimpleImageProps): { image: HTMLImageElement | null; error: ReactElement | null } => {
+}: UseSimpleImageProps): { image: HTMLImageElement | null; error: DisplayableError | null } => {
   const [result, setResult] = useState<{ src: string; image: HTMLImageElement } | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
 
   useEffect(() => {
     if (result?.src === url) {
@@ -55,7 +55,7 @@ export const useSimpleImage = ({
       image.addEventListener('error', async (e) => {
         if (active) {
           console.error('error while downloading', url, ':', e);
-          const error = await describeError(e);
+          const error = new DisplayableError('client', 'download image', `${e}`);
           if (active) {
             setResult(null);
             setError(error);

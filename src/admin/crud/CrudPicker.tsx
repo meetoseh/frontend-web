@@ -2,9 +2,9 @@ import { ReactElement, useCallback, useContext, useEffect, useMemo, useRef, useS
 import { CrudFetcher, CrudFetcherFilter, CrudFetcherMapper, CrudFetcherSort } from './CrudFetcher';
 import styles from './CrudPicker.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type CrudPickerProps<T> = {
   /**
@@ -98,7 +98,7 @@ export function CrudPicker<T extends { uid: string }>({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [focused, setFocused] = useState(false);
   const [items, setItems] = useState<T[]>([]);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
 
   const fetcher = useMemo(() => {
     return new CrudFetcher(
@@ -161,14 +161,9 @@ export function CrudPicker<T extends { uid: string }>({
               console.error('error fetching items', e);
 
               if (e instanceof Response) {
-                const described = await describeErrorFromResponse(e);
-                if (!active) {
-                  return;
-                }
-
-                setError(described);
+                setError(chooseErrorFromStatus(e.status, 'fetch items for picker'));
               } else {
-                setError(<>Could not connect to server. Check your internet connection.</>);
+                setError(new DisplayableError('connectivity', 'fetch items for picker'));
               }
             }
           );
@@ -230,7 +225,7 @@ export function CrudPicker<T extends { uid: string }>({
 
       {focused && query.length > 0 && error !== null && !disabled && (
         <div className={styles.errorContainer}>
-          <ErrorBlock>{error}</ErrorBlock>
+          <BoxError error={error} />
         </div>
       )}
 

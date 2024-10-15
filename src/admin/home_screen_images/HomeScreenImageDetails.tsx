@@ -12,7 +12,6 @@ import { ModalContext } from '../../shared/contexts/ModalContext';
 import { setVWC } from '../../shared/lib/setVWC';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
-import { describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingMapper } from '../crud/CrudFetcher';
 import { OsehImage } from '../../shared/images/OsehImage';
@@ -26,6 +25,7 @@ import { HomeScreenImageFlags } from './flags/HomeScreenImageFlags';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 import { Button } from '../../shared/forms/Button';
 import { showYesNoModal } from '../../shared/lib/showYesNoModal';
+import { DisplayableError } from '../../shared/lib/errors';
 
 type HomeScreenImageDetailsProps = {
   /**
@@ -70,7 +70,7 @@ export const HomeScreenImageDetails = ({
   const modalContext = useContext(ModalContext);
   const loginContextRaw = useContext(LoginContext);
   const savingVWC = useWritableValueWithCallbacks(() => false);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const saveAt = useWritableValueWithCallbacks<number | null>(() => null);
   const queuedPatchVWC = useWritableValueWithCallbacks<HomeScreenImagePatch | null>(() => null);
   const saveDueInverted = useBeforeTime({
@@ -79,7 +79,7 @@ export const HomeScreenImageDetails = ({
     callbacks: saveAt.callbacks,
   });
   useWorkingModal(modalContext.modals, savingVWC, { delayStartMs: 100 });
-  useErrorModal(modalContext.modals, errorVWC, 'saving');
+  useErrorModal(modalContext.modals, errorVWC);
 
   useValuesWithCallbacksEffect([savingVWC, saveAt], () => {
     setVWC(editingVWC, savingVWC.get() || saveAt.get() !== null);
@@ -132,7 +132,6 @@ export const HomeScreenImageDetails = ({
         );
         if (!response.ok) {
           if (response.status === 412) {
-            const errInfo = await describeError(response);
             const updateResponse = await apiFetch(
               '/api/1/personalization/home/images/search',
               {
@@ -154,17 +153,14 @@ export const HomeScreenImageDetails = ({
             }
             const updatedImage = convertUsingMapper(update.items[0], homeScreenImageKeyMap);
             setHomeScreenImage(updatedImage);
+            console.log(JSON.stringify({ oldImage, updatedImage }, null, 2));
             setVWC(
               errorVWC,
-              <>
-                <p>The image was updated by someone else. Please try again.</p>
-                <p>Old image:</p>
-                <pre>{JSON.stringify(oldImage, null, 2)}</pre>
-                <p>New image:</p>
-                <pre>{JSON.stringify(updatedImage, null, 2)}</pre>
-                <p>Error:</p>
-                {errInfo}
-              </>
+              new DisplayableError(
+                'server-not-retryable',
+                'patch home screen image',
+                'image was updated by someone else (see console)'
+              )
             );
             return;
           }
@@ -174,7 +170,10 @@ export const HomeScreenImageDetails = ({
         const updatedImage = convertUsingMapper(updatedImageRaw, homeScreenImageKeyMap);
         setHomeScreenImage(updatedImage);
       } catch (e) {
-        const err = await describeError(e);
+        const err =
+          e instanceof DisplayableError
+            ? e
+            : new DisplayableError('client', 'patch home screen image', `${e}`);
         setVWC(errorVWC, err);
       } finally {
         setVWC(savingVWC, false);

@@ -5,7 +5,6 @@ import {
   interactivePromptKeyMap,
 } from '../../user/interactive_prompt/models/InteractivePrompt';
 import { apiFetch } from '../ApiConstants';
-import { describeError } from '../forms/ErrorBlock';
 import { LoginContext } from '../contexts/LoginContext';
 import {
   VariableStrategyProps,
@@ -15,6 +14,7 @@ import { ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callba
 import { useMappedValuesWithCallbacks } from './useMappedValuesWithCallbacks';
 import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
 import { setVWC } from '../lib/setVWC';
+import { DisplayableError } from '../lib/errors';
 
 export type PublicInteractivePrompt =
   | {
@@ -49,7 +49,7 @@ export type PublicInteractivePrompt =
        * If an error occurred that prevents the prompt from being loaded, an
        * element describing the error, otherwise null
        */
-      error: ReactElement | null;
+      error: DisplayableError | null;
     };
 
 type PublicInteractivePromptProps = {
@@ -78,7 +78,7 @@ export const usePublicInteractivePrompt = (
     identifier: string;
     prompt: InteractivePrompt;
   } | null>(() => null);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   useValueWithCallbacksEffect(
     loginContextRaw.value,
@@ -152,7 +152,10 @@ export const usePublicInteractivePrompt = (
             try {
               await handleProps(propsVWC.get());
             } catch (e) {
-              const described = await describeError(e);
+              const described =
+                e instanceof DisplayableError
+                  ? e
+                  : new DisplayableError('client', 'load prompt', `${e}`);
               if (!queued) {
                 setVWC(errorVWC, described);
               }

@@ -28,7 +28,6 @@ import { RenderGuardedComponent } from '../../../shared/components/RenderGuarded
 import { Button } from '../../../shared/forms/Button';
 import { showClientScreenPicker } from '../../client_screens/showClientScreenPicker';
 import { convertUsingMapper } from '../../crud/CrudFetcher';
-import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { Checkbox } from '../../../shared/forms/Checkbox';
 import { apiFetch } from '../../../shared/ApiConstants';
@@ -42,6 +41,7 @@ import { prettySchemaPath } from '../../lib/schema/prettySchemaPath';
 import { ClientScreenSchema } from './schema/multiple/ClientScreenSchema';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
 import { VerticalSpacer } from '../../../shared/components/VerticalSpacer';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 export type ClientFlowScreenEditorModalProps = {
   /** The flow this screen is within, so that we can perform tests */
@@ -88,8 +88,8 @@ export const ClientFlowScreenEditorModal = ({
   const modalContext = useContext(ModalContext);
   const visible = useWritableValueWithCallbacks<boolean>(() => true);
 
-  const saveErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, saveErrorVWC, 'while saving flow screen');
+  const saveErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, saveErrorVWC);
 
   useEffect(() => {
     setVWC(requestDismiss, () => {
@@ -387,7 +387,8 @@ export const ClientFlowScreenEditorModal = ({
       await Promise.race([closed.promise, validatePromise]);
     } catch (e) {
       console.log('error from validatePromise', e);
-      const err = await describeError(e);
+      const err =
+        e instanceof DisplayableError ? e : new DisplayableError('client', 'validate', `${e}`);
       if (closed.done()) {
         return;
       }
@@ -402,7 +403,8 @@ export const ClientFlowScreenEditorModal = ({
       setVWC(visible, false);
     } catch (e) {
       console.log('error from savePromise', e);
-      const err = await describeError(e);
+      const err =
+        e instanceof DisplayableError ? e : new DisplayableError('client', 'save', `${e}`);
       if (closed.done()) {
         return;
       }
@@ -624,8 +626,8 @@ const Content = ({
   );
   const flagsVWC = useMappedValueWithCallbacks(valueVWC, (v) => v.flags);
 
-  const testErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, testErrorVWC, 'while testing flow screen');
+  const testErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, testErrorVWC);
 
   const dryRunVWC = useWritableValueWithCallbacks<boolean>(() => false);
   const imageHandler = useOsehImageStateRequestHandler({});
@@ -706,7 +708,7 @@ const Content = ({
         props={screenNR}
         component={(screen) =>
           screen.type === 'error' ? (
-            <ErrorBlock>{screen.error}</ErrorBlock>
+            <BoxError error={screen.error} />
           ) : screen.type !== 'success' ? (
             <></>
           ) : (
@@ -875,29 +877,34 @@ const Content = ({
                 const flowScreen = valueVWC.get();
                 const dryRun = dryRunVWC.get();
 
-                const response = await apiFetch(
-                  '/api/1/client_flows/test_screen',
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json; charset=utf-8',
-                    },
-                    body: JSON.stringify({
-                      flow: {
-                        client_schema: flowInfo.clientSchema,
-                        server_schema: flowInfo.serverSchema,
+                let response;
+                try {
+                  response = await apiFetch(
+                    '/api/1/client_flows/test_screen',
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
                       },
-                      flow_screen: serializeClientFlowScreen(flowScreen),
-                      client_parameters: clientParameters,
-                      server_parameters: serverParameters,
-                      dry_run: dryRun,
-                    }),
-                  },
-                  loginContext
-                );
+                      body: JSON.stringify({
+                        flow: {
+                          client_schema: flowInfo.clientSchema,
+                          server_schema: flowInfo.serverSchema,
+                        },
+                        flow_screen: serializeClientFlowScreen(flowScreen),
+                        client_parameters: clientParameters,
+                        server_parameters: serverParameters,
+                        dry_run: dryRun,
+                      }),
+                    },
+                    loginContext
+                  );
+                } catch {
+                  throw new DisplayableError('connectivity', 'dry run');
+                }
 
                 if (!response.ok) {
-                  throw response;
+                  throw chooseErrorFromStatus(response.status, 'dry run');
                 }
 
                 await showYesNoModal(modalContext.modals, {
@@ -909,7 +916,10 @@ const Content = ({
                   emphasize: 1,
                 }).promise;
               } catch (e) {
-                const err = await describeError(e);
+                const err =
+                  e instanceof DisplayableError
+                    ? e
+                    : new DisplayableError('client', 'dry run', `${e}`);
                 setVWC(testErrorVWC, err);
               }
             }}>

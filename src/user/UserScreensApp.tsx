@@ -68,6 +68,7 @@ import { HomeV4Screen } from './core/screens/homev4/HomeV4Screen';
 import { HoldToContinueScreen } from './core/screens/hold_to_continue/HoldToContinueScreen';
 import { AnonymousAccountCreation } from './splash/AnonymousAccountCreation';
 import { UnsubscribeEmailScreen } from './core/screens/unsubscribe_email/UnsubscribeEmailScreen';
+import { BoxError, DisplayableError } from '../shared/lib/errors';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -391,9 +392,11 @@ const UserScreensAppInner = ({
                   return (
                     <RenderGuardedComponent
                       props={screenQueue.value}
-                      component={(sq) =>
-                        sq.error ?? <div>An error has occurred. Try refreshing.</div>
-                      }
+                      component={(sq) => (
+                        <BoxError
+                          error={sq.error ?? new DisplayableError('client', 'get screen')}
+                        />
+                      )}
                     />
                   );
                 }

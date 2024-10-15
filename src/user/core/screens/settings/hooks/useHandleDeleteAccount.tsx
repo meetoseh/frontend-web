@@ -1,4 +1,4 @@
-import { ReactElement, useCallback } from 'react';
+import { useCallback } from 'react';
 import { LoginContextValue } from '../../../../../shared/contexts/LoginContext';
 import {
   ModalContextValue,
@@ -11,15 +11,15 @@ import {
 } from '../../../../../shared/lib/Callbacks';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { apiFetch } from '../../../../../shared/ApiConstants';
-import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { useValueWithCallbacksEffect } from '../../../../../shared/hooks/useValueWithCallbacksEffect';
 import { YesNoModal } from '../../../../../shared/components/YesNoModal';
 import { useValuesWithCallbacksEffect } from '../../../../../shared/hooks/useValuesWithCallbacksEffect';
+import { DisplayableError } from '../../../../../shared/lib/errors';
 
 export const useHandleDeleteAccount = (
   loginContextRaw: LoginContextValue,
   modalContext: ModalContextValue,
-  errorVWC: WritableValueWithCallbacks<ReactElement | null>
+  errorVWC: WritableValueWithCallbacks<DisplayableError | null>
 ): (() => void) => {
   const showDeleteConfirmInitialPromptVWC = useWritableValueWithCallbacks(() => false);
   const showDeleteConfirmApplePromptVWC = useWritableValueWithCallbacks(() => false);
@@ -31,7 +31,10 @@ export const useHandleDeleteAccount = (
     async (force: boolean): Promise<void> => {
       const loginContextUnch = loginContextRaw.value.get();
       if (loginContextUnch.state !== 'logged-in') {
-        setVWC(errorVWC, <>Try logging in again first.</>);
+        setVWC(
+          errorVWC,
+          new DisplayableError('server-refresh-required', 'delete account', 'not logged in')
+        );
         return;
       }
       const loginContext = loginContextUnch;
@@ -68,7 +71,14 @@ export const useHandleDeleteAccount = (
               return;
             } else {
               console.log('Unknown conflict type', body.type);
-              setVWC(errorVWC, <>E_A7015: Contact hi@oseh.com for assistance.</>);
+              setVWC(
+                errorVWC,
+                new DisplayableError(
+                  'client',
+                  'delete account',
+                  `unknown conflict type: ${body.type}`
+                )
+              );
               return;
             }
           }
@@ -79,7 +89,10 @@ export const useHandleDeleteAccount = (
         window.location.href = '/';
       } catch (e) {
         console.error(e);
-        const err = await describeError(e);
+        const err =
+          e instanceof DisplayableError
+            ? e
+            : new DisplayableError('client', 'delete account', `${e}`);
         setVWC(errorVWC, err);
       }
     },

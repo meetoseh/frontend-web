@@ -1,6 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styles from './JourneyEmotionsBlock.module.css';
-import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
 import { apiFetch } from '../../../shared/ApiConstants';
@@ -11,6 +10,7 @@ import { Button } from '../../../shared/forms/Button';
 import { Emotion } from '../../emotions/Emotion';
 import { EmotionDropdown } from '../../emotions/EmotionDropdown';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 type JourneyEmotionsBlockProps = {
   /**
@@ -33,7 +33,7 @@ export const JourneyEmotionsBlock = ({ journeyUid }: JourneyEmotionsBlockProps):
   const [emotions, setEmotions] = useState<Emotion[]>([]);
   const [viewingEmotion, setViewingEmotion] = useState<Emotion | null>(null);
   const [addingEmotion, setAddingEmotion] = useState<boolean>(false);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
 
   useValueWithCallbacksEffect(
     loginContextRaw.value,
@@ -51,25 +51,30 @@ export const JourneyEmotionsBlock = ({ journeyUid }: JourneyEmotionsBlockProps):
         };
 
         async function fetchEmotionsInner() {
-          const response = await apiFetch(
-            '/api/1/emotions/search',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json; charset=utf-8' },
-              body: JSON.stringify({
-                filters: {
-                  journey_uid: {
-                    operator: 'eq',
-                    value: journeyUid,
+          let response;
+          try {
+            response = await apiFetch(
+              '/api/1/emotions/search',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                  filters: {
+                    journey_uid: {
+                      operator: 'eq',
+                      value: journeyUid,
+                    },
                   },
-                },
-                limit: 100,
-              }),
-            },
-            loginContext
-          );
+                  limit: 100,
+                }),
+              },
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'fetch emotions');
+          }
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'fetch emotions');
           }
           const data: { items: Emotion[] } = await response.json();
           if (active) {
@@ -81,7 +86,10 @@ export const JourneyEmotionsBlock = ({ journeyUid }: JourneyEmotionsBlockProps):
           try {
             await fetchEmotionsInner();
           } catch (e) {
-            const err = await describeError(e);
+            const err =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch emotions', `${e}`);
             if (active) {
               setError(err);
             }
@@ -145,7 +153,7 @@ export const JourneyEmotionsBlock = ({ journeyUid }: JourneyEmotionsBlockProps):
 
   return (
     <div className={styles.container}>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {error && <BoxError error={error} />}
       {emotions.map((emotion, idx) => (
         <button className={styles.emotion} key={emotion.word} onClick={boundOnClick[idx]}>
           {emotion.word}
@@ -169,7 +177,7 @@ const JourneyEmotionDetails = ({
 }) => {
   const loginContextRaw = useContext(LoginContext);
   const [info, setInfo] = useState<JourneyEmotion | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteDisabled, setDeleteDisabled] = useState<boolean>(true);
 
@@ -189,18 +197,23 @@ const JourneyEmotionDetails = ({
         };
 
         async function fetchInfoInner() {
-          const response = await apiFetch(
-            `/api/1/journeys/emotions/?journey_uid=${journeyUid}&emotion=${encodeURIComponent(
-              emotion.word
-            )}`,
-            {
-              method: 'GET',
-            },
-            loginContext
-          );
+          let response;
+          try {
+            response = await apiFetch(
+              `/api/1/journeys/emotions/?journey_uid=${journeyUid}&emotion=${encodeURIComponent(
+                emotion.word
+              )}`,
+              {
+                method: 'GET',
+              },
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'get journey emotion details');
+          }
 
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'get journey emotion details');
           }
 
           const raw: any = await response.json();
@@ -214,7 +227,10 @@ const JourneyEmotionDetails = ({
           try {
             await fetchInfoInner();
           } catch (e) {
-            const err = await describeError(e);
+            const err =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'get journey emotion details', `${e}`);
             if (active) {
               setError(err);
             }
@@ -250,7 +266,9 @@ const JourneyEmotionDetails = ({
   const onDeletePressed = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
-      setError(<>You must be logged in to do that</>);
+      setError(
+        new DisplayableError('server-refresh-required', 'delete journey emotion', 'not logged in')
+      );
       return;
     }
     const loginContext = loginContextUnch;
@@ -274,7 +292,7 @@ const JourneyEmotionDetails = ({
       }
       onDeleted();
     } catch (e) {
-      const err = await describeError(e);
+      const err = new DisplayableError('connectivity', 'delete journey emotion');
       setError(err);
     } finally {
       setDeleting(false);
@@ -283,7 +301,7 @@ const JourneyEmotionDetails = ({
 
   return (
     <div className={styles.emotionDetailsContainer}>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {error && <BoxError error={error} />}
       <CrudFormElement title="Emotion">
         <div className={styles.emotionTitle}>{emotion.word}</div>
       </CrudFormElement>
@@ -325,7 +343,7 @@ const JourneyAddEmotion = ({
   existingEmotions: Emotion[];
 }): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [emotion, setEmotion] = useState<Emotion | null>(null);
 
   const localFilter = useCallback(
@@ -338,40 +356,46 @@ const JourneyAddEmotion = ({
   const onAddPressed = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
-      setError(<>You must be logged in to do that</>);
+      setError(new DisplayableError('server-refresh-required', 'add emotion', 'not logged in'));
       return;
     }
     const loginContext = loginContextUnch;
 
     if (emotion === null) {
-      setError(<>You must select an emotion to add</>);
+      setError(new DisplayableError('client', 'add emotion', 'no emotion selected'));
       return;
     }
 
     setError(null);
     try {
-      const response = await apiFetch(
-        '/api/1/journeys/emotions/',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            journey_uid: journeyUid,
-            emotion: emotion.word,
-          }),
-        },
-        loginContext
-      );
+      let response;
+      try {
+        response = await apiFetch(
+          '/api/1/journeys/emotions/',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({
+              journey_uid: journeyUid,
+              emotion: emotion.word,
+            }),
+          },
+          loginContext
+        );
+      } catch {
+        throw new DisplayableError('connectivity', 'add emotion');
+      }
 
       if (!response.ok) {
-        throw response;
+        throw chooseErrorFromStatus(response.status, 'add emotion');
       }
 
       const raw: any = await response.json();
       const journeyEmotion = parseJourneyEmotion(raw);
       onAdded(journeyEmotion);
     } catch (e) {
-      const err = await describeError(e);
+      const err =
+        e instanceof DisplayableError ? e : new DisplayableError('client', 'add emotion', `${e}`);
       setError(err);
     }
   }, [loginContextRaw.value, emotion, onAdded, journeyUid]);
@@ -379,7 +403,7 @@ const JourneyAddEmotion = ({
   return (
     <div className={styles.addContainer}>
       <div className={styles.addTitle}>Add Emotion</div>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {error && <BoxError error={error} />}
       <EmotionDropdown setSelected={setEmotion} localFilter={localFilter} />
       <div className={styles.addButtonContainer}>
         <Button

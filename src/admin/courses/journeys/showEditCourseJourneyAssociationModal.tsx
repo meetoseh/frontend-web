@@ -18,10 +18,14 @@ import { SlideInModal } from '../../../shared/components/SlideInModal';
 import { TextInput } from '../../../shared/forms/TextInput';
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { setVWC } from '../../../shared/lib/setVWC';
-import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { Button } from '../../../shared/forms/Button';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingMapper } from '../../crud/CrudFetcher';
+import {
+  chooseErrorFromStatus,
+  DisplayableError,
+  SimpleDismissBoxError,
+} from '../../../shared/lib/errors';
 
 /**
  * Opens a modal to allow the user to pick an instructor, then
@@ -114,38 +118,44 @@ const Inner = ({
   imageHandler: OsehImageStateRequestHandler;
   requestCloseVWC: ValueWithCallbacks<() => void>;
 }): ReactElement => {
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const priorityVWC = useWritableValueWithCallbacks<string>(() => item.priority.toString());
 
   const onSave = useCallback(async () => {
+    const action = 'save course journey association';
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
-      throw new Error('not logged in');
+      throw new DisplayableError('server-refresh-required', action, 'not logged in');
     }
     const loginContext = loginContextUnch;
 
     const priority = parseInt(priorityVWC.get(), 10);
 
-    const response = await apiFetch(
-      '/api/1/courses/journeys/',
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          association_uid: item.associationUid,
-          precondition: {
-            course_uid: item.courseUid,
-            journey_uid: item.journey.uid,
-          },
-          patch: {
-            priority,
-          },
-        }),
-      },
-      loginContext
-    );
+    let response;
+    try {
+      response = await apiFetch(
+        '/api/1/courses/journeys/',
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            association_uid: item.associationUid,
+            precondition: {
+              course_uid: item.courseUid,
+              journey_uid: item.journey.uid,
+            },
+            patch: {
+              priority,
+            },
+          }),
+        },
+        loginContext
+      );
+    } catch {
+      throw new DisplayableError('connectivity', action);
+    }
     if (!response.ok) {
-      throw response;
+      throw chooseErrorFromStatus(response.status, action);
     }
     const newRaw = await response.json();
     const newCJ = convertUsingMapper(newRaw, courseJourneyKeyMap);
@@ -154,20 +164,26 @@ const Inner = ({
   }, [loginContextRaw.value, item, journeys, priorityVWC, requestCloseVWC]);
 
   const onRemove = useCallback(async () => {
+    const action = 'remove course journey association';
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
-      throw new Error('not logged in');
+      throw new DisplayableError('server-refresh-required', action, 'not logged in');
     }
     const loginContext = loginContextUnch;
 
-    const response = await apiFetch(
-      '/api/1/courses/journeys/' + item.associationUid,
-      { method: 'DELETE' },
-      loginContext
-    );
+    let response;
+    try {
+      response = await apiFetch(
+        '/api/1/courses/journeys/' + item.associationUid,
+        { method: 'DELETE' },
+        loginContext
+      );
+    } catch {
+      throw new DisplayableError('connectivity', action);
+    }
 
     if (!response.ok) {
-      throw response;
+      throw chooseErrorFromStatus(response.status, action);
     }
 
     journeys.onDelete(item);
@@ -176,10 +192,7 @@ const Inner = ({
 
   return (
     <div className={styles.container}>
-      <RenderGuardedComponent
-        props={errorVWC}
-        component={(error) => (error === null ? <></> : <ErrorBlock>{error}</ErrorBlock>)}
-      />
+      <SimpleDismissBoxError error={errorVWC} />
       <RenderGuardedComponent
         props={disabled}
         component={(disabled) => (
@@ -214,7 +227,12 @@ const Inner = ({
                   try {
                     onSave();
                   } catch (e) {
-                    setVWC(errorVWC, await describeError(e));
+                    setVWC(
+                      errorVWC,
+                      e instanceof DisplayableError
+                        ? e
+                        : new DisplayableError('client', 'save course journey association', `${e}`)
+                    );
                   }
                 }}
                 disabled={disabled}>
@@ -230,7 +248,16 @@ const Inner = ({
                   try {
                     onRemove();
                   } catch (e) {
-                    setVWC(errorVWC, await describeError(e));
+                    setVWC(
+                      errorVWC,
+                      e instanceof DisplayableError
+                        ? e
+                        : new DisplayableError(
+                            'client',
+                            'remove course journey association',
+                            `${e}`
+                          )
+                    );
                   }
                 }}
                 disabled={disabled}>

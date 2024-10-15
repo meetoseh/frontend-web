@@ -48,6 +48,7 @@ import { HeartFilled } from '../../../../shared/components/icons/HeartFilled';
 import { Check } from '../../../../shared/components/icons/Check';
 import { trackClassTaken } from '../home/lib/trackClassTaken';
 import { waitForValuesWithCallbacksCondition } from '../../../../shared/lib/waitForValueWithCallbacksCondition';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 type TooltipPlaceholder = { readonly uid: 'tooltip' };
 
@@ -111,7 +112,7 @@ export const Library = ({
                 refreshRef: () => ({
                   promise: Promise.resolve({
                     type: 'expired',
-                    error: <>Refresh not expected here</>,
+                    error: new DisplayableError('server-refresh-required', 'refresh entitlements'),
                     data: undefined,
                     retryAt: undefined,
                   }),
@@ -138,7 +139,7 @@ export const Library = ({
         }
       );
     },
-    [screen.parameters, workingVWC, startPop, transition]
+    [screen.parameters, workingVWC, startPop, transition, ctx, trace]
   );
 
   const boundComponent = useMemo<

@@ -1,4 +1,5 @@
 import { ReactElement } from 'react';
+import { DisplayableError } from '../lib/errors';
 
 export type OsehMediaContentStateLoading = {
   state: 'loading';
@@ -13,7 +14,7 @@ export type OsehMediaContentStateError = {
   /**
    * An element describing the error that occurred while loading the audio or video.
    */
-  error: ReactElement;
+  error: DisplayableError;
   element: null;
 };
 

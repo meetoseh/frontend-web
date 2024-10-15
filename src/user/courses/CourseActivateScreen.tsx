@@ -179,7 +179,7 @@ export const CourseActivateScreen = (): ReactElement => {
     )
   );
   const [urls, urlsError] = useOauthProviderUrlsValueWithCallbacks(providers);
-  useErrorModal(modalContext.modals, urlsError, 'oauth provider urls');
+  useErrorModal(modalContext.modals, urlsError);
   const backgroundLoading = useMappedValueWithCallbacks(background, (bg) => bg.loading);
 
   if (slug === null || session === null) {

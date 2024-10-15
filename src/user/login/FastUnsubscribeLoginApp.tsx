@@ -19,10 +19,9 @@ import { useWorkingModal } from '../../shared/hooks/useWorkingModal';
 import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWithCallbacks';
 import { Button } from '../../shared/forms/Button';
 import { screenWithWorking } from '../core/lib/screenWithWorking';
-import { describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
-import { InterestsContext } from '../../shared/contexts/InterestsContext';
 import { showYesNoModal } from '../../shared/lib/showYesNoModal';
+import { chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 /**
  * This allows users to sign up or sign in via social logins. It does not
@@ -45,14 +44,14 @@ export const FastUnsubscribeLoginApp = ({
     'Direct',
   ]);
   const [urls, urlsError] = useOauthProviderUrlsValueWithCallbacks(providers);
-  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  const unsubscribeError = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const error = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  const unsubscribeError = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const unsubscribingVWC = useWritableValueWithCallbacks(() => false);
 
   const modalContext = useContext(ModalContext);
-  useErrorModal(modalContext.modals, error, 'direct account login');
-  useErrorModal(modalContext.modals, urlsError, 'oauth provider urls');
-  useErrorModal(modalContext.modals, unsubscribeError, 'unsubscribe by email');
+  useErrorModal(modalContext.modals, error);
+  useErrorModal(modalContext.modals, urlsError);
+  useErrorModal(modalContext.modals, unsubscribeError);
   useWorkingModal(modalContext.modals, unsubscribingVWC);
 
   const emailAddressVWC = useWritableValueWithCallbacks<string>(() => '');
@@ -65,7 +64,7 @@ export const FastUnsubscribeLoginApp = ({
     screenWithWorking(unsubscribingVWC, async () => {
       const email = emailAddressVWC.get().trim();
       if (email.length === 0 || !email.includes('@')) {
-        setVWC(unsubscribeError, <>Please enter a valid email address</>);
+        setVWC(unsubscribeError, new DisplayableError('client', 'unsubscribe', 'invalid email'));
         return;
       }
 
@@ -75,34 +74,33 @@ export const FastUnsubscribeLoginApp = ({
 
       setVWC(unsubscribeError, null);
       try {
-        const response = await apiFetch(
-          '/api/1/notifications/unsubscribe_by_email',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              ...(!visitor.loading && visitor.uid !== null ? { Visitor: visitor.uid } : {}),
+        let response;
+        try {
+          response = await apiFetch(
+            '/api/1/notifications/unsubscribe_by_email',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                ...(!visitor.loading && visitor.uid !== null ? { Visitor: visitor.uid } : {}),
+              },
+              body: JSON.stringify({
+                email: email,
+                code: page.code,
+              }),
             },
-            body: JSON.stringify({
-              email: email,
-              code: page.code,
-            }),
-          },
-          user
-        );
+            user
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'unsubscribe');
+        }
 
         if (!response.ok) {
           if (response.status === 403) {
-            setVWC(
-              unsubscribeError,
-              <>
-                The link you took appears to be invalid. Contact support at{' '}
-                <a href="mailto:hi@oseh.com">hi@oseh.com</a>
-              </>
-            );
+            setVWC(unsubscribeError, new DisplayableError('client', 'unsubscribe', 'invalid code'));
             return;
           }
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'unsubscribe');
         }
 
         await showYesNoModal(modalContext.modals, {
@@ -112,7 +110,8 @@ export const FastUnsubscribeLoginApp = ({
           emphasize: 1,
         }).promise;
       } catch (e) {
-        const err = await describeError(e);
+        const err =
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'unsubscribe', `${e}`);
         setVWC(unsubscribeError, err);
       }
     });

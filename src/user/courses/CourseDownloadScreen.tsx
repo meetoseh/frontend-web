@@ -2,12 +2,12 @@ import { ReactElement, useMemo, useState } from 'react';
 import styles from './CourseDownloadScreen.module.css';
 import { OsehImage } from '../../shared/images/OsehImage';
 import { useWindowSize } from '../../shared/hooks/useWindowSize';
-import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { Button } from '../../shared/forms/Button';
 import { useSingletonEffect } from '../../shared/lib/useSingletonEffect';
 import { apiFetch } from '../../shared/ApiConstants';
 import { SplashScreen } from '../splash/SplashScreen';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { BoxError, DisplayableError } from '../../shared/lib/errors';
 
 type CourseRef = {
   uid: string;
@@ -26,7 +26,7 @@ export const CourseDownloadScreen = (): ReactElement => {
     return params.get('code');
   }, []);
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const imageHandler = useOsehImageStateRequestHandler({});
   const windowSize = useWindowSize();
 
@@ -34,10 +34,11 @@ export const CourseDownloadScreen = (): ReactElement => {
     (onDone) => {
       if (code === null) {
         setError(
-          <>
-            This download link is malformed. Make sure you copied the url correctly. If you did,
-            please contact us at <a href="mailto:hi@oseh.com">hi@oseh.com</a>.
-          </>
+          new DisplayableError(
+            'client',
+            'fetch download link',
+            'no code provided in query parameters'
+          )
         );
         onDone();
         return;
@@ -90,7 +91,10 @@ export const CourseDownloadScreen = (): ReactElement => {
         try {
           await fetchDownloadLinkInner();
         } catch (e) {
-          const error = await describeError(e);
+          const error =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'fetch download link', `${e}`);
           if (active) {
             setError(error);
           }
@@ -126,7 +130,7 @@ export const CourseDownloadScreen = (): ReactElement => {
         <div className={styles.primaryContainer}>
           {error !== null ? (
             <div style={{ marginBottom: '40px' }}>
-              <ErrorBlock>{error}</ErrorBlock>
+              <BoxError error={error} />
             </div>
           ) : (
             <>

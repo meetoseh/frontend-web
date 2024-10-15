@@ -1,9 +1,8 @@
-import { ReactElement } from 'react';
 import { ValueWithCallbacks, WritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContextValue } from '../../../shared/contexts/LoginContext';
-import { describeError } from '../../../shared/forms/ErrorBlock';
+import { chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 /**
  * Toggles the favorited state on the given journey via a server call.
@@ -31,7 +30,7 @@ export const toggleFavorited = async (
   showLikedUntilVWC: WritableValueWithCallbacks<number | undefined>,
   showUnlikedUntilVWC: WritableValueWithCallbacks<number | undefined>,
   showUnfavoritableUntilVWC: WritableValueWithCallbacks<number | undefined>,
-  likeErrorVWC: WritableValueWithCallbacks<ReactElement | null>,
+  likeErrorVWC: WritableValueWithCallbacks<DisplayableError | null>,
   knownUnfavoritable?: boolean | undefined
 ): Promise<void> => {
   const favorited = shared.get().favorited;
@@ -56,22 +55,27 @@ export const toggleFavorited = async (
   }
 
   try {
-    const response = await apiFetch(
-      '/api/1/users/me/journeys/likes' +
-        (favorited ? '?uid=' + encodeURIComponent(journey.uid) : ''),
-      favorited
-        ? {
-            method: 'DELETE',
-          }
-        : {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              journey_uid: journey.uid,
-            }),
-          },
-      loginContext
-    );
+    let response;
+    try {
+      response = await apiFetch(
+        '/api/1/users/me/journeys/likes' +
+          (favorited ? '?uid=' + encodeURIComponent(journey.uid) : ''),
+        favorited
+          ? {
+              method: 'DELETE',
+            }
+          : {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                journey_uid: journey.uid,
+              }),
+            },
+        loginContext
+      );
+    } catch {
+      throw new DisplayableError('connectivity', 'toggle favorited');
+    }
     if (!response.ok) {
       if (knownUnfavoritable !== false && response.status === 404) {
         // probably haven't taken the journey yet.
@@ -82,7 +86,7 @@ export const toggleFavorited = async (
       if (favorited || response.status !== 409) {
         // if we were favoriting and got a 409, it's already favorited,
         // which we can treat as success
-        throw response;
+        throw chooseErrorFromStatus(response.status, 'toggle favorited');
       }
     }
 
@@ -94,7 +98,10 @@ export const toggleFavorited = async (
       setVWC(showUnlikedUntilVWC, Date.now() + 5000);
     }
   } catch (err) {
-    const desc = await describeError(err);
+    const desc =
+      err instanceof DisplayableError
+        ? err
+        : new DisplayableError('client', 'toggle favorited', `${err}`);
     setVWC(likeErrorVWC, desc);
   }
 };

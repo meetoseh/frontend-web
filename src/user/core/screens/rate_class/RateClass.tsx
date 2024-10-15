@@ -29,6 +29,7 @@ import { RenderGuardedComponent } from '../../../../shared/components/RenderGuar
 import { JourneyFeedback } from '../../../journey/components/JourneyFeedback';
 import { storeResponse } from '../journey_feedback/lib/storeResponse';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * A basic screen where the user can rate a class
@@ -61,8 +62,8 @@ export const RateClass = ({
   const workingVWC = useWritableValueWithCallbacks(() => false);
 
   const responseVWC = useWritableValueWithCallbacks<number | null>(() => null);
-  const feedbackErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, feedbackErrorVWC, 'saving feedback');
+  const feedbackErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, feedbackErrorVWC);
 
   const tracedResponse = useWritableValueWithCallbacks<number | null>(() => null);
   useValueWithCallbacksEffect(responseVWC, (response) => {

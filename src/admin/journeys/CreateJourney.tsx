@@ -15,7 +15,6 @@ import { Instructor } from '../instructors/Instructor';
 import { TextInput } from '../../shared/forms/TextInput';
 import { AdminJourneyPrompt } from './prompts/AdminJourneyPrompt';
 import { AdminJourneyPromptPicker, defaultPrompt } from './prompts/AdminJourneyPromptPicker';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap, convertUsingMapper } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
@@ -29,6 +28,7 @@ import { showJourneyAudioContentSelector } from './audio_contents/showJourneyAud
 import { showJourneyBackgroundImageUploader } from './background_images/showJourneyBackgroundImageUploader';
 import { showJourneyAudioContentUploader } from './audio_contents/showJourneyAudioContentUploader';
 import { showYesNoModal } from '../../shared/lib/showYesNoModal';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type CreateJourneyProps = {
   /**
@@ -65,7 +65,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
   const [isVariation, setIsVariation] = useState(false);
   const [variationOfJourneyQuery, setVariationOfJourneyQuery] = useState('');
   const [variationOfJourney, setVariationOfJourney] = useState<Journey | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [saving, setSaving] = useState(false);
   const [createErrorCollapsed, setCreateErrorCollapsed] = useState(true);
 
@@ -167,12 +167,12 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
             loginContext
           );
         } catch (e) {
-          setError(<>Failed to connect to server. Check your internet connection.</>);
+          setError(new DisplayableError('connectivity', 'create journey'));
           return;
         }
 
         if (!response.ok) {
-          setError(await describeErrorFromResponse(response));
+          setError(chooseErrorFromStatus(response.status, 'create journey'));
           return;
         }
 
@@ -554,7 +554,7 @@ export const CreateJourney = ({ onCreated, imageHandler }: CreateJourneyProps): 
             </div>
           )}
         </CrudFormElement>
-        {error && <ErrorBlock>{error}</ErrorBlock>}
+        {error && <BoxError error={error} />}
         <div className={styles.submitButtonContainer}>
           <Button
             type="button"

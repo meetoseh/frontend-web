@@ -1,5 +1,4 @@
 import { ReactElement, useCallback, useContext } from 'react';
-import { describeError } from '../../../shared/forms/ErrorBlock';
 import styles from './JourneyPostScreen.module.css';
 import assistiveStyles from '../../../shared/assistive.module.css';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
@@ -21,6 +20,7 @@ import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedVal
 import { convertUsingMapper } from '../../../admin/crud/CrudFetcher';
 import { StreakInfo, streakInfoKeyMap } from '../models/StreakInfo';
 import { DAYS_OF_WEEK, DayOfWeek } from '../../../shared/models/DayOfWeek';
+import { chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 export const JourneyPostScreen = ({
   journey,
@@ -46,7 +46,7 @@ export const JourneyPostScreen = ({
   overrideOnContinue?: () => void;
 }): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const streakVWC = useWritableValueWithCallbacks<StreakInfo | null>(() => null);
 
   useValueWithCallbacksEffect(
@@ -67,18 +67,23 @@ export const JourneyPostScreen = ({
         async function fetchStreak() {
           setVWC(errorVWC, null);
           try {
-            const response = await apiFetch(
-              '/api/1/users/me/streak',
-              {
-                method: 'GET',
-              },
-              loginContext
-            );
+            let response;
+            try {
+              response = await apiFetch(
+                '/api/1/users/me/streak',
+                {
+                  method: 'GET',
+                },
+                loginContext
+              );
+            } catch {
+              throw new DisplayableError('connectivity', 'fetch streak');
+            }
             if (!active) {
               return;
             }
             if (!response.ok) {
-              throw response;
+              throw chooseErrorFromStatus(response.status, 'fetch streak');
             }
             const data = await response.json();
             if (!active) {
@@ -89,7 +94,10 @@ export const JourneyPostScreen = ({
             if (!active) {
               return;
             }
-            const err = await describeError(e);
+            const err =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch streak', `${e}`);
             if (!active) {
               return;
             }
@@ -267,7 +275,7 @@ export const JourneyPostScreen = ({
   });
 
   const modalContext = useContext(ModalContext);
-  useErrorModal(modalContext.modals, errorVWC, 'JourneyPostScreen streak');
+  useErrorModal(modalContext.modals, errorVWC);
 
   return (
     <div className={styles.container}>

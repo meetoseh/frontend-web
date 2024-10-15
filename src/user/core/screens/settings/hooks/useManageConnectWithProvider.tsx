@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import {
   Callbacks,
   WritableValueWithCallbacks,
@@ -8,7 +8,6 @@ import { setVWC } from '../../../../../shared/lib/setVWC';
 import { Modals, addModalWithCallbackToRemove } from '../../../../../shared/contexts/ModalContext';
 import { SettingsResources } from '../SettingsResources';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
-import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { YesNoModal } from '../../../../../shared/components/YesNoModal';
 import { OauthProvider } from '../../../../login/lib/OauthProvider';
 import { getMergeProviderUrl } from '../lib/mergeUtils';
@@ -17,6 +16,7 @@ import {
   handlePasskeyRegisterForMerge,
 } from '../../../lib/passkeyHelpers';
 import { showYesNoModal } from '../../../../../shared/lib/showYesNoModal';
+import { DisplayableError } from '../../../../../shared/lib/errors';
 
 export const useManageConnectWithProvider = ({
   resources,
@@ -25,7 +25,7 @@ export const useManageConnectWithProvider = ({
   passkeyHint,
 }: {
   resources: SettingsResources;
-  mergeError: WritableValueWithCallbacks<ReactElement | null>;
+  mergeError: WritableValueWithCallbacks<DisplayableError | null>;
   modals: WritableValueWithCallbacks<Modals>;
   passkeyHint: 'ask' | 'register' | 'authenticate';
 }): ((provider: OauthProvider, name: string) => Promise<void>) => {
@@ -40,7 +40,14 @@ export const useManageConnectWithProvider = ({
       const loginContextUnch = loginContextRaw.value.get();
 
       if (loginContextUnch.state !== 'logged-in') {
-        setVWC(mergeError, <>You need to login again</>);
+        setVWC(
+          mergeError,
+          new DisplayableError(
+            'server-refresh-required',
+            `manage connect with ${provider}`,
+            'not logged in'
+          )
+        );
         return;
       }
       const loginContext = loginContextUnch;
@@ -51,7 +58,12 @@ export const useManageConnectWithProvider = ({
       try {
         mergeLink = await getMergeProviderUrl(loginContext, provider);
       } catch (e) {
-        setVWC(mergeError, await describeError(e));
+        setVWC(
+          mergeError,
+          e instanceof DisplayableError
+            ? e
+            : new DisplayableError('client', `get ${provider} merge link`, `${e}`)
+        );
         return;
       }
 
@@ -126,11 +138,14 @@ export const useManageConnectWithProvider = ({
         window.location.assign('/#merge_token=' + mergeInfo.mergeToken);
         window.location.reload();
       } catch (e) {
-        const described = await describeError(e);
+        const described =
+          e instanceof DisplayableError
+            ? e
+            : new DisplayableError('client', `merge with ${provider}`, `${e}`);
         setVWC(mergeError, described);
       }
     },
-    [loginContextRaw]
+    [loginContextRaw, mergeError, modals, passkeyHint]
   );
 
   const manageConnectWithProvider = useCallback(
@@ -138,7 +153,7 @@ export const useManageConnectWithProvider = ({
       if (provider === 'Passkey') {
         return manageConnectWithPasskey(provider, name);
       } else if (provider === 'Silent') {
-        return Promise.reject(new Error('Silent is unsupported in this context'));
+        return Promise.reject(new DisplayableError('client', 'merge with Silent', 'unsupported'));
       } else {
         return manageConnectWithTypicalProvider(provider, name);
       }

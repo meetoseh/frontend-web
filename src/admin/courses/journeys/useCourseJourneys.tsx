@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import {
   Callbacks,
   ValueWithCallbacks,
@@ -8,10 +8,10 @@ import {
 import { CourseJourney, courseJourneyKeyMap } from './CourseJourney';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
-import { describeError } from '../../../shared/forms/ErrorBlock';
 import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWithCallbacksEffect';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { convertUsingMapper } from '../../crud/CrudFetcher';
+import { DisplayableError } from '../../../shared/lib/errors';
 
 export type UseCourseJourneysProps = {
   /**
@@ -24,7 +24,7 @@ export type UseCourseJourneysResult = {
   /** The journeys associated with the course, in ascending priority */
   items: ValueWithCallbacks<CourseJourney[]>;
   /** The latest error, if there is one */
-  error: WritableValueWithCallbacks<ReactElement | null>;
+  error: WritableValueWithCallbacks<DisplayableError | null>;
   /** If the items are currently being fetched */
   loading: ValueWithCallbacks<boolean>;
 
@@ -47,7 +47,7 @@ export const useCourseJourneys = ({
 }: UseCourseJourneysProps): UseCourseJourneysResult => {
   const loginContextRaw = useContext(LoginContext);
   const items = useWritableValueWithCallbacks<CourseJourney[]>(() => []);
-  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const error = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const loading = useWritableValueWithCallbacks<boolean>(() => false);
   const refreshCounter = useWritableValueWithCallbacks(() => 0);
 
@@ -209,7 +209,8 @@ export const useCourseJourneys = ({
         try {
           await handleRefreshInner();
         } catch (e) {
-          const desc = await describeError(e);
+          const desc =
+            e instanceof DisplayableError ? e : new DisplayableError('client', 'refresh', `${e}`);
           if (active) {
             setVWC(error, desc);
           }

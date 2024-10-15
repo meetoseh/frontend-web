@@ -1,4 +1,4 @@
-import { ReactElement, useContext, useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import {
   Callbacks,
   ValueWithCallbacks,
@@ -6,7 +6,6 @@ import {
   useWritableValueWithCallbacks,
 } from '../lib/Callbacks';
 import { setVWC } from '../lib/setVWC';
-import { describeError } from '../forms/ErrorBlock';
 import {
   LoginContext,
   LoginContextValue,
@@ -14,12 +13,13 @@ import {
 } from '../contexts/LoginContext';
 import { createValuesWithCallbacksEffect } from './createValuesWithCallbacksEffect';
 import { createValueWithCallbacksEffect } from './createValueWithCallbacksEffect';
+import { DisplayableError } from '../lib/errors';
 
 export type NetworkResponseError<T> = {
   /** For when the fetcher rejected */
   type: 'error';
   result: undefined;
-  error: ReactElement;
+  error: DisplayableError;
   /** Switches to the loading state */
   refresh: () => void;
   /** replaces the value with the given one */
@@ -213,14 +213,16 @@ export const createNetworkResponse = <T>(
         });
       }
     } catch (e) {
-      const described = await describeError(e);
       if (result.get().type !== 'loading') {
         return;
       }
       setVWC(result, {
         type: 'error',
         result: undefined,
-        error: described,
+        error:
+          e instanceof DisplayableError
+            ? e
+            : new DisplayableError('client', 'createNetworkResponse', `${e}`),
         refresh,
         replace,
       });
@@ -296,7 +298,10 @@ export const createNetworkResponse = <T>(
             return;
           }
 
-          const described = await describeError(e);
+          const described =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'createNetworkResponse', `${e}`);
           if (active.get()) {
             setVWC(result, {
               type: 'error',

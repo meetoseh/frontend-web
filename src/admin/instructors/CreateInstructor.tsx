@@ -6,7 +6,7 @@ import { TextInput } from '../../shared/forms/TextInput';
 import { Button } from '../../shared/forms/Button';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { apiFetch } from '../../shared/ApiConstants';
-import { describeErrorFromResponse, ErrorBlock } from '../../shared/forms/ErrorBlock';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type CreateInstructorProps = {
   /**
@@ -24,18 +24,20 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
     parsed: 0,
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
 
   const createInstructor = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
-      setError(<>You must be logged in to create an instructor</>);
+      setError(
+        new DisplayableError('server-refresh-required', 'create instructor', 'not logged in')
+      );
       return;
     }
     const loginContext = loginContextUnch;
 
     if (bias.parsed === undefined) {
-      setError(<>Bias must be a number</>);
+      setError(new DisplayableError('client', 'create instructor', 'bias is not a number'));
       return;
     }
 
@@ -57,13 +59,13 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
       );
     } catch (e) {
       console.error(e);
-      setError(<>Error connecting to server. Check your internet connection</>);
+      setError(new DisplayableError('connectivity', 'create instructor'));
       setLoading(false);
       return;
     }
 
     if (!response.ok) {
-      setError(await describeErrorFromResponse(response));
+      setError(chooseErrorFromStatus(response.status, 'create instructor'));
       setLoading(false);
       return;
     }
@@ -119,7 +121,7 @@ export const CreateInstructor = ({ onCreated }: CreateInstructorProps): ReactEle
           html5Validation={{ required: true, min: 0, step: 0.01 }}
           type="number"
         />
-        {error && <ErrorBlock>{error}</ErrorBlock>}
+        {error && <BoxError error={error} />}
         <div className={styles.buttonContainer}>
           <Button
             disabled={name === '' || loading}

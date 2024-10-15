@@ -13,7 +13,6 @@ import styles from './CourseDetails.module.css';
 import iconStyles from '../crud/icons.module.css';
 import { LoginContext, LoginContextValueLoggedIn } from '../../shared/contexts/LoginContext';
 import { setVWC } from '../../shared/lib/setVWC';
-import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { CrudItemBlock } from '../crud/CrudItemBlock';
 import { RenderGuardedComponent } from '../../shared/components/RenderGuardedComponent';
 import { IconButton } from '../../shared/forms/IconButton';
@@ -65,6 +64,11 @@ import { CourseJourney, courseJourneyKeyMap } from './journeys/CourseJourney';
 import { Journey } from '../journeys/Journey';
 import { JourneyPicker } from '../journeys/JourneyPicker';
 import { adaptValueWithCallbacksAsSetState } from '../../shared/lib/adaptValueWithCallbacksAsSetState';
+import {
+  chooseErrorFromStatus,
+  DisplayableError,
+  SimpleDismissBoxError,
+} from '../../shared/lib/errors';
 
 export type CourseDetailsProps = {
   /**
@@ -109,7 +113,7 @@ export const CourseDetails = ({
   saveIfNecessary,
 }: CourseDetailsProps): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const savingVWC = useWritableValueWithCallbacks(() => false);
   const newTitleVWC = useWritableValueWithCallbacks(() => course.title);
   const newSlugVWC = useWritableValueWithCallbacks(() => course.slug);
@@ -285,7 +289,8 @@ export const CourseDetails = ({
         setVWC(editingVWC, false);
       } catch (e) {
         signal?.throwIfAborted();
-        const desc = await describeError(e);
+        const desc =
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'save', `${e}`);
         signal?.throwIfAborted();
         setVWC(errorVWC, desc);
       } finally {
@@ -345,10 +350,7 @@ export const CourseDetails = ({
         />
       }>
       <div className={styles.container}>
-        <RenderGuardedComponent
-          props={errorVWC}
-          component={(error) => <>{error && <ErrorBlock>{error}</ErrorBlock>}</>}
-        />
+        <SimpleDismissBoxError error={errorVWC} />
         <CrudSwappableString editingVWC={editingVWC} title="Title" vwc={newTitleVWC} />
         <CrudSwappableString editingVWC={editingVWC} title="Slug" vwc={newSlugVWC} />
         <CrudSwappableString editingVWC={editingVWC} title="Description" vwc={newDescriptionVWC} />
@@ -488,31 +490,42 @@ const CourseJourneys = ({
     items: journeys.items.get(),
     editing: editingVWC.get(),
   }));
-  const saveError = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const saveError = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const journeyQuery = useWritableValueWithCallbacks<string>(() => '');
 
   const setPriority = useCallback(
     async (loginContext: LoginContextValueLoggedIn, item: CourseJourney, priority: number) => {
-      const response = await apiFetch(
-        '/api/1/courses/journeys/',
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            association_uid: item.associationUid,
-            precondition: {
-              course_uid: item.courseUid,
-              journey_uid: item.journey.uid,
-            },
-            patch: {
-              priority,
-            },
-          }),
-        },
-        loginContext
-      );
+      let response;
+      try {
+        response = await apiFetch(
+          '/api/1/courses/journeys/',
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({
+              association_uid: item.associationUid,
+              precondition: {
+                course_uid: item.courseUid,
+                journey_uid: item.journey.uid,
+              },
+              patch: {
+                priority,
+              },
+            }),
+          },
+          loginContext
+        );
+      } catch {
+        throw new DisplayableError(
+          'connectivity',
+          `set priority for ${item.journey.title} to ${priority}`
+        );
+      }
       if (!response.ok) {
-        throw response;
+        throw chooseErrorFromStatus(
+          response.status,
+          `set priority for ${item.journey.title} to ${priority}`
+        );
       }
       const newRaw = await response.json();
       const newCJ = convertUsingMapper(newRaw, courseJourneyKeyMap);
@@ -538,24 +551,29 @@ const CourseJourneys = ({
         items.length === 0 ? 0 : Math.max(...items.map((itm) => itm.priority));
       const priority = highestPriority + 10;
 
-      const response = await apiFetch(
-        '/api/1/courses/journeys/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
+      let response;
+      try {
+        response = await apiFetch(
+          '/api/1/courses/journeys/',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              journey_uid: journey.uid,
+              course_uid: course.uid,
+              priority,
+            }),
           },
-          body: JSON.stringify({
-            journey_uid: journey.uid,
-            course_uid: course.uid,
-            priority,
-          }),
-        },
-        loginContext
-      );
+          loginContext
+        );
+      } catch {
+        throw new DisplayableError('connectivity', 'add journey');
+      }
 
       if (!response.ok) {
-        throw response;
+        throw chooseErrorFromStatus(response.status, 'add journey');
       }
 
       const raw = await response.json();
@@ -614,14 +632,8 @@ const CourseJourneys = ({
 
   return (
     <CrudFormElement title="Journeys">
-      <RenderGuardedComponent
-        props={journeys.error}
-        component={(error) => <>{error && <ErrorBlock>{error}</ErrorBlock>}</>}
-      />
-      <RenderGuardedComponent
-        props={saveError}
-        component={(error) => <>{error && <ErrorBlock>{error}</ErrorBlock>}</>}
-      />
+      <SimpleDismissBoxError error={journeys.error} />
+      <SimpleDismissBoxError error={saveError} />
       {loading ? (
         'Loading...'
       ) : (
@@ -694,7 +706,12 @@ const CourseJourneys = ({
                               await addJourney(journey);
                               setVWC(journeyQuery, '');
                             } catch (e) {
-                              setVWC(saveError, await describeError(e));
+                              setVWC(
+                                saveError,
+                                e instanceof DisplayableError
+                                  ? e
+                                  : new DisplayableError('client', 'add journey', `${e}`)
+                              );
                             } finally {
                               closeOverlay();
                             }
@@ -729,7 +746,12 @@ const CourseJourneys = ({
                     try {
                       await cleanupPriorities();
                     } catch (e) {
-                      setVWC(saveError, await describeError(e));
+                      setVWC(
+                        saveError,
+                        e instanceof DisplayableError
+                          ? e
+                          : new DisplayableError('client', 'cleanup priorities', `${e}`)
+                      );
                     } finally {
                       closeOverlay();
                     }

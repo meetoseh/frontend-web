@@ -33,6 +33,7 @@ import { OpacityTransitionOverlay } from '../../../shared/components/OpacityTran
 import { WipeTransitionOverlay } from '../../../shared/components/WipeTransitionOverlay';
 import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useOsehTranscriptValueWithCallbacks } from '../../../shared/transcripts/useOsehTranscriptValueWithCallbacks';
+import { DisplayableError } from '../../../shared/lib/errors';
 
 export type CoursePreviewProps = {
   course: ExternalCoursePreviewable;
@@ -132,16 +133,15 @@ export const CoursePreview = ({
     }, [videoSinkVWC, videoVWC])
   );
 
-  const videoErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(
+  const videoErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(
     () => videoVWC.get().error
   );
-
   useValueWithCallbacksEffect(videoVWC, (v) => {
     setVWC(videoErrorVWC, v.error);
     return undefined;
   });
 
-  useErrorModal(modalContext.modals, videoErrorVWC, 'loading video');
+  useErrorModal(modalContext.modals, videoErrorVWC);
 
   const rawTranscriptVWC = useOsehTranscriptValueWithCallbacks({
     type: 'react-rerender',

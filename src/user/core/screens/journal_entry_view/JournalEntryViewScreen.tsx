@@ -5,6 +5,7 @@ import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createV
 import { Visitor } from '../../../../shared/hooks/useVisitorValueWithCallbacks';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
+import { DisplayableError } from '../../../../shared/lib/errors';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { setVWC } from '../../../../shared/lib/setVWC';
@@ -67,7 +68,7 @@ export const JournalEntryViewScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError('server-refresh-required', 'refresh journal'),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -84,7 +85,7 @@ export const JournalEntryViewScreen: OsehScreen<
                 ? {
                     type: 'error',
                     data: undefined,
-                    error: <>Journal entry not provided by server</>,
+                    error: new DisplayableError('server-refresh-required', 'refresh journal'),
                     retryAt: undefined,
                   }
                 : {
@@ -229,7 +230,11 @@ export const JournalEntryViewScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'refresh journal',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -243,7 +248,11 @@ export const JournalEntryViewScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'error',
                 data: undefined,
-                error: <>User is not logged in</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'refresh journal',
+                  'not logged in'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -257,7 +266,11 @@ export const JournalEntryViewScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'error',
                 data: undefined,
-                error: <>Visitor is not loaded</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'refresh journal',
+                  'visitor not loaded'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -272,7 +285,11 @@ export const JournalEntryViewScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'error',
                 data: undefined,
-                error: <>JWT is not loaded</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'refresh journal',
+                  'visitor not loaded'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -290,7 +307,7 @@ export const JournalEntryViewScreen: OsehScreen<
                 ? {
                     type: 'error',
                     data: undefined,
-                    error: <>Journal entry not provided by server</>,
+                    error: new DisplayableError('server-refresh-required', 'refresh journal'),
                     retryAt: undefined,
                   }
                 : {

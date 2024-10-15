@@ -19,6 +19,7 @@ import {
   HistoryListRequest,
   createHistoryListRequest,
 } from './lib/createHistoryListRequestHandler';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * Allows the user to see what journeys they have already taken
@@ -51,7 +52,11 @@ export const HistoryScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get journey history',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,

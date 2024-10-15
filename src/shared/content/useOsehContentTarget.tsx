@@ -1,8 +1,8 @@
-import { ReactElement, isValidElement, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { OsehContentProps } from './OsehContentProps';
 import { ContentFileWebExport, OsehContentTarget } from './OsehContentTarget';
 import { HTTP_API_URL } from '../ApiConstants';
-import { describeError } from '../forms/ErrorBlock';
+import { chooseErrorFromStatus, DisplayableError } from '../lib/errors';
 
 /**
  * A hook for getting the target to download for an Oseh content file. On the
@@ -19,7 +19,7 @@ export const useOsehContentTarget = ({
   comparer,
 }: OsehContentProps): OsehContentTarget => {
   const [webExport, setWebExport] = useState<ContentFileWebExport | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -46,14 +46,10 @@ export const useOsehContentTarget = ({
           return;
         }
 
-        if (isValidElement(e)) {
-          setError(e as ReactElement);
-          return;
-        }
-        const err = await describeError(e);
-        if (!active) {
-          return;
-        }
+        const err =
+          e instanceof DisplayableError
+            ? e
+            : new DisplayableError('client', 'fetch web export', `${e}`);
         setError(err);
       }
     }
@@ -108,20 +104,25 @@ export const fetchWebExport = async (
   const realComparer =
     comparer ?? ((a: ContentFileWebExport, b: ContentFileWebExport) => b.bandwidth - a.bandwidth);
 
-  const response = await fetch(
-    `${HTTP_API_URL}/api/1/content_files/${uid}/web.json?${new URLSearchParams({
-      presign: presign ? '1' : '0',
-    })}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `bearer ${jwt}`,
-      },
-      signal,
-    }
-  );
+  let response;
+  try {
+    response = await fetch(
+      `${HTTP_API_URL}/api/1/content_files/${uid}/web.json?${new URLSearchParams({
+        presign: presign ? '1' : '0',
+      })}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `bearer ${jwt}`,
+        },
+        signal,
+      }
+    );
+  } catch {
+    throw new DisplayableError('connectivity', 'fetch web export');
+  }
   if (!response.ok) {
-    throw response;
+    throw chooseErrorFromStatus(response.status, 'fetch web export');
   }
   const data: {
     exports: {
@@ -159,7 +160,7 @@ export const fetchWebExport = async (
 
   if (bestExport === null) {
     return Promise.reject(
-      <>No suitable export found for this audio file. Please contact the site administrator.</>
+      new DisplayableError('client', 'fetch web export', 'no suitable export found')
     );
   }
 

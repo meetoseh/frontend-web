@@ -8,6 +8,7 @@ import {
   createWritableValueWithCallbacks,
 } from '../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../shared/lib/CancelablePromise';
+import { DisplayableError } from '../../../shared/lib/errors';
 import { mapCancelable } from '../../../shared/lib/mapCancelable';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { RequestResult, Result } from '../../../shared/requests/RequestHandler';
@@ -45,7 +46,11 @@ export const initBackground = <
             promise: Promise.resolve({
               type: 'expired',
               data: undefined,
-              error: <>Screen is not mounted</>,
+              error: new DisplayableError(
+                'server-refresh-required',
+                'get image background playlist',
+                'screen is not mounted'
+              ),
               retryAt: undefined,
             }),
             done: () => true,
@@ -62,7 +67,11 @@ export const initBackground = <
               ? {
                   type: 'expired',
                   data: undefined,
-                  error: <>Screen has no background anymore</>,
+                  error: new DisplayableError(
+                    'server-refresh-required',
+                    'get background',
+                    'background is no longer on screen'
+                  ),
                   retryAt: undefined,
                 }
               : {

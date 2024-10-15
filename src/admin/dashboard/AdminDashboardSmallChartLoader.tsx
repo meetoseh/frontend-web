@@ -4,6 +4,7 @@ import styles from './AdminDashboardSmallChartLoader.module.css';
 import iconStyles from './icons.module.css';
 import { AdminDashboardTopBlock } from './AdminDashboardTopBlock';
 import { NewUsersChart } from './hooks/useNewUsersChart';
+import { BoxError } from '../../shared/lib/errors';
 
 type AdminDashboardSmallChartLoaderProps = {
   /**
@@ -25,8 +26,10 @@ export const AdminDashboardSmallChartLoader = ({
       {newUsersChart.loading ? (
         <div className={styles.loadingContainer}>
           <div className={styles.loadingInnerContainer}>
-            {newUsersChart.error || (
+            {newUsersChart.error === null ? (
               <div className={styles.loadingTextContainer}>Loading data...</div>
+            ) : (
+              <BoxError error={newUsersChart.error} />
             )}
           </div>
         </div>

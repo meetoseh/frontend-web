@@ -4,6 +4,7 @@ import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createV
 import { createMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
+import { DisplayableError } from '../../../../shared/lib/errors';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { SCREEN_VERSION } from '../../../../shared/lib/screenVersion';
@@ -57,7 +58,11 @@ export const JournalChatScreen: OsehScreen<
           data: createWritableValueWithCallbacks({
             type: 'error',
             data: undefined,
-            error: <>Journal entry not provided by server</>,
+            error: new DisplayableError(
+              'server-refresh-required',
+              'get journal entry',
+              'journal entry not provided'
+            ),
             retryAt: undefined,
           }),
           release: () => {},
@@ -75,7 +80,11 @@ export const JournalChatScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get journal entry',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -92,7 +101,11 @@ export const JournalChatScreen: OsehScreen<
                 ? {
                     type: 'error',
                     data: undefined,
-                    error: <>Journal entry not provided by server</>,
+                    error: new DisplayableError(
+                      'server-refresh-required',
+                      'get journal entry',
+                      'journal entry not provided'
+                    ),
                     retryAt: undefined,
                   }
                 : {
@@ -302,7 +315,7 @@ export const JournalChatScreen: OsehScreen<
                 promise: Promise.resolve({
                   type: 'error',
                   data: undefined,
-                  error: <>Cannot refresh this ref</>,
+                  error: new DisplayableError('server-refresh-required', 'save voice note'),
                   retryAt: undefined,
                 }),
                 done: () => true,

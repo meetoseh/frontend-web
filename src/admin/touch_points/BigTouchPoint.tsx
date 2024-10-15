@@ -17,7 +17,6 @@ import {
   TouchPointMessagesSection,
   TouchPointMessagesSectionProps,
 } from './TouchPointMessagesSection';
-import { describeError } from '../../shared/forms/ErrorBlock';
 import { useValuesWithCallbacksEffect } from '../../shared/hooks/useValuesWithCallbacksEffect';
 import { TextInput } from '../../shared/forms/TextInput';
 import { TouchPointSelectionStrategySelect } from './components/TouchPointSelectionStrategySelect';
@@ -27,6 +26,7 @@ import { showYesNoModal } from '../../shared/lib/showYesNoModal';
 import { RawJSONEditor } from '../lib/schema/RawJSONEditor';
 import { VerticalSpacer } from '../../shared/components/VerticalSpacer';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
+import { chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 export const BigTouchPoint = (): ReactElement => {
   const modalContext = useContext(ModalContext);
@@ -76,12 +76,14 @@ export const BigTouchPoint = (): ReactElement => {
     }
   );
 
-  const touchPointNRPopupErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const touchPointNRPopupErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(
+    () => null
+  );
   useValueWithCallbacksEffect(touchPointNR, (tp) => {
     setVWC(touchPointNRPopupErrorVWC, tp.error);
     return undefined;
   });
-  useErrorModal(modalContext.modals, touchPointNRPopupErrorVWC, 'loading touch point');
+  useErrorModal(modalContext.modals, touchPointNRPopupErrorVWC);
 
   return (
     <div className={styles.container}>
@@ -119,7 +121,7 @@ const Content = ({
   const modalContext = useContext(ModalContext);
   const imageHandler = useOsehImageStateRequestHandler({});
   const savingVWC = useWritableValueWithCallbacks(() => false);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const sms = useWritableValueWithCallbacks(
     () => touchPoint.messages.sms
   ) as TouchPointMessagesSectionProps['messages']['sms'];
@@ -173,58 +175,63 @@ const Content = ({
     const newSlug = slugVWC.get();
     const newSchema = eventSchemaVWC.get();
     try {
-      const response = await apiFetch(
-        '/api/1/touch_points/',
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-          },
-          body: JSON.stringify({
-            uid: old.uid,
-            precondition: {
-              event_slug: old.eventSlug,
-              event_schema: old.eventSchema,
-              selection_strategy: old.selectionStrategy,
-              messages_etag: old.messagesEtag,
+      let response;
+      try {
+        response = await apiFetch(
+          '/api/1/touch_points/',
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
             },
-            patch: {
-              event_slug: newSlug,
-              event_schema: newSchema,
-              selection_strategy: selectionStrategyVWC.get(),
-              messages: {
-                sms: sms.get().map((m) => ({
-                  priority: m.priority,
-                  uid: m.uid,
-                  body_format: m.bodyFormat,
-                  body_parameters: m.bodyParameters,
-                })),
-                push: push.get().map((m) => ({
-                  priority: m.priority,
-                  uid: m.uid,
-                  title_format: m.titleFormat,
-                  title_parameters: m.titleParameters,
-                  body_format: m.bodyFormat,
-                  body_parameters: m.bodyParameters,
-                  channel_id: m.channelId,
-                })),
-                email: email.get().map((m) => ({
-                  priority: m.priority,
-                  uid: m.uid,
-                  subject_format: m.subjectFormat,
-                  subject_parameters: m.subjectParameters,
-                  template: m.template,
-                  template_parameters_fixed: m.templateParametersFixed,
-                  template_parameters_substituted: m.templateParametersSubstituted,
-                })),
+            body: JSON.stringify({
+              uid: old.uid,
+              precondition: {
+                event_slug: old.eventSlug,
+                event_schema: old.eventSchema,
+                selection_strategy: old.selectionStrategy,
+                messages_etag: old.messagesEtag,
               },
-            },
-          }),
-        },
-        loginContext
-      );
+              patch: {
+                event_slug: newSlug,
+                event_schema: newSchema,
+                selection_strategy: selectionStrategyVWC.get(),
+                messages: {
+                  sms: sms.get().map((m) => ({
+                    priority: m.priority,
+                    uid: m.uid,
+                    body_format: m.bodyFormat,
+                    body_parameters: m.bodyParameters,
+                  })),
+                  push: push.get().map((m) => ({
+                    priority: m.priority,
+                    uid: m.uid,
+                    title_format: m.titleFormat,
+                    title_parameters: m.titleParameters,
+                    body_format: m.bodyFormat,
+                    body_parameters: m.bodyParameters,
+                    channel_id: m.channelId,
+                  })),
+                  email: email.get().map((m) => ({
+                    priority: m.priority,
+                    uid: m.uid,
+                    subject_format: m.subjectFormat,
+                    subject_parameters: m.subjectParameters,
+                    template: m.template,
+                    template_parameters_fixed: m.templateParametersFixed,
+                    template_parameters_substituted: m.templateParametersSubstituted,
+                  })),
+                },
+              },
+            }),
+          },
+          loginContext
+        );
+      } catch {
+        throw new DisplayableError('connectivity', 'save touch point');
+      }
       if (!response.ok) {
-        throw response;
+        throw chooseErrorFromStatus(response.status, 'save touch point');
       }
       const updatedRaw: any = await response.json();
       const updated = convertUsingMapper(updatedRaw, touchPointWithMessagesKeyMap);
@@ -240,7 +247,10 @@ const Content = ({
 
       setVWC(saveRequiredVWC, false);
     } catch (e) {
-      const err = await describeError(e);
+      const err =
+        e instanceof DisplayableError
+          ? e
+          : new DisplayableError('client', 'save touch point', `${e}`);
       setVWC(errorVWC, err);
     } finally {
       setVWC(savingVWC, false);
@@ -257,6 +267,7 @@ const Content = ({
     slugVWC,
     selectionStrategyVWC,
     saveRequiredVWC,
+    eventSchemaVWC,
   ]);
 
   useEffect(() => {
@@ -301,10 +312,10 @@ const Content = ({
     spinner: savingVWC.get(),
   }));
 
-  useErrorModal(modalContext.modals, errorVWC, 'saving touch point');
+  useErrorModal(modalContext.modals, errorVWC);
 
-  const deleteErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, deleteErrorVWC, 'deleting touch point');
+  const deleteErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, deleteErrorVWC);
 
   return (
     <div className={styles.content}>
@@ -383,13 +394,18 @@ const Content = ({
                 }
 
                 try {
-                  const response = await apiFetch(
-                    `/api/1/touch_points/${touchPoint.uid}`,
-                    { method: 'DELETE' },
-                    loginContext
-                  );
+                  let response;
+                  try {
+                    response = await apiFetch(
+                      `/api/1/touch_points/${touchPoint.uid}`,
+                      { method: 'DELETE' },
+                      loginContext
+                    );
+                  } catch {
+                    throw new DisplayableError('connectivity', 'delete touch point');
+                  }
                   if (!response.ok) {
-                    throw response;
+                    throw chooseErrorFromStatus(response.status, 'delete touch point');
                   }
                   await showYesNoModal(modalContext.modals, {
                     title: 'Permanently Deleted',
@@ -399,7 +415,10 @@ const Content = ({
                   }).promise;
                   window.location.href = '/admin/touch_points';
                 } catch (e) {
-                  const err = await describeError(e);
+                  const err =
+                    e instanceof DisplayableError
+                      ? e
+                      : new DisplayableError('client', 'delete touch point', `${e}`);
                   setVWC(deleteErrorVWC, err);
                 }
               }}>

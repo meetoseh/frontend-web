@@ -28,12 +28,10 @@ import { ModalContext, addModalWithCallbackToRemove } from '../../shared/context
 import { TextInput } from '../../shared/forms/TextInput';
 import { useEmailTemplates } from './hooks/useEmailTemplates';
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
-import { OASSchema } from '../../shared/lib/openapi';
 import { Button } from '../../shared/forms/Button';
 import { showYesNoModal } from '../../shared/lib/showYesNoModal';
 import { createUID } from '../../shared/lib/createUID';
 import { useErrorModal } from '../../shared/hooks/useErrorModal';
-import { describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { walkObject } from './lib/walkObject';
@@ -43,9 +41,9 @@ import { OsehImageStateRequestHandler } from '../../shared/images/useOsehImageSt
 import { prettySchemaPath } from '../lib/schema/prettySchemaPath';
 import { waitForValueWithCallbacksConditionCancelable } from '../../shared/lib/waitForValueWithCallbacksCondition';
 import { createCancelablePromiseFromCallbacks } from '../../shared/lib/createCancelablePromiseFromCallbacks';
-import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
 import { createCancelableTimeout } from '../../shared/lib/createCancelableTimeout';
 import { RawJSONEditor } from '../lib/schema/RawJSONEditor';
+import { chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 export type TouchPointMessagesSectionProps = {
   touchPointSchema: ValueWithCallbacks<any>;
@@ -243,8 +241,8 @@ const ExpandedSmsModal = (props: {
     }
   );
 
-  const sendTestErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, sendTestErrorVWC, 'send test sms');
+  const sendTestErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, sendTestErrorVWC);
 
   const sendingTestVWC = useWritableValueWithCallbacks(() => false);
 
@@ -304,7 +302,14 @@ const ExpandedSmsModal = (props: {
 
                 const loginContextUnch = loginContextRaw.value.get();
                 if (loginContextUnch.state !== 'logged-in') {
-                  setVWC(sendTestErrorVWC, <>not logged in</>);
+                  setVWC(
+                    sendTestErrorVWC,
+                    new DisplayableError(
+                      'server-refresh-required',
+                      'send test sms',
+                      'not logged in'
+                    )
+                  );
                   return;
                 }
 
@@ -313,24 +318,29 @@ const ExpandedSmsModal = (props: {
                 setVWC(sendTestErrorVWC, null);
                 setVWC(sendingTestVWC, true);
                 try {
-                  const response = await apiFetch(
-                    '/api/1/touch_points/send_test_sms',
-                    {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json; charset=utf-8',
+                  let response;
+                  try {
+                    response = await apiFetch(
+                      '/api/1/touch_points/send_test_sms',
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json; charset=utf-8',
+                        },
+                        body: JSON.stringify({
+                          priority: 1,
+                          uid: '',
+                          body_format: bodyFormatVWC.get(),
+                          body_parameters: bodyParametersVWC.get(),
+                        }),
                       },
-                      body: JSON.stringify({
-                        priority: 1,
-                        uid: '',
-                        body_format: bodyFormatVWC.get(),
-                        body_parameters: bodyParametersVWC.get(),
-                      }),
-                    },
-                    loginContext
-                  );
+                      loginContext
+                    );
+                  } catch {
+                    throw new DisplayableError('connectivity', 'send test sms');
+                  }
                   if (!response.ok) {
-                    throw response;
+                    throw chooseErrorFromStatus(response.status, 'send test sms');
                   }
                   await showYesNoModal(modalContext.modals, {
                     title: 'Test SMS Sent',
@@ -339,7 +349,12 @@ const ExpandedSmsModal = (props: {
                     emphasize: 1,
                   }).promise;
                 } catch (e) {
-                  setVWC(sendTestErrorVWC, await describeError(e));
+                  setVWC(
+                    sendTestErrorVWC,
+                    e instanceof DisplayableError
+                      ? e
+                      : new DisplayableError('client', 'send test sms', `${e}`)
+                  );
                 } finally {
                   setVWC(sendingTestVWC, false);
                 }
@@ -512,8 +527,8 @@ const ExpandedPushModal = (props: {
 
   const modalContext = useContext(ModalContext);
   const loginContextRaw = useContext(LoginContext);
-  const sendTestErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, sendTestErrorVWC, 'send test push');
+  const sendTestErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, sendTestErrorVWC);
   const sendingTestVWC = useWritableValueWithCallbacks(() => false);
 
   return (
@@ -629,7 +644,14 @@ const ExpandedPushModal = (props: {
 
                 const loginContextUnch = loginContextRaw.value.get();
                 if (loginContextUnch.state !== 'logged-in') {
-                  setVWC(sendTestErrorVWC, <>not logged in</>);
+                  setVWC(
+                    sendTestErrorVWC,
+                    new DisplayableError(
+                      'server-refresh-required',
+                      'send test push',
+                      'not logged in'
+                    )
+                  );
                   return;
                 }
 
@@ -638,27 +660,32 @@ const ExpandedPushModal = (props: {
                 setVWC(sendTestErrorVWC, null);
                 setVWC(sendingTestVWC, true);
                 try {
-                  const response = await apiFetch(
-                    '/api/1/touch_points/send_test_push',
-                    {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json; charset=utf-8',
+                  let response;
+                  try {
+                    response = await apiFetch(
+                      '/api/1/touch_points/send_test_push',
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json; charset=utf-8',
+                        },
+                        body: JSON.stringify({
+                          priority: 1,
+                          uid: '',
+                          title_format: titleFormatVWC.get(),
+                          title_parameters: titleParametersVWC.get(),
+                          body_format: bodyFormatVWC.get(),
+                          body_parameters: bodyParametersVWC.get(),
+                          channel_id: channelIdVWC.get(),
+                        }),
                       },
-                      body: JSON.stringify({
-                        priority: 1,
-                        uid: '',
-                        title_format: titleFormatVWC.get(),
-                        title_parameters: titleParametersVWC.get(),
-                        body_format: bodyFormatVWC.get(),
-                        body_parameters: bodyParametersVWC.get(),
-                        channel_id: channelIdVWC.get(),
-                      }),
-                    },
-                    loginContext
-                  );
+                      loginContext
+                    );
+                  } catch {
+                    throw new DisplayableError('connectivity', 'send test push');
+                  }
                   if (!response.ok) {
-                    throw response;
+                    throw chooseErrorFromStatus(response.status, 'send test push');
                   }
                   await showYesNoModal(modalContext.modals, {
                     title: 'Test Push Sent',
@@ -667,7 +694,12 @@ const ExpandedPushModal = (props: {
                     emphasize: 1,
                   }).promise;
                 } catch (e) {
-                  setVWC(sendTestErrorVWC, await describeError(e));
+                  setVWC(
+                    sendTestErrorVWC,
+                    e instanceof DisplayableError
+                      ? e
+                      : new DisplayableError('client', 'send test push', `${e}`)
+                  );
                 } finally {
                   setVWC(sendingTestVWC, false);
                 }
@@ -881,13 +913,6 @@ const ExpandedEmailModal = (
     }
   );
 
-  const schemaVWC = useMappedValueWithCallbacks(templateInfoVWC, (templateInfo) => {
-    if (templateInfo === undefined || templateInfo.schema === undefined) {
-      return undefined;
-    }
-    return templateInfo.schema as any;
-  });
-
   const templateParametersFixedVWC = useMappedValueWithCallbacks(
     messageVWC,
     (m) => (m?.templateParametersFixed ?? {}) as any
@@ -908,8 +933,8 @@ const ExpandedEmailModal = (
   );
 
   const loginContextRaw = useContext(LoginContext);
-  const sendTestErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, sendTestErrorVWC, 'send test email');
+  const sendTestErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, sendTestErrorVWC);
   const sendingTestVWC = useWritableValueWithCallbacks(() => false);
 
   const paramsByTemplateVWC = useWritableValueWithCallbacks<
@@ -923,8 +948,8 @@ const ExpandedEmailModal = (
   >(() => new Map());
 
   const wantPreviewWindowVWC = useWritableValueWithCallbacks(() => false);
-  const previewErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, previewErrorVWC, 'preview email');
+  const previewErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, previewErrorVWC);
 
   useValuesWithCallbacksEffect(
     [wantPreviewWindowVWC, loginContextRaw.value, templateVWC, props.touchPointSchema],
@@ -935,13 +960,19 @@ const ExpandedEmailModal = (
 
       const loginContextUnch = loginContextRaw.value.get();
       if (loginContextUnch.state !== 'logged-in') {
-        setVWC(previewErrorVWC, <>not logged in</>);
+        setVWC(
+          previewErrorVWC,
+          new DisplayableError('server-refresh-required', 'preview email', 'not logged in')
+        );
         return undefined;
       }
 
       const exampleProps = props.touchPointSchema.get()?.example;
       if (exampleProps === null || exampleProps === undefined) {
-        setVWC(previewErrorVWC, <>no example of touch event parameters found</>);
+        setVWC(
+          previewErrorVWC,
+          new DisplayableError('client', 'preview email', 'no example props')
+        );
         return undefined;
       }
 
@@ -954,13 +985,19 @@ const ExpandedEmailModal = (
         popupRaw = window.open('', 'popup', 'width=430, height=932');
       } catch (e) {
         setVWC(wantPreviewWindowVWC, false);
-        setVWC(previewErrorVWC, <>failed to open popup: {e}</>);
+        setVWC(
+          previewErrorVWC,
+          new DisplayableError('client', 'preview email', `could not open popup: ${e}`)
+        );
         return undefined;
       }
 
       if (popupRaw === null) {
         setVWC(wantPreviewWindowVWC, false);
-        setVWC(previewErrorVWC, <>failed to open popup (null window)</>);
+        setVWC(
+          previewErrorVWC,
+          new DisplayableError('client', 'preview email', 'failed to open popup (null window)')
+        );
         return undefined;
       }
 
@@ -1000,29 +1037,39 @@ const ExpandedEmailModal = (
         );
 
         try {
-          const response = await apiFetch(
-            '/api/1/emails/authorize_templating',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
+          let response;
+          try {
+            response = await apiFetch(
+              '/api/1/emails/authorize_templating',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                },
+                body: JSON.stringify({
+                  template_slug: templateSlug,
+                }),
+                signal,
               },
-              body: JSON.stringify({
-                template_slug: templateSlug,
-              }),
-              signal,
-            },
-            loginContext
-          );
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'preview email');
+          }
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'preview email');
           }
           const body: { jwt: string } = await response.json();
           setVWC(emailTemplateJWT, body.jwt);
         } catch (e) {
           if (!signal.aborted) {
             setVWC(wantPreviewWindowVWC, false);
-            setVWC(previewErrorVWC, await describeError(e));
+            setVWC(
+              previewErrorVWC,
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'preview email', `${e}`)
+            );
           }
           return;
         } finally {
@@ -1091,19 +1138,24 @@ const ExpandedEmailModal = (
             }
 
             const url = `/api/3/templates/${templateSlug}`;
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                Accept: 'text/html; charset=utf-8',
-                'Content-Type': 'application/json; charset=utf-8',
-                Authorization: `Bearer ${jwt}`,
-              },
-              body: JSON.stringify(templateParams),
-              signal,
-            });
+            let response;
+            try {
+              response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  Accept: 'text/html; charset=utf-8',
+                  'Content-Type': 'application/json; charset=utf-8',
+                  Authorization: `Bearer ${jwt}`,
+                },
+                body: JSON.stringify(templateParams),
+                signal,
+              });
+            } catch {
+              throw new DisplayableError('connectivity', 'preview email');
+            }
             if (response.status !== 422) {
               if (!response.ok) {
-                throw response;
+                throw chooseErrorFromStatus(response.status, 'preview email');
               }
               const emailHtml = await response.text();
 
@@ -1123,8 +1175,13 @@ const ExpandedEmailModal = (
               continue;
             }
 
-            console.trace('had an error trying to preview emaisl', e);
-            setVWC(previewErrorVWC, await describeError(e));
+            console.trace('had an error trying to preview emails', e);
+            setVWC(
+              previewErrorVWC,
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'preview email', `${e}`)
+            );
             break;
           } finally {
             active.callbacks.remove(doAbort);
@@ -1373,7 +1430,14 @@ const ExpandedEmailModal = (
 
                 const loginContextUnch = loginContextRaw.value.get();
                 if (loginContextUnch.state !== 'logged-in') {
-                  setVWC(sendTestErrorVWC, <>not logged in</>);
+                  setVWC(
+                    sendTestErrorVWC,
+                    new DisplayableError(
+                      'server-refresh-required',
+                      'send test email',
+                      'not logged in'
+                    )
+                  );
                   return;
                 }
 
@@ -1381,43 +1445,54 @@ const ExpandedEmailModal = (
 
                 const touchPointSchema = props.touchPointSchema.get();
                 if (touchPointSchema === null || touchPointSchema === undefined) {
-                  setVWC(sendTestErrorVWC, <>no touch event schema found</>);
+                  setVWC(
+                    sendTestErrorVWC,
+                    new DisplayableError('client', 'send test email', 'no touch point schema')
+                  );
                   return;
                 }
 
                 const exampleProps = touchPointSchema.example;
                 if (exampleProps === null || exampleProps === undefined) {
-                  setVWC(sendTestErrorVWC, <>no example of touch event parameters found</>);
+                  setVWC(
+                    sendTestErrorVWC,
+                    new DisplayableError('client', 'send test email', 'no example props')
+                  );
                   return;
                 }
 
                 setVWC(sendTestErrorVWC, null);
                 setVWC(sendingTestVWC, true);
                 try {
-                  const response = await apiFetch(
-                    '/api/1/touch_points/send_test_email',
-                    {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json; charset=utf-8',
-                      },
-                      body: JSON.stringify({
-                        event_parameters: exampleProps,
-                        message: {
-                          priority: 1,
-                          uid: '',
-                          subject_format: subjectFormatVWC.get(),
-                          subject_parameters: subjectParametersVWC.get(),
-                          template: templateVWC.get(),
-                          template_parameters_fixed: templateParametersFixedVWC.get(),
-                          template_parameters_substituted: templateParametersSubstitutedVWC.get(),
+                  let response;
+                  try {
+                    response = await apiFetch(
+                      '/api/1/touch_points/send_test_email',
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json; charset=utf-8',
                         },
-                      }),
-                    },
-                    loginContext
-                  );
+                        body: JSON.stringify({
+                          event_parameters: exampleProps,
+                          message: {
+                            priority: 1,
+                            uid: '',
+                            subject_format: subjectFormatVWC.get(),
+                            subject_parameters: subjectParametersVWC.get(),
+                            template: templateVWC.get(),
+                            template_parameters_fixed: templateParametersFixedVWC.get(),
+                            template_parameters_substituted: templateParametersSubstitutedVWC.get(),
+                          },
+                        }),
+                      },
+                      loginContext
+                    );
+                  } catch {
+                    throw new DisplayableError('connectivity', 'send test email');
+                  }
                   if (!response.ok) {
-                    throw response;
+                    throw chooseErrorFromStatus(response.status, 'send test email');
                   }
                   await showYesNoModal(modalContext.modals, {
                     title: 'Test Email Sent',
@@ -1426,7 +1501,12 @@ const ExpandedEmailModal = (
                     emphasize: 1,
                   }).promise;
                 } catch (e) {
-                  setVWC(sendTestErrorVWC, await describeError(e));
+                  setVWC(
+                    sendTestErrorVWC,
+                    e instanceof DisplayableError
+                      ? e
+                      : new DisplayableError('client', 'send test email', `${e}`)
+                  );
                 } finally {
                   setVWC(sendingTestVWC, false);
                 }

@@ -16,7 +16,6 @@ import {
   WritableValueWithCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { ResolveMergeConflictResources } from './ResolveMergeConflictResources';
 import {
@@ -28,7 +27,6 @@ import {
   ResolveMergeConflictMappedParams,
 } from './ResolveMergeConflictParams';
 import { getJwtExpiration } from '../../../../shared/lib/getJwtExpiration';
-import { screenWithWorking } from '../../lib/screenWithWorking';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
@@ -37,8 +35,8 @@ import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckbo
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWithCallbacksEffect';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 const TEST_MERGE_JWT = 'token';
 
@@ -145,7 +143,7 @@ export const ResolveMergeConflict = ({
       (screen.parameters.conflict.phone === null || phoneHintVWC.get() !== null)
   );
 
-  const mergeErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const mergeErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const seenErrorVWC = useWritableValueWithCallbacks<boolean>(() => false);
   useValueWithCallbacksEffect(mergeErrorVWC, (v) => {
     if (v !== null) {
@@ -154,7 +152,7 @@ export const ResolveMergeConflict = ({
     return undefined;
   });
 
-  useErrorModal(modalContext.modals, mergeErrorVWC, 'merging');
+  useErrorModal(modalContext.modals, mergeErrorVWC);
 
   return (
     <GridFullscreenContainer windowSizeImmediate={ctx.windowSizeImmediate}>
@@ -242,9 +240,15 @@ export const ResolveMergeConflict = ({
                         emailHint,
                         phoneHint,
                         step: 'error',
-                        error: `${error}`,
+                        error:
+                          error instanceof DisplayableError ? error.formatProblem() : `${error}`,
                       });
-                      setVWC(mergeErrorVWC, await describeError(error));
+                      setVWC(
+                        mergeErrorVWC,
+                        error instanceof DisplayableError
+                          ? error
+                          : new DisplayableError('client', 'merge', `${error}`)
+                      );
                     },
                   }
                 );

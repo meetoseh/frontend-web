@@ -1,8 +1,7 @@
-import { ReactElement, useCallback, useContext, useEffect } from 'react';
+import { useCallback, useContext } from 'react';
 import { OauthProvider } from '../../../login/lib/OauthProvider';
 import { showYesNoModal } from '../../../../shared/lib/showYesNoModal';
 import { ScreenContext } from '../../hooks/useScreenContext';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
@@ -24,6 +23,7 @@ import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMapped
 import { useIsSilentAuthSupportedVWC } from '../../lib/useIsSilentAuthSupportedVWC';
 import { useIsPasskeyAuthSupportedVWC } from '../../lib/useIsPasskeyAuthSupportedVWC';
 import { useIsGoogleAuthSupportedVWC } from '../../lib/useIsGoogleAuthSupported';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * The standard full screen component for logging in, which
@@ -32,8 +32,8 @@ import { useIsGoogleAuthSupportedVWC } from '../../lib/useIsGoogleAuthSupported'
  */
 export const Login = ({ ctx }: { ctx: ScreenContext }) => {
   const modalContext = useContext(ModalContext);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, errorVWC, 'logging in');
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, errorVWC);
 
   const onContinueWithProvider = useCallback(
     async (provider: 'Passkey' | 'Silent') => {
@@ -61,7 +61,10 @@ export const Login = ({ ctx }: { ctx: ScreenContext }) => {
             ctx.login.setAuthTokens(tokens);
           }
         } catch (e) {
-          const described = await describeError(e);
+          const described =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'handle passkey login', `${e}`);
           setVWC(errorVWC, described);
         }
         return;
@@ -72,7 +75,7 @@ export const Login = ({ ctx }: { ctx: ScreenContext }) => {
         return;
       }
 
-      setVWC(errorVWC, <>Implementation error: unsupported provider</>);
+      setVWC(errorVWC, new DisplayableError('client', 'handle login', `${provider} unsupported`));
     },
     [ctx, errorVWC, modalContext.modals]
   );
@@ -89,7 +92,7 @@ export const Login = ({ ctx }: { ctx: ScreenContext }) => {
 
   const [urlProviderItemsVWC, urlProviderItemsErrorVWC] =
     useOauthProviderUrlsValueWithCallbacks(urlProvidersVWC);
-  useErrorModal(modalContext.modals, urlProviderItemsErrorVWC, 'loading login providers');
+  useErrorModal(modalContext.modals, urlProviderItemsErrorVWC);
 
   const providerListItemsVWC = useMappedValuesWithCallbacks(
     [

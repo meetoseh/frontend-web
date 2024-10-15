@@ -6,7 +6,6 @@ import { CancelablePromise } from '../../../../../shared/lib/CancelablePromise';
 import { LoginContextValueLoggedIn } from '../../../../../shared/contexts/LoginContext';
 import { RequestHandler, Result } from '../../../../../shared/requests/RequestHandler';
 import { mapCancelable } from '../../../../../shared/lib/mapCancelable';
-import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { getJwtExpiration } from '../../../../../shared/lib/getJwtExpiration';
 import { constructCancelablePromise } from '../../../../../shared/lib/CancelablePromiseConstructor';
 import { createCancelablePromiseFromCallbacks } from '../../../../../shared/lib/createCancelablePromiseFromCallbacks';
@@ -14,6 +13,7 @@ import { getCurrentServerTimeMS } from '../../../../../shared/lib/getCurrentServ
 import { apiFetch } from '../../../../../shared/ApiConstants';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { createValueWithCallbacksEffect } from '../../../../../shared/hooks/createValueWithCallbacksEffect';
+import { DisplayableError } from '../../../../../shared/lib/errors';
 
 /** A snapshot for a session state, usually used for other resources */
 export type SessionStateSnapshot = {
@@ -88,7 +88,10 @@ const getDataFromRef = (
       retryAt: undefined,
     }),
     async (e, state, resolve, reject) => {
-      const err = await describeError(e);
+      const err =
+        e instanceof DisplayableError
+          ? e
+          : new DisplayableError('client', 'fetch session state', `${e}`);
       if (state.finishing) {
         state.done = true;
         reject(new Error('canceled'));

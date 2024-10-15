@@ -14,10 +14,14 @@ import { useMappedValueWithCallbacks } from '../../shared/hooks/useMappedValueWi
 import { useMappedValuesWithCallbacks } from '../../shared/hooks/useMappedValuesWithCallbacks';
 import { TouchPointSelectionStrategySelect } from './components/TouchPointSelectionStrategySelect';
 import { Button } from '../../shared/forms/Button';
-import { describeError } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { createUID } from '../../shared/lib/createUID';
 import { convertUsingMapper } from '../crud/CrudFetcher';
+import {
+  chooseErrorFromStatus,
+  DisplayableError,
+  SimpleDismissBoxError,
+} from '../../shared/lib/errors';
 
 type CreateTouchPointProps = {
   /**
@@ -160,7 +164,7 @@ export const CreateTouchPoint = ({ onCreated }: CreateTouchPointProps): ReactEle
     disabled: disabledVWC.get(),
   }));
 
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | undefined>(() => undefined);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   return (
     <CrudCreateBlock>
@@ -213,7 +217,14 @@ export const CreateTouchPoint = ({ onCreated }: CreateTouchPointProps): ReactEle
 
                 const loginContextUnch = loginContextRaw.value.get();
                 if (loginContextUnch.state !== 'logged-in') {
-                  setVWC(errorVWC, <>You must be logged in to create a touch point</>);
+                  setVWC(
+                    errorVWC,
+                    new DisplayableError(
+                      'server-refresh-required',
+                      'create touch point',
+                      'not logged in'
+                    )
+                  );
                   return;
                 }
 
@@ -221,61 +232,71 @@ export const CreateTouchPoint = ({ onCreated }: CreateTouchPointProps): ReactEle
 
                 setVWC(workingVWC, true);
                 try {
-                  const response = await apiFetch(
-                    '/api/1/touch_points/',
-                    {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json; charset=utf-8',
-                      },
-                      body: JSON.stringify({
-                        event_slug: slugVWC.get(),
-                        selection_strategy: selectionStrategyVWC.get(),
-                        messages: {
-                          sms: [
-                            {
-                              priority: 1,
-                              uid: 'oseh_tpsms_' + createUID(),
-                              body_format: 'New SMS',
-                              body_parameters: [],
-                            },
-                          ],
-                          push: [
-                            {
-                              priority: 1,
-                              uid: 'oseh_tppush_' + createUID(),
-                              title_format: 'New Push Title',
-                              title_parameters: [],
-                              body_format: 'New Push Body',
-                              body_parameters: [],
-                              channel_id: 'default',
-                            },
-                          ],
-                          email: [
-                            {
-                              priority: 1,
-                              uid: 'oseh_tpem_' + createUID(),
-                              subject_format: 'New Email Subject',
-                              subject_parameters: [],
-                              template: 'sample',
-                              template_parameters_fixed: {},
-                              template_parameters_substituted: [],
-                            },
-                          ],
+                  let response;
+                  try {
+                    response = await apiFetch(
+                      '/api/1/touch_points/',
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json; charset=utf-8',
                         },
-                      }),
-                    },
-                    loginContext
-                  );
+                        body: JSON.stringify({
+                          event_slug: slugVWC.get(),
+                          selection_strategy: selectionStrategyVWC.get(),
+                          messages: {
+                            sms: [
+                              {
+                                priority: 1,
+                                uid: 'oseh_tpsms_' + createUID(),
+                                body_format: 'New SMS',
+                                body_parameters: [],
+                              },
+                            ],
+                            push: [
+                              {
+                                priority: 1,
+                                uid: 'oseh_tppush_' + createUID(),
+                                title_format: 'New Push Title',
+                                title_parameters: [],
+                                body_format: 'New Push Body',
+                                body_parameters: [],
+                                channel_id: 'default',
+                              },
+                            ],
+                            email: [
+                              {
+                                priority: 1,
+                                uid: 'oseh_tpem_' + createUID(),
+                                subject_format: 'New Email Subject',
+                                subject_parameters: [],
+                                template: 'sample',
+                                template_parameters_fixed: {},
+                                template_parameters_substituted: [],
+                              },
+                            ],
+                          },
+                        }),
+                      },
+                      loginContext
+                    );
+                  } catch {
+                    throw new DisplayableError('connectivity', 'create touch point');
+                  }
                   if (!response.ok) {
-                    throw response;
+                    throw chooseErrorFromStatus(response.status, 'create touch point');
                   }
                   const body = await response.json();
                   const parsed = convertUsingMapper(body, touchPointKeyMap);
                   onCreated(parsed);
                   setVWC(slugVWC, '');
                 } catch (e) {
-                  setVWC(errorVWC, await describeError(e));
+                  setVWC(
+                    errorVWC,
+                    e instanceof DisplayableError
+                      ? e
+                      : new DisplayableError('client', 'create touch point', `${e}`)
+                  );
                 } finally {
                   setVWC(workingVWC, false);
                 }
@@ -285,7 +306,7 @@ export const CreateTouchPoint = ({ onCreated }: CreateTouchPointProps): ReactEle
             </Button>
           )}
         />
-        <RenderGuardedComponent props={errorVWC} component={(error) => error ?? <></>} />
+        <SimpleDismissBoxError error={errorVWC} />
       </div>
     </CrudCreateBlock>
   );

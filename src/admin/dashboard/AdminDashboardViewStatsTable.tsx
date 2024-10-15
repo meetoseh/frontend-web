@@ -10,7 +10,6 @@ import {
 } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
 import { Button } from '../../shared/forms/Button';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { convertUsingKeymap, CrudFetcherKeyMap } from '../crud/CrudFetcher';
 import {
@@ -22,6 +21,7 @@ import { AdminDashboardLargeChartPlaceholder } from './AdminDashboardLargeChartP
 import styles from './AdminDashboardViewStatsTable.module.css';
 import { DashboardTable, DashboardTableProps } from './subComponents/DashboardTable';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type ChartData = {
   labels: string[];
@@ -91,7 +91,7 @@ export const AdminDashboardViewStatsTable = (): ReactElement => {
   const [date, setDate] = useState<Date>(maxDate);
   const dateISO = useMemo(() => date.toISOString().split('T')[0], [date]);
   const [data, setData] = useState<{ isoDate: string; data: TableData } | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [shouldLoadData, setShouldLoadData] = useState<boolean>(false);
   const [preventingPlaceholder, setPreventingPlaceholder] = useState<boolean>(false);
   const [showingChart, setShowingChart] = useState<{
@@ -158,14 +158,20 @@ export const AdminDashboardViewStatsTable = (): ReactElement => {
         };
 
         async function loadDataInner() {
-          const response = await apiFetch(
-            '/api/1/admin/journey_subcategory_view_stats?' + new URLSearchParams({ date: isoDate }),
-            { method: 'GET' },
-            loginContext
-          );
+          let response;
+          try {
+            response = await apiFetch(
+              '/api/1/admin/journey_subcategory_view_stats?' +
+                new URLSearchParams({ date: isoDate }),
+              { method: 'GET' },
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'fetch view stats');
+          }
 
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'fetch view stats');
           }
 
           const raw = await response.json();
@@ -181,7 +187,10 @@ export const AdminDashboardViewStatsTable = (): ReactElement => {
           try {
             await loadDataInner();
           } catch (e) {
-            const error = await describeError(e);
+            const error =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch view stats', `${e}`);
             if (active) {
               setError(error);
             }
@@ -369,7 +378,7 @@ export const AdminDashboardViewStatsTable = (): ReactElement => {
   if (error !== null) {
     return (
       <div className={styles.container}>
-        <ErrorBlock>{error}</ErrorBlock>
+        <BoxError error={error} />
       </div>
     );
   }

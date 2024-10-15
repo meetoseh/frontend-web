@@ -43,7 +43,11 @@ import { createVideoSizeComparerForTarget } from '../../shared/content/createVid
 import { showCourseVideoSelector } from './videos/showCourseVideoSelector';
 import { showCourseVideoUploader } from './videos/showCourseVideoUploader';
 import { showCourseVideoThumbnailUploader } from './videos/thumbnails/showCourseVideoThumbnailUploader';
-import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
+import {
+  chooseErrorFromStatus,
+  DisplayableError,
+  SimpleDismissBoxError,
+} from '../../shared/lib/errors';
 
 type CreateCourseProps = {
   /**
@@ -572,7 +576,7 @@ export const CreateCourse = ({ onCreated }: CreateCourseProps): ReactElement => 
   );
 
   const savingVWC = useWritableValueWithCallbacks<boolean>(() => false);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   const validVWC = useMappedValuesWithCallbacks(
     [
@@ -619,36 +623,41 @@ export const CreateCourse = ({ onCreated }: CreateCourseProps): ReactElement => 
   const create = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
-      throw new Error('Not logged in');
+      throw new DisplayableError('server-refresh-required', 'create', 'not logged in');
     }
     const loginContext = loginContextUnch;
 
-    const response = await apiFetch(
-      '/api/1/courses/',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
+    let response;
+    try {
+      response = await apiFetch(
+        '/api/1/courses/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          body: JSON.stringify({
+            slug: slugVWC.get(),
+            flags: flagsVWC.get(),
+            revenue_cat_entitlement: revenueCatEntitlementVWC.get(),
+            title: titleVWC.get(),
+            description: descriptionVWC.get(),
+            instructor_uid: instructorVWC.get()!.uid,
+            background_image_uid: backgroundImageVWC.get()!.uid,
+            video_uid: videoVWC.get()!.uid,
+            video_thumbnail_uid: thumbnailVWC.get()!.uid,
+            logo_uid: logoVWC.get()!.uid,
+            hero_uid: heroImageVWC.get()!.uid,
+          }),
         },
-        body: JSON.stringify({
-          slug: slugVWC.get(),
-          flags: flagsVWC.get(),
-          revenue_cat_entitlement: revenueCatEntitlementVWC.get(),
-          title: titleVWC.get(),
-          description: descriptionVWC.get(),
-          instructor_uid: instructorVWC.get()!.uid,
-          background_image_uid: backgroundImageVWC.get()!.uid,
-          video_uid: videoVWC.get()!.uid,
-          video_thumbnail_uid: thumbnailVWC.get()!.uid,
-          logo_uid: logoVWC.get()!.uid,
-          hero_uid: heroImageVWC.get()!.uid,
-        }),
-      },
-      loginContext
-    );
+        loginContext
+      );
+    } catch {
+      throw new DisplayableError('connectivity', 'create course');
+    }
 
     if (!response.ok) {
-      throw response;
+      throw chooseErrorFromStatus(response.status, 'create course');
     }
 
     const raw = await response.json();
@@ -1146,10 +1155,7 @@ export const CreateCourse = ({ onCreated }: CreateCourseProps): ReactElement => 
           )}
           applyInstantly
         />
-        <RenderGuardedComponent
-          props={errorVWC}
-          component={(error) => (error === null ? <></> : <ErrorBlock>{error}</ErrorBlock>)}
-        />
+        <SimpleDismissBoxError error={errorVWC} />
         <RenderGuardedComponent
           props={validVWC}
           component={(valid) => (
@@ -1164,7 +1170,12 @@ export const CreateCourse = ({ onCreated }: CreateCourseProps): ReactElement => 
                 try {
                   await create();
                 } catch (e) {
-                  setVWC(errorVWC, await describeError(e));
+                  setVWC(
+                    errorVWC,
+                    e instanceof DisplayableError
+                      ? e
+                      : new DisplayableError('client', 'create course', `${e}`)
+                  );
                 } finally {
                   setVWC(savingVWC, false);
                 }

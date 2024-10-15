@@ -15,7 +15,6 @@ import { ModalContext, addModalWithCallbackToRemove } from '../../shared/context
 import { JourneySubcategory } from './subcategories/JourneySubcategory';
 import { Instructor } from '../instructors/Instructor';
 import { TextInput } from '../../shared/forms/TextInput';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { convertUsingKeymap, convertUsingMapper } from '../crud/CrudFetcher';
 import { keyMap as journeyKeyMap } from './Journeys';
@@ -41,6 +40,7 @@ import { constructCancelablePromise } from '../../shared/lib/CancelablePromiseCo
 import { YesNoModal } from '../../shared/components/YesNoModal';
 import { createCancelablePromiseFromCallbacks } from '../../shared/lib/createCancelablePromiseFromCallbacks';
 import { showYesNoModal } from '../../shared/lib/showYesNoModal';
+import { BoxError, DisplayableError } from '../../shared/lib/errors';
 
 type JourneyBlockProps = {
   /**
@@ -75,7 +75,7 @@ const JourneyBlockExpanded = ({
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [saving, setSaving] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newBackgroundImage, setNewBackgroundImageReal] = useState<JourneyBackgroundImage | null>(
@@ -405,7 +405,8 @@ const JourneyBlockExpanded = ({
       setVWC(editingVWC, false);
     } catch (e) {
       console.error('error saving journey', e);
-      const err = await describeError(e);
+      const err =
+        e instanceof DisplayableError ? e : new DisplayableError('client', 'save journey', `${e}`);
       setError(err);
     } finally {
       if (journey !== newJourney) {
@@ -469,7 +470,7 @@ const JourneyBlockExpanded = ({
             </>
           }>
           <div className={styles.container}>
-            {error && <ErrorBlock>{error}</ErrorBlock>}
+            {error && <BoxError error={error} />}
 
             {journey.deletedAt !== null ? (
               <div className={styles.deletedAtContainer}>

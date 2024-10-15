@@ -1,6 +1,5 @@
 import { ChangeEvent, ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { dateToLocaleISODateString } from '../../shared/lib/dateToLocaleISODateString';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { convertUsingKeymap, CrudFetcherKeyMap } from '../crud/CrudFetcher';
@@ -12,6 +11,7 @@ import { AdminDashboardLargeChartPlaceholder } from './AdminDashboardLargeChartP
 import { DashboardTable, DashboardTableProps } from './subComponents/DashboardTable';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type FeedbackUser = {
   sub: string;
@@ -72,7 +72,7 @@ const responseKeyMap: CrudFetcherKeyMap<Response> = {
 export const AdminDashboardJourneyFeedback = (): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const [showingPlaceholder, setShowingPlaceholder] = useState(true);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [date, setDate] = useState(
     () => new Date(dateToLocaleISODateString(new Date(Date.now() - 86400000)))
   );
@@ -118,19 +118,29 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
         };
 
         async function fetchDataInner() {
-          const response = await apiFetch(
-            '/api/1/admin/journey_feedback?' + new URLSearchParams({ date: reqDateIso }),
-            {
-              method: 'GET',
-            },
-            loginContext
-          );
-
-          if (!response.ok) {
-            throw response;
+          let response;
+          try {
+            response = await apiFetch(
+              '/api/1/admin/journey_feedback?' + new URLSearchParams({ date: reqDateIso }),
+              {
+                method: 'GET',
+              },
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'fetch journey feedback');
           }
 
-          const dataRaw = await response.json();
+          if (!response.ok) {
+            throw chooseErrorFromStatus(response.status, 'fetch journey feedback');
+          }
+
+          let dataRaw;
+          try {
+            dataRaw = await response.json();
+          } catch {
+            throw new DisplayableError('connectivity', 'fetch journey feedback');
+          }
           const parsed = convertUsingKeymap(dataRaw, responseKeyMap);
           if (active) {
             setData(parsed);
@@ -143,7 +153,10 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
             await fetchDataInner();
           } catch (e) {
             console.error(e);
-            const err = await describeError(e);
+            const err =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch data', `${e}`);
             if (active) {
               setError(err);
             }
@@ -186,7 +199,7 @@ export const AdminDashboardJourneyFeedback = (): ReactElement => {
 
   return (
     <div className={styles.container}>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {error && <BoxError error={error} />}
       <div className={styles.header}>
         <div className={styles.title}>Journey Feedback</div>
         <div className={styles.datePicker}>

@@ -12,11 +12,11 @@ import { Button } from '../../../../../shared/forms/Button';
 import { ModalContext } from '../../../../../shared/contexts/ModalContext';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
-import { ErrorBlock } from '../../../../../shared/forms/ErrorBlock';
 import { OsehContent } from '../../../../../shared/content/OsehContent';
 import { clientFlowContentKeyMap } from '../../../content/ClientFlowContent';
 import { showClientFlowContentSelector } from '../../../content/showClientFlowContentSelector';
 import { showClientFlowContentUploader } from '../../../content/showClientFlowContentUploader';
+import { BoxError, DisplayableError } from '../../../../../shared/lib/errors';
 
 /**
  * Allows the user to select or upload a video or audio file to fill a string prop.
@@ -124,10 +124,20 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
             props={contentNR}
             component={(content) => {
               if (content.type === 'error') {
-                return <ErrorBlock>{content.error}</ErrorBlock>;
+                return <BoxError error={content.error} />;
               }
               if (content.type === 'unavailable') {
-                return <ErrorBlock>File is invalid or in the wrong list</ErrorBlock>;
+                return (
+                  <BoxError
+                    error={
+                      new DisplayableError(
+                        'server-not-retryable',
+                        'show content',
+                        'File is invalid or in the wrong list'
+                      )
+                    }
+                  />
+                );
               }
               if (content.type !== 'success') {
                 return <></>;

@@ -1,23 +1,19 @@
-import { ReactElement, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Modals, addModalWithCallbackToRemove } from '../contexts/ModalContext';
 import { WritableValueWithCallbacks } from '../lib/Callbacks';
 import { useValueWithCallbacksEffect } from './useValueWithCallbacksEffect';
-import { setVWC } from '../lib/setVWC';
-import { ModalWrapper } from '../ModalWrapper';
-import styles from './useErrorModal.module.css';
+import { DisplayableError, SimpleDismissModalBoxError } from '../lib/errors';
 
 /**
- * When an error is set, shows a modal which can be dismissed containing the
- * error element.
+ * When an error is set renders a SimpleDismissModalBoxError to the modal
+ * context.
  *
  * @param modals The modals to use to show the error
- * @param error The error to show. We clear the error if dismissed by the user.
- * @param context Used to distinguish where this error is coming from
+ * @param errorVWC The error to show. We clear the error if dismissed by the user.
  */
 export const useErrorModal = (
   modals: WritableValueWithCallbacks<Modals>,
-  errorVWC: WritableValueWithCallbacks<ReactElement | null>,
-  location: string
+  errorVWC: WritableValueWithCallbacks<DisplayableError | null>
 ) => {
   useValueWithCallbacksEffect(
     errorVWC,
@@ -29,14 +25,10 @@ export const useErrorModal = (
 
         return addModalWithCallbackToRemove(
           modals,
-          <ModalWrapper onClosed={() => setVWC(errorVWC, null)}>
-            <div className={styles.title}>An error occurred</div>
-            <div className={styles.subtitle}>{location}</div>
-            <div className={styles.error}>{error}</div>
-          </ModalWrapper>
+          <SimpleDismissModalBoxError error={errorVWC} />
         );
       },
-      [modals, location, errorVWC]
+      [modals, errorVWC]
     )
   );
 };

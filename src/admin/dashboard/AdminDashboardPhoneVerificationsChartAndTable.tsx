@@ -5,7 +5,6 @@ import {
 } from '../../shared/lib/dateToLocaleISODateString';
 import styles from './AdminDashboardPhoneVerificationsChartAndTable.module.css';
 import { CrudFormElement } from '../crud/CrudFormElement';
-import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { Button } from '../../shared/forms/Button';
 import {
   AdminDashboardLargeChart,
@@ -16,6 +15,7 @@ import { apiFetch } from '../../shared/ApiConstants';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import { combineClasses } from '../../shared/lib/combineClasses';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type Data = {
   /**
@@ -53,7 +53,7 @@ export const AdminDashboardPhoneVerificationsChartAndTable = (): ReactElement =>
     () => new Date(Date.now() - 1000 * 60 * 60 * 24 * 30)
   );
   const [data, setData] = useState<{ from: string; to: string; data: Data } | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [display, setDisplay] = useState<'chart' | 'table'>('chart');
 
   useValueWithCallbacksEffect(
@@ -79,18 +79,23 @@ export const AdminDashboardPhoneVerificationsChartAndTable = (): ReactElement =>
         };
 
         async function fetchDataInner(): Promise<Data> {
-          const response = await apiFetch(
-            '/api/1/admin/daily_phone_verifications?' +
-              new URLSearchParams({
-                from_date: startISO,
-                to_date: endISO,
-              }),
-            { method: 'GET' },
-            loginContext
-          );
+          let response;
+          try {
+            response = await apiFetch(
+              '/api/1/admin/daily_phone_verifications?' +
+                new URLSearchParams({
+                  from_date: startISO,
+                  to_date: endISO,
+                }),
+              { method: 'GET' },
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'fetch phone verifications');
+          }
 
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'fetch phone verifications');
           }
 
           return await response.json();
@@ -104,7 +109,10 @@ export const AdminDashboardPhoneVerificationsChartAndTable = (): ReactElement =>
               setData({ from: startISO, to: endISO, data });
             }
           } catch (e) {
-            const error = await describeError(e);
+            const error =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch phone verifications', `${e}`);
             if (active) {
               setError(error);
             }
@@ -222,7 +230,7 @@ export const AdminDashboardPhoneVerificationsChartAndTable = (): ReactElement =>
 
   return (
     <div className={styles.container}>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {error && <BoxError error={error} />}
       <div className={styles.header}>
         <div className={styles.title}>Phone Verifications</div>
         <div className={styles.fromToContainer}>

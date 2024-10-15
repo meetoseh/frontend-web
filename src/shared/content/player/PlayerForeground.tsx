@@ -20,10 +20,10 @@ import {
 } from '../../transcripts/useCurrentTranscriptPhrases';
 import { MediaInfo } from '../useMediaInfo';
 import { RenderGuardedComponent } from '../../components/RenderGuardedComponent';
-import { ErrorBlock } from '../../forms/ErrorBlock';
 import { InlineOsehSpinner } from '../../components/InlineOsehSpinner';
 import { Button } from '../../forms/Button';
 import { IconButton } from '../../forms/IconButton';
+import { BoxError, DisplayableError } from '../../lib/errors';
 
 export type PlayerCTA = {
   /** The title for the button */
@@ -312,17 +312,23 @@ export const PlayerForeground = <T extends HTMLMediaElement>({
               if (state === 'errored') {
                 const err = content.get().error;
                 if (err !== null) {
-                  return err;
+                  return <BoxError error={err} />;
                 }
                 const mediaError = content.get().element?.error;
                 if (mediaError !== undefined && mediaError !== null) {
                   return (
-                    <ErrorBlock>
-                      {mediaError.code}: {mediaError.message}
-                    </ErrorBlock>
+                    <BoxError
+                      error={
+                        new DisplayableError(
+                          'client',
+                          'play media',
+                          `${mediaError.code}: ${mediaError.message}`
+                        )
+                      }
+                    />
                   );
                 }
-                return <ErrorBlock>Something went wrong.</ErrorBlock>;
+                return <BoxError error={new DisplayableError('client', 'play media')} />;
               }
               return (
                 <InlineOsehSpinner

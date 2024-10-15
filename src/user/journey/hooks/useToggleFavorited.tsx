@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import { VariableStrategyProps } from '../../../shared/anim/VariableStrategyProps';
 import { ModalContext } from '../../../shared/contexts/ModalContext';
 import {
@@ -14,6 +14,7 @@ import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { toggleFavorited } from '../lib/toggleFavorited';
 import { setVWC } from '../../../shared/lib/setVWC';
+import { DisplayableError } from '../../../shared/lib/errors';
 
 type UseToggleFavoritedProps = {
   /**
@@ -61,13 +62,13 @@ export const useToggleFavorited = ({
   const showLikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
   const showUnlikedUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
   const showUnlikableUntilVWC = useWritableValueWithCallbacks<number | undefined>(() => undefined);
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const counterVWC = useWritableValueWithCallbacks<number>(() => 0);
 
   useFavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showLikedUntilVWC));
   useUnfavoritedModal(adaptValueWithCallbacksAsVariableStrategyProps(showUnlikedUntilVWC));
   useUnfavoritableModal(adaptValueWithCallbacksAsVariableStrategyProps(showUnlikableUntilVWC));
-  useErrorModal(modalContext.modals, errorVWC, 'useToggleFavorited');
+  useErrorModal(modalContext.modals, errorVWC);
 
   return useCallback(async () => {
     const id = counterVWC.get() + 1;

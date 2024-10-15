@@ -15,7 +15,6 @@ import {
 import { createValueWithCallbacksEffect } from '../../../shared/hooks/createValueWithCallbacksEffect';
 import { setVWC } from '../../../shared/lib/setVWC';
 import { waitForValueWithCallbacksConditionCancelable } from '../../../shared/lib/waitForValueWithCallbacksCondition';
-import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import {
   ClientFlowAnalyzeReachableRequest,
   clientFlowsAnalyzeReachable,
@@ -40,6 +39,7 @@ import { addModalWithCallbackToRemove, Modals } from '../../../shared/contexts/M
 import { constructCancelablePromise } from '../../../shared/lib/CancelablePromiseConstructor';
 import { createCancelablePromiseFromCallbacks } from '../../../shared/lib/createCancelablePromiseFromCallbacks';
 import { ModalWrapper } from '../../../shared/ModalWrapper';
+import { BoxError, DisplayableError } from '../../../shared/lib/errors';
 
 const QUERIES = [
   'not-reachable-from-home',
@@ -73,7 +73,7 @@ export type WritableFlowDeletePrecheckItem = {
    */
   state: WritableValueWithCallbacks<'waiting' | 'loading' | 'success' | 'failed'>;
   /** if more data should be shown below the name, the additional context to provide */
-  message: WritableValueWithCallbacks<ReactElement | null>;
+  message: WritableValueWithCallbacks<DisplayableError | null>;
 };
 
 const makeRequest = (
@@ -119,7 +119,7 @@ export type FlowDeletePrecheckItem = {
   /** see WritableFlowDeletePrecheckItem */
   state: ValueWithCallbacks<'waiting' | 'loading' | 'success' | 'failed'>;
   /** see WritableFlowDeletePrecheckItem */
-  message: ValueWithCallbacks<ReactElement | null>;
+  message: ValueWithCallbacks<DisplayableError | null>;
 };
 
 export type WritableFlowDeletePrecheckList = {
@@ -201,7 +201,7 @@ export const createFlowDeletePrecheckList = (
             state: createWritableValueWithCallbacks<'waiting' | 'loading' | 'success' | 'failed'>(
               'waiting'
             ),
-            message: createWritableValueWithCallbacks<ReactElement | null>(null),
+            message: createWritableValueWithCallbacks<DisplayableError | null>(null),
           })
         );
       }
@@ -324,7 +324,7 @@ const drivePrecheckItem = async (
         timeout.cancel();
       }
       if (!active.get()) {
-        setVWC(item.message, <>canceled</>);
+        setVWC(item.message, new DisplayableError('canceled', 'drive precheck item'));
         setVWC(item.state, 'failed');
         return;
       }
@@ -332,9 +332,14 @@ const drivePrecheckItem = async (
       const signal = controller.signal;
       notActive.promise.then(() => controller.abort());
 
-      const response = await clientFlowsAnalyzeReachable(makeRequest(slug, item), user, { signal });
+      let response;
+      try {
+        response = await clientFlowsAnalyzeReachable(makeRequest(slug, item), user, { signal });
+      } catch {
+        throw new DisplayableError('connectivity', 'drive precheck item');
+      }
       if (!active.get()) {
-        setVWC(item.message, <>canceled</>);
+        setVWC(item.message, new DisplayableError('canceled', 'drive precheck item'));
         setVWC(item.state, 'failed');
         return;
       }
@@ -349,18 +354,25 @@ const drivePrecheckItem = async (
         setVWC(item.state, 'success');
         return;
       }
-      setVWC(item.message, <>paths found</>);
+      setVWC(
+        item.message,
+        new DisplayableError('server-not-retryable', 'drive precheck item', 'path found')
+      );
       setVWC(item.state, 'failed');
       return;
     }
   } catch (e) {
-    const described = await describeError(e);
     if (!active.get()) {
-      setVWC(item.message, <>canceled</>);
+      setVWC(item.message, new DisplayableError('canceled', 'drive precheck item'));
       setVWC(item.state, 'failed');
       return;
     }
-    setVWC(item.message, described);
+    setVWC(
+      item.message,
+      e instanceof DisplayableError
+        ? e
+        : new DisplayableError('client', 'drive precheck item', `${e}`)
+    );
     setVWC(item.state, 'failed');
   } finally {
     notActive.cancel();
@@ -463,7 +475,7 @@ export const ClientFlowDeletePrechecks = ({
   });
 
   const workingVWC = useWritableValueWithCallbacks<boolean>(() => false);
-  const topLevelErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const topLevelErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   return (
     <div className={styles.column}>
@@ -500,9 +512,7 @@ export const ClientFlowDeletePrechecks = ({
                 </div>
                 <RenderGuardedComponent
                   props={item.message}
-                  component={(m) =>
-                    m === null ? <></> : <div className={styles.message}>{m}</div>
-                  }
+                  component={(m) => (m === null ? <></> : <BoxError error={m} />)}
                 />
               </div>
             );
@@ -519,7 +529,10 @@ export const ClientFlowDeletePrechecks = ({
           screenWithWorking(workingVWC, async () => {
             const loginContextUnch = loginContextRaw.value.get();
             if (loginContextUnch.state !== 'logged-in') {
-              setVWC(topLevelErrorVWC, <>not logged in</>);
+              setVWC(
+                topLevelErrorVWC,
+                new DisplayableError('server-refresh-required', 'delete', 'not logged in')
+              );
               return;
             }
             const user = loginContextUnch;
@@ -535,10 +548,13 @@ export const ClientFlowDeletePrechecks = ({
               if (!response.ok) {
                 throw response;
               }
-              setVWC(topLevelErrorVWC, <>Deleted</>);
+              setVWC(
+                topLevelErrorVWC,
+                new DisplayableError('canceled', 'delete', 'Flow is deleted')
+              );
               onDeleted();
             } catch (e) {
-              setVWC(topLevelErrorVWC, await describeError(e));
+              setVWC(topLevelErrorVWC, new DisplayableError('client', 'delete', `${e}`));
               return;
             }
           });
@@ -559,7 +575,7 @@ export const ClientFlowDeletePrechecks = ({
       </Button>
       <RenderGuardedComponent
         props={topLevelErrorVWC}
-        component={(e) => (e === null ? <></> : <ErrorBlock>{e}</ErrorBlock>)}
+        component={(e) => (e === null ? <></> : <BoxError error={e} />)}
       />
     </div>
   );

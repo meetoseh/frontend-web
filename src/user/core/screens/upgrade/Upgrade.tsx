@@ -52,6 +52,7 @@ import { OsehColors } from '../../../../shared/OsehColors';
 import { Close } from '../../../../shared/components/icons/Close';
 import { Check } from '../../../../shared/components/icons/Check';
 import { adaptExitTransition } from '../../lib/adaptExitTransition';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 type Copy = UpgradeCopy<ScreenImageParsed>;
 
@@ -86,8 +87,8 @@ export const Upgrade = ({
   });
 
   const modalContext = useContext(ModalContext);
-  const subscribeErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, subscribeErrorVWC, 'starting checkout session');
+  const subscribeErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, subscribeErrorVWC);
 
   const onBack = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

@@ -20,7 +20,6 @@ import {
   WritableValueWithTypedCallbacks,
   useWritableValueWithCallbacks,
 } from '../../../../shared/lib/Callbacks';
-import { screenOut } from '../../lib/screenOut';
 import { SetGoalResources } from './SetGoalResources';
 import { SetGoalMappedParams } from './SetGoalParams';
 import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
@@ -32,12 +31,12 @@ import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWi
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { apiFetch } from '../../../../shared/ApiConstants';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { SurveyCheckboxGroup } from '../../../../shared/components/SurveyCheckboxGroup';
 import { BackContinue } from '../../../../shared/components/BackContinue';
 import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
 import { adaptExitTransition } from '../../lib/adaptExitTransition';
+import { chooseErrorFromStatus, DisplayableError } from '../../../../shared/lib/errors';
 
 const _CHOICES = [
   { slug: '1', text: '1 day', days: 1, element: <>1 day</> },
@@ -73,10 +72,10 @@ export const SetGoal = ({
 
   const workingVWC = useWritableValueWithCallbacks(() => false);
 
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const savingVWC = useWritableValueWithCallbacks<boolean>(() => false);
 
-  useErrorModal(modalContext.modals, errorVWC, 'saving goal');
+  useErrorModal(modalContext.modals, errorVWC);
   useWorkingModal(modalContext.modals, savingVWC, { delayStartMs: 200 });
 
   const serverGoalVWC = useMappedValueWithCallbacks(
@@ -141,17 +140,22 @@ export const SetGoal = ({
       setVWC(savingVWC, true);
       setVWC(errorVWC, null);
       try {
-        const response = await apiFetch(
-          '/api/1/users/me/goal',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({ days_per_week: selected.days }),
-          },
-          loginContext
-        );
+        let response;
+        try {
+          response = await apiFetch(
+            '/api/1/users/me/goal',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({ days_per_week: selected.days }),
+            },
+            loginContext
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'save goal');
+        }
         if (!response.ok) {
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'save goal');
         }
         ctx.resources.streakHandler.evictOrReplace(loginContext, (old) => {
           if (old === undefined) {
@@ -168,7 +172,10 @@ export const SetGoal = ({
         });
         return true;
       } catch (e) {
-        setVWC(errorVWC, await describeError(e));
+        setVWC(
+          errorVWC,
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'save goal', `${e}`)
+        );
         return false;
       } finally {
         setVWC(savingVWC, false);

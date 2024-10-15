@@ -6,10 +6,8 @@ import {
 import { CancelablePromise } from '../../../../../shared/lib/CancelablePromise';
 import { LoginContextValueLoggedIn } from '../../../../../shared/contexts/LoginContext';
 import { RequestHandler, Result } from '../../../../../shared/requests/RequestHandler';
-import { describeError } from '../../../../../shared/forms/ErrorBlock';
 import { getJwtExpiration } from '../../../../../shared/lib/getJwtExpiration';
 import { JournalChatState } from './JournalChatState';
-import { ReactElement } from 'react';
 import { createMappedValueWithCallbacks } from '../../../../../shared/hooks/useMappedValueWithCallbacks';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { waitForValueWithCallbacksConditionCancelable } from '../../../../../shared/lib/waitForValueWithCallbacksCondition';
@@ -27,6 +25,7 @@ import { createFernet } from '../../../../../shared/lib/fernet';
 import { adaptCallbacksToAbortSignal } from '../../../../../shared/lib/adaptCallbacksToAbortSignal';
 import { createCancelablePromiseFromCallbacks } from '../../../../../shared/lib/createCancelablePromiseFromCallbacks';
 import { createCancelableTimeout } from '../../../../../shared/lib/createCancelableTimeout';
+import { chooseErrorFromStatus, DisplayableError } from '../../../../../shared/lib/errors';
 
 export type JournalEntryManagerRef = {
   /** The UID of the journal entry to get */
@@ -61,7 +60,7 @@ export type JournalEntryManager = {
   chat: ValueWithCallbacks<JournalChatState | null | undefined>;
 
   /** The error preventing us from loading the chat, null otherwise */
-  error: ValueWithCallbacks<ReactElement | null>;
+  error: ValueWithCallbacks<DisplayableError | null>;
 
   /**
    * The current task for loading the chat, or null if we are not actively
@@ -162,7 +161,7 @@ export type JournalEntryManager = {
     action: (
       journalEntryJWT: WritableValueWithCallbacks<string>,
       chat: WritableValueWithCallbacks<JournalChatState | null | undefined>,
-      error: WritableValueWithCallbacks<ReactElement | null>
+      error: WritableValueWithCallbacks<DisplayableError | null>
     ) => CancelablePromise<void>
   ) => Promise<void>;
 
@@ -231,7 +230,7 @@ export const createJournalEntryManager = (initial: JournalEntryManagerRef): Jour
   const disposedVWC = createWritableValueWithCallbacks(false);
   const journalEntryJWTVWC = createWritableValueWithCallbacks(initial.journalEntryJWT);
   const chatVWC = createWritableValueWithCallbacks<JournalChatState | null | undefined>(null);
-  const errorVWC = createWritableValueWithCallbacks<ReactElement | null>(null);
+  const errorVWC = createWritableValueWithCallbacks<DisplayableError | null>(null);
   const taskVWC = createWritableValueWithCallbacks<CancelablePromise<void> | null>(null);
 
   const [journalEntryJWTExpiresAtVWC, cleanupJournalEntryJWTExpiresAt] =
@@ -304,7 +303,10 @@ export const createJournalEntryManager = (initial: JournalEntryManagerRef): Jour
             return;
           }
 
-          const described = await describeError(e);
+          const described =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'start journal entry task', `${e}`);
           if (state.finishing) {
             state.done = true;
             reject(new Error('canceled'));
@@ -414,7 +416,10 @@ export const createJournalEntryManager = (initial: JournalEntryManagerRef): Jour
             reject(new Error('canceled'));
             return;
           }
-          const described = await describeError(e);
+          const described =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'stream journal entry', `${e}`);
           if (state.finishing) {
             state.done = true;
             reject(new Error('canceled'));
@@ -521,26 +526,31 @@ export const createJournalEntryManager = (initial: JournalEntryManagerRef): Jour
 
             try {
               data = await adaptCallbacksToAbortSignal(state.cancelers, async (signal) => {
-                const response = await apiFetch(
-                  realEndpoint,
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json; charset=utf-8',
+                let response;
+                try {
+                  response = await apiFetch(
+                    realEndpoint,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                      },
+                      body: JSON.stringify({
+                        platform: VISITOR_SOURCE,
+                        journal_entry_uid: journalEntryUID,
+                        journal_entry_jwt: journalEntryJWTVWC.get(),
+                        journal_client_key_uid: clientKey.uid,
+                        ...bonusParams,
+                      }),
+                      signal,
                     },
-                    body: JSON.stringify({
-                      platform: VISITOR_SOURCE,
-                      journal_entry_uid: journalEntryUID,
-                      journal_entry_jwt: journalEntryJWTVWC.get(),
-                      journal_client_key_uid: clientKey.uid,
-                      ...bonusParams,
-                    }),
-                    signal,
-                  },
-                  user
-                );
+                    user
+                  );
+                } catch {
+                  throw new DisplayableError('connectivity', 'sync journal entry');
+                }
                 if (!response.ok) {
-                  throw response;
+                  throw chooseErrorFromStatus(response.status, 'sync journal entry');
                 }
                 return (await response.json()) as {
                   journal_chat_jwt: string;
@@ -550,7 +560,11 @@ export const createJournalEntryManager = (initial: JournalEntryManagerRef): Jour
               });
               break;
             } catch (e) {
-              if (e instanceof Response && e.status === 429 && !opts?.unsafeToRetry) {
+              if (
+                e instanceof DisplayableError &&
+                (e.type === 'server-retryable' || e.type === 'server-ratelimited') &&
+                !opts?.unsafeToRetry
+              ) {
                 continue;
               }
 
@@ -563,7 +577,10 @@ export const createJournalEntryManager = (initial: JournalEntryManagerRef): Jour
             reject(new Error('canceled'));
             return;
           }
-          const described = await describeError(e);
+          const described =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'sync journal entry', `${e}`);
           if (state.finishing) {
             state.done = true;
             reject(new Error('canceled'));

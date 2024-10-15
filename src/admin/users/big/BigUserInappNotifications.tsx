@@ -4,7 +4,6 @@ import { CrudItemBlock } from '../../crud/CrudItemBlock';
 import styles from './BigUserInappNotifications.module.css';
 import { CrudFetcherKeyMap, convertUsingKeymap } from '../../crud/CrudFetcher';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
-import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { AdminDashboardLargeChartPlaceholder } from '../../dashboard/AdminDashboardLargeChartPlaceholder';
 import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
@@ -12,6 +11,7 @@ import { ModalWrapper } from '../../../shared/ModalWrapper';
 import { CrudFormElement } from '../../crud/CrudFormElement';
 import buttonStyles from '../../../shared/buttons.module.css';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 type Session = {
   uid: string;
@@ -61,7 +61,7 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
     { sub: string; actions: SessionWithActions[] } | undefined
   >(undefined);
   const [activeSession, setActiveSession] = useState<SessionWithActions | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
 
   useValueWithCallbacksEffect(
     loginContextRaw.value,
@@ -84,36 +84,41 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
         };
 
         async function fetchSessionsInner() {
-          const response = await apiFetch(
-            '/api/1/notifications/inapp/search_sessions',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-              },
-              body: JSON.stringify({
-                filters: {
-                  user_sub: {
-                    operator: 'eq',
-                    value: user.sub,
-                  },
+          let response;
+          try {
+            response = await apiFetch(
+              '/api/1/notifications/inapp/search_sessions',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
                 },
-                sort: [
-                  {
-                    key: 'created_at',
-                    dir: 'desc',
-                    before: null,
-                    after: null,
+                body: JSON.stringify({
+                  filters: {
+                    user_sub: {
+                      operator: 'eq',
+                      value: user.sub,
+                    },
                   },
-                ],
-                limit: 15,
-              }),
-            },
-            loginContext
-          );
+                  sort: [
+                    {
+                      key: 'created_at',
+                      dir: 'desc',
+                      before: null,
+                      after: null,
+                    },
+                  ],
+                  limit: 15,
+                }),
+              },
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'fetch sessions');
+          }
 
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'fetch sessions');
           }
 
           const data: { items: any[] } = await response.json();
@@ -134,7 +139,10 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
           try {
             await fetchSessionsInner();
           } catch (e) {
-            const err = await describeError(e);
+            const err =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch sessions', `${e}`);
             if (active) {
               setError(err);
             }
@@ -173,36 +181,41 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
             return;
           }
 
-          const response = await apiFetch(
-            '/api/1/notifications/inapp/search_actions',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-              },
-              body: JSON.stringify({
-                filters: {
-                  inapp_notification_user_uid: {
-                    operator: 'eq',
-                    value: activeSession.session.uid,
-                  },
+          let response;
+          try {
+            response = await apiFetch(
+              '/api/1/notifications/inapp/search_actions',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
                 },
-                sort: [
-                  {
-                    key: 'created_at',
-                    dir: 'asc',
-                    before: null,
-                    after: null,
+                body: JSON.stringify({
+                  filters: {
+                    inapp_notification_user_uid: {
+                      operator: 'eq',
+                      value: activeSession.session.uid,
+                    },
                   },
-                ],
-                limit: 25,
-              }),
-            },
-            loginContext
-          );
+                  sort: [
+                    {
+                      key: 'created_at',
+                      dir: 'asc',
+                      before: null,
+                      after: null,
+                    },
+                  ],
+                  limit: 25,
+                }),
+              },
+              loginContext
+            );
+          } catch {
+            throw new DisplayableError('connectivity', 'fetch actions');
+          }
 
           if (!response.ok) {
-            throw response;
+            throw chooseErrorFromStatus(response.status, 'fetch actions');
           }
 
           const data: { items: any[] } = await response.json();
@@ -234,7 +247,10 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
           try {
             await fetchActionsInner();
           } catch (e) {
-            const err = await describeError(e);
+            const err =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch actions', `${e}`);
             if (active) {
               setError(err);
               setActiveSession(null);
@@ -316,7 +332,7 @@ export const BigUserInappNotifications = ({ user }: { user: User }): ReactElemen
 
   return (
     <CrudItemBlock title="In-App Notifications" controls={null}>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {error && <BoxError error={error} />}
 
       {sessions && sessions.actions.length === 0 && (
         <div className={styles.noSessions}>No sessions found</div>

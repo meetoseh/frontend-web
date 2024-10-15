@@ -4,11 +4,11 @@ import { JourneySubcategory } from './JourneySubcategory';
 import styles from './CreateJourneySubcategory.module.css';
 import { TextInput } from '../../../shared/forms/TextInput';
 import { Button } from '../../../shared/forms/Button';
-import { describeErrorFromResponse, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { keyMap } from './JourneySubcategories';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 type CreateJourneySubcategoryProps = {
   /**
@@ -30,18 +30,27 @@ export const CreateJourneySubcategory = ({
     str: '0.00',
     num: 0,
   });
-  const [error, setError] = useState<ReactElement | null>();
+  const [error, setError] = useState<DisplayableError | null>();
   const [saving, setSaving] = useState(false);
 
   const save = useCallback(async () => {
     const loginContextUnch = loginContextRaw.value.get();
     if (loginContextUnch.state !== 'logged-in') {
+      setError(
+        new DisplayableError(
+          'server-refresh-required',
+          'create journey subcategory',
+          'not logged in'
+        )
+      );
       return;
     }
     const loginContext = loginContextUnch;
 
     if (bias.num === undefined) {
-      setError(<>Bias must be a number.</>);
+      setError(
+        new DisplayableError('client', 'create journey subcategory', 'bias is not a number')
+      );
       return;
     }
 
@@ -65,15 +74,12 @@ export const CreateJourneySubcategory = ({
           },
           loginContext
         );
-      } catch (e) {
-        console.error(e);
-        setError(<>Could not connect to server. Check your internet connection.</>);
-        return;
+      } catch {
+        throw new DisplayableError('connectivity', 'create journey subcategory');
       }
 
       if (!response.ok) {
-        setError(await describeErrorFromResponse(response));
-        return;
+        throw chooseErrorFromStatus(response.status, 'create journey subcategory');
       }
 
       const data = await response.json();
@@ -82,6 +88,13 @@ export const CreateJourneySubcategory = ({
       setInternalName('');
       setExternalName('');
       setBias({ str: '0.00', num: 0 });
+    } catch (e) {
+      console.error(e);
+      setError(
+        e instanceof DisplayableError
+          ? e
+          : new DisplayableError('client', 'create journey subcategory', `${e}`)
+      );
     } finally {
       setSaving(false);
     }
@@ -134,7 +147,7 @@ export const CreateJourneySubcategory = ({
           html5Validation={{ required: true, min: 0, step: 0.01 }}
           type="number"
         />
-        {error && <ErrorBlock>{error}</ErrorBlock>}
+        {error && <BoxError error={error} />}
         <div className={styles.submitContainer}>
           <Button disabled={saving} type="submit">
             Create

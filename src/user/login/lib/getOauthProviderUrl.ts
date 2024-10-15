@@ -1,4 +1,5 @@
 import { HTTP_API_URL } from '../../../shared/ApiConstants';
+import { chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 /**
  * Switches urls to go to the /dev_login page instead of the hosted ui
@@ -13,19 +14,28 @@ export const getOauthProviderUrl = async (provider: string): Promise<string> => 
     return '/dev_login';
   }
 
-  const response = await fetch(HTTP_API_URL + '/api/1/oauth/prepare', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify({
-      provider: provider,
-      refresh_token_desired: true,
-    }),
-  });
-
-  if (!response.ok) {
-    throw response;
+  let response;
+  try {
+    response = await fetch(HTTP_API_URL + '/api/1/oauth/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({
+        provider: provider,
+        refresh_token_desired: true,
+      }),
+    });
+  } catch {
+    throw new DisplayableError('connectivity', `prepare ${provider}`);
   }
 
-  const data = await response.json();
-  return data.url;
+  if (!response.ok) {
+    throw chooseErrorFromStatus(response.status, `prepare ${provider}`);
+  }
+
+  try {
+    const data = await response.json();
+    return data.url;
+  } catch {
+    throw new DisplayableError('connectivity', `prepare ${provider}`);
+  }
 };

@@ -4,6 +4,7 @@ import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createV
 import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
 import { createCancelableTimeout } from '../../../../shared/lib/createCancelableTimeout';
+import { DisplayableError } from '../../../../shared/lib/errors';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
 import { mapCancelable } from '../../../../shared/lib/mapCancelable';
 import { SCREEN_VERSION } from '../../../../shared/lib/screenVersion';
@@ -68,7 +69,7 @@ export const JournalReflectionLargeScreen: OsehScreen<
           data: createWritableValueWithCallbacks({
             type: 'error',
             data: undefined,
-            error: <>Journal entry not provided by server</>,
+            error: new DisplayableError('server-refresh-required', 'refresh journal'),
             retryAt: undefined,
           }),
           release: () => {},
@@ -86,7 +87,11 @@ export const JournalReflectionLargeScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'refresh journal',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,
@@ -103,7 +108,7 @@ export const JournalReflectionLargeScreen: OsehScreen<
                 ? {
                     type: 'error',
                     data: undefined,
-                    error: <>Journal entry not provided by server</>,
+                    error: new DisplayableError('server-refresh-required', 'refresh journal'),
                     retryAt: undefined,
                   }
                 : {

@@ -7,8 +7,8 @@ import styles from './AudioFileChoice.module.css';
 import { setVWC } from '../../lib/setVWC';
 import { useOsehTranscriptValueWithCallbacks } from '../../transcripts/useOsehTranscriptValueWithCallbacks';
 import { InlineOsehSpinner } from '../../components/InlineOsehSpinner';
-import { ErrorBlock } from '../../forms/ErrorBlock';
 import { Button } from '../../forms/Button';
+import { BoxError } from '../../lib/errors';
 
 export type AudioFileChoiceProps = {
   /**
@@ -71,7 +71,7 @@ export const AudioFileChoice = ({
             );
           }
           if (transcript.type === 'error') {
-            return <ErrorBlock>{transcript.error}</ErrorBlock>;
+            return <BoxError error={transcript.error} />;
           }
 
           const phrases = transcript.transcript.phrases;

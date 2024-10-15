@@ -7,7 +7,6 @@ import { DashboardTable, DashboardTableProps } from '../../dashboard/subComponen
 import { Button } from '../../../shared/forms/Button';
 import { apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
-import { ErrorBlock, describeError } from '../../../shared/forms/ErrorBlock';
 import { ModalContext, addModalWithCallbackToRemove } from '../../../shared/contexts/ModalContext';
 import { ModalWrapper } from '../../../shared/ModalWrapper';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
@@ -16,6 +15,7 @@ import { useValuesWithCallbacksEffect } from '../../../shared/hooks/useValuesWit
 import { RenderGuardedComponent } from '../../../shared/components/RenderGuardedComponent';
 import { Checkbox } from '../../../shared/forms/Checkbox';
 import { setVWC } from '../../../shared/lib/setVWC';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 type Instructor = {
   uid: string;
@@ -126,7 +126,7 @@ type AnalyzeResponse = {
 export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const modalContext = useContext(ModalContext);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [emotions, setEmotions] = useState<string[]>(() => ['calm']);
   const [emotion, setEmotion] = useState('calm');
   const [analyzeResponse, setAnalyzeResponse] = useState<AnalyzeResponse | null>(null);
@@ -210,15 +210,20 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
       };
 
       async function analyzeInner() {
-        const response = await apiFetch(
-          `/api/1/personalization/analyze?emotion=${encodeURIComponent(
-            emotion
-          )}&user_sub=${encodeURIComponent(user.sub)}&premium=${premium}`,
-          { method: 'GET' },
-          loginContext
-        );
+        let response;
+        try {
+          response = await apiFetch(
+            `/api/1/personalization/analyze?emotion=${encodeURIComponent(
+              emotion
+            )}&user_sub=${encodeURIComponent(user.sub)}&premium=${premium}`,
+            { method: 'GET' },
+            loginContext
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'analyze');
+        }
         if (!response.ok) {
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'analyze');
         }
 
         const data: AnalyzeResponse = await response.json();
@@ -232,7 +237,8 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
         try {
           await analyzeInner();
         } catch (e) {
-          const err = await describeError(e);
+          const err =
+            e instanceof DisplayableError ? e : new DisplayableError('client', 'analyze', `${e}`);
           if (active) {
             setError(err);
             setAnalyzeResponse(null);
@@ -465,7 +471,7 @@ export const BigUserSuggestionFlow = ({ user }: { user: User }): ReactElement =>
 
   return (
     <CrudItemBlock title="Content Personalization Inspect Tool" controls={null}>
-      {error && <ErrorBlock>{error}</ErrorBlock>}
+      {error && <BoxError error={error} />}
       <div className={styles.explanation}>
         This tool allows deep inspection of how content is surfaced to this user. Currently, users
         are shown a selection of emotions based on how much content we have for each emotion and

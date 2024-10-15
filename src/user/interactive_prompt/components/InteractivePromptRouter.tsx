@@ -1,5 +1,4 @@
 import { MutableRefObject, ReactElement } from 'react';
-import { ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import {
   InteractiveColorPrompt,
   InteractiveNumericPrompt,
@@ -11,6 +10,7 @@ import { CountdownTextConfig } from './CountdownText';
 import { NumericPrompt } from './NumericPrompt';
 import { WordPrompt } from './WordPrompt';
 import { PromptOnFinished } from '../models/PromptOnFinished';
+import { BoxError, DisplayableError } from '../../../shared/lib/errors';
 
 type InteractivePromptRouterPropsBase<R> = {
   /**
@@ -111,5 +111,5 @@ export const InteractivePromptRouter = (props: InteractivePromptRouterProps): Re
     return <ColorPrompt {...props} />;
   }
 
-  return <ErrorBlock>This prompt is not supported on this platform yet.</ErrorBlock>;
+  return <BoxError error={new DisplayableError('client', 'show prompt', 'not supported')} />;
 };

@@ -5,10 +5,10 @@ import { useWindowSize } from '../../shared/hooks/useWindowSize';
 import { Button } from '../../shared/forms/Button';
 import { SplashScreen } from '../splash/SplashScreen';
 import { LoginContext } from '../../shared/contexts/LoginContext';
-import { ErrorBlock, describeError } from '../../shared/forms/ErrorBlock';
 import { apiFetch } from '../../shared/ApiConstants';
 import { useOsehImageStateRequestHandler } from '../../shared/images/useOsehImageStateRequestHandler';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, DisplayableError } from '../../shared/lib/errors';
 
 /**
  * The screen for associating a checkout, previously made by a guest, to a user.
@@ -21,7 +21,7 @@ export const CourseAttachScreen = (): ReactElement => {
   const windowSize = useWindowSize();
   const imageHandler = useOsehImageStateRequestHandler({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
 
   const handled = useRef(false);
   useValueWithCallbacksEffect(
@@ -53,13 +53,7 @@ export const CourseAttachScreen = (): ReactElement => {
         const activatedCourse: { session: string; slug: string } | null =
           activatedCourseRaw === null ? null : JSON.parse(activatedCourseRaw);
         if (activatedCourse === null || typeof activatedCourse.session !== 'string') {
-          setError(
-            <div>
-              The required information for attaching your course is not available. If you have
-              already attached the course, simply continue to oseh.io - otherwise, please contact us
-              at <a href="mailto:hi@oseh.com">hi@oseh.com</a>.
-            </div>
-          );
+          setError(new DisplayableError('client', 'attach course', 'information missing'));
           return;
         }
 
@@ -88,7 +82,10 @@ export const CourseAttachScreen = (): ReactElement => {
           await attachCourseInner();
         } catch (e) {
           console.log('Error attaching the course to the user: ', e);
-          const err = await describeError(e);
+          const err =
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'attach course', `${e}`);
           if (active) {
             setError(err);
           }
@@ -123,7 +120,7 @@ export const CourseAttachScreen = (): ReactElement => {
         <div className={styles.primaryContainer}>
           {error !== null ? (
             <div style={{ marginBottom: '40px' }}>
-              <ErrorBlock>{error}</ErrorBlock>
+              <BoxError error={error} />
             </div>
           ) : (
             <>

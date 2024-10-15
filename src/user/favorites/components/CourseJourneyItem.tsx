@@ -1,7 +1,6 @@
-import { ReactElement, useCallback, useContext, useEffect } from 'react';
+import { useCallback, useContext, useEffect } from 'react';
 import { IconButton } from '../../../shared/forms/IconButton';
 import styles from './CourseJourneyItem.module.css';
-import { describeError } from '../../../shared/forms/ErrorBlock';
 import { HTTP_API_URL, apiFetch } from '../../../shared/ApiConstants';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { textOverflowEllipses } from '../../../shared/lib/calculateKerningLength';
@@ -22,6 +21,7 @@ import { ModalContext } from '../../../shared/contexts/ModalContext';
 import { adaptValueWithCallbacksAsVariableStrategyProps } from '../../../shared/lib/adaptValueWithCallbacksAsVariableStrategyProps';
 import { createValueWithCallbacksEffect } from '../../../shared/hooks/createValueWithCallbacksEffect';
 import { VerticalSpacer } from '../../../shared/components/VerticalSpacer';
+import { DisplayableError } from '../../../shared/lib/errors';
 
 type HistoryItemProps = {
   /**
@@ -144,7 +144,7 @@ export const CourseJourneyItem = ({
   );
 
   const downloadingVWC = useWritableValueWithCallbacks<boolean>(() => false);
-  const downloadErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const downloadErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const onDownload = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
@@ -152,7 +152,10 @@ export const CourseJourneyItem = ({
 
       const loginContextUnch = loginContextRaw.value.get();
       if (loginContextUnch.state !== 'logged-in') {
-        setVWC(downloadErrorVWC, <>You must be logged in to download</>);
+        setVWC(
+          downloadErrorVWC,
+          new DisplayableError('server-refresh-required', 'download journey', 'not logged in')
+        );
         return;
       }
       const loginContext = loginContextUnch;
@@ -234,7 +237,10 @@ export const CourseJourneyItem = ({
         }
 
         if (bestExport === null) {
-          setVWC(downloadErrorVWC, <>No suitable export found</>);
+          setVWC(
+            downloadErrorVWC,
+            new DisplayableError('client', 'download journey', 'no suitable export found')
+          );
           return;
         }
 
@@ -323,7 +329,8 @@ export const CourseJourneyItem = ({
         });
       } catch (e) {
         console.log('error:', e);
-        const err = await describeError(e);
+        const err =
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'download', `${e}`);
         setVWC(downloadErrorVWC, err);
       } finally {
         setVWC(downloadingVWC, false);
@@ -341,7 +348,7 @@ export const CourseJourneyItem = ({
   );
 
   const modalContext = useContext(ModalContext);
-  useErrorModal(modalContext.modals, downloadErrorVWC, 'CourseJourneyItem download');
+  useErrorModal(modalContext.modals, downloadErrorVWC);
 
   const workingVWC = useMappedValuesWithCallbacks(
     [likingVWC, downloadingVWC],

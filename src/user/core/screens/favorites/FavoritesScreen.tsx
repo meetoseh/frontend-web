@@ -19,6 +19,7 @@ import {
   FavoritesListRequest,
   createFavoritesListRequest,
 } from './lib/createFavoritesListRequestHandler';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * Allows the user to see their favorited classes
@@ -51,7 +52,11 @@ export const FavoritesScreen: OsehScreen<
               promise: Promise.resolve({
                 type: 'expired',
                 data: undefined,
-                error: <>Screen is not mounted</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get favorites',
+                  'screen is not mounted'
+                ),
                 retryAt: undefined,
               }),
               done: () => true,

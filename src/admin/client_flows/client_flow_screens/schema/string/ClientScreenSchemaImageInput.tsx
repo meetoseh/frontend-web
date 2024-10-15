@@ -16,8 +16,8 @@ import { ModalContext } from '../../../../../shared/contexts/ModalContext';
 import { setVWC } from '../../../../../shared/lib/setVWC';
 import { showClientFlowImageUploader } from '../../../images/showClientFlowImageUploader';
 import { LoginContext } from '../../../../../shared/contexts/LoginContext';
-import { ErrorBlock } from '../../../../../shared/forms/ErrorBlock';
 import { useMappedValuesWithCallbacks } from '../../../../../shared/hooks/useMappedValuesWithCallbacks';
+import { BoxError, DisplayableError } from '../../../../../shared/lib/errors';
 
 /**
  * Allows the user to select or upload an image to fill a string prop.
@@ -212,10 +212,20 @@ const Content = (props: ClientScreenSchemaInputProps): ReactElement => {
             }))}
             component={({ image, preview }) => {
               if (image.type === 'error') {
-                return <ErrorBlock>{image.error}</ErrorBlock>;
+                return <BoxError error={image.error} />;
               }
               if (image.type === 'unavailable') {
-                return <ErrorBlock>Image is invalid or in the wrong list</ErrorBlock>;
+                return (
+                  <BoxError
+                    error={
+                      new DisplayableError(
+                        'server-not-retryable',
+                        'show image',
+                        'image is invalid or in the wrong list'
+                      )
+                    }
+                  />
+                );
               }
               if (image.type !== 'success') {
                 return <></>;

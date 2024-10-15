@@ -1,6 +1,5 @@
 import { ReactElement, useCallback, useContext, useEffect, useState } from 'react';
 import { Button } from '../../../shared/forms/Button';
-import { describeError, ErrorBlock } from '../../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../../shared/contexts/LoginContext';
 import { CrudCreateBlock } from '../../crud/CrudCreateBlock';
 import { Journey } from '../Journey';
@@ -12,6 +11,7 @@ import { convertUsingKeymap } from '../../crud/CrudFetcher';
 import { keyMap as introductoryJourneyKeyMap } from './IntroductoryJourney';
 import { CompactJourney } from '../CompactJourney';
 import { OsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../../shared/lib/errors';
 
 type CreateIntroductoryJourneyProps = {
   /**
@@ -36,7 +36,7 @@ export const CreateIntroductoryJourney = ({
 }: CreateIntroductoryJourneyProps): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const [valid, setValid] = useState(false);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [saving, setSaving] = useState(false);
   const [journey, setJourney] = useState<Journey | null>(null);
   const [query, setQuery] = useState('');
@@ -62,20 +62,25 @@ export const CreateIntroductoryJourney = ({
       setError(null);
       setSaving(true);
       try {
-        const response = await apiFetch(
-          '/api/1/journeys/introductory/',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              journey_uid: journey.uid,
-            }),
-          },
-          loginContext
-        );
+        let response;
+        try {
+          response = await apiFetch(
+            '/api/1/journeys/introductory/',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                journey_uid: journey.uid,
+              }),
+            },
+            loginContext
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'save journey');
+        }
 
         if (!response.ok) {
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'save journey');
         }
 
         const data = await response.json();
@@ -84,7 +89,9 @@ export const CreateIntroductoryJourney = ({
         setJourney(null);
         setQuery('');
       } catch (e) {
-        setError(await describeError(e));
+        setError(
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'save journey', `${e}`)
+        );
       } finally {
         setSaving(false);
       }
@@ -121,7 +128,7 @@ export const CreateIntroductoryJourney = ({
             </div>
           )}
         </div>
-        {error && <ErrorBlock>{error}</ErrorBlock>}
+        {error && <BoxError error={error} />}
         <Button type="submit" disabled={saving || !valid}>
           Create
         </Button>

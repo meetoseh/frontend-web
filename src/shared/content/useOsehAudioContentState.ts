@@ -1,4 +1,3 @@
-import { ReactElement } from 'react';
 import { OsehContentTarget } from './OsehContentTarget';
 import {
   Callbacks,
@@ -18,7 +17,7 @@ import {
 } from './OsehMediaContentState';
 import { useValueWithCallbacksEffect } from '../hooks/useValueWithCallbacksEffect';
 import { setVWC } from '../lib/setVWC';
-import { describeError } from '../forms/ErrorBlock';
+import { DisplayableError } from '../lib/errors';
 
 /**
  * Loads the specified audio target and returns a state object which can be used
@@ -191,7 +190,8 @@ export const useOsehAudioContentState = (
           return;
         }
 
-        const err = await describeError(e);
+        const err =
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'get audio', `${e}`);
         if (activeVWC.get()) {
           setVWC(result, makeErrorState(err), () => false);
         }
@@ -215,7 +215,7 @@ const makeLoadingState = (): OsehMediaContentStateLoading => ({
   element: null,
 });
 
-const makeErrorState = (error: ReactElement): OsehMediaContentStateError => ({
+const makeErrorState = (error: DisplayableError): OsehMediaContentStateError => ({
   state: 'error',
   loaded: false,
   error,

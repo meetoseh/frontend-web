@@ -12,13 +12,13 @@ import { adaptActiveVWCToAbortSignal } from '../../../../shared/lib/adaptActiveV
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { convertUsingMapper } from '../../../crud/CrudFetcher';
 import { emailImageKeyMap } from '../../models/EmailImage';
-import { ErrorBlock } from '../../../../shared/forms/ErrorBlock';
 import { OsehImage } from '../../../../shared/images/OsehImage';
 import { Button } from '../../../../shared/forms/Button';
 import { showEmailImageSelector } from '../../lib/showEmailImageSelector';
 import { showEmailImageUploader } from '../../lib/showEmailImageUploader';
 import { LoginContext } from '../../../../shared/contexts/LoginContext';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
+import { BoxError, DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * Allows the user to input a fixed or formatted (python curly brackets style,
@@ -145,10 +145,20 @@ const Content = ({
             props={imageNR}
             component={(image) => {
               if (image.type === 'error') {
-                return <ErrorBlock>{image.error}</ErrorBlock>;
+                return <BoxError error={image.error} />;
               }
               if (image.type === 'unavailable') {
-                return <ErrorBlock>Image is unset, invalid, or is not the correct size</ErrorBlock>;
+                return (
+                  <BoxError
+                    error={
+                      new DisplayableError(
+                        'client',
+                        'show image',
+                        'unset, invalid, or not the correct size'
+                      )
+                    }
+                  />
+                );
               }
               if (image.type !== 'success') {
                 return <></>;

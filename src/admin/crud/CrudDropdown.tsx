@@ -8,7 +8,6 @@ import React, {
   useState,
 } from 'react';
 import { apiFetch } from '../../shared/ApiConstants';
-import { describeError, ErrorBlock } from '../../shared/forms/ErrorBlock';
 import { LoginContext } from '../../shared/contexts/LoginContext';
 import {
   CrudFetcherFilter,
@@ -19,6 +18,7 @@ import {
 import styles from './CrudDropdown.module.css';
 import assistiveStyles from '../../shared/assistive.module.css';
 import { useValueWithCallbacksEffect } from '../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 type CrudDropdownProps<T extends { uid: string }> = {
   /**
@@ -126,7 +126,7 @@ export function CrudDropdown<T extends { uid: string }>({
   const [items, setItems] = useState<T[]>([]);
   const [fetchedItems, setFetchedItems] = useState(false);
   const [wantLoad, setWantLoad] = useState(loadOn === 'eager');
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
   const [choice, setChoice] = useState<T | null>(null);
 
   useEffect(() => {
@@ -196,27 +196,32 @@ export function CrudDropdown<T extends { uid: string }>({
             let nextSort = sort;
             const newItems = [];
             while (true) {
-              const response = await apiFetch(
-                path,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json; charset=utf-8',
+              let response;
+              try {
+                response = await apiFetch(
+                  path,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json; charset=utf-8',
+                    },
+                    body: JSON.stringify({
+                      filters: apiFilter ?? {},
+                      sort: nextSort,
+                      limit,
+                    }),
                   },
-                  body: JSON.stringify({
-                    filters: apiFilter ?? {},
-                    sort: nextSort,
-                    limit,
-                  }),
-                },
-                loginContext
-              );
+                  loginContext
+                );
+              } catch {
+                throw new DisplayableError('connectivity', 'fetch dropdown items');
+              }
               if (!active) {
                 return;
               }
 
               if (!response.ok) {
-                throw response;
+                throw chooseErrorFromStatus(response.status, 'fetch dropdown items');
               }
 
               const data: { items: any[]; next_page_sort: CrudFetcherSort | null } =
@@ -277,7 +282,8 @@ export function CrudDropdown<T extends { uid: string }>({
             if (!active) {
               return;
             }
-            const err = await describeError(e);
+            const err =
+              e instanceof DisplayableError ? e : new DisplayableError('client', 'fetch', `${e}`);
             if (!active) {
               return;
             }
@@ -372,7 +378,7 @@ export function CrudDropdown<T extends { uid: string }>({
 
       {focused && error !== null && !disabled && (
         <div className={styles.errorContainer}>
-          <ErrorBlock>{error}</ErrorBlock>
+          <BoxError error={error} />
         </div>
       )}
     </div>

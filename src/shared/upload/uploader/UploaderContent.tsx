@@ -14,7 +14,6 @@ import {
 } from '../../contexts/LoginContext';
 import { RenderGuardedComponent } from '../../components/RenderGuardedComponent';
 import { setVWC } from '../../lib/setVWC';
-import { ErrorBlock, describeError } from '../../forms/ErrorBlock';
 import { combineClasses } from '../../lib/combineClasses';
 import { InlineOsehSpinner } from '../../components/InlineOsehSpinner';
 import { computeFileSha512 } from '../../computeFileSha512';
@@ -31,6 +30,7 @@ import {
 import { waitForValueWithCallbacksConditionCancelable } from '../../lib/waitForValueWithCallbacksCondition';
 import { createMappedValueWithCallbacks } from '../../hooks/useMappedValueWithCallbacks';
 import { createMappedValuesWithCallbacks } from '../../hooks/useMappedValuesWithCallbacks';
+import { BoxError, DisplayableError } from '../../lib/errors';
 
 export type UploaderContentProps<T extends object> = {
   /**
@@ -140,7 +140,7 @@ type UploadStateStart = { type: 'start'; file: File; sha512: string };
 type UploadStateUpload = { type: 'upload'; file: File; sha512: string; info: UploadInfo };
 type UploadStateProcess = { type: 'process'; sha512: string; job: JobRef };
 type UploadStatePoll = { type: 'poll'; sha512: string; startedAt: Date; timeoutSeconds: number };
-type UploadStateError = { type: 'error'; error: ReactElement };
+type UploadStateError = { type: 'error'; error: DisplayableError };
 type UploadStateComplete<T extends object> = { type: 'complete'; item: T };
 type UploadState<T extends object> =
   | UploadStateHash
@@ -185,13 +185,13 @@ const transitionFromPick = async <T extends object>(
   if (ctx.loginContextRaw.value.get().state !== 'logged-in') {
     return {
       type: 'error',
-      error: <>not logged in</>,
+      error: new DisplayableError('server-refresh-required', 'select file', 'not logged in'),
     };
   }
   if (ctx.signal?.aborted) {
     return {
       type: 'error',
-      error: <>aborted</>,
+      error: new DisplayableError('canceled', 'select file'),
     };
   }
   return { type: 'hash', file };
@@ -215,7 +215,7 @@ const transitionFromHash = async <T extends object>(
     const sha512 = await computeFileSha512(state.file, hashed, ctx.signal);
     return { type: 'dedup', file: state.file, sha512 };
   } catch (e) {
-    return { type: 'error', error: <>Error hashing file: {`${e}`}</> };
+    return { type: 'error', error: new DisplayableError('client', 'hash file', `${e}`) };
   }
 };
 
@@ -249,10 +249,19 @@ const transitionFromDedup = async <T extends object>(
     }
   } catch (e) {
     if (ctx.signal?.aborted) {
-      return { type: 'error', error: <>aborted</> };
+      return {
+        type: 'error',
+        error: new DisplayableError('canceled', 'check if already uploaded'),
+      };
     }
 
-    return { type: 'error', error: await describeError(e) };
+    return {
+      type: 'error',
+      error:
+        e instanceof DisplayableError
+          ? e
+          : new DisplayableError('client', 'check if already uploaded', `${e}`),
+    };
   }
 };
 
@@ -262,7 +271,10 @@ const transitionFromStart = async <T extends object>(
 ): Promise<UploadStateUpload | UploadStateError> => {
   const loginContextUnch = ctx.loginContextRaw.value.get();
   if (loginContextUnch.state !== 'logged-in') {
-    return { type: 'error', error: <>not logged in</> };
+    return {
+      type: 'error',
+      error: new DisplayableError('server-refresh-required', 'start upload', 'not logged in'),
+    };
   }
   const loginContext = loginContextUnch;
 
@@ -298,10 +310,14 @@ const transitionFromStart = async <T extends object>(
     return { type: 'upload', file: state.file, sha512: state.sha512, info };
   } catch (e) {
     if (ctx.signal?.aborted) {
-      return { type: 'error', error: <>aborted</> };
+      return { type: 'error', error: new DisplayableError('canceled', 'start upload') };
     }
 
-    return { type: 'error', error: await describeError(e) };
+    return {
+      type: 'error',
+      error:
+        e instanceof DisplayableError ? e : new DisplayableError('client', 'start upload', `${e}`),
+    };
   }
 };
 
@@ -427,7 +443,7 @@ const transitionFromUpload = async <T extends object>(
 
   const finalState = handler.state.get();
   if (finalState === 'error') {
-    return { type: 'error', error: <>upload failed</> };
+    return { type: 'error', error: new DisplayableError('client', 'upload') };
   }
 
   if (state.info.progress !== undefined) {
@@ -459,10 +475,10 @@ const transitionFromProcess = async <T extends object>(
       if (job.result === false) {
         return {
           type: 'error',
-          error: (
-            <>
-              processing failed (job {job.name}, last message: {job.progress.message})
-            </>
+          error: new DisplayableError(
+            'server-not-retryable',
+            'wait for processing',
+            `processing failed (job ${job.name}, last message: ${job.progress.message})`
           ),
         };
       }
@@ -470,10 +486,16 @@ const transitionFromProcess = async <T extends object>(
     return { type: 'poll', sha512: state.sha512, startedAt: new Date(), timeoutSeconds: 600 };
   } catch (e) {
     if (ctx.signal?.aborted) {
-      return { type: 'error', error: <>aborted</> };
+      return { type: 'error', error: new DisplayableError('canceled', 'wait for processing') };
     }
 
-    return { type: 'error', error: await describeError(e) };
+    return {
+      type: 'error',
+      error:
+        e instanceof DisplayableError
+          ? e
+          : new DisplayableError('client', 'wait for processing', `${e}`),
+    };
   } finally {
     ctx.signal?.removeEventListener('abort', prog.cancel);
   }
@@ -501,7 +523,7 @@ const transitionFromPoll = async <T extends object>(
 
   while (true) {
     if (ctx.signal?.aborted) {
-      return { type: 'error', error: <>aborted</> };
+      return { type: 'error', error: new DisplayableError('canceled', 'poll for completion') };
     }
 
     pollTimes++;
@@ -529,17 +551,26 @@ const transitionFromPoll = async <T extends object>(
       }
     } catch (e) {
       if (ctx.signal?.aborted) {
-        return { type: 'error', error: <>aborted</> };
+        return { type: 'error', error: new DisplayableError('canceled', 'poll for completion') };
       }
 
       consecutiveErrors++;
       if (consecutiveErrors > 5) {
-        return { type: 'error', error: await describeError(e) };
+        return {
+          type: 'error',
+          error:
+            e instanceof DisplayableError
+              ? e
+              : new DisplayableError('client', 'poll for completion', `${e}`),
+        };
       }
     }
 
     if (Date.now() > endTimeMS) {
-      return { type: 'error', error: <>poll timeout</> };
+      return {
+        type: 'error',
+        error: new DisplayableError('server-retryable', 'poll for completion', 'timeout reached'),
+      };
     }
 
     setMainJobMsg(ctx, {
@@ -602,7 +633,7 @@ export const UploaderContent = <T extends object>({
 }: UploaderContentProps<T>): ReactElement => {
   const loginContextRaw = useContext(LoginContext);
   const managing = useWritableValueWithCallbacks<boolean>(() => false);
-  const error = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const error = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const progress = useWritableValueWithCallbacks<JobProgress>(
     () => new OrderedDictionary<Job, 'uid', 'startedAt'>('uid', 'startedAt')
   );
@@ -682,7 +713,7 @@ export const UploaderContent = <T extends object>({
           if (err === null) {
             return <></>;
           }
-          return <ErrorBlock>{err}</ErrorBlock>;
+          return <BoxError error={err} />;
         }}
       />
     </div>

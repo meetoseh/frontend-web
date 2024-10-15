@@ -25,7 +25,6 @@ import { useValueWithCallbacksEffect } from '../../../../shared/hooks/useValueWi
 import { setVWC } from '../../../../shared/lib/setVWC';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { apiFetch } from '../../../../shared/ApiConstants';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { BackContinue } from '../../../../shared/components/BackContinue';
 import { SetNameResources } from './SetNameResources';
 import { SetNameMappedParams } from './SetNameParams';
@@ -34,6 +33,7 @@ import { TextInput } from '../../../../shared/forms/TextInput';
 import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
 import { adaptExitTransition } from '../../lib/adaptExitTransition';
+import { chooseErrorFromStatus, DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * A basic screen where the user can configure their name
@@ -53,10 +53,10 @@ export const SetName = ({
 
   const workingVWC = useWritableValueWithCallbacks(() => false);
 
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   const savingVWC = useWritableValueWithCallbacks<boolean>(() => false);
 
-  useErrorModal(modalContext.modals, errorVWC, 'saving name');
+  useErrorModal(modalContext.modals, errorVWC);
   useWorkingModal(modalContext.modals, savingVWC, { delayStartMs: 200 });
 
   const serverNameVWC = useMappedValueWithCallbacks(ctx.login.value, (s): [string, string] => {
@@ -107,20 +107,25 @@ export const SetName = ({
       setVWC(savingVWC, true);
       setVWC(errorVWC, null);
       try {
-        const response = await apiFetch(
-          '/api/1/users/me/attributes/name',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              given_name: selected[0],
-              family_name: selected[1],
-            }),
-          },
-          loginContext
-        );
+        let response;
+        try {
+          response = await apiFetch(
+            '/api/1/users/me/attributes/name',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                given_name: selected[0],
+                family_name: selected[1],
+              }),
+            },
+            loginContext
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'save name');
+        }
         if (!response.ok) {
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'save name');
         }
         const data: { given_name: string; family_name: string } = await response.json();
         ctx.login.setUserAttributes({
@@ -131,7 +136,10 @@ export const SetName = ({
         });
         return true;
       } catch (e) {
-        setVWC(errorVWC, await describeError(e));
+        setVWC(
+          errorVWC,
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'save name', `${e}`)
+        );
         return false;
       } finally {
         setVWC(savingVWC, false);

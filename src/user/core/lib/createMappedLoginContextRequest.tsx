@@ -2,6 +2,7 @@ import { LoginContextValueLoggedIn } from '../../../shared/contexts/LoginContext
 import { createValueWithCallbacksEffect } from '../../../shared/hooks/createValueWithCallbacksEffect';
 import { createWritableValueWithCallbacks } from '../../../shared/lib/Callbacks';
 import { constructCancelablePromise } from '../../../shared/lib/CancelablePromiseConstructor';
+import { DisplayableError } from '../../../shared/lib/errors';
 import { setVWC } from '../../../shared/lib/setVWC';
 import {
   RequestHandler,
@@ -45,7 +46,7 @@ export const createMappedLoginContextRequest = <
       setVWC(dataVWC, {
         type: 'error',
         data: undefined,
-        error: <>Not logged in</>,
+        error: new DisplayableError('server-refresh-required', 'get user state', 'not logged in'),
       });
       return () => {};
     }
@@ -69,7 +70,7 @@ export const createMappedLoginContextRequest = <
               resolve({
                 type: 'error',
                 data: undefined,
-                error: <>Login context has not changed and thus cannot be refreshed</>,
+                error: new DisplayableError('server-refresh-required', 'get user state'),
                 retryAt: undefined,
               });
               return;
@@ -81,7 +82,11 @@ export const createMappedLoginContextRequest = <
               resolve({
                 type: 'error',
                 data: undefined,
-                error: <>Not logged in</>,
+                error: new DisplayableError(
+                  'server-refresh-required',
+                  'get user based data',
+                  'not logged in'
+                ),
                 retryAt: undefined,
               });
               return;

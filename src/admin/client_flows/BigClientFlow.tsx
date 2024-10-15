@@ -40,7 +40,6 @@ import { Button } from '../../shared/forms/Button';
 import { DraggableTable, DraggableTableMutationEvent } from './components/DraggableTable';
 import { createUID } from '../../shared/lib/createUID';
 import { showClientFlowScreenEditor } from './client_flow_screens/showClientFlowScreenEditor';
-import { describeError } from '../../shared/forms/ErrorBlock';
 import { showUserPicker } from '../users/showUserPicker';
 import { showTextInputModal } from '../../shared/components/showTextInputModal';
 import {
@@ -58,6 +57,7 @@ import { ClientFlowAnalysis } from './analysis/ClientFlowAnalysis';
 import { AdminDashboardLargeChartPlaceholder } from '../dashboard/AdminDashboardLargeChartPlaceholder';
 import { screenWithWorking } from '../../user/core/lib/screenWithWorking';
 import { handleClientFlowDeleteWithPopup } from './analysis/ClientFlowDeletePrechecks';
+import { chooseErrorFromStatus, DisplayableError } from '../../shared/lib/errors';
 
 /**
  * Shows detailed information about a specific client flow specified by the slug in the URL
@@ -106,12 +106,14 @@ export const BigClientFlow = (): ReactElement => {
       dependsOn: [slugVWC],
     }
   );
-  const clientFlowNRPopupErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const clientFlowNRPopupErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(
+    () => null
+  );
   useValueWithCallbacksEffect(clientFlowNR, (cf) => {
     setVWC(clientFlowNRPopupErrorVWC, cf.error);
     return undefined;
   });
-  useErrorModal(modalContext.modals, clientFlowNRPopupErrorVWC, 'loading client flow');
+  useErrorModal(modalContext.modals, clientFlowNRPopupErrorVWC);
 
   return (
     <div className={styles.container}>
@@ -219,7 +221,7 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
       }),
   });
 
-  const saveableErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const saveableErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
   useValueWithCallbacksEffect(clientFlowSaveable.state, (s) => {
     if (s.type === 'error') {
       setVWC(saveableErrorVWC, s.error);
@@ -228,7 +230,7 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
     }
     return undefined;
   });
-  useErrorModal(modalContext.modals, saveableErrorVWC, 'saving client flow');
+  useErrorModal(modalContext.modals, saveableErrorVWC);
 
   const draftVWC = useMappedValueWithCallbacks(clientFlowSaveable.state, (s) =>
     s.type === 'error' ? s.erroredValue : s.value
@@ -310,8 +312,8 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
   }, [clientFlowSaveable, screensFastTWVWC]);
   const workingVWC = useWritableValueWithCallbacks(() => false);
 
-  const testErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, testErrorVWC, 'testing client flow');
+  const testErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, testErrorVWC);
 
   const testFlow = async (dryRun: boolean, userSub?: string) => {
     const loginContextUnch = loginContextRaw.value.get();
@@ -322,27 +324,35 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
 
     const loginContext = loginContextUnch;
     const draft = draftVWC.get();
+    const action = 'test flow';
     try {
-      const response = await apiFetch(
-        '/api/1/client_flows/test_flow',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
+      let response: Response;
+      try {
+        response = await apiFetch(
+          '/api/1/client_flows/test_flow',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: JSON.stringify({
+              slug: slugVWC.get(),
+              client_parameters: draft.clientSchema.example,
+              server_parameters: draft.serverSchema.example,
+              dry_run: dryRun,
+              ...(userSub !== undefined ? { user_sub: userSub } : {}),
+            }),
           },
-          body: JSON.stringify({
-            slug: slugVWC.get(),
-            client_parameters: draft.clientSchema.example,
-            server_parameters: draft.serverSchema.example,
-            dry_run: dryRun,
-            ...(userSub !== undefined ? { user_sub: userSub } : {}),
-          }),
-        },
-        loginContext
-      );
+          loginContext
+        );
+      } catch (e) {
+        setVWC(testErrorVWC, new DisplayableError('connectivity', action));
+        return;
+      }
 
       if (!response.ok) {
-        throw response;
+        setVWC(testErrorVWC, chooseErrorFromStatus(response.status, action));
+        return;
       }
 
       await showYesNoModal(modalContext.modals, {
@@ -352,15 +362,14 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
         emphasize: 1,
       }).promise;
     } catch (e) {
-      const err = await describeError(e);
-      setVWC(testErrorVWC, err);
+      setVWC(testErrorVWC, new DisplayableError('client', action, `${e}`));
     } finally {
       setVWC(workingVWC, false);
     }
   };
 
-  const cloneErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, cloneErrorVWC, 'cloning client flow');
+  const cloneErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, cloneErrorVWC);
 
   const showingAnalysisVWC = useWritableValueWithCallbacks(() => false);
 
@@ -766,7 +775,14 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                       }
                       const data: { items: any[] } = await response.json();
                       if (data.items.length > 0) {
-                        setVWC(cloneErrorVWC, <>A flow with this slug already exists</>);
+                        setVWC(
+                          cloneErrorVWC,
+                          new DisplayableError(
+                            'server-not-retryable',
+                            'creating flow',
+                            'a flow with this slug already exists'
+                          )
+                        );
                         return;
                       }
 
@@ -839,7 +855,12 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                         window.location.href = `/admin/client_flow?slug=${slug}`;
                       }
                     } catch (e) {
-                      setVWC(cloneErrorVWC, await describeError(e));
+                      setVWC(
+                        cloneErrorVWC,
+                        e instanceof DisplayableError
+                          ? e
+                          : new DisplayableError('client', 'create flow', `${e}`)
+                      );
                     } finally {
                       setVWC(workingVWC, false);
                     }
@@ -949,7 +970,7 @@ const Inner = ({ initialClientFlow }: { initialClientFlow: ClientFlow }): ReactE
                           throw response;
                         }
                       } catch (e) {
-                        setVWC(testErrorVWC, await describeError(e));
+                        setVWC(testErrorVWC, new DisplayableError('connectivity', 'trigger flow'));
                       } finally {
                         removeOverlay();
                       }

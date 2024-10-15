@@ -26,11 +26,11 @@ import { TextInput } from '../../../../shared/forms/TextInput';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { Button } from '../../../../shared/forms/Button';
 import { useMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * Allows the user to add a phone number; they need to verify the phone number
@@ -115,8 +115,8 @@ export const AddPhone = ({
     return phone.length === 18;
   });
 
-  const errorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
-  useErrorModal(modalContext.modals, errorVWC, 'sending code to phone');
+  const errorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
+  useErrorModal(modalContext.modals, errorVWC);
 
   const timezone = useTimezone();
 
@@ -187,7 +187,10 @@ export const AddPhone = ({
                   timezone_technique: 'browser',
                 },
                 onError: async (err) => {
-                  const described = await describeError(err);
+                  const described =
+                    err instanceof DisplayableError
+                      ? new DisplayableError(err.type, 'verify phone', err.details)
+                      : new DisplayableError('client', 'verify phone', `${e}`);
                   setVWC(errorVWC, described);
                 },
               }

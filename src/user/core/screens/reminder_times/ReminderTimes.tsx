@@ -36,7 +36,6 @@ import { Back } from '../../../../shared/components/icons/Back';
 import { apiFetch } from '../../../../shared/ApiConstants';
 import { ModalContext } from '../../../../shared/contexts/ModalContext';
 import { useErrorModal } from '../../../../shared/hooks/useErrorModal';
-import { describeError } from '../../../../shared/forms/ErrorBlock';
 import { useTimezone } from '../../../../shared/hooks/useTimezone';
 import { screenWithWorking } from '../../lib/screenWithWorking';
 import { showYesNoModal } from '../../../../shared/lib/showYesNoModal';
@@ -49,6 +48,7 @@ import { screenOut } from '../../lib/screenOut';
 import { ScreenConfigurableTrigger } from '../../models/ScreenConfigurableTrigger';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
 import { OsehColors } from '../../../../shared/OsehColors';
+import { chooseErrorFromStatus, DisplayableError } from '../../../../shared/lib/errors';
 
 /**
  * Allows the user to update their notification settings
@@ -157,10 +157,10 @@ export const ReminderTimes = ({
   });
 
   const savingVWC = useWritableValueWithCallbacks<boolean>(() => false);
-  const savingErrorVWC = useWritableValueWithCallbacks<ReactElement | null>(() => null);
+  const savingErrorVWC = useWritableValueWithCallbacks<DisplayableError | null>(() => null);
 
   useWorkingModal(modalContext.modals, savingVWC, { delayStartMs: 200 });
-  useErrorModal(modalContext.modals, savingErrorVWC, 'saving');
+  useErrorModal(modalContext.modals, savingErrorVWC);
 
   const timezone = useTimezone();
 
@@ -209,7 +209,10 @@ export const ReminderTimes = ({
 
       const loginContextUnch = ctx.login.value.get();
       if (loginContextUnch.state !== 'logged-in') {
-        setVWC(savingErrorVWC, <>Not logged in</>);
+        setVWC(
+          savingErrorVWC,
+          new DisplayableError('server-refresh-required', 'store reminder times', 'not logged in')
+        );
         return false;
       }
 
@@ -217,24 +220,29 @@ export const ReminderTimes = ({
       setVWC(savingVWC, true);
       setVWC(savingErrorVWC, null);
       try {
-        const response = await apiFetch(
-          '/api/1/users/me/attributes/notification_time',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              days_of_week: savingDays,
-              time_range: { start: savingStart, end: savingEnd },
-              channel,
-              timezone,
-              timezone_technique: 'browser',
-            }),
-          },
-          loginContext
-        );
+        let response;
+        try {
+          response = await apiFetch(
+            '/api/1/users/me/attributes/notification_time',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify({
+                days_of_week: savingDays,
+                time_range: { start: savingStart, end: savingEnd },
+                channel,
+                timezone,
+                timezone_technique: 'browser',
+              }),
+            },
+            loginContext
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'store times');
+        }
 
         if (!response.ok) {
-          throw response;
+          throw chooseErrorFromStatus(response.status, 'store times');
         }
 
         ctx.resources.reminderChannelsHandler.evictOrReplace(loginContext, () => {
@@ -265,7 +273,10 @@ export const ReminderTimes = ({
         });
         return true;
       } catch (e) {
-        setVWC(savingErrorVWC, await describeError(e));
+        setVWC(
+          savingErrorVWC,
+          e instanceof DisplayableError ? e : new DisplayableError('client', 'store times', `${e}`)
+        );
         return false;
       } finally {
         setVWC(savingVWC, false);

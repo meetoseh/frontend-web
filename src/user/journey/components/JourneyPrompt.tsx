@@ -1,7 +1,6 @@
 import { MutableRefObject, ReactElement, useCallback, useState } from 'react';
 import { convertUsingKeymap } from '../../../admin/crud/CrudFetcher';
 import { apiFetch } from '../../../shared/ApiConstants';
-import { describeError } from '../../../shared/forms/ErrorBlock';
 import { LoginContextValue } from '../../../shared/contexts/LoginContext';
 import { CountdownTextConfig } from '../../interactive_prompt/components/CountdownText';
 import { InteractivePromptRouter } from '../../interactive_prompt/components/InteractivePromptRouter';
@@ -11,6 +10,7 @@ import {
 } from '../../interactive_prompt/models/InteractivePrompt';
 import { JourneyRef } from '../models/JourneyRef';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';
+import { BoxError, DisplayableError } from '../../../shared/lib/errors';
 
 type JourneyPromptProps = {
   /**
@@ -51,7 +51,7 @@ export const JourneyPrompt = ({
   leavingCallback,
 }: JourneyPromptProps): ReactElement => {
   const [interactivePrompt, setInteractivePrompt] = useState<InteractivePrompt | null>(null);
-  const [error, setError] = useState<ReactElement | null>(null);
+  const [error, setError] = useState<DisplayableError | null>(null);
 
   useValueWithCallbacksEffect(
     loginContextRaw.value,
@@ -67,11 +67,11 @@ export const JourneyPrompt = ({
         fetchPrompt().catch((e) => {
           if (active) {
             console.log('Error fetching prompt: ', e);
-            describeError(e).then((errorElement) => {
-              if (active) {
-                setError(errorElement);
-              }
-            });
+            const error =
+              e instanceof DisplayableError
+                ? e
+                : new DisplayableError('client', 'fetch prompt', `${e}`);
+            setError(error);
           }
         });
         return () => {
@@ -108,7 +108,7 @@ export const JourneyPrompt = ({
   );
 
   if (interactivePrompt === null) {
-    return error ?? <></>;
+    return error === null ? <></> : <BoxError error={error} />;
   }
 
   return (
