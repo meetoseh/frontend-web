@@ -1915,7 +1915,7 @@ async function transitionFromInitializingLocalPlay(
         return { user: raw };
       },
       retryer: 'expo-backoff-3',
-      mapper: createTypicalSmartAPIFetchMapper((v) => v, 'record audio'),
+      mapper: createTypicalSmartAPIFetchMapper({ mapJSON: (v) => v, action: 'record audio' }),
     }),
   });
 }
@@ -2152,7 +2152,7 @@ async function transitionFromUploading(
           return { user: raw };
         },
         retryer: 'forever-5',
-        mapper: createTypicalSmartAPIFetchMapper((v) => v, 'upload audio'),
+        mapper: createTypicalSmartAPIFetchMapper({ mapJSON: (v) => v, action: 'upload audio' }),
       }),
       journalClientKey: { key: await createFernet(clientKey.key), uid: clientKey.uid },
     },
@@ -2397,7 +2397,10 @@ async function transitionFromRemoteInitializing(
             return { user: userRaw };
           },
           retryer: 'expo-backoff-3',
-          mapper: createTypicalSmartAPIFetchMapper((v) => v, 'download voice note'),
+          mapper: createTypicalSmartAPIFetchMapper({
+            mapJSON: (v) => v,
+            action: 'download voice note',
+          }),
         }),
         transcript: createSmartAPIFetch({
           path: '/api/1/voice_notes/show_transcript',
@@ -2426,7 +2429,10 @@ async function transitionFromRemoteInitializing(
             return { user: userRaw };
           },
           retryer: 'expo-backoff-3',
-          mapper: createTypicalSmartAPIFetchMapper((v) => v, 'download voice note transcript'),
+          mapper: createTypicalSmartAPIFetchMapper({
+            mapJSON: (v) => v,
+            action: 'download voice note transcript',
+          }),
         }),
       },
     },

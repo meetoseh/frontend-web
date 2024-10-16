@@ -34,8 +34,7 @@ export type JourneyLikeState = {
    */
   showUnlikedUntil: ValueWithCallbacks<number | undefined>;
   /**
-   * An element as if from describeError describing the last error that occurred,
-   * if any.
+   * Describes the last error that occurred, if any.
    */
   error: ValueWithCallbacks<DisplayableError | null>;
 

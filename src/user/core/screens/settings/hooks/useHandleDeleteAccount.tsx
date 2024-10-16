@@ -40,13 +40,18 @@ export const useHandleDeleteAccount = (
       const loginContext = loginContextUnch;
 
       try {
-        const response = await apiFetch(
-          `/api/1/users/me/account?${new URLSearchParams({ force: force ? '1' : '0' })}`,
-          {
-            method: 'DELETE',
-          },
-          loginContext
-        );
+        let response;
+        try {
+          response = await apiFetch(
+            `/api/1/users/me/account?${new URLSearchParams({ force: force ? '1' : '0' })}`,
+            {
+              method: 'DELETE',
+            },
+            loginContext
+          );
+        } catch {
+          throw new DisplayableError('connectivity', 'delete account');
+        }
 
         if (!response.ok) {
           if (!force && response.status === 409) {

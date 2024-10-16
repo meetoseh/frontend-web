@@ -148,9 +148,9 @@ export const BoxError = ({
   const cta = error.prepareCTA();
   return (
     <div className={OsehStyles.layout.column} style={{ backgroundColor: OsehColors.v4.other.red }}>
+      <VerticalSpacer height={4} />
       <div className={OsehStyles.layout.row}>
-        <HorizontalSpacer width={16} />
-        <VerticalSpacer height={40} />
+        <HorizontalSpacer width={8} />
         <div
           className={combineClasses(
             OsehStyles.typography.body,
@@ -159,7 +159,11 @@ export const BoxError = ({
           {error.formatProblem()}
           {cta.handler === undefined ? ` ${cta.cta}` : ''}
         </div>
-        <HorizontalSpacer width={4} flexGrow={1} />
+        <HorizontalSpacer width={8} />
+      </div>
+      <VerticalSpacer height={8} />
+      <div className={OsehStyles.layout.row}>
+        <HorizontalSpacer width={8} />
         {cta.handler !== undefined &&
           (typeof cta.handler === 'string' ? (
             <a
@@ -201,7 +205,7 @@ export const BoxError = ({
           ))}
         {onDismiss !== undefined ? (
           <>
-            {cta.handler !== undefined && <HorizontalSpacer width={16} />}
+            <HorizontalSpacer width={0} flexGrow={1} />
             <button
               type="button"
               className={OsehStyles.unstyling.buttonAsColumn}
@@ -221,9 +225,10 @@ export const BoxError = ({
             </button>
           </>
         ) : (
-          <HorizontalSpacer width={16} />
+          <></>
         )}
       </div>
+      <VerticalSpacer height={4} />
     </div>
   );
 };

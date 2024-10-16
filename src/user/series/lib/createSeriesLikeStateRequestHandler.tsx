@@ -36,8 +36,7 @@ export type CourseLikeState = {
    */
   showUnlikedUntil: ValueWithCallbacks<number | undefined>;
   /**
-   * An element as if from describeError describing the last error that occurred,
-   * if any.
+   * The last error that occurred, if any.
    */
   error: ValueWithCallbacks<DisplayableError | null>;
 

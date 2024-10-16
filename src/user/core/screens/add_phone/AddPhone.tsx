@@ -190,7 +190,7 @@ export const AddPhone = ({
                   const described =
                     err instanceof DisplayableError
                       ? new DisplayableError(err.type, 'verify phone', err.details)
-                      : new DisplayableError('client', 'verify phone', `${e}`);
+                      : new DisplayableError('client', 'verify phone', `${err}`);
                   setVWC(errorVWC, described);
                 },
               }

@@ -107,7 +107,7 @@ const getDataFromRef = createGetDataFromRefUsingSignal<InstructorListRequest, In
       }
 
       let haveMore = false;
-      for (const [_searchKey, searchValue] of Object.entries(data.next_page_sort)) {
+      for (const searchValue of Object.values(data.next_page_sort)) {
         if (((searchValue as CrudFetcherSort[0]).after ?? null) !== null) {
           haveMore = true;
           break;

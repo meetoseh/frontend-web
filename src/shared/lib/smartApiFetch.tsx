@@ -28,7 +28,9 @@ export type SmartAPIFetchRetryer = (
   retryAfterMS: number | null
 ) => { delay: number; error?: undefined } | { delay?: undefined; error: DisplayableError };
 
-export type SmartAPIFetchRequestInit = Omit<RequestInit, 'signal'> & { signal?: undefined };
+export type SmartAPIFetchRequestInit = Omit<RequestInit, 'signal'> & {
+  signal?: undefined;
+};
 
 export type SmartAPIFetchStateInFlight<T extends {} | null> = {
   /**
@@ -442,17 +444,26 @@ export const retryerForever5: SmartAPIFetchRetryer = (d) => ({
  * retryable status codes, then interpreting the body as json, then
  * calling the provided mapper
  */
-export const createTypicalSmartAPIFetchMapper = <T extends {} | null>(
-  mapJSON: (json: any) => T,
-  action: string
-): SmartAPIFetchMapper<T> => {
+export const createTypicalSmartAPIFetchMapper = <T extends {} | null>({
+  mapJSON,
+  action,
+  bonusRetryableStatusCodes,
+  excludeRetryableStatusCodes,
+}: {
+  mapJSON: (json: any) => T;
+  action: string;
+  bonusRetryableStatusCodes?: number[];
+  excludeRetryableStatusCodes?: number[];
+}): SmartAPIFetchMapper<T> => {
   return async (r) => {
     if (
-      r.status === 429 ||
-      r.status === 500 ||
-      r.status === 502 ||
-      r.status === 503 ||
-      r.status === 504
+      !excludeRetryableStatusCodes?.includes(r.status) &&
+      (r.status === 429 ||
+        r.status === 500 ||
+        r.status === 502 ||
+        r.status === 503 ||
+        r.status === 504 ||
+        bonusRetryableStatusCodes?.includes(r.status))
     ) {
       return {
         error: new DisplayableError('server-retryable', action, `${r.status}`),
@@ -464,7 +475,10 @@ export const createTypicalSmartAPIFetchMapper = <T extends {} | null>(
       const data = await r.json();
       return { value: mapJSON(data) };
     } catch {
-      return { error: new DisplayableError('connectivity', action), retryable: true };
+      return {
+        error: new DisplayableError('connectivity', action),
+        retryable: true,
+      };
     }
   };
 };
