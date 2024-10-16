@@ -328,6 +328,7 @@ async def trigger_build(
     await slack.send_ops_message(
         "Frontend-Web build complete, triggering frontend-web update..."
     )
+    await itgs.ensure_redis_liveliness()
     redis = await itgs.redis()
     await redis.publish("updates:frontend-web:do_update", "1")
     logger.info("Done triggering frontend-web update")

@@ -2,13 +2,16 @@
 the integration is only loaded upon request.
 """
 
+import json
 import random
-from typing import Callable, Coroutine, List, Optional
+from typing import Callable, Coroutine, Dict, Literal, Optional
 import rqdb
 import rqdb.async_connection
+import rqdb.logging
 import redis.asyncio
 import diskcache
 import os
+from error_middleware import handle_warning
 import slack
 import jobs
 import file_service
@@ -16,7 +19,9 @@ import loguru
 import revenue_cat
 import asyncio
 import twilio.rest
-import klaviyo
+from loguru import logger
+from dataclasses import dataclass
+import threading
 
 
 our_diskcache: diskcache.Cache = diskcache.Cache(
@@ -28,6 +33,24 @@ it's fine if:
 - this is built before we are forked
 - this is used in different threads
 """
+
+ItgsCleanupIdentifier = Literal[
+    "conn",
+    "redis_main",
+    "slack",
+    "jobs",
+    "file_service",
+    "revenue_cat",
+    "twilio",
+]
+
+
+@dataclass
+class _ItgsGuard:
+    tid: int
+    """thread id that aentered"""
+    pid: int
+    """process id that aentered"""
 
 
 class Itgs:
@@ -63,22 +86,46 @@ class Itgs:
         self._twilio: Optional[twilio.rest.Client] = None
         """the twilio connection if it had been opened"""
 
-        self._klaviyo: Optional[klaviyo.Klaviyo] = None
-        """the klaviyo connection if it had been opened"""
-
-        self._closures: List[Callable[["Itgs"], Coroutine]] = []
+        self._closures: Dict[ItgsCleanupIdentifier, Callable[["Itgs"], Coroutine]] = (
+            dict()
+        )
         """functions to run on __aexit__ to cleanup opened resources"""
+
+        self._guard: Optional[_ItgsGuard] = None
+        """If we've been aentered, guard info, otherwise none. Used to protect
+        against the following issue very easy to make in python:
+
+        ```py
+        def foo():
+          async with Itgs() as itgs:
+            ...
+          redis = await itgs.redis()  # leaks without guard
+        ```
+        """
 
     async def __aenter__(self) -> "Itgs":
         """allows support as an async context manager"""
+        async with self._lock:
+            if self._guard is not None:
+                raise ValueError("Cannot __aenter__ twice")
+            self._guard = _ItgsGuard(tid=threading.get_ident(), pid=os.getpid())
         return self
+
+    async def _check_guard_with_lock(self) -> None:
+        assert self._guard is not None
+        pid = os.getpid()
+        assert pid == self._guard.pid, f"{pid=} {self._guard.pid=}"
+        tid = threading.get_ident()
+        assert tid == self._guard.tid, f"{tid=} {self._guard.tid=}"
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
         """closes any managed resources"""
         async with self._lock:
-            for closure in self._closures:
+            await self._check_guard_with_lock()
+            for closure in self._closures.values():
                 await closure(self)
-            self._closures = []
+            self._closures = dict()
+            self._guard = None
 
     async def conn(self) -> rqdb.async_connection.AsyncConnection:
         """Gets or creates and initializes the rqdb connection.
@@ -88,10 +135,11 @@ class Itgs:
             return self._conn
 
         async with self._lock:
+            await self._check_guard_with_lock()
             if self._conn is not None:
                 return self._conn
 
-            rqlite_ips = os.environ.get("RQLITE_IPS").split(",")
+            rqlite_ips = os.environ["RQLITE_IPS"].split(",")
             if not rqlite_ips:
                 raise ValueError("RQLITE_IPS not set -> cannot connect to rqlite")
 
@@ -100,20 +148,125 @@ class Itgs:
                     await me._conn.__aexit__(None, None, None)
                     me._conn = None
 
-            self._closures.append(cleanup)
+            self._closures["conn"] = cleanup
+
+            bknd_tasks = set()
+
+            async def on_slow_query_async(
+                info: rqdb.logging.QueryInfo,
+                /,
+                *,
+                duration_seconds: float,
+                host: str,
+                response_size_bytes: int,
+                started_at: float,
+                ended_at: float,
+            ):
+                pretty_ops = "\n---\n".join(
+                    f"query: {op}\nargs: {json.dumps(args)}\n"
+                    for op, args in zip(info.operations, info.params)
+                )
+                if not await handle_warning(
+                    "backend:slow_query",
+                    f"query to {host} took {duration_seconds:.3f}s to return {response_size_bytes} bytes:"
+                    f"\n\n```\n{pretty_ops}\n```",
+                ):
+                    return
+
+                async with Itgs() as itgs:
+                    conn = await itgs.conn()
+                    cursor = conn.cursor("none")
+                    slack = await itgs.slack()
+                    for op, args in zip(info.operations, info.params):
+                        explained = await cursor.explain(op, args, out="str")
+                        await slack.send_web_error_message(
+                            f"Slow query to {host} explain query plan:\n```\nquery: {op}\nargs: {json.dumps(args)}\n{explained}\n```"
+                        )
+
+            def on_slow_query(
+                info: rqdb.logging.QueryInfo,
+                /,
+                *,
+                duration_seconds: float,
+                host: str,
+                response_size_bytes: int,
+                started_at: float,
+                ended_at: float,
+            ):
+                if len(bknd_tasks) > 2:
+                    return
+
+                task = asyncio.create_task(
+                    on_slow_query_async(
+                        info,
+                        duration_seconds=duration_seconds,
+                        host=host,
+                        response_size_bytes=response_size_bytes,
+                        started_at=started_at,
+                        ended_at=ended_at,
+                    )
+                )
+                bknd_tasks.add(task)
+                task.add_done_callback(lambda _: bknd_tasks.remove(task))
+
+            def _err_log(msg: str):
+                loguru.logger.exception(msg)
+
+            def _dbg_log(msg: str, *, exc_info: bool = False):
+                if exc_info:
+                    _err_log(msg)
+                else:
+                    loguru.logger.debug(msg)
+
+            def _info_log(msg: str, *, exc_info: bool = False):
+                if exc_info:
+                    _err_log(msg)
+                else:
+                    loguru.logger.info(msg)
+
+            def _warning_log(msg: str, *, exc_info: bool = False):
+                if exc_info:
+                    _err_log(msg)
+                else:
+                    loguru.logger.warning(msg)
+
+            def _critical_log(msg: str, *, exc_info: bool = False):
+                if exc_info:
+                    _err_log(msg)
+                else:
+                    loguru.logger.critical(msg)
+
+            lvl_dbg = lambda: rqdb.logging.LogMessageConfig(
+                enabled=True, method=_dbg_log, level=10, max_length=None
+            )
+            lvl_info = lambda: rqdb.logging.LogMessageConfig(
+                enabled=True, method=_info_log, level=20, max_length=None
+            )
+            lvl_warning = lambda: rqdb.logging.LogMessageConfig(
+                enabled=True, method=_warning_log, level=30, max_length=None
+            )
+            lvl_critical = lambda: rqdb.logging.LogMessageConfig(
+                enabled=True, method=_critical_log, level=40, max_length=None
+            )
+
             c = rqdb.connect_async(
                 hosts=rqlite_ips,
                 log=rqdb.LogConfig(
-                    read_start={"method": loguru.logger.debug},
-                    read_response={"method": loguru.logger.debug},
-                    read_stale={"method": loguru.logger.debug},
-                    write_start={"method": loguru.logger.debug},
-                    write_response={"method": loguru.logger.debug},
-                    connect_timeout={"method": loguru.logger.warning},
-                    hosts_exhausted={"method": loguru.logger.critical},
-                    non_ok_response={"method": loguru.logger.warning},
-                    backup_start={"method": loguru.logger.info},
-                    backup_end={"method": loguru.logger.info},
+                    read_start=lvl_dbg(),
+                    read_response=lvl_dbg(),
+                    read_stale=lvl_dbg(),
+                    write_start=lvl_dbg(),
+                    write_response=lvl_dbg(),
+                    connect_timeout=lvl_warning(),
+                    hosts_exhausted=lvl_critical(),
+                    non_ok_response=lvl_warning(),
+                    slow_query={
+                        "enabled": True,
+                        "threshold_seconds": 1,
+                        "method": on_slow_query,
+                    },
+                    backup_start=lvl_info(),
+                    backup_end=lvl_info(),
                 ),
             )
             await c.__aenter__()
@@ -127,6 +280,7 @@ class Itgs:
             return self._redis_main
 
         async with self._lock:
+            await self._check_guard_with_lock()
             if self._redis_main is not None:
                 return self._redis_main
 
@@ -143,7 +297,7 @@ class Itgs:
                     await me._redis_main.close()
                     me._redis_main = None
 
-            self._closures.append(cleanup)
+            self._closures["redis_main"] = cleanup
             for idx, ip in enumerate(redis_ips):
                 sentinel_conn = redis.asyncio.Redis(
                     host=ip,
@@ -205,6 +359,7 @@ class Itgs:
             return self._slack
 
         async with self._lock:
+            await self._check_guard_with_lock()
             if self._slack is not None:
                 return self._slack
 
@@ -212,10 +367,10 @@ class Itgs:
             await s.__aenter__()
 
             async def cleanup(me: "Itgs") -> None:
-                await me._slack.__aexit__(None, None, None)
+                await s.__aexit__(None, None, None)
                 me._slack = None
 
-            self._closures.append(cleanup)
+            self._closures["slack"] = cleanup
             self._slack = s
 
         return self._slack
@@ -227,6 +382,7 @@ class Itgs:
 
         _redis = await self.redis()
         async with self._lock:
+            await self._check_guard_with_lock()
             if self._jobs is not None:
                 return self._jobs
 
@@ -234,10 +390,10 @@ class Itgs:
             await j.__aenter__()
 
             async def cleanup(me: "Itgs") -> None:
-                await me._jobs.__aexit__(None, None, None)
+                await j.__aexit__(None, None, None)
                 me._jobs = None
 
-            self._closures.append(cleanup)
+            self._closures["jobs"] = cleanup
             self._jobs = j
 
         return self._jobs
@@ -248,6 +404,7 @@ class Itgs:
             return self._file_service
 
         async with self._lock:
+            await self._check_guard_with_lock()
             if self._file_service is not None:
                 return self._file_service
 
@@ -262,16 +419,18 @@ class Itgs:
             await fs.__aenter__()
 
             async def cleanup(me: "Itgs") -> None:
-                await me._file_service.__aexit__(None, None, None)
+                await fs.__aexit__(None, None, None)
                 me._file_service = None
 
-            self._closures.append(cleanup)
+            self._closures["file_service"] = cleanup
             self._file_service = fs
 
         return self._file_service
 
     async def local_cache(self) -> diskcache.Cache:
         """gets or creates the local cache for storing files transiently on this instance"""
+        async with self._lock:
+            await self._check_guard_with_lock()
         return our_diskcache
 
     async def revenue_cat(self) -> revenue_cat.RevenueCat:
@@ -280,21 +439,29 @@ class Itgs:
             return self._revenue_cat
 
         async with self._lock:
+            await self._check_guard_with_lock()
             if self._revenue_cat is not None:
                 return self._revenue_cat
 
             sk = os.environ["OSEH_REVENUE_CAT_SECRET_KEY"]
             stripe_pk = os.environ["OSEH_REVENUE_CAT_STRIPE_PUBLIC_KEY"]
+            playstore_pk = os.environ["OSEH_REVENUE_CAT_GOOGLE_PLAY_PUBLIC_KEY"]
+            appstore_pk = os.environ["OSEH_REVENUE_CAT_APPLE_PUBLIC_KEY"]
 
-            rc = revenue_cat.RevenueCat(sk=sk, stripe_pk=stripe_pk)
+            rc = revenue_cat.RevenueCat(
+                sk=sk,
+                stripe_pk=stripe_pk,
+                playstore_pk=playstore_pk,
+                appstore_pk=appstore_pk,
+            )
 
             await rc.__aenter__()
 
             async def cleanup(me: "Itgs") -> None:
-                await me._revenue_cat.__aexit__(None, None, None)
+                await rc.__aexit__(None, None, None)
                 me._revenue_cat = None
 
-            self._closures.append(cleanup)
+            self._closures["revenue_cat"] = cleanup
             self._revenue_cat = rc
 
         return self._revenue_cat
@@ -305,6 +472,7 @@ class Itgs:
             return self._twilio
 
         async with self._lock:
+            await self._check_guard_with_lock()
             if self._twilio is not None:
                 return self._twilio
 
@@ -316,30 +484,38 @@ class Itgs:
             async def cleanup(me: "Itgs") -> None:
                 me._twilio = None
 
-            self._closures.append(cleanup)
+            self._closures["twilio"] = cleanup
             self._twilio = tw
 
         return self._twilio
 
-    async def klaviyo(self) -> klaviyo.Klaviyo:
-        """gets or creates the klaviyo connection"""
-        if self._klaviyo is not None:
-            return self._klaviyo
+    async def reconnect_redis(self) -> None:
+        """If we are connected to redis, closes the connection. This will
+        also close any other connections that depend on it. They connections
+        will be reinitialized when they are next requested.
+        """
+        if self._redis_main is None:
+            return
 
         async with self._lock:
-            if self._klaviyo is not None:
-                return self._klaviyo
+            await self._check_guard_with_lock()
+            if self._redis_main is None:
+                return
 
-            api_key = os.environ["OSEH_KLAVIYO_API_KEY"]
+            if self._jobs is not None:
+                await self._closures["jobs"](self)
+                del self._closures["jobs"]
 
-            kl = klaviyo.Klaviyo(api_key)
-            await kl.__aenter__()
+            await self._closures["redis_main"](self)
+            del self._closures["redis_main"]
 
-            async def cleanup(me: "Itgs") -> None:
-                await me._klaviyo.__aexit__(None, None, None)
-                me._klaviyo = None
-
-            self._closures.append(cleanup)
-            self._klaviyo = kl
-
-        return self._klaviyo
+    async def ensure_redis_liveliness(self) -> None:
+        """Tries to ping the redis connection; if it fails, reconnects"""
+        logger.debug("Checking redis connection for liveliness...")
+        redis = await self.redis()
+        try:
+            await redis.ping()
+            logger.debug("Redis connection is alive")
+        except:
+            logger.debug("Redis connection is dead; reconnecting...")
+            await self.reconnect_redis()
