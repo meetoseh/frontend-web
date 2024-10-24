@@ -38,7 +38,6 @@ import {
   GRID_SIMPLE_NAVIGATION_FOREGROUND_BOTTOM_HEIGHT,
   GridSimpleNavigationForeground,
 } from '../../../../shared/components/GridSimpleNavigationForeground';
-import { screenOut } from '../../lib/screenOut';
 import { configurableScreenOut } from '../../lib/configurableScreenOut';
 
 type TooltipPlaceholder = { readonly uid: 'tooltip' };

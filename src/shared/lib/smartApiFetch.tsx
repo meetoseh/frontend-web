@@ -28,9 +28,9 @@ export type SmartAPIFetchRetryer = (
   retryAfterMS: number | null
 ) => { delay: number; error?: undefined } | { delay?: undefined; error: DisplayableError };
 
-export type SmartAPIFetchRequestInit = Omit<RequestInit, 'signal'> & {
+export type SmartAPIFetchRequestInit = Omit<RequestInit, 'signal' | 'method'> & {
   signal?: undefined;
-};
+} & Required<Pick<RequestInit, 'method'>>;
 
 export type SmartAPIFetchStateInFlight<T extends {} | null> = {
   /**
@@ -278,7 +278,7 @@ async function transitionFromInFlight<T extends {} | null>(
   let response: Response;
   try {
     response = await responsePromise;
-  } catch {
+  } catch (e) {
     if (messageCancelable.done()) {
       const msg = (await messageCancelable.promise)();
       setVWC(stateVWC, { type: 'released' });
@@ -290,7 +290,14 @@ async function transitionFromInFlight<T extends {} | null>(
 
     const retry = current.retryer(current.attempt + 1, null);
     if (retry.error !== undefined) {
-      setVWC(stateVWC, { type: 'error', error: retry.error });
+      setVWC(stateVWC, {
+        type: 'error',
+        error: new DisplayableError(
+          retry.error.type,
+          retry.error.action,
+          `last error was failed to connect ${e}; ${retry.error.details}`
+        ),
+      });
       return;
     }
 
@@ -327,7 +334,9 @@ async function transitionFromInFlight<T extends {} | null>(
     }
 
     const described =
-      e instanceof DisplayableError ? e : new DisplayableError('client', 'fetch', `${e}`);
+      e instanceof DisplayableError
+        ? e
+        : new DisplayableError('client', 'smart fetch mapper error', `${e}`);
     setVWC(stateVWC, { type: 'error', error: described });
     return;
   }
@@ -357,7 +366,14 @@ async function transitionFromInFlight<T extends {} | null>(
 
     const retry = current.retryer(current.attempt + 1, retryAfterMS);
     if (retry.error !== undefined) {
-      setVWC(stateVWC, { type: 'error', error: retry.error });
+      setVWC(stateVWC, {
+        type: 'error',
+        error: new DisplayableError(
+          retry.error.type,
+          retry.error.action,
+          `last error was from mapper: ${mapped.error.formatProblem()}; ${retry.error.details}`
+        ),
+      });
       return;
     }
 
@@ -471,6 +487,22 @@ export const createTypicalSmartAPIFetchMapper = <T extends {} | null>({
       };
     }
 
+    if (!r.ok) {
+      try {
+        const txt = await r.text();
+        return {
+          error: new DisplayableError('server-not-retryable', action, `${r.status}: ${txt}`),
+          retryable: false,
+        };
+      } catch {
+        // ignore
+      }
+      return {
+        error: new DisplayableError('server-not-retryable', action, `${r.status}`),
+        retryable: false,
+      };
+    }
+
     try {
       const data = await r.json();
       return { value: mapJSON(data) };
@@ -499,7 +531,7 @@ export type SmartAPIFetchOptions<T extends {} | null> = {
   /**
    * The retryer function to use or a preset
    */
-  retryer: SmartAPIFetchRetryerPreset | SmartAPIFetchRetryer;
+  retryer: SmartAPIFetchRetryerPreset | SmartAPIFetchRetryer | 'default';
 
   /**
    * The mapper function to use to convert from a response to a value
@@ -540,7 +572,7 @@ export function createSmartAPIFetch<T extends {} | null>({
   if (typeof retryer === 'string') {
     if (retryer === 'never') {
       retryer = retryerNever;
-    } else if (retryer === 'expo-backoff-3') {
+    } else if (retryer === 'expo-backoff-3' || retryer === 'default') {
       retryer = retryerExpoBackoff3;
     } else if (retryer === 'forever-5') {
       retryer = retryerForever5;

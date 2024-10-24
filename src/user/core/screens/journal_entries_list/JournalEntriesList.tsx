@@ -34,7 +34,6 @@ import {
 } from '../../../../shared/lib/InfiniteListing';
 import { useMappedValuesWithCallbacks } from '../../../../shared/hooks/useMappedValuesWithCallbacks';
 import { InfiniteList } from '../../../../shared/components/InfiniteList';
-import { ContentContainer } from '../../../../shared/components/ContentContainer';
 
 type TooltipPlaceholder = { readonly uid: 'tooltip' };
 

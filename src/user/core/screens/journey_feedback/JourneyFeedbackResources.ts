@@ -1,5 +1,5 @@
 import { OsehImageExportCropped } from '../../../../shared/images/OsehImageExportCropped';
-import { ValueWithCallbacks, WritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { ScreenResources } from '../../models/Screen';
 import { JourneyShareableInfo } from './lib/createIsJourneyShareableRequestHandler';
 import { JourneyLikeState } from './lib/createJourneyLikeStateRequestHandler';

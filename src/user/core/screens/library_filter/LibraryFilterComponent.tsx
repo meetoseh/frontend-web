@@ -265,7 +265,7 @@ const InstructorCheckboxGroup = ({
       },
       callbacks: new Callbacks(),
     }),
-    [instructorUIDSVWC]
+    [instructorUIDSVWC, instructors]
   );
 
   return (

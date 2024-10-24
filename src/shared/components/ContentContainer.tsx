@@ -9,7 +9,6 @@ import { useStyleVWC } from '../hooks/useStyleVWC';
 import { setVWC } from '../lib/setVWC';
 import { useMappedValuesWithCallbacks } from '../hooks/useMappedValuesWithCallbacks';
 import { useReactManagedValueAsValueWithCallbacks } from '../hooks/useReactManagedValueAsValueWithCallbacks';
-import { combineClasses } from '../lib/combineClasses';
 import { createValueWithCallbacksEffect } from '../hooks/createValueWithCallbacksEffect';
 
 /**

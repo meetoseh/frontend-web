@@ -1,4 +1,4 @@
-import { isValidElement, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useValuesWithCallbacksEffect } from '../hooks/useValuesWithCallbacksEffect';
 import { Callbacks, ValueWithCallbacks, useWritableValueWithCallbacks } from '../lib/Callbacks';
 import { OsehContentRef } from './OsehContentRef';

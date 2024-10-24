@@ -356,6 +356,7 @@ export const handleTouchLink = ({
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [appliedLink, _appliedUser] = applied;
 
     if (!Object.is(appliedLink, pendingLink)) {
@@ -436,7 +437,13 @@ export const useHandleTouchLink = ({ ctx }: { ctx: ScreenContext }): HandleTouch
       cleanup();
       setVWC(onPendingTouchLinkAppliedVWC, defaultOnPendingTouchLinkApplied);
     };
-  }, [ctx]);
+  }, [
+    ctx,
+    defaultOnPendingTouchLinkApplied,
+    loggedOutPageVWC,
+    onPendingTouchLinkAppliedVWC,
+    pendingTouchLinkVWC,
+  ]);
 
   return useMemo(
     () => ({

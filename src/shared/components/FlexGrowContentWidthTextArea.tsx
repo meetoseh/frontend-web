@@ -56,7 +56,7 @@ export const FlexGrowContentWidthTextArea = (props: FlexGrowContentWidthTextArea
       setVWC(propRef, r);
       return undefined;
     });
-  }, [props.refVWC]);
+  }, [props.refVWC, refVWC]);
 
   const editableVWC = useWritableValueWithCallbacks<boolean>(() =>
     props.editable === undefined
@@ -81,7 +81,7 @@ export const FlexGrowContentWidthTextArea = (props: FlexGrowContentWidthTextArea
       setVWC(editableVWC, e);
       return undefined;
     });
-  }, [props.editable]);
+  }, [props.editable, editableVWC]);
 
   useEffect(() => {
     const refRaw = refVWC.get();
@@ -134,7 +134,7 @@ export const FlexGrowContentWidthTextArea = (props: FlexGrowContentWidthTextArea
         input.value = props.value.get();
       }
     }
-  }, [props.value, refVWC]);
+  }, [props.value, refVWC, props.enterBehavior, props.submit]);
 
   useValuesWithCallbacksEffect([refVWC, editableVWC], () => {
     const ref = refVWC.get();

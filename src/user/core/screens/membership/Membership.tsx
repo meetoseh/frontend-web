@@ -21,7 +21,6 @@ import { VerticalSpacer } from '../../../../shared/components/VerticalSpacer';
 import { RenderGuardedComponent } from '../../../../shared/components/RenderGuardedComponent';
 import styles from './Membership.module.css';
 import { Button } from '../../../../shared/forms/Button';
-import { screenOut } from '../../lib/screenOut';
 import { Clock } from '../upgrade/icons/Clock';
 import { Sheet } from '../upgrade/icons/Sheet';
 import { Series } from '../upgrade/icons/Series';

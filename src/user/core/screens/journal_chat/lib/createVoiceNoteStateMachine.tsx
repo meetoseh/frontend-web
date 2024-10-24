@@ -1914,7 +1914,7 @@ async function transitionFromInitializingLocalPlay(
         }
         return { user: raw };
       },
-      retryer: 'expo-backoff-3',
+      retryer: 'default',
       mapper: createTypicalSmartAPIFetchMapper({ mapJSON: (v) => v, action: 'record audio' }),
     }),
   });
@@ -2396,7 +2396,7 @@ async function transitionFromRemoteInitializing(
             }
             return { user: userRaw };
           },
-          retryer: 'expo-backoff-3',
+          retryer: 'default',
           mapper: createTypicalSmartAPIFetchMapper({
             mapJSON: (v) => v,
             action: 'download voice note',
@@ -2428,7 +2428,7 @@ async function transitionFromRemoteInitializing(
             }
             return { user: userRaw };
           },
-          retryer: 'expo-backoff-3',
+          retryer: 'default',
           mapper: createTypicalSmartAPIFetchMapper({
             mapJSON: (v) => v,
             action: 'download voice note transcript',

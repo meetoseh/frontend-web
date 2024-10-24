@@ -1,4 +1,4 @@
-import { ValueWithCallbacks, WritableValueWithCallbacks } from './Callbacks';
+import { WritableValueWithCallbacks } from './Callbacks';
 import { CancelablePromise } from './CancelablePromise';
 import { constructCancelablePromise } from './CancelablePromiseConstructor';
 import { createCancelablePromiseFromCallbacks } from './createCancelablePromiseFromCallbacks';

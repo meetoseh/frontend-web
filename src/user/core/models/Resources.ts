@@ -61,11 +61,6 @@ import {
 } from '../screens/settings/lib/createEntitlementRequestHandler';
 import { OfferingPriceRef } from '../screens/upgrade/lib/createOfferingPriceRequestHandler';
 import {
-  JournalEntryManager,
-  JournalEntryManagerMinimalRef,
-  JournalEntryManagerRef,
-} from '../screens/journal_chat/lib/createJournalEntryManagerHandler';
-import {
   JournalEntryMetadata,
   JournalEntryMetadataMinimalRef,
   JournalEntryMetadataRef,
@@ -90,6 +85,11 @@ import {
   VoiceNoteStateMachineRef,
 } from '../screens/journal_chat/lib/createVoiceNoteStateMachineRequestHandler';
 import { VoiceNoteStateMachine } from '../screens/journal_chat/lib/createVoiceNoteStateMachine';
+import {
+  JournalEntryStateMachineMinimalRef,
+  JournalEntryStateMachineRef,
+} from '../screens/journal_chat/lib/createJournalEntryStateMachineRequestHandler';
+import { JournalEntryStateMachine } from '../screens/journal_chat/lib/createJournalEntryStateMachine';
 
 /**
  * Contains everything that any screen might want to eagerly preload. Generally,
@@ -312,10 +312,10 @@ export type Resources = {
   /**
    * Manages streaming journal entries contents
    */
-  journalEntryManagerHandler: RequestHandler<
-    JournalEntryManagerMinimalRef,
-    JournalEntryManagerRef,
-    JournalEntryManager
+  journalEntryStateMachineHandler: RequestHandler<
+    JournalEntryStateMachineMinimalRef,
+    JournalEntryStateMachineRef,
+    JournalEntryStateMachine
   >;
 
   /** Manages retrieving metadata on journal entries */

@@ -87,7 +87,7 @@ export const ScreenDynamicImage = ({
       cleanupMapper();
       image.dispose();
     };
-  }, [ctx, imgRef, width, height]);
+  }, [ctx, imgRef, width, height, imageUrlVWC]);
 
   return (
     <RenderGuardedComponent
@@ -108,6 +108,7 @@ export const ScreenDynamicImage = ({
           );
         }
 
+        // eslint-disable-next-line jsx-a11y/alt-text
         return <img src={url} style={{ width, height, ...borderRadiusStyle }} />;
       }}
     />

@@ -1,6 +1,5 @@
 import { OsehImageExportCropped } from '../../../../shared/images/OsehImageExportCropped';
 import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
-import { RequestResultConcrete } from '../../../../shared/requests/RequestHandler';
 import { ScreenResources } from '../../models/Screen';
 
 export type LargeImageInterstitialResources = ScreenResources & {

@@ -237,13 +237,17 @@ export const JournalEntryCard = ({
                             items.push(<VerticalSpacer height={16} key={items.length} />);
                           }
                           items.push(
-                            <TextPartVoiceNoteComponent
-                              key={items.length}
-                              ctx={ctx}
-                              refreshChat={refreshChat}
-                              part={subPart}
-                              fixedHeight
-                            />
+                            <div className={OsehStyles.layout.row} key={items.length}>
+                              <HorizontalSpacer width={16} />
+                              <TextPartVoiceNoteComponent
+                                key={items.length}
+                                ctx={ctx}
+                                refreshChat={refreshChat}
+                                part={subPart}
+                                fixedHeight
+                              />
+                              <HorizontalSpacer width={16} />
+                            </div>
                           );
                         }
                       }

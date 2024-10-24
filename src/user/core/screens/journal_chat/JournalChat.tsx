@@ -34,6 +34,7 @@ import { OsehStyles } from '../../../../shared/OsehStyles';
 import { combineClasses } from '../../../../shared/lib/combineClasses';
 import { JournalChatSpinners } from './components/JournalChatSpinners';
 import { JournalChatParts } from './components/JournalChatParts';
+import { DisplayableError } from '../../../../shared/lib/errors';
 
 const SUGGESTIONS = [
   { text: 'I have a lot of anxiety right now', width: 160 },
@@ -285,13 +286,25 @@ export const JournalChat = ({
                 return (
                   <>
                     <VerticalSpacer height={32} flexGrow={0} />
-                    <div
-                      className={combineClasses(
-                        OsehStyles.typography.body,
-                        OsehStyles.colors.v4.experimental.lightError
-                      )}>
-                      An error occurred. Try again or contact support at hi@oseh.com
-                    </div>
+                    <RenderGuardedComponent
+                      props={resources.chatError}
+                      component={(chatError) => {
+                        const err =
+                          chatError ?? new DisplayableError('client', 'show journal entry');
+                        return (
+                          <>
+                            <div
+                              className={combineClasses(
+                                OsehStyles.typography.body,
+                                OsehStyles.colors.v4.experimental.lightError
+                              )}
+                              style={{ width: '100%', wordBreak: 'break-all' }}>
+                              {err.formatProblem()}
+                            </div>
+                          </>
+                        );
+                      }}
+                    />
                   </>
                 );
               }

@@ -1,5 +1,4 @@
 import { OsehImageRef } from './OsehImageRef';
-import { OsehPublicImageRef } from './OsehPublicImageRef';
 import { PlaylistItem } from './Playlist';
 
 /**

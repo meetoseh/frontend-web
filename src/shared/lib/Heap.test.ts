@@ -43,7 +43,9 @@ describe('Heap', () => {
         const val = expected.shift()!;
         ops.push({ op: 'pop', v: val });
         const got = heappop(heap);
+        // eslint-disable-next-line jest/no-conditional-expect
         expect(got).not.toBeNull();
+        // eslint-disable-next-line jest/no-conditional-expect
         expect(got!.v).toBe(val);
         continue;
       } else {

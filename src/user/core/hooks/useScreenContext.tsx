@@ -41,13 +41,13 @@ import { createReminderSettingsRequestHandler } from '../screens/reminder_times/
 import { createOnboardingVideoRequestHandler } from '../screens/video_interstitial_onboarding/lib/createOnboardingVideoRequestHandler';
 import { createTranscriptRequestHandler } from '../screens/video_interstitial/lib/createTranscriptRequestHandler';
 import { createTouchLinkRequestHandler } from '../lib/createTouchLinkRequestHandler';
-import { createJournalEntryManagerRequestHandler } from '../screens/journal_chat/lib/createJournalEntryManagerHandler';
 import { createJournalEntryMetadataRequestHandler } from '../screens/journal_chat/lib/createJournalEntryMetadataRequestHandler';
 import { createJournalEntryListRequestHandler } from '../screens/journal_entries_list/lib/createJournalEntryListRequestHandler';
 import { createLibraryListRequestHandler } from '../screens/library/lib/createLibraryListRequestHandler';
 import { createInstructorListRequestHandler } from '../screens/library_filter/lib/createInstructorListRequestHandler';
 import { createVoiceNoteStateMachineRequestHandler } from '../screens/journal_chat/lib/createVoiceNoteStateMachineRequestHandler';
 import { useMappedValuesWithCallbacks } from '../../../shared/hooks/useMappedValuesWithCallbacks';
+import { createJournalEntryStateMachineRequestHandler } from '../screens/journal_chat/lib/createJournalEntryStateMachineRequestHandler';
 
 type WindowSize = {
   width: number;
@@ -267,8 +267,13 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
   const touchLinkHandler = useWritableValueWithCallbacks(() =>
     createTouchLinkRequestHandler({ logging, maxStale: 2 })
   );
-  const journalEntryManagerHandler = useWritableValueWithCallbacks(() =>
-    createJournalEntryManagerRequestHandler({ logging, maxStale: 100 })
+  const journalEntryStateMachineHandler = useWritableValueWithCallbacks(() =>
+    createJournalEntryStateMachineRequestHandler({
+      logging,
+      maxStale: 100,
+      loginContext,
+      interestsContext,
+    })
   );
   const journalEntryMetadataHandler = useWritableValueWithCallbacks(() =>
     createJournalEntryMetadataRequestHandler({ logging, maxStale: 100 })
@@ -331,7 +336,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       onboardingVideoHandler: onboardingVideoHandler.get(),
       transcriptHandler: transcriptHandler.get(),
       touchLinkHandler: touchLinkHandler.get(),
-      journalEntryManagerHandler: journalEntryManagerHandler.get(),
+      journalEntryStateMachineHandler: journalEntryStateMachineHandler.get(),
       journalEntryMetadataHandler: journalEntryMetadataHandler.get(),
       journalEntryListHandler: journalEntryListHandler.get(),
       libraryListHandler: libraryListHandler.get(),
@@ -371,7 +376,7 @@ export const useScreenContext = (usesWebp: boolean, usesSvg: boolean): ScreenCon
       onboardingVideoHandler,
       transcriptHandler,
       touchLinkHandler,
-      journalEntryManagerHandler,
+      journalEntryStateMachineHandler,
       journalEntryMetadataHandler,
       journalEntryListHandler,
       libraryListHandler,

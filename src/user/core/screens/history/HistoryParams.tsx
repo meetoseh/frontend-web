@@ -3,11 +3,6 @@ import {
   ScreenTriggerWithExitAPI,
   ScreenTriggerWithExitMapped,
 } from '../../lib/convertTriggerWithExit';
-import {
-  ScreenConfigurableTrigger,
-  ScreenConfigurableTriggerTransitioningPreferredAPI,
-  ScreenConfigurableTriggerTransitioningTemporaryAPI,
-} from '../../models/ScreenConfigurableTrigger';
 
 type HistoryParams<T> = {
   /** entrance transition */

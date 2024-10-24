@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DisplayableError } from '../lib/errors';
 
 type UseSimpleImageProps = {

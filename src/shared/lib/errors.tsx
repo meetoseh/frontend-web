@@ -99,7 +99,7 @@ export class DisplayableError {
    * Formats the problem that occurred as a string, combining the type
    * and details. This does not include the call to action.
    *
-   * Example: "ECONN (store response): Could not connect to the serverfetch failed"
+   * Example: "ECONN (store response): Could not connect to the server—fetch failed"
    */
   formatProblem(): string {
     const eType = ERROR_TYPE_TO_MESSAGE[this.type] ?? { code: 'EUNK', msg: 'Unknown error' };

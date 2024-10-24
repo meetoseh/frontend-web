@@ -20,8 +20,9 @@ export type VoiceNoteStateMachineRef = {
 export type VoiceNoteStateMachineMinimalRef = Pick<VoiceNoteStateMachineRef, 'voiceNoteUID'>;
 
 /**
- * Creates a request handler for a journal entry manager, which is an
- * object that can load the state of a journal entry chat
+ * Creates a request handler for a voice note state machine manager, which is an
+ * object that can load the state of a voice note and can receive messages for
+ * mutation in a dedicated coroutine.
  */
 export const createVoiceNoteStateMachineRequestHandler = ({
   logging = 'none',

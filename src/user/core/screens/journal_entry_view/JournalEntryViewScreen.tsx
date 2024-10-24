@@ -3,7 +3,10 @@ import { LoginContextValueLoggedIn } from '../../../../shared/contexts/LoginCont
 import { createValuesWithCallbacksEffect } from '../../../../shared/hooks/createValuesWithCallbacksEffect';
 import { createValueWithCallbacksEffect } from '../../../../shared/hooks/createValueWithCallbacksEffect';
 import { Visitor } from '../../../../shared/hooks/useVisitorValueWithCallbacks';
-import { createWritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import {
+  createWritableValueWithCallbacks,
+  ValueWithCallbacks,
+} from '../../../../shared/lib/Callbacks';
 import { CancelablePromise } from '../../../../shared/lib/CancelablePromise';
 import { DisplayableError } from '../../../../shared/lib/errors';
 import { getCurrentServerTimeMS } from '../../../../shared/lib/getCurrentServerTimeMS';
@@ -15,10 +18,6 @@ import { unwrapRequestResult } from '../../../../shared/requests/unwrapRequestRe
 import { OsehScreen } from '../../models/Screen';
 import { screenConfigurableTriggerMapper } from '../../models/ScreenConfigurableTrigger';
 import {
-  JournalEntryManager,
-  JournalEntryManagerRef,
-} from '../journal_chat/lib/createJournalEntryManagerHandler';
-import {
   JournalEntryMetadata,
   JournalEntryMetadataRef,
 } from '../journal_chat/lib/createJournalEntryMetadataRequestHandler';
@@ -26,6 +25,9 @@ import { JournalChatState } from '../journal_chat/lib/JournalChatState';
 import { JournalEntryView } from './JournalEntryView';
 import { JournalEntryViewAPIParams, JournalEntryViewMappedParams } from './JournalEntryViewParams';
 import { JournalEntryViewResources } from './JournalEntryViewResources';
+import * as JEStateMachine from '../journal_chat/lib/createJournalEntryStateMachine';
+import { JournalEntryStateMachineRef } from '../journal_chat/lib/createJournalEntryStateMachineRequestHandler';
+import { createMappedValueWithCallbacks } from '../../../../shared/hooks/useMappedValueWithCallbacks';
 
 /**
  * Allows the user to view, but not edit, an existing journal entry
@@ -56,13 +58,13 @@ export const JournalEntryViewScreen: OsehScreen<
   initInstanceResources: (ctx, screen, refreshScreen) => {
     const activeVWC = createWritableValueWithCallbacks(true);
 
-    const getJournalEntryManager = (): RequestResult<JournalEntryManager> => {
-      return ctx.resources.journalEntryManagerHandler.request({
+    const getJournalEntryManager = (): RequestResult<JEStateMachine.JournalEntryStateMachine> => {
+      return ctx.resources.journalEntryStateMachineHandler.request({
         ref: {
           journalEntryUID: screen.parameters.journalEntry.uid,
           journalEntryJWT: screen.parameters.journalEntry.jwt,
         },
-        refreshRef: (): CancelablePromise<Result<JournalEntryManagerRef>> => {
+        refreshRef: (): CancelablePromise<Result<JournalEntryStateMachineRef>> => {
           if (!activeVWC.get()) {
             return {
               promise: Promise.resolve({
@@ -78,7 +80,7 @@ export const JournalEntryViewScreen: OsehScreen<
 
           return mapCancelable(
             refreshScreen(),
-            (s): Result<JournalEntryManagerRef> =>
+            (s): Result<JournalEntryStateMachineRef> =>
               s.type !== 'success'
                 ? s
                 : s.data.parameters.journalEntry === null
@@ -103,13 +105,15 @@ export const JournalEntryViewScreen: OsehScreen<
     };
 
     const journalEntryManagerVWC =
-      createWritableValueWithCallbacks<RequestResult<JournalEntryManager> | null>(null);
+      createWritableValueWithCallbacks<RequestResult<JEStateMachine.JournalEntryStateMachine> | null>(
+        null
+      );
     const cleanupJournalEntryManagerRequester = (() => {
       const request = getJournalEntryManager();
       setVWC(journalEntryManagerVWC, request);
       return () => {
-        if (Object.is(journalEntryJWTVWC.get(), request)) {
-          setVWC(journalEntryJWTVWC, null);
+        if (Object.is(journalEntryManagerVWC.get(), request)) {
+          setVWC(journalEntryManagerVWC, null);
         }
         request.release();
       };
@@ -121,37 +125,66 @@ export const JournalEntryViewScreen: OsehScreen<
         () => null
       );
 
-    const journalEntryJWTVWC = createWritableValueWithCallbacks<string | null>(null);
-    const cleanupJournalEntryJWTUnwrapper = createValueWithCallbacksEffect(
-      journalEntryManagerUnwrappedVWC,
-      (d) => {
+    const [journalEntryStateUnwrappedVWC, cleanupJournalEntryStateUnwrapper] = (() => {
+      const result = createWritableValueWithCallbacks<JEStateMachine.State | null>(null);
+      const cleanup = createValueWithCallbacksEffect(journalEntryManagerUnwrappedVWC, (d) => {
         if (d === null) {
-          setVWC(journalEntryJWTVWC, null);
+          setVWC(result, null);
           return undefined;
         }
 
-        return createValueWithCallbacksEffect(d.journalEntryJWT, (jwt) => {
-          setVWC(journalEntryJWTVWC, jwt);
+        return createValueWithCallbacksEffect(d.state, (s) => {
+          setVWC(result, s);
           return undefined;
         });
-      }
-    );
+      });
+      return [result, cleanup];
+    })();
 
-    const chatVWC = createWritableValueWithCallbacks<JournalChatState | null | undefined>(null);
-    const cleanupChatUnwrapper = createValueWithCallbacksEffect(
-      journalEntryManagerUnwrappedVWC,
-      (d) => {
+    const [journalEntryJWTVWC, cleanupJournalEntryJWTUnwrapper] = createMappedValueWithCallbacks(
+      journalEntryStateUnwrappedVWC,
+      (d) =>
+        d !== null && d.type !== 'released' && d.type !== 'error' ? d.journalEntryRef.jwt : null
+    );
+    const [chatWrappedVWC, cleanupChatWrappedUnwrapper] = createMappedValueWithCallbacks(
+      journalEntryStateUnwrappedVWC,
+      (d): ValueWithCallbacks<JournalChatState> | null | undefined => {
         if (d === null) {
-          setVWC(chatVWC, null);
+          return null;
+        }
+        if (d.type === 'error' || d.type === 'released') {
           return undefined;
         }
-
-        return createValueWithCallbacksEffect(d.chat, (chat) => {
-          setVWC(chatVWC, chat);
-          return undefined;
-        });
+        if (
+          d.type === 'initializing' ||
+          d.type === 'preparing-references' ||
+          d.type === 'preparing-client-key' ||
+          d.type === 'authorizing'
+        ) {
+          return null;
+        }
+        return d.value.displayable;
       }
     );
+    const [chatVWC, cleanupChatUnwrapper] = (() => {
+      const result = createWritableValueWithCallbacks<JournalChatState | null | undefined>(null);
+      const cleanup = createValueWithCallbacksEffect(chatWrappedVWC, (d) => {
+        if (d === undefined) {
+          setVWC(result, undefined);
+          return undefined;
+        }
+        if (d === null) {
+          setVWC(result, null);
+          return undefined;
+        }
+        return createValueWithCallbacksEffect(d, (s) => {
+          setVWC(result, s);
+          return undefined;
+        });
+      });
+      return [result, cleanup];
+    })();
+
     const cleanupJournalEntryManagerRefresher = createValuesWithCallbacksEffect(
       [
         journalEntryManagerVWC,
@@ -186,26 +219,12 @@ export const JournalEntryViewScreen: OsehScreen<
             return;
           }
 
-          if (d.isExpiredOrDisposed(nowServer)) {
+          if (JEStateMachine.isExpiredOrDisposed(d, nowServer)) {
             const raw = request.get();
             if (raw.type === 'success') {
               raw.reportExpired();
             }
             return;
-          }
-
-          const user = ctx.login.value.get();
-          if (user.state !== 'logged-in') {
-            return;
-          }
-
-          const visitor = ctx.interests.visitor.value.get();
-          if (visitor.loading) {
-            return;
-          }
-
-          if ((d.chat.get() === null || d.chat.get() === undefined) && d.task.get() === null) {
-            d.refresh(user, ctx.interests.visitor);
           }
         }
       }
@@ -430,18 +449,23 @@ export const JournalEntryViewScreen: OsehScreen<
           throw new Error('journal entry manager not initialized');
         }
 
-        const user = ctx.login.value.get();
-        if (user.state !== 'logged-in') {
-          throw new Error('user not logged in');
+        if (journalEntryManager.state.get().type !== 'ready') {
+          throw new Error('journal entry manager not ready');
         }
-        await journalEntryManager.refresh(user, ctx.interests.visitor);
-        return journalEntryManager.chat.get();
+        await journalEntryManager.sendMessage({ type: 'hard-refresh' }).promise;
+        await waitForValueWithCallbacksConditionCancelable(
+          journalEntryManager.state,
+          (s) => s.type === 'ready' || s.type === 'error' || s.type === 'released'
+        ).promise;
+        return chatVWC.get();
       },
       dispose: () => {
         setVWC(activeVWC, false);
         cleanupJournalEntryManagerRequester();
         cleanupJournalEntryManagerUnwrapper();
+        cleanupJournalEntryStateUnwrapper();
         cleanupJournalEntryJWTUnwrapper();
+        cleanupChatWrappedUnwrapper();
         cleanupChatUnwrapper();
         cleanupJournalEntryManagerRefresher();
         cleanupJournalEntryMetadataRequester();

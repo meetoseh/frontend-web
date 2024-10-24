@@ -1,4 +1,5 @@
 import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { DisplayableError } from '../../../../shared/lib/errors';
 import { ScreenResources } from '../../models/Screen';
 import { VoiceNoteStateMachine } from './lib/createVoiceNoteStateMachine';
 import { JournalChatState } from './lib/JournalChatState';
@@ -9,6 +10,12 @@ export type JournalChatResources = ScreenResources & {
    * error occurred
    */
   chat: ValueWithCallbacks<JournalChatState | null | undefined>;
+
+  /**
+   * If more information about the chat error that occurred is available, that
+   * information, otherwise, we use a generic client error
+   */
+  chatError: ValueWithCallbacks<DisplayableError | null>;
 
   /**
    * The journal entry uid we are looking at, null if unavailable

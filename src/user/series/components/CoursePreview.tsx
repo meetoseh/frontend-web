@@ -16,7 +16,7 @@ import { createVideoSizeComparerForTarget } from '../../../shared/content/create
 import { useOsehContentTargetValueWithCallbacks } from '../../../shared/content/useOsehContentTargetValueWithCallbacks';
 import { useReactManagedValueAsValueWithCallbacks } from '../../../shared/hooks/useReactManagedValueAsValueWithCallbacks';
 import { useOsehVideoContentState } from '../../../shared/content/useOsehVideoContentState';
-import { ReactElement, useCallback, useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import { useErrorModal } from '../../../shared/hooks/useErrorModal';
 import { ModalContext } from '../../../shared/contexts/ModalContext';
 import { useValueWithCallbacksEffect } from '../../../shared/hooks/useValueWithCallbacksEffect';

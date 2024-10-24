@@ -28,7 +28,7 @@ export const useFeatureFlag = (
     } catch (e) {
       setVWC(result, undefined);
     }
-  }, [result]);
+  }, [result, flag]);
 
   return result;
 };

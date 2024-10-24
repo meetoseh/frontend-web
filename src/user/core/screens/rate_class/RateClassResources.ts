@@ -1,5 +1,5 @@
 import { OsehImageExportCropped } from '../../../../shared/images/OsehImageExportCropped';
-import { ValueWithCallbacks, WritableValueWithCallbacks } from '../../../../shared/lib/Callbacks';
+import { ValueWithCallbacks } from '../../../../shared/lib/Callbacks';
 import { ScreenResources } from '../../models/Screen';
 
 export type RateClassResources = ScreenResources & {

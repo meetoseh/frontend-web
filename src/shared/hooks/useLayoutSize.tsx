@@ -107,7 +107,7 @@ export const useLayoutSize = <T extends HTMLElement>(
       cleanupAttacher();
       cleanupUnderlying();
     };
-  }, [ref, sizeVWC]);
+  }, [ref, sizeVWC, opts]);
 
   return sizeVWC;
 };

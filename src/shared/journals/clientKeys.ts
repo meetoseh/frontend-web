@@ -1,9 +1,10 @@
-import { apiFetch } from '../ApiConstants';
 import { LoginContextValueLoggedIn } from '../contexts/LoginContext';
 import { Visitor } from '../hooks/useVisitorValueWithCallbacks';
 import { createWritableValueWithCallbacks } from '../lib/Callbacks';
-import { Fernet } from '../lib/fernet';
+import { DisplayableError } from '../lib/errors';
+import { createFernet, Fernet } from '../lib/fernet';
 import { powmod } from '../lib/powmod';
+import { createSmartAPIFetch, createTypicalSmartAPIFetchMapper } from '../lib/smartApiFetch';
 import { VISITOR_SOURCE } from '../lib/visitorSource';
 import { waitForValueWithCallbacksConditionCancelable } from '../lib/waitForValueWithCallbacksCondition';
 
@@ -60,6 +61,39 @@ export const getOrCreateClientKey = async (
     await storeClientKey(user, created);
     return created;
   });
+};
+
+/**
+ * Like `getOrCreateClientKey` in that it gets or creates a client key, but
+ * it also wraps the raw secret key in a Fernet object so that it can be used
+ */
+export const getOrCreateWrappedClientKey = async (
+  user: LoginContextValueLoggedIn,
+  visitor: Visitor
+): Promise<WrappedJournalClientKey> => {
+  let raw;
+  try {
+    raw = await getOrCreateClientKey(user, visitor);
+  } catch (e) {
+    const err =
+      e instanceof DisplayableError
+        ? e
+        : new DisplayableError('client', 'setup encryption', 'failed to get key');
+    throw err;
+  }
+
+  let key;
+  try {
+    key = await createFernet(raw.key);
+  } catch (e) {
+    const err =
+      e instanceof DisplayableError
+        ? e
+        : new DisplayableError('client', 'setup encryption', 'failed to create fernet key');
+    throw err;
+  }
+
+  return { key, uid: raw.uid };
 };
 
 const getClientKey = async (user: LoginContextValueLoggedIn): Promise<JournalClientKey | null> => {
@@ -128,9 +162,9 @@ const createClientKey = async (
     throw new Error('Visitor is still loading');
   }
 
-  const response = await apiFetch(
-    '/api/1/journals/client_keys/',
-    {
+  const responseGetter = createSmartAPIFetch({
+    path: '/api/1/journals/client_keys/',
+    init: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
@@ -145,18 +179,42 @@ const createClientKey = async (
         client_dh_public_key: ourPublicKeyAsStandardBase64,
       }),
     },
-    user
+    user: () => ({ user }),
+    retryer: 'default',
+    mapper: createTypicalSmartAPIFetchMapper({
+      mapJSON: (v) =>
+        v as {
+          uid: string;
+          server_dh_public_key: string;
+          salt: string;
+          visitor: string;
+        },
+      action: 'create journal client key',
+    }),
+  });
+  const responseDone = waitForValueWithCallbacksConditionCancelable(
+    responseGetter.state,
+    (s) => s.type === 'error' || s.type === 'success' || s.type === 'released'
   );
-  if (!response.ok) {
-    throw response;
-  }
-  const data: {
-    uid: string;
-    server_dh_public_key: string;
-    salt: string;
-    visitor: string;
-  } = await response.json();
+  await responseDone.promise;
 
+  const finalState = responseGetter.state.get();
+  if (finalState.type !== 'released') {
+    responseGetter.sendMessage({ type: 'release' });
+  }
+
+  if (finalState.type !== 'success') {
+    if (finalState.type === 'error') {
+      throw finalState.error;
+    }
+    throw new DisplayableError(
+      'client',
+      'create journal client key',
+      `unexpected request state: ${finalState.type}`
+    );
+  }
+
+  const data = finalState.value;
   if (data.visitor !== initialVisitor.uid) {
     visitor.setVisitor(data.visitor);
   }

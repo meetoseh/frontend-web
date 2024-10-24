@@ -4,7 +4,6 @@ import {
   ButtonWithIcon,
   ButtonsWithIconsColumn,
 } from '../../../shared/components/ButtonsWithIconsColumn';
-import styles from './ProvidersList.module.css';
 import { Google } from '../../../shared/components/icons/Google';
 import { OsehColors } from '../../../shared/OsehColors';
 import { Apple } from '../../../shared/components/icons/Apple';

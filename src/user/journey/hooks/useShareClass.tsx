@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import {
   VariableStrategyProps,
   useVariableStrategyPropsAsValueWithCallbacks,

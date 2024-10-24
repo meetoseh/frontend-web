@@ -11,7 +11,6 @@ import { useWindowSize } from '../../../shared/hooks/useWindowSize';
 import styles from './AgendaScreen.module.css';
 import { Button } from '../../../shared/forms/Button';
 import { useOsehImageStateRequestHandler } from '../../../shared/images/useOsehImageStateRequestHandler';
-import { OsehImageFromState } from '../../../shared/images/OsehImageFromState';
 import { useOsehImageStateValueWithCallbacks } from '../../../shared/images/useOsehImageStateValueWithCallbacks';
 import { OsehImageFromStateValueWithCallbacks } from '../../../shared/images/OsehImageFromStateValueWithCallbacks';
 

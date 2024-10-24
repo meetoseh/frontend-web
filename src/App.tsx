@@ -11,7 +11,6 @@ import {
   TokenResponseConfig,
 } from './shared/contexts/LoginContext';
 import { TestLogin } from './shared/TestLogin';
-import { LoginApp } from './user/login/LoginApp';
 import { SplashScreen } from './user/splash/SplashScreen';
 import { ConnectivityScreen } from './user/connectivity/ConnectivityScreen';
 import { CourseActivateScreen } from './user/courses/CourseActivateScreen';

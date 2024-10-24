@@ -1,4 +1,4 @@
-import { ReactElement, useContext } from 'react';
+import { ReactElement } from 'react';
 import { ScreenContext } from '../core/hooks/useScreenContext';
 import styles from './AnonymousAccountCreation.module.css';
 import { GridFullscreenContainer } from '../../shared/components/GridFullscreenContainer';
