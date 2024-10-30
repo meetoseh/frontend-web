@@ -69,6 +69,7 @@ import { HoldToContinueScreen } from './core/screens/hold_to_continue/HoldToCont
 import { AnonymousAccountCreation } from './splash/AnonymousAccountCreation';
 import { UnsubscribeEmailScreen } from './core/screens/unsubscribe_email/UnsubscribeEmailScreen';
 import { BoxError, DisplayableError } from '../shared/lib/errors';
+import { TextInterstitialScreen } from './core/screens/text_interstitial/TextInterstitialScreen';
 
 export default function UserScreensApp(): ReactElement {
   const imageFormatsVWC = useWritableValueWithCallbacks<{
@@ -160,6 +161,7 @@ const screens = [
   HomeV4Screen,
   HoldToContinueScreen,
   UnsubscribeEmailScreen,
+  TextInterstitialScreen,
 ] as any[] as readonly OsehScreen<string, ScreenResources, object, { __mapped?: true }>[];
 
 /**
