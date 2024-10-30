@@ -32,6 +32,14 @@ export type JournalChatAPIParams = {
   /** If specified, used to fill in text on the input */
   autofill?: string | null;
 
+  /** If specified, replaces the suggestions. If undefined, we use the default suggestions */
+  suggestions?: {
+    /** The text for the suggestion */
+    text: string;
+    /** The width for the suggestion at 1x font scaling */
+    width: number;
+  }[];
+
   /** entrance transition */
   entrance: StandardScreenTransition;
 
@@ -59,5 +67,12 @@ export type JournalChatMappedParams = Omit<
   journalEntry: ScreenJournalEntryParsed | null;
   /** The initial value of the input */
   autofill: string;
+  /** The suggestions to use */
+  suggestions: {
+    /** The text for the suggestion */
+    text: string;
+    /** The width for the suggestion at 1x font scaling */
+    width: number;
+  }[];
   __mapped: true;
 };

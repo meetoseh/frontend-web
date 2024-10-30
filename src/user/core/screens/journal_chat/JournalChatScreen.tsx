@@ -27,6 +27,16 @@ import { computeJournalChatStateDataIntegrity, JournalChatState } from './lib/Jo
 import { createTypicalSmartAPIFetchMapper } from '../../../../shared/lib/smartApiFetch';
 import { VISITOR_SOURCE } from '../../../../shared/lib/visitorSource';
 
+/** the suggestions to use if the api does not provide them (for convenience when we're changing the api) */
+const DEFAULT_SUGGESTIONS = [
+  { text: 'I have a lot of anxiety right now', width: 160 },
+  { text: 'I feel scattered and need to focus', width: 160 },
+  { text: 'I’m feeling disconnected', width: 130 },
+  { text: 'I’m having trouble sleeping and need to calm my mind', width: 240 },
+  { text: 'I’m feeling a bit down and need encouragement', width: 238 },
+  { text: 'I’m feeling happy and want to cherish this moment', width: 220 },
+];
+
 /**
  * Allows the user to chat with the system.
  */
@@ -50,6 +60,7 @@ export const JournalChatScreen: OsehScreen<
         ? null
         : convertUsingMapper(params.journal_entry, screenJournalEntryKeyMap),
     autofill: params.autofill ?? '',
+    suggestions: params.suggestions ?? DEFAULT_SUGGESTIONS,
     __mapped: true,
   }),
   initInstanceResources: (ctx, screen, refreshScreen) => {

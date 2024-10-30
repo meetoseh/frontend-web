@@ -36,15 +36,6 @@ import { JournalChatSpinners } from './components/JournalChatSpinners';
 import { JournalChatParts } from './components/JournalChatParts';
 import { DisplayableError } from '../../../../shared/lib/errors';
 
-const SUGGESTIONS = [
-  { text: 'I have a lot of anxiety right now', width: 160 },
-  { text: 'I feel scattered and need to focus', width: 160 },
-  { text: 'I’m feeling disconnected', width: 130 },
-  { text: 'I’m having trouble sleeping and need to calm my mind', width: 240 },
-  { text: 'I’m feeling a bit down and need encouragement', width: 238 },
-  { text: 'I’m feeling happy and want to cherish this moment', width: 220 },
-];
-
 /**
  * Allows the user to talk with the system
  */
@@ -337,38 +328,44 @@ export const JournalChat = ({
               <></>
             ) : (
               <>
-                <div className={styles.hint}>
-                  Type a message below or tap a suggestion to get started
-                </div>
-                <VerticalSpacer height={16} />
-                <div className={styles.suggestions}>
-                  {SUGGESTIONS.map((suggestion, i) => (
-                    <Fragment key={i}>
-                      <HorizontalSpacer width={i === 0 ? 16 : 12} />
-                      <button
-                        type="button"
-                        className={styles.suggestion}
-                        onClick={(e) => {
-                          e.preventDefault();
+                {screen.parameters.suggestions.length > 0 && (
+                  <>
+                    <div className={styles.hint}>
+                      Type a message below or tap a suggestion to get started
+                    </div>
+                    <VerticalSpacer height={16} />
+                    <div className={styles.suggestions}>
+                      {screen.parameters.suggestions.map((suggestion, i) => (
+                        <Fragment key={i}>
+                          <HorizontalSpacer width={i === 0 ? 16 : 12} />
+                          <button
+                            type="button"
+                            className={styles.suggestion}
+                            onClick={(e) => {
+                              e.preventDefault();
 
-                          const ele = inputVWC.get();
-                          if (ele === null) {
-                            return;
-                          }
+                              const ele = inputVWC.get();
+                              if (ele === null) {
+                                return;
+                              }
 
-                          setVWC(rawInputValueVWC, suggestion.text);
-                          ele.focus();
-                        }}
-                        style={{
-                          width: `${suggestion.width}px`,
-                          flex: `${suggestion.width}px 0 0`,
-                        }}>
-                        {suggestion.text}
-                      </button>
-                      <HorizontalSpacer width={i === SUGGESTIONS.length - 1 ? 16 : 0} />
-                    </Fragment>
-                  ))}
-                </div>
+                              setVWC(rawInputValueVWC, suggestion.text);
+                              ele.focus();
+                            }}
+                            style={{
+                              width: `${suggestion.width}px`,
+                              flex: `${suggestion.width}px 0 0`,
+                            }}>
+                            {suggestion.text}
+                          </button>
+                          <HorizontalSpacer
+                            width={i === screen.parameters.suggestions.length - 1 ? 16 : 0}
+                          />
+                        </Fragment>
+                      ))}
+                    </div>
+                  </>
+                )}
                 <VerticalSpacer height={16} />
                 <ContentContainer contentWidthVWC={ctx.contentWidth}>
                   <VoiceOrTextInput
