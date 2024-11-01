@@ -35,18 +35,21 @@ export const JournalChatJourneyCard = (props: JournalChatJourneyCardProps) => {
         </div>
         <div className={combineClasses(OsehStyles.layout.stacking.child, OsehStyles.layout.column)}>
           {props.journeyPart.details.access === 'paid-requires-upgrade' && (
-            <div className={OsehStyles.layout.row}>
-              <HorizontalSpacer width={16} />
-              <div className={styles.topForegroundPaid}>
-                <div
-                  className={combineClasses(
-                    OsehStyles.typography.detail1,
-                    OsehStyles.colors.v4.primary.light
-                  )}>
-                  Free Trial
+            <>
+              <VerticalSpacer height={0} maxHeight={16} flexGrow={1} />
+              <div className={OsehStyles.layout.row}>
+                <HorizontalSpacer width={16} />
+                <div className={styles.topForegroundPaid}>
+                  <div
+                    className={combineClasses(
+                      OsehStyles.typography.detail1,
+                      OsehStyles.colors.v4.primary.light
+                    )}>
+                    Free Trial
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
           <VerticalSpacer height={0} flexGrow={1} />
           <div className={OsehStyles.layout.row}>
