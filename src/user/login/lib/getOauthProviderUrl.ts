@@ -14,6 +14,9 @@ export const getOauthProviderUrl = async (provider: string): Promise<string> => 
     return '/dev_login';
   }
 
+  const isYoutubeAccount =
+    provider === 'Google' && localStorage.getItem('youtubeAccount') === 'true';
+
   let response;
   try {
     response = await fetch(HTTP_API_URL + '/api/1/oauth/prepare', {
@@ -22,6 +25,11 @@ export const getOauthProviderUrl = async (provider: string): Promise<string> => 
       body: JSON.stringify({
         provider: provider,
         refresh_token_desired: true,
+        ...(isYoutubeAccount
+          ? {
+              is_youtube_account: true,
+            }
+          : {}),
       }),
     });
   } catch {
